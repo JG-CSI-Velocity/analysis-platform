@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from shared.context import PipelineContext
 from shared.types import AnalysisResult
@@ -21,6 +21,7 @@ def run_pipeline(
     output_dir: Path = Path("output"),
     client_id: str = "",
     client_name: str = "",
+    client_config: dict | None = None,
     progress_callback: Callable[[str], None] | None = None,
 ) -> dict[str, AnalysisResult]:
     """Run a named pipeline and return results.
@@ -35,6 +36,8 @@ def run_pipeline(
         Where to write outputs.
     client_id, client_name : str
         Client identifiers.
+    client_config : dict | None
+        Pipeline-specific client config (e.g. ARS config_path).
     progress_callback : callable | None
         Optional progress callback.
 
@@ -51,6 +54,7 @@ def run_pipeline(
         input_files=input_files,
         output_dir=output_dir,
         chart_dir=output_dir / "charts",
+        client_config=client_config or {},
         progress_callback=progress_callback,
     )
 

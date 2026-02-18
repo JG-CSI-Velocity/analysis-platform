@@ -6,6 +6,7 @@ dict-based ctx pattern used by the ported ARS analysis modules.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from shared.context import PipelineContext
@@ -74,13 +75,13 @@ def run_ars_from_dict(ctx: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def _build_base_paths(ctx: PipelineContext) -> dict[str, str] | None:
+def _build_base_paths(ctx: PipelineContext) -> dict[str, Path] | None:
     """Build the base_paths dict from PipelineContext if configured."""
     if not ctx.output_dir:
         return None
     return {
-        "presentations": str(ctx.output_dir),
-        "archive": str(ctx.output_dir / "archive"),
+        "presentations": ctx.output_dir,
+        "archive": ctx.output_dir / "archive",
     }
 
 

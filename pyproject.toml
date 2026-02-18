@@ -1,0 +1,37 @@
+[project]
+name = "analysis-platform"
+version = "1.0.0"
+description = "Unified banking analysis platform: ARS, Transaction, and ICS pipelines"
+requires-python = ">=3.11"
+readme = "README.md"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+shared = { workspace = true }
+ars-analysis = { workspace = true }
+txn-analysis = { workspace = true }
+ics-toolkit = { workspace = true }
+platform-app = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+    "packages/shared/src",
+    "packages/ars_analysis/src",
+    "packages/txn_analysis/src",
+    "packages/ics_toolkit/src",
+    "packages/platform_app/src",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["shared", "ars_analysis", "txn_analysis", "ics_toolkit", "platform_app"]

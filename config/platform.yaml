@@ -1,0 +1,26 @@
+# Unified Analysis Platform Configuration
+# =========================================
+
+base_output_dir: output
+m_drive_path: null  # Set to M: drive path when available (e.g., "M:\\ARS")
+chart_theme: consultant
+template_pptx: null  # Path to Template12.25.pptx
+
+pipelines:
+  ars:
+    enabled: true
+    settings:
+      chart_dpi: 150
+      skip_pptx: false
+
+  txn:
+    enabled: true
+    settings:
+      recent_months: 12
+      top_n: 50
+      interchange_rate: 0.015
+
+  ics:
+    enabled: true
+    settings:
+      cohort_auto_detect: true

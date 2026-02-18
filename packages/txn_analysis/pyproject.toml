@@ -1,0 +1,17 @@
+[project]
+name = "txn-analysis"
+version = "1.0.0"
+description = "Transaction analysis pipeline: portfolio health, merchant intel, competition, demographics"
+requires-python = ">=3.11"
+dependencies = [
+    "shared",
+    "plotly>=6.0",
+    "kaleido==0.2.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/txn_analysis"]

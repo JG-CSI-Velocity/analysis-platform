@@ -32,9 +32,9 @@ def run_ics(ctx: PipelineContext) -> dict[str, SharedResult]:
 
     settings = Settings.for_analysis(data_file=Path(data_file), **kwargs)
 
-    def _progress_bridge(msg: str, status: str = "") -> None:
+    def _progress_bridge(step: int, total: int, msg: str) -> None:
         if ctx.progress_callback:
-            ctx.progress_callback(f"[ICS] {msg}")
+            ctx.progress_callback(f"[ICS {step}/{total}] {msg}")
 
     result = run_pipeline(settings.analysis, on_progress=_progress_bridge)
     export_outputs(result)

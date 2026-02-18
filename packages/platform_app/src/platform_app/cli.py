@@ -14,30 +14,68 @@ app = typer.Typer(
 
 @app.command()
 def run(
-    pipeline: str = typer.Argument(help="Pipeline to run: ars, txn, ics, or all"),
-    client: str = typer.Argument(help="Client name or 'all' for batch"),
-    oddd_path: Path | None = typer.Option(None, "--oddd", help="Path to ODDD file"),
-    tran_path: Path | None = typer.Option(None, "--tran", help="Path to transaction file"),
-    odd_path: Path | None = typer.Option(None, "--odd", help="Path to ODD file"),
-    output_dir: Path = typer.Option("output", "--output", help="Output directory"),
-    config: Path = typer.Option("config/platform.yaml", "--config", help="Config file path"),
+    pipeline: str = typer.Argument(help="Pipeline to run: ars, txn, txn_v4, ics, ics_append"),
+    data_file: Path = typer.Argument(help="Primary data file path"),
+    odd_file: Path | None = typer.Option(None, "--odd", help="ODD file (for txn_v4, ars)"),
+    tran_file: Path | None = typer.Option(None, "--tran", help="Transaction file (for txn)"),
+    output_dir: Path = typer.Option("output", "--output", "-o", help="Output directory"),
+    client_id: str = typer.Option("", "--client-id", help="Client identifier"),
+    client_name: str = typer.Option("", "--client-name", help="Client display name"),
 ) -> None:
-    """Run analysis pipeline(s) for a client."""
-    typer.echo(f"Running {pipeline} for {client}...")
-    # TODO: Wire up orchestrator (Phase 6)
-    raise typer.Exit(code=1)
+    """Run a single analysis pipeline."""
+    from platform_app.orchestrator import run_pipeline
+
+    input_files = _build_input_files(pipeline, data_file, odd_file, tran_file)
+
+    def _echo_progress(msg: str) -> None:
+        typer.echo(msg)
+
+    typer.echo(f"Running {pipeline} pipeline...")
+    results = run_pipeline(
+        pipeline,
+        input_files=input_files,
+        output_dir=output_dir,
+        client_id=client_id,
+        client_name=client_name,
+        progress_callback=_echo_progress,
+    )
+    typer.echo(f"Complete: {len(results)} analyses produced.")
+    typer.echo(f"Output: {output_dir}/")
 
 
 @app.command()
-def batch(
-    manifest: Path = typer.Argument(help="YAML/CSV manifest of clients + file paths"),
-    pipelines: str = typer.Option("all", "--pipelines", help="Comma-separated pipeline names"),
-    workers: int = typer.Option(4, "--workers", help="Parallel workers (1=sequential)"),
+def run_all(
+    data_dir: Path = typer.Argument(help="Directory containing client data files"),
+    output_dir: Path = typer.Option("output", "--output", "-o", help="Output directory"),
+    client_id: str = typer.Option("", "--client-id", help="Client identifier"),
+    client_name: str = typer.Option("", "--client-name", help="Client display name"),
+    pipelines: str = typer.Option("auto", "--pipelines", help="Comma-separated pipelines or 'auto'"),
 ) -> None:
-    """Run batch analysis across multiple clients."""
-    typer.echo(f"Batch processing from {manifest}...")
-    # TODO: Wire up batch orchestrator (Phase 6)
-    raise typer.Exit(code=1)
+    """Run all applicable pipelines for a client's data directory."""
+    from platform_app.orchestrator import run_all as orchestrator_run_all
+
+    input_files = _scan_data_dir(data_dir)
+    if not input_files:
+        typer.echo(f"No recognized data files found in {data_dir}", err=True)
+        raise typer.Exit(code=1)
+
+    pipeline_list = None if pipelines == "auto" else pipelines.split(",")
+
+    def _echo_progress(msg: str) -> None:
+        typer.echo(msg)
+
+    typer.echo(f"Detected files: {', '.join(f'{k}={v.name}' for k, v in input_files.items())}")
+    all_results = orchestrator_run_all(
+        input_files=input_files,
+        output_dir=output_dir,
+        client_id=client_id,
+        client_name=client_name,
+        pipelines=pipeline_list,
+        progress_callback=_echo_progress,
+    )
+
+    total = sum(len(r) for r in all_results.values())
+    typer.echo(f"Complete: {len(all_results)} pipelines, {total} total analyses.")
 
 
 @app.command()
@@ -60,6 +98,45 @@ def format_oddd(
 
     df.to_excel(str(output_path), index=False)
     typer.echo(f"Saved formatted file: {output_path} ({len(df)} rows, {len(df.columns)} columns)")
+
+
+def _build_input_files(
+    pipeline: str, data_file: Path, odd_file: Path | None, tran_file: Path | None,
+) -> dict[str, Path]:
+    """Map CLI args to input_files dict based on pipeline type."""
+    files: dict[str, Path] = {}
+    if pipeline == "ars":
+        files["oddd"] = data_file
+    elif pipeline in ("txn", "txn_v4"):
+        files["tran"] = tran_file or data_file
+        if odd_file:
+            files["odd"] = odd_file
+    elif pipeline == "ics":
+        files["ics"] = data_file
+    elif pipeline == "ics_append":
+        files["base_dir"] = data_file
+    return files
+
+
+def _scan_data_dir(data_dir: Path) -> dict[str, Path]:
+    """Scan a directory and auto-detect file roles by naming convention."""
+    files: dict[str, Path] = {}
+    for f in sorted(data_dir.iterdir()):
+        if not f.is_file():
+            continue
+        name = f.stem.lower()
+        suffix = f.suffix.lower()
+        if suffix not in (".csv", ".xlsx", ".xls"):
+            continue
+        if "oddd" in name:
+            files["oddd"] = f
+        elif "odd" in name and "oddd" not in name:
+            files["odd"] = f
+        elif "tran" in name:
+            files["tran"] = f
+        elif "ics" in name:
+            files["ics"] = f
+    return files
 
 
 if __name__ == "__main__":

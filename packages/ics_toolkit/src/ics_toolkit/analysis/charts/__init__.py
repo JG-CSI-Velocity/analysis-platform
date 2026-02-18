@@ -1,7 +1,7 @@
 """Chart creation registry and dispatcher."""
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import plotly.graph_objects as go
 

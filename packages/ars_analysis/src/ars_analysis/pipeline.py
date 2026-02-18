@@ -772,7 +772,7 @@ def step_setup_deck(ctx, deck_builder_path=None, template_path=None):
     """Cell 16: Initialize deck builder."""
 
     try:
-        from deck_builder import (
+        from ars_analysis.deck_builder import (
             DECK_CONFIG,
             DeckBuilder,
             SlideContent,

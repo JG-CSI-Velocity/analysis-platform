@@ -51,7 +51,9 @@ CONFIG_PATH = ARS_BASE / "Config" / "clients_config.json"
 TRACKER_PATH = ARS_BASE / "Config" / "run_tracker.json"
 PRESENTATIONS_PATH = ARS_BASE / "Output"
 ARCHIVE_PATH = ARS_BASE / "Output" / "Archive"
-TEMPLATE_PATH = ARS_BASE / "Template" / "Template12.25.pptx"
+_NETWORK_TEMPLATE = ARS_BASE / "Template" / "Template12.25.pptx"
+_BUNDLED_TEMPLATE = Path(__file__).resolve().parent / "templates" / "Template12.25.pptx"
+TEMPLATE_PATH = _NETWORK_TEMPLATE if _NETWORK_TEMPLATE.exists() else _BUNDLED_TEMPLATE
 LOG_DIR = ARS_BASE / "Logs"
 TEST_REPORTS_DIR = ARS_BASE / "Test-Reports"
 

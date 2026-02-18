@@ -173,12 +173,12 @@ class TestV4RunnerBridge:
 
         assert _convert_v4_results({}) == {}
 
-    def test_run_txn_v4_missing_tran_file(self):
+    def test_run_txn_v4_missing_txn_dir(self):
         from pathlib import Path
 
         from shared.context import PipelineContext
         from txn_analysis.runner import run_txn_v4
 
         ctx = PipelineContext(output_dir=Path("/tmp/test"))
-        with pytest.raises(FileNotFoundError, match="No 'tran' input file"):
+        with pytest.raises(FileNotFoundError, match="No 'txn_dir' input"):
             run_txn_v4(ctx)

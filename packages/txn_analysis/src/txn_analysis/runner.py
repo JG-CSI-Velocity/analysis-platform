@@ -59,7 +59,7 @@ def run_txn_v4(ctx: PipelineContext) -> dict[str, SharedResult]:
     """Run V4 storyline analyses via PipelineContext bridge.
 
     This runs the txnv3 storyline pipeline (S1-S9, 99+ analyses) which
-    requires both a transaction file (tran) and an ODD file (odd).
+    requires a transaction directory (txn_dir) and an ODD file (odd).
     """
     from txn_analysis.v4_data_loader import load_config
     from txn_analysis.v4_run import run_pipeline as v4_run_pipeline
@@ -79,15 +79,19 @@ def run_txn_v4(ctx: PipelineContext) -> dict[str, SharedResult]:
         config["client_name"] = ctx.client_name
 
     # Set data paths from PipelineContext input_files
-    tran_file = ctx.input_files.get("tran")
+    # V4 expects a directory of CSV/TXT files, not a single file
+    txn_dir = ctx.input_files.get("txn_dir")
     odd_file = ctx.input_files.get("odd")
-    if tran_file:
-        config["transaction_file"] = str(tran_file)
+    file_ext = ctx.client_config.get("file_extension", "csv")
+    if txn_dir:
+        config["transaction_dir"] = str(txn_dir)
     if odd_file:
         config["odd_file"] = str(odd_file)
+    if file_ext:
+        config["file_extension"] = file_ext
 
-    if not config.get("transaction_file"):
-        raise FileNotFoundError("No 'tran' input file in PipelineContext for V4 pipeline")
+    if not config.get("transaction_dir"):
+        raise FileNotFoundError("No 'txn_dir' input in PipelineContext for V4 pipeline")
 
     def _progress_bridge(step: int, total: int, msg: str) -> None:
         if ctx.progress_callback:

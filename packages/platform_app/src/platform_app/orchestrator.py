@@ -140,8 +140,8 @@ def _detect_pipelines(input_files: dict[str, Path]) -> list[str]:
         pipelines.append("ars")
     if "tran" in input_files:
         pipelines.append("txn")
-        if "odd" in input_files:
-            pipelines.append("txn_v4")
+    if "txn_dir" in input_files and "odd" in input_files:
+        pipelines.append("txn_v4")
     if "ics" in input_files:
         pipelines.append("ics")
     return pipelines

@@ -21,9 +21,13 @@ class TestDetectPipelines:
     def test_tran_detects_txn(self):
         assert _detect_pipelines({"tran": Path("x.csv")}) == ["txn"]
 
-    def test_tran_and_odd_detects_txn_and_v4(self):
+    def test_txn_dir_and_odd_detects_v4(self):
+        result = _detect_pipelines({"txn_dir": Path("txns/"), "odd": Path("y.xlsx")})
+        assert result == ["txn_v4"]
+
+    def test_tran_and_odd_without_txn_dir_no_v4(self):
         result = _detect_pipelines({"tran": Path("x.csv"), "odd": Path("y.xlsx")})
-        assert result == ["txn", "txn_v4"]
+        assert result == ["txn"]
 
     def test_ics_detects_ics(self):
         assert _detect_pipelines({"ics": Path("x.xlsx")}) == ["ics"]
@@ -32,6 +36,7 @@ class TestDetectPipelines:
         files = {
             "oddd": Path("a.xlsx"),
             "tran": Path("b.csv"),
+            "txn_dir": Path("txns/"),
             "odd": Path("c.xlsx"),
             "ics": Path("d.xlsx"),
         }

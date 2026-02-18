@@ -41,20 +41,26 @@ def main() -> None:
     # Main area - File Upload
     st.header("Data Files")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        primary_file = st.file_uploader(
-            "Primary Data File",
-            type=["csv", "xlsx", "xls"],
-            help=_file_help(pipeline_key),
-        )
+    file_labels = _file_labels(pipeline_key)
 
-    with col2:
-        secondary_file = st.file_uploader(
-            "Secondary File (Optional)",
-            type=["csv", "xlsx", "xls"],
-            help="ODD file for V4 storylines, or leave empty.",
+    if file_labels["secondary"] is None:
+        primary_file = st.file_uploader(
+            file_labels["primary"],
+            type=file_labels["types"],
         )
+        secondary_file = None
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            primary_file = st.file_uploader(
+                file_labels["primary"],
+                type=file_labels["types"],
+            )
+        with col2:
+            secondary_file = st.file_uploader(
+                file_labels["secondary"],
+                type=["csv", "xlsx", "xls"],
+            )
 
     # Run Button
     if st.button("Run Analysis", type="primary", disabled=primary_file is None):
@@ -129,15 +135,35 @@ def main() -> None:
                 st.exception(e)
 
 
-def _file_help(pipeline: str) -> str:
-    """Return help text for the primary file uploader."""
+def _file_labels(pipeline: str) -> dict:
+    """Return uploader labels and accepted types for each pipeline."""
     return {
-        "ars": "ODDD Excel file (.xlsx)",
-        "txn": "Transaction CSV file (.csv)",
-        "txn_v4": "Transaction file (.csv) -- also upload ODD as secondary",
-        "ics": "ICS data file (.xlsx or .csv)",
-        "ics_append": "Base directory path (not applicable for upload)",
-    }.get(pipeline, "Data file")
+        "ars": {
+            "primary": "ODD File (.xlsx)",
+            "secondary": None,
+            "types": ["xlsx", "xls"],
+        },
+        "txn": {
+            "primary": "Transaction File (.csv)",
+            "secondary": None,
+            "types": ["csv"],
+        },
+        "txn_v4": {
+            "primary": "Transaction File (.csv)",
+            "secondary": "ODD File (.xlsx)",
+            "types": ["csv"],
+        },
+        "ics": {
+            "primary": "ICS Data File (.xlsx)",
+            "secondary": None,
+            "types": ["xlsx", "csv"],
+        },
+        "ics_append": {
+            "primary": "ICS Data File (.xlsx)",
+            "secondary": None,
+            "types": ["xlsx", "csv"],
+        },
+    }.get(pipeline, {"primary": "Data File", "secondary": None, "types": ["csv", "xlsx"]})
 
 
 def _build_input_files(pipeline: str, primary_path: Path) -> dict[str, Path]:

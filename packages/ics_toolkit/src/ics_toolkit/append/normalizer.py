@@ -27,7 +27,7 @@ def normalize_hash(value: str | None) -> str:
     return _NON_ALNUM.sub("", s)
 
 
-def normalize_series(series: "pd.Series") -> "pd.Series":
+def normalize_series(series: pd.Series) -> pd.Series:
     """Vectorized hash normalization for a pandas Series."""
 
     s = series.astype(str).str.strip()

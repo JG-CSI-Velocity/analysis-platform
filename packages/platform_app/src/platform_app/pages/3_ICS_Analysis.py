@@ -10,13 +10,16 @@ import streamlit as st
 
 def _offer_downloads(output_dir: Path) -> None:
     files = sorted(
-        f for f in output_dir.rglob("*")
+        f
+        for f in output_dir.rglob("*")
         if f.is_file() and f.suffix in (".xlsx", ".pptx", ".csv", ".html", ".png")
     )
     if files:
         st.header("Downloads")
         for f in files:
-            st.download_button(f.name, f.read_bytes(), file_name=f.name, mime="application/octet-stream")
+            st.download_button(
+                f.name, f.read_bytes(), file_name=f.name, mime="application/octet-stream"
+            )
 
 
 st.set_page_config(page_title="ICS Analysis", layout="wide")

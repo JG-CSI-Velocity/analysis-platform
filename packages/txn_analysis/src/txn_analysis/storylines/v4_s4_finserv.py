@@ -7,6 +7,7 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+
 from txn_analysis.v4_themes import (
     CATEGORY_PALETTE,
     COLORS,
@@ -575,13 +576,17 @@ def _opportunity_scoring(fs_df):
     # Ensure transaction_date is datetime
     txn_dates = pd.to_datetime(fs_df["transaction_date"], errors="coerce")
 
-    acct_agg = fs_df.assign(transaction_date=txn_dates).groupby("primary_account_num").agg(
-        Total_FinServ_Spend=("amount", "sum"),
-        Transaction_Count=("amount", "count"),
-        Avg_Transaction=("amount", "mean"),
-        Categories_Used=("finserv_category", "nunique"),
-        Categories=("finserv_category", lambda x: ", ".join(sorted(x.unique()))),
-        Last_Transaction=("transaction_date", "max"),
+    acct_agg = (
+        fs_df.assign(transaction_date=txn_dates)
+        .groupby("primary_account_num")
+        .agg(
+            Total_FinServ_Spend=("amount", "sum"),
+            Transaction_Count=("amount", "count"),
+            Avg_Transaction=("amount", "mean"),
+            Categories_Used=("finserv_category", "nunique"),
+            Categories=("finserv_category", lambda x: ", ".join(sorted(x.unique()))),
+            Last_Transaction=("transaction_date", "max"),
+        )
     )
     acct_agg["Avg_Transaction"] = acct_agg["Avg_Transaction"].round(2)
 
@@ -613,11 +618,7 @@ def _opportunity_scoring(fs_df):
     # Distribution table: Value Tier x Recency
     tier_order = ["High Value", "Medium Value", "Lower Value"]
     recency_order = ["Active", "Recent", "Inactive"]
-    pivot = (
-        acct_agg.groupby(["Value Tier", "Recency"])
-        .size()
-        .reset_index(name="Accounts")
-    )
+    pivot = acct_agg.groupby(["Value Tier", "Recency"]).size().reset_index(name="Accounts")
     dist_table = pivot.pivot_table(
         index="Value Tier",
         columns="Recency",
@@ -634,10 +635,7 @@ def _opportunity_scoring(fs_df):
 
     # Horizontal bar chart: accounts by Value Tier
     tier_counts = (
-        acct_agg["Value Tier"]
-        .value_counts()
-        .reindex(tier_order, fill_value=0)
-        .reset_index()
+        acct_agg["Value Tier"].value_counts().reindex(tier_order, fill_value=0).reset_index()
     )
     tier_counts.columns = ["Value Tier", "Accounts"]
 
@@ -733,7 +731,7 @@ def _category_affinity_matrix(fs_df):
     for cats in multi_accts:
         cat_list = sorted(cats)
         for i, cat_a in enumerate(cat_list):
-            for cat_b in cat_list[i + 1:]:
+            for cat_b in cat_list[i + 1 :]:
                 matrix.loc[cat_a, cat_b] += 1
                 matrix.loc[cat_b, cat_a] += 1
 
@@ -767,7 +765,7 @@ def _category_affinity_matrix(fs_df):
     best_val = 0
     best_pair = ("", "")
     for i, cat_a in enumerate(active_cats):
-        for cat_b in active_cats[i + 1:]:
+        for cat_b in active_cats[i + 1 :]:
             val = matrix.loc[cat_a, cat_b]
             if val > best_val:
                 best_val = val

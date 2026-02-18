@@ -6,31 +6,57 @@ from __future__ import annotations
 import re
 
 import pandas as pd
-import numpy as np
 import plotly.graph_objects as go
+
 from txn_analysis.v4_themes import (
-    COLORS, GENERATION_COLORS, apply_theme, format_currency, format_pct,
-    horizontal_bar, line_trend, donut_chart, grouped_bar,
-    insight_title, add_source_footer,
+    COLORS,
+    GENERATION_COLORS,
+    apply_theme,
+    donut_chart,
+    format_currency,
+    grouped_bar,
+    horizontal_bar,
+    insight_title,
+    line_trend,
 )
 
 _KNOWN_PROCESSORS = {
-    "ADP", "PAYCHEX", "INTUIT", "BAMBOOHR", "GUSTO", "PAYLOCITY",
-    "PAYCOM", "CERIDIAN", "WORKDAY", "RIPPLING", "NAMELY",
+    "ADP",
+    "PAYCHEX",
+    "INTUIT",
+    "BAMBOOHR",
+    "GUSTO",
+    "PAYLOCITY",
+    "PAYCOM",
+    "CERIDIAN",
+    "WORKDAY",
+    "RIPPLING",
+    "NAMELY",
 }
 _GEN_ORDER = ["Gen Z", "Millennial", "Gen X", "Boomer", "Silent"]
 
 _NOISE_PATTERNS = [
-    r"QUICKBOOKS", r"XXXXX\d+", r"IC[A-Z]{2}\d+",
-    r"DIR DEP", r"DEPOSIT", r"REIMBURSEM", r"TAXIMPOUND",
-    r"DBA", r"FEES", r"\d{8,}",
+    r"QUICKBOOKS",
+    r"XXXXX\d+",
+    r"IC[A-Z]{2}\d+",
+    r"DIR DEP",
+    r"DEPOSIT",
+    r"REIMBURSEM",
+    r"TAXIMPOUND",
+    r"DBA",
+    r"FEES",
+    r"\d{8,}",
 ]
 
 _NOISE_WORDS = {"THE", "INC", "LLC", "CO", "AND", "FOR", "TAX", "DIR", "DEP"}
 
 _GENERIC_SKIP_TERMS = {
-    "CAPITAL", "CONSTRUCTION", "GREATER", "ASSOCIATION",
-    "SERVICES", "MANAGEMENT",
+    "CAPITAL",
+    "CONSTRUCTION",
+    "GREATER",
+    "ASSOCIATION",
+    "SERVICES",
+    "MANAGEMENT",
 }
 
 
@@ -96,7 +122,8 @@ def _detect_payroll(df: pd.DataFrame, config: dict) -> pd.DataFrame:
 
     if min_spend > 0:
         stats = df.groupby("merchant_consolidated").agg(
-            total=("amount", "sum"), accts=("primary_account_num", "nunique"),
+            total=("amount", "sum"),
+            accts=("primary_account_num", "nunique"),
         )
         cands = stats[(stats["total"] >= min_spend) & (stats["accts"] <= max_match)].index
         extra_mask = df["merchant_consolidated"].isin(cands) & ~df.index.isin(payroll_df.index)
@@ -117,43 +144,57 @@ def run(ctx: dict) -> dict:
     empty_result = {
         "title": "S8: Payroll & Circular Economy",
         "description": "Payroll detection, employer analysis, workforce demographics, recapture rate",
-        "sections": sections, "sheets": sheets,
+        "sections": sections,
+        "sheets": sheets,
     }
     if payroll_df.empty:
-        sections.append({"heading": "Payroll Detection",
-                         "narrative": "No payroll transactions were detected.",
-                         "figures": [], "tables": []})
+        sections.append(
+            {
+                "heading": "Payroll Detection",
+                "narrative": "No payroll transactions were detected.",
+                "figures": [],
+                "tables": [],
+            }
+        )
         return empty_result
 
     s, sh = _payroll_summary(df, payroll_df)
-    sections.append(s); sheets.append(sh)
+    sections.append(s)
+    sheets.append(sh)
     s, sh = _top_employers(payroll_df)
-    sections.append(s); sheets.append(sh)
+    sections.append(s)
+    sheets.append(sh)
     if "generation" in payroll_df.columns:
         s, sh = _payroll_by_generation(payroll_df)
-        sections.append(s); sheets.append(sh)
+        sections.append(s)
+        sheets.append(sh)
     if "year_month" in payroll_df.columns:
         s, sh = _monthly_trends(payroll_df)
-        sections.append(s); sheets.append(sh)
+        sections.append(s)
+        sheets.append(sh)
     circ = _circular_economy(df, payroll_df)
     if circ[0] is not None:
-        sections.append(circ[0]); sheets.append(circ[1])
+        sections.append(circ[0])
+        sheets.append(circ[1])
 
     # --- New analyses ported from 11_payroll.py ---
     clean_result = _clean_employer_list(payroll_df)
     if clean_result[0] is not None:
-        sections.append(clean_result[0]); sheets.append(clean_result[1])
+        sections.append(clean_result[0])
+        sheets.append(clean_result[1])
 
     personal_df = ctx.get("personal_df")
     if personal_df is not None and not payroll_df.empty:
         circ_detail = _circular_economy_detail(payroll_df, personal_df, config)
         if circ_detail[0] is not None:
-            sections.append(circ_detail[0]); sheets.append(circ_detail[1])
+            sections.append(circ_detail[0])
+            sheets.append(circ_detail[1])
 
     if "year_month" in payroll_df.columns:
         mom = _payroll_mom_growth(payroll_df)
         if mom[0] is not None:
-            sections.append(mom[0]); sheets.append(mom[1])
+            sections.append(mom[0])
+            sheets.append(mom[1])
 
     return empty_result  # sections/sheets already mutated into it
 
@@ -174,50 +215,93 @@ def _payroll_summary(df: pd.DataFrame, pay: pd.DataFrame):
     apply_theme(fig)
 
     narrative = (
-        f"Detected <b>{format_currency(total_pay)}</b> in payroll transactions "
-        f"across <b>{n_employers:,}</b> employers and <b>{n_accounts:,}</b> accounts. "
-        f"Payroll represents <b>{pct:.1f}%</b> of total debit card spend."
-    ) if total_all > 0 else f"Detected {format_currency(total_pay)} in payroll transactions."
+        (
+            f"Detected <b>{format_currency(total_pay)}</b> in payroll transactions "
+            f"across <b>{n_employers:,}</b> employers and <b>{n_accounts:,}</b> accounts. "
+            f"Payroll represents <b>{pct:.1f}%</b> of total debit card spend."
+        )
+        if total_all > 0
+        else f"Detected {format_currency(total_pay)} in payroll transactions."
+    )
 
-    tbl = pd.DataFrame([
-        {"Metric": "Total Payroll Spend", "Value": round(total_pay, 2)},
-        {"Metric": "Unique Employers", "Value": n_employers},
-        {"Metric": "Unique Accounts", "Value": n_accounts},
-        {"Metric": "Payroll % of Total", "Value": round(pct, 1)},
-    ])
-    section = {"heading": "Payroll Summary", "narrative": narrative,
-               "figures": [fig], "tables": [("Payroll Summary", tbl)]}
-    sheet = {"name": "S8 Payroll Summary", "df": tbl,
-             "currency_cols": [], "pct_cols": [], "number_cols": []}
+    tbl = pd.DataFrame(
+        [
+            {"Metric": "Total Payroll Spend", "Value": round(total_pay, 2)},
+            {"Metric": "Unique Employers", "Value": n_employers},
+            {"Metric": "Unique Accounts", "Value": n_accounts},
+            {"Metric": "Payroll % of Total", "Value": round(pct, 1)},
+        ]
+    )
+    section = {
+        "heading": "Payroll Summary",
+        "narrative": narrative,
+        "figures": [fig],
+        "tables": [("Payroll Summary", tbl)],
+    }
+    sheet = {
+        "name": "S8 Payroll Summary",
+        "df": tbl,
+        "currency_cols": [],
+        "pct_cols": [],
+        "number_cols": [],
+    }
     return section, sheet
 
 
 def _top_employers(pay: pd.DataFrame):
     agg = (
         pay.groupby("payroll_employer")
-        .agg(total=("amount", "sum"), employees=("primary_account_num", "nunique"),
-             txns=("amount", "count"))
-        .sort_values("total", ascending=False).head(20).reset_index()
+        .agg(
+            total=("amount", "sum"),
+            employees=("primary_account_num", "nunique"),
+            txns=("amount", "count"),
+        )
+        .sort_values("total", ascending=False)
+        .head(20)
+        .reset_index()
     )
     agg["avg"] = (agg["total"] / agg["employees"].replace(0, 1)).round(2)
-    agg.columns = ["Employer", "Total Payroll", "Unique Employees", "Transactions", "Avg per Employee"]
+    agg.columns = [
+        "Employer",
+        "Total Payroll",
+        "Unique Employees",
+        "Transactions",
+        "Avg per Employee",
+    ]
 
-    fig = horizontal_bar(agg, x_col="Total Payroll", y_col="Employer",
-                         title="Top 20 Employers by Payroll Spend", top_n=20)
+    fig = horizontal_bar(
+        agg,
+        x_col="Total Payroll",
+        y_col="Employer",
+        title="Top 20 Employers by Payroll Spend",
+        top_n=20,
+    )
     apply_theme(fig)
 
     top = agg.iloc[0] if not agg.empty else None
     narrative = (
-        f"The top employer is <b>{top['Employer']}</b> with "
-        f"{format_currency(top['Total Payroll'])} across "
-        f"<b>{int(top['Unique Employees']):,}</b> employees."
-    ) if top is not None else ""
+        (
+            f"The top employer is <b>{top['Employer']}</b> with "
+            f"{format_currency(top['Total Payroll'])} across "
+            f"<b>{int(top['Unique Employees']):,}</b> employees."
+        )
+        if top is not None
+        else ""
+    )
 
-    section = {"heading": "Top Employers", "narrative": narrative,
-               "figures": [fig], "tables": [("Top Employers", agg)]}
-    sheet = {"name": "S8 Top Employers", "df": agg,
-             "currency_cols": ["Total Payroll", "Avg per Employee"],
-             "pct_cols": [], "number_cols": ["Unique Employees", "Transactions"]}
+    section = {
+        "heading": "Top Employers",
+        "narrative": narrative,
+        "figures": [fig],
+        "tables": [("Top Employers", agg)],
+    }
+    sheet = {
+        "name": "S8 Top Employers",
+        "df": agg,
+        "currency_cols": ["Total Payroll", "Avg per Employee"],
+        "pct_cols": [],
+        "number_cols": ["Unique Employees", "Transactions"],
+    }
     return section, sheet
 
 
@@ -225,21 +309,32 @@ def _payroll_by_generation(pay: pd.DataFrame):
     agg = (
         pay.groupby("generation")
         .agg(total=("amount", "sum"), accts=("primary_account_num", "nunique"))
-        .reindex(_GEN_ORDER).dropna(how="all").fillna(0).reset_index()
+        .reindex(_GEN_ORDER)
+        .dropna(how="all")
+        .fillna(0)
+        .reset_index()
     )
     agg.columns = ["Generation", "Total Payroll", "Unique Accounts"]
     colors = [GENERATION_COLORS.get(g, COLORS["neutral"]) for g in agg["Generation"]]
 
-    fig = go.Figure(go.Bar(
-        x=agg["Generation"], y=agg["Total Payroll"], marker_color=colors,
-        text=agg["Total Payroll"].apply(format_currency), textposition="outside",
-        textfont=dict(size=10), hovertemplate="%{x}: %{y:$,.0f}<extra></extra>",
-    ))
+    fig = go.Figure(
+        go.Bar(
+            x=agg["Generation"],
+            y=agg["Total Payroll"],
+            marker_color=colors,
+            text=agg["Total Payroll"].apply(format_currency),
+            textposition="outside",
+            textfont=dict(size=10),
+            hovertemplate="%{x}: %{y:$,.0f}<extra></extra>",
+        )
+    )
     fig.update_layout(
-        title=insight_title("Payroll Volume by Generation",
-                            "Workforce demographics across credit union members"),
+        title=insight_title(
+            "Payroll Volume by Generation", "Workforce demographics across credit union members"
+        ),
         yaxis=dict(title=None, tickprefix="$", tickformat=","),
-        showlegend=False, height=500,
+        showlegend=False,
+        height=500,
     )
     apply_theme(fig)
 
@@ -255,10 +350,19 @@ def _payroll_by_generation(pay: pd.DataFrame):
     else:
         narrative = "No payroll volume to break down by generation."
 
-    section = {"heading": "Payroll by Generation", "narrative": narrative,
-               "figures": [fig], "tables": [("Payroll by Generation", agg)]}
-    sheet = {"name": "S8 Payroll by Gen", "df": agg,
-             "currency_cols": ["Total Payroll"], "pct_cols": [], "number_cols": ["Unique Accounts"]}
+    section = {
+        "heading": "Payroll by Generation",
+        "narrative": narrative,
+        "figures": [fig],
+        "tables": [("Payroll by Generation", agg)],
+    }
+    sheet = {
+        "name": "S8 Payroll by Gen",
+        "df": agg,
+        "currency_cols": ["Total Payroll"],
+        "pct_cols": [],
+        "number_cols": ["Unique Accounts"],
+    }
     return section, sheet
 
 
@@ -271,9 +375,14 @@ def _monthly_trends(pay: pd.DataFrame):
     m["year_month"] = m["year_month"].astype(str)
     m.columns = ["Month", "Total Payroll", "Accounts"]
 
-    fig = line_trend(m, x_col="Month", y_cols=["Total Payroll"],
-                     title="Monthly Payroll Trends",
-                     colors=[COLORS["primary"]], y_format="$,.0f")
+    fig = line_trend(
+        m,
+        x_col="Month",
+        y_cols=["Total Payroll"],
+        title="Monthly Payroll Trends",
+        colors=[COLORS["primary"]],
+        y_format="$,.0f",
+    )
     apply_theme(fig)
 
     if len(m) >= 2:
@@ -288,10 +397,19 @@ def _monthly_trends(pay: pd.DataFrame):
     else:
         narrative = "Insufficient months for trend analysis."
 
-    section = {"heading": "Monthly Payroll Trends", "narrative": narrative,
-               "figures": [fig], "tables": [("Monthly Payroll", m)]}
-    sheet = {"name": "S8 Payroll Trends", "df": m,
-             "currency_cols": ["Total Payroll"], "pct_cols": [], "number_cols": ["Accounts"]}
+    section = {
+        "heading": "Monthly Payroll Trends",
+        "narrative": narrative,
+        "figures": [fig],
+        "tables": [("Monthly Payroll", m)],
+    }
+    sheet = {
+        "name": "S8 Payroll Trends",
+        "df": m,
+        "currency_cols": ["Total Payroll"],
+        "pct_cols": [],
+        "number_cols": ["Accounts"],
+    }
     return section, sheet
 
 
@@ -307,7 +425,9 @@ def _circular_economy(df: pd.DataFrame, pay: pd.DataFrame):
     if combo.empty:
         return (None, None)
 
-    combo["recapture_pct"] = (combo["debit_spend"] / combo["payroll_received"] * 100).clip(upper=500)
+    combo["recapture_pct"] = (combo["debit_spend"] / combo["payroll_received"] * 100).clip(
+        upper=500
+    )
     avg_recap = combo["recapture_pct"].mean()
 
     has_gen = "generation" in df.columns
@@ -318,21 +438,35 @@ def _circular_economy(df: pd.DataFrame, pay: pd.DataFrame):
             .set_index("primary_account_num")
         )
         combo = combo.join(acct_gen, how="left")
-        gr = (combo.groupby("generation")["recapture_pct"].mean()
-              .reindex(_GEN_ORDER).dropna().reset_index())
+        gr = (
+            combo.groupby("generation")["recapture_pct"]
+            .mean()
+            .reindex(_GEN_ORDER)
+            .dropna()
+            .reset_index()
+        )
         gr.columns = ["Generation", "Avg Recapture %"]
         gr["Avg Recapture %"] = gr["Avg Recapture %"].round(1)
         colors = [GENERATION_COLORS.get(g, COLORS["neutral"]) for g in gr["Generation"]]
-        fig = go.Figure(go.Bar(
-            x=gr["Generation"], y=gr["Avg Recapture %"], marker_color=colors,
-            text=gr["Avg Recapture %"].apply(lambda v: f"{v:.1f}%"),
-            textposition="outside", textfont=dict(size=10),
-            hovertemplate="%{x}: %{y:.1f}%<extra></extra>",
-        ))
+        fig = go.Figure(
+            go.Bar(
+                x=gr["Generation"],
+                y=gr["Avg Recapture %"],
+                marker_color=colors,
+                text=gr["Avg Recapture %"].apply(lambda v: f"{v:.1f}%"),
+                textposition="outside",
+                textfont=dict(size=10),
+                hovertemplate="%{x}: %{y:.1f}%<extra></extra>",
+            )
+        )
         fig.update_layout(
-            title=insight_title(f"Avg Recapture Rate: {avg_recap:.1f}%",
-                                "Debit spend as % of payroll received, by generation"),
-            yaxis=dict(title=None, ticksuffix="%"), showlegend=False, height=500,
+            title=insight_title(
+                f"Avg Recapture Rate: {avg_recap:.1f}%",
+                "Debit spend as % of payroll received, by generation",
+            ),
+            yaxis=dict(title=None, ticksuffix="%"),
+            showlegend=False,
+            height=500,
         )
         apply_theme(fig)
         tbl = gr
@@ -353,16 +487,26 @@ def _circular_economy(df: pd.DataFrame, pay: pd.DataFrame):
         f"stronger member engagement and primary financial institution (PFI) status."
     )
     pct_cols = ["Avg Recapture %"] if "Avg Recapture %" in tbl.columns else []
-    section = {"heading": "Circular Economy: Debit Spend Recapture",
-               "narrative": narrative, "figures": [fig], "tables": [("Recapture Rate", tbl)]}
-    sheet = {"name": "S8 Circular Economy", "df": tbl,
-             "currency_cols": [], "pct_cols": pct_cols, "number_cols": []}
+    section = {
+        "heading": "Circular Economy: Debit Spend Recapture",
+        "narrative": narrative,
+        "figures": [fig],
+        "tables": [("Recapture Rate", tbl)],
+    }
+    sheet = {
+        "name": "S8 Circular Economy",
+        "df": tbl,
+        "currency_cols": [],
+        "pct_cols": pct_cols,
+        "number_cols": [],
+    }
     return (section, sheet)
 
 
 # =========================================================================
 # NEW ANALYSIS 1: Clean Employer List & Business Name Extraction
 # =========================================================================
+
 
 def _clean_employer_list(pay: pd.DataFrame):
     """Extract clean business names from raw payroll employer strings.
@@ -386,9 +530,7 @@ def _clean_employer_list(pay: pd.DataFrame):
 
     # Apply clean names to payroll_df
     pay_with_clean = pay.copy()
-    pay_with_clean["clean_employer"] = (
-        pay_with_clean["payroll_employer"].map(employer_map)
-    )
+    pay_with_clean["clean_employer"] = pay_with_clean["payroll_employer"].map(employer_map)
     pay_with_clean = pay_with_clean.dropna(subset=["clean_employer"])
 
     if pay_with_clean.empty:
@@ -406,29 +548,37 @@ def _clean_employer_list(pay: pd.DataFrame):
         .head(30)
         .reset_index()
     )
-    agg["avg_per_employee"] = (
-        agg["total"] / agg["employees"].replace(0, 1)
-    ).round(2)
+    agg["avg_per_employee"] = (agg["total"] / agg["employees"].replace(0, 1)).round(2)
     agg.columns = [
-        "Clean Employer", "Total Payroll", "Unique Employees",
-        "Transactions", "Avg per Employee",
+        "Clean Employer",
+        "Total Payroll",
+        "Unique Employees",
+        "Transactions",
+        "Avg per Employee",
     ]
 
     # Horizontal bar chart -- top 20
     fig = horizontal_bar(
-        agg, x_col="Total Payroll", y_col="Clean Employer",
-        title="Top 20 Clean Employers by Payroll Spend", top_n=20,
+        agg,
+        x_col="Total Payroll",
+        y_col="Clean Employer",
+        title="Top 20 Clean Employers by Payroll Spend",
+        top_n=20,
     )
     apply_theme(fig)
 
     top = agg.iloc[0] if not agg.empty else None
     n_clean = len(agg)
     narrative = (
-        f"Business name extraction identified <b>{n_clean}</b> unique employers. "
-        f"The largest is <b>{top['Clean Employer']}</b> with "
-        f"{format_currency(top['Total Payroll'])} in payroll spend across "
-        f"<b>{int(top['Unique Employees']):,}</b> employees."
-    ) if top is not None else "No clean employer names could be extracted."
+        (
+            f"Business name extraction identified <b>{n_clean}</b> unique employers. "
+            f"The largest is <b>{top['Clean Employer']}</b> with "
+            f"{format_currency(top['Total Payroll'])} in payroll spend across "
+            f"<b>{int(top['Unique Employees']):,}</b> employees."
+        )
+        if top is not None
+        else "No clean employer names could be extracted."
+    )
 
     # Mapping table for the Excel sheet
     mapping_rows = []
@@ -455,6 +605,7 @@ def _clean_employer_list(pay: pd.DataFrame):
 # =========================================================================
 # NEW ANALYSIS 2: Circular Economy Detail by Employer
 # =========================================================================
+
 
 def _circular_economy_detail(
     pay: pd.DataFrame,
@@ -505,7 +656,10 @@ def _circular_economy_detail(
 
         matches = personal_df[
             personal_df[merch_col].str.contains(
-                search_term, case=False, na=False, regex=False,
+                search_term,
+                case=False,
+                na=False,
+                regex=False,
             )
         ]
 
@@ -515,18 +669,18 @@ def _circular_economy_detail(
         consumer_spend = matches["amount"].sum()
         consumer_accounts = matches["primary_account_num"].nunique()
         consumer_merchants = matches[merch_col].nunique()
-        recapture_pct = (
-            (consumer_spend / payroll_spend * 100) if payroll_spend > 0 else 0
-        )
+        recapture_pct = (consumer_spend / payroll_spend * 100) if payroll_spend > 0 else 0
 
-        circular_records.append({
-            "Business Name": clean_name,
-            "Payroll Spend": round(payroll_spend, 2),
-            "Consumer Spend": round(consumer_spend, 2),
-            "Recapture %": round(recapture_pct, 1),
-            "Consumer Accounts": consumer_accounts,
-            "Consumer Merchants": consumer_merchants,
-        })
+        circular_records.append(
+            {
+                "Business Name": clean_name,
+                "Payroll Spend": round(payroll_spend, 2),
+                "Consumer Spend": round(consumer_spend, 2),
+                "Recapture %": round(recapture_pct, 1),
+                "Consumer Accounts": consumer_accounts,
+                "Consumer Merchants": consumer_merchants,
+            }
+        )
 
     if not circular_records:
         return (None, None)
@@ -545,27 +699,26 @@ def _circular_economy_detail(
     # Color scale: low recapture = accent, high recapture = positive
     max_recap = chart_df["Recapture %"].max() if not chart_df.empty else 1
     normed = chart_df["Recapture %"] / max(max_recap, 1)
-    bar_colors = [
-        _blend_color(COLORS["accent"], COLORS["positive"], v) for v in normed
-    ]
+    bar_colors = [_blend_color(COLORS["accent"], COLORS["positive"], v) for v in normed]
 
-    fig = go.Figure(go.Bar(
-        x=chart_df["Consumer Spend"],
-        y=chart_df["Business Name"],
-        orientation="h",
-        marker=dict(color=bar_colors, line=dict(width=0)),
-        text=chart_df.apply(
-            lambda r: f"{format_currency(r['Consumer Spend'])} ({r['Recapture %']:.1f}%)",
-            axis=1,
-        ),
-        textposition="outside",
-        textfont=dict(size=10),
-        hovertemplate=(
-            "%{y}<br>Consumer Spend: %{x:$,.0f}<br>"
-            "Recapture: %{customdata:.1f}%<extra></extra>"
-        ),
-        customdata=chart_df["Recapture %"],
-    ))
+    fig = go.Figure(
+        go.Bar(
+            x=chart_df["Consumer Spend"],
+            y=chart_df["Business Name"],
+            orientation="h",
+            marker=dict(color=bar_colors, line=dict(width=0)),
+            text=chart_df.apply(
+                lambda r: f"{format_currency(r['Consumer Spend'])} ({r['Recapture %']:.1f}%)",
+                axis=1,
+            ),
+            textposition="outside",
+            textfont=dict(size=10),
+            hovertemplate=(
+                "%{y}<br>Consumer Spend: %{x:$,.0f}<br>Recapture: %{customdata:.1f}%<extra></extra>"
+            ),
+            customdata=chart_df["Recapture %"],
+        )
+    )
 
     row_height = max(22, 500 // max(len(chart_df), 1))
     chart_height = max(400, len(chart_df) * row_height + 120)
@@ -585,9 +738,7 @@ def _circular_economy_detail(
 
     total_payroll = detail_df["Payroll Spend"].sum()
     total_consumer = detail_df["Consumer Spend"].sum()
-    overall_recap = (
-        (total_consumer / total_payroll * 100) if total_payroll > 0 else 0
-    )
+    overall_recap = (total_consumer / total_payroll * 100) if total_payroll > 0 else 0
     narrative = (
         f"Matched <b>{len(detail_df)}</b> payroll employers to consumer spending. "
         f"Total consumer spend at these businesses is "
@@ -627,6 +778,7 @@ def _blend_color(hex_a: str, hex_b: str, t: float) -> str:
 # NEW ANALYSIS 3: Payroll MoM Growth by Employer
 # =========================================================================
 
+
 def _payroll_mom_growth(pay: pd.DataFrame):
     """Month-over-month payroll growth analysis by employer.
 
@@ -639,11 +791,7 @@ def _payroll_mom_growth(pay: pd.DataFrame):
 
     # Top 20 employers by total payroll spend
     top_employers = (
-        pay.groupby("payroll_employer")["amount"]
-        .sum()
-        .sort_values(ascending=False)
-        .head(20)
-        .index
+        pay.groupby("payroll_employer")["amount"].sum().sort_values(ascending=False).head(20).index
     )
     pay_top = pay[pay["payroll_employer"].isin(top_employers)].copy()
 
@@ -651,11 +799,7 @@ def _payroll_mom_growth(pay: pd.DataFrame):
         return (None, None)
 
     # Monthly totals per employer
-    monthly = (
-        pay_top.groupby(["payroll_employer", "year_month"])["amount"]
-        .sum()
-        .reset_index()
-    )
+    monthly = pay_top.groupby(["payroll_employer", "year_month"])["amount"].sum().reset_index()
     monthly = monthly.sort_values(["payroll_employer", "year_month"])
 
     growth_rows: list[dict] = []
@@ -677,10 +821,7 @@ def _payroll_mom_growth(pay: pd.DataFrame):
         first_3_avg = values[:first_window].mean()
         last_3_avg = values[-last_window:].mean()
 
-        growth_pct = (
-            ((last_3_avg - first_3_avg) / first_3_avg * 100)
-            if first_3_avg > 0 else 0
-        )
+        growth_pct = ((last_3_avg - first_3_avg) / first_3_avg * 100) if first_3_avg > 0 else 0
 
         if growth_pct > 20:
             classification = "Growing"
@@ -692,17 +833,19 @@ def _payroll_mom_growth(pay: pd.DataFrame):
         clean_name = _extract_business_name(str(employer))
         display_name = clean_name if clean_name else str(employer)[:40]
 
-        growth_rows.append({
-            "Employer": display_name,
-            "Months": n_months,
-            "Total Payroll": round(total, 2),
-            "Avg Monthly": round(avg_monthly, 2),
-            "First 3M Avg": round(first_3_avg, 2),
-            "Last 3M Avg": round(last_3_avg, 2),
-            "Growth %": round(growth_pct, 1),
-            "CV %": round(cv, 1),
-            "Classification": classification,
-        })
+        growth_rows.append(
+            {
+                "Employer": display_name,
+                "Months": n_months,
+                "Total Payroll": round(total, 2),
+                "Avg Monthly": round(avg_monthly, 2),
+                "First 3M Avg": round(first_3_avg, 2),
+                "Last 3M Avg": round(last_3_avg, 2),
+                "Growth %": round(growth_pct, 1),
+                "CV %": round(cv, 1),
+                "Classification": classification,
+            }
+        )
 
     if not growth_rows:
         return (None, None)

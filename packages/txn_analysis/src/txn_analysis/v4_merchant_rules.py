@@ -126,9 +126,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
         return "WALMART (ALL LOCATIONS)"
 
     # Target
-    if "TARGET" in merchant_upper and (
-        "T-" in merchant_upper or "STORE" in merchant_upper
-    ):
+    if "TARGET" in merchant_upper and ("T-" in merchant_upper or "STORE" in merchant_upper):
         return "TARGET (ALL LOCATIONS)"
 
     # Costco
@@ -344,9 +342,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
         return "SPEEDWAY"
 
     if "SHELL" in merchant_upper and (
-        "SERVICE" in merchant_upper
-        or "OIL" in merchant_upper
-        or merchant_upper.startswith("SHELL")
+        "SERVICE" in merchant_upper or "OIL" in merchant_upper or merchant_upper.startswith("SHELL")
     ):
         return "SHELL"
 
@@ -374,11 +370,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     if "CIRCLE K" in merchant_upper or "CIRCLEK" in merchant_upper:
         return "CIRCLE K"
 
-    if (
-        "7-ELEVEN" in merchant_upper
-        or "7ELEVEN" in merchant_upper
-        or "7 ELEVEN" in merchant_upper
-    ):
+    if "7-ELEVEN" in merchant_upper or "7ELEVEN" in merchant_upper or "7 ELEVEN" in merchant_upper:
         return "7-ELEVEN"
 
     if "WAWA" in merchant_upper:
@@ -393,9 +385,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     if "CUMBERLAND" in merchant_upper or "SMARTREWARDS" in merchant_upper:
         return "CUMBERLAND FARMS"
 
-    if "PILOT" in merchant_upper and (
-        "FLYING" in merchant_upper or "TRAVEL" in merchant_upper
-    ):
+    if "PILOT" in merchant_upper and ("FLYING" in merchant_upper or "TRAVEL" in merchant_upper):
         return "PILOT FLYING J"
 
     if "LOVE'S" in merchant_upper or "LOVES" in merchant_upper:
@@ -520,9 +510,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
         return "NATIONAL FUEL"
 
     # Water
-    if "WATER" in merchant_upper and (
-        "DEPT" in merchant_upper or "DEPARTMENT" in merchant_upper
-    ):
+    if "WATER" in merchant_upper and ("DEPT" in merchant_upper or "DEPARTMENT" in merchant_upper):
         return "WATER UTILITY"
 
     if "NARRAGANSETT" in merchant_upper:
@@ -539,9 +527,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     if "SPECTRUM" in merchant_upper:
         return "SPECTRUM"
 
-    if "COX" in merchant_upper and (
-        "CABLE" in merchant_upper or "COMM" in merchant_upper
-    ):
+    if "COX" in merchant_upper and ("CABLE" in merchant_upper or "COMM" in merchant_upper):
         return "COX COMMUNICATIONS"
 
     if "VERIZON FIOS" in merchant_upper:
@@ -551,11 +537,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     if "ATT*" in merchant_upper or "AT&T" in merchant_upper or "AT T" in merchant_upper:
         return "AT&T"
 
-    if (
-        "TMOBILE" in merchant_upper
-        or "T-MOBILE" in merchant_upper
-        or "T MOBILE" in merchant_upper
-    ):
+    if "TMOBILE" in merchant_upper or "T-MOBILE" in merchant_upper or "T MOBILE" in merchant_upper:
         return "T-MOBILE"
 
     if "VERIZON" in merchant_upper and "WIRELESS" in merchant_upper:
@@ -570,9 +552,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     if "BOOST MOBILE" in merchant_upper:
         return "BOOST MOBILE"
 
-    if "METRO" in merchant_upper and (
-        "PCS" in merchant_upper or "MOBILE" in merchant_upper
-    ):
+    if "METRO" in merchant_upper and ("PCS" in merchant_upper or "MOBILE" in merchant_upper):
         return "METRO BY T-MOBILE"
 
     # ========================================================================
@@ -610,11 +590,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     # TOLLS
     # ========================================================================
 
-    if (
-        "E-ZPASS" in merchant_upper
-        or "EZPASS" in merchant_upper
-        or "EZ PASS" in merchant_upper
-    ):
+    if "E-ZPASS" in merchant_upper or "EZPASS" in merchant_upper or "EZ PASS" in merchant_upper:
         return "E-ZPASS"
 
     if (
@@ -630,9 +606,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     if "FASTRAK" in merchant_upper:
         return "FASTRAK"
 
-    if "TOLL" in merchant_upper and (
-        "ROAD" in merchant_upper or "AUTHORITY" in merchant_upper
-    ):
+    if "TOLL" in merchant_upper and ("ROAD" in merchant_upper or "AUTHORITY" in merchant_upper):
         return "TOLL AUTHORITY"
 
     # ========================================================================
@@ -640,9 +614,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     # ========================================================================
 
     # Alt Finance / Neobanks
-    if "DAVE" in merchant_upper and (
-        "INC" in merchant_upper or "APP" in merchant_upper
-    ):
+    if "DAVE" in merchant_upper and ("INC" in merchant_upper or "APP" in merchant_upper):
         return "DAVE"
 
     if "CHIME" in merchant_upper:
@@ -668,9 +640,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
 
     # Traditional Banks
     if "CHASE" in merchant_upper and (
-        "BANK" in merchant_upper
-        or "CARD" in merchant_upper
-        or "PAYMENT" in merchant_upper
+        "BANK" in merchant_upper or "CARD" in merchant_upper or "PAYMENT" in merchant_upper
     ):
         return "CHASE"
 
@@ -695,9 +665,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     if "CAPITAL ONE" in merchant_upper:
         return "CAPITAL ONE"
 
-    if "DISCOVER" in merchant_upper and (
-        "CARD" in merchant_upper or "PAYMENT" in merchant_upper
-    ):
+    if "DISCOVER" in merchant_upper and ("CARD" in merchant_upper or "PAYMENT" in merchant_upper):
         return "DISCOVER"
 
     if "AMEX" in merchant_upper or "AMERICAN EXPRESS" in merchant_upper:
@@ -719,9 +687,7 @@ def standardize_merchant_name(merchant_name: str) -> str:
     if "UPSTART" in merchant_upper:
         return "UPSTART"
 
-    if "ROCKET" in merchant_upper and (
-        "MORTGAGE" in merchant_upper or "LOANS" in merchant_upper
-    ):
+    if "ROCKET" in merchant_upper and ("MORTGAGE" in merchant_upper or "LOANS" in merchant_upper):
         return "ROCKET MORTGAGE"
 
     # Student Loans
@@ -790,14 +756,10 @@ def standardize_merchant_name(merchant_name: str) -> str:
     if "COMMONWEALTH" in merchant_upper and "SEC OF MA" in merchant_upper:
         return "COMMONWEALTH OF MA"
 
-    if "IRS" in merchant_upper and (
-        "TAX" in merchant_upper or "PAYMENT" in merchant_upper
-    ):
+    if "IRS" in merchant_upper and ("TAX" in merchant_upper or "PAYMENT" in merchant_upper):
         return "IRS (TAX PAYMENTS)"
 
-    if "DMV" in merchant_upper or (
-        "MOTOR VEHICLE" in merchant_upper and "DEPT" in merchant_upper
-    ):
+    if "DMV" in merchant_upper or ("MOTOR VEHICLE" in merchant_upper and "DEPT" in merchant_upper):
         return "DMV"
 
     # ========================================================================
@@ -890,8 +852,7 @@ def apply_merchant_consolidation(
     """
     if column not in df.columns:
         raise KeyError(
-            f"Column '{column}' not found in DataFrame. "
-            f"Available columns: {list(df.columns)}"
+            f"Column '{column}' not found in DataFrame. Available columns: {list(df.columns)}"
         )
     result = df.copy()
     result["merchant_consolidated"] = result[column].apply(standardize_merchant_name)

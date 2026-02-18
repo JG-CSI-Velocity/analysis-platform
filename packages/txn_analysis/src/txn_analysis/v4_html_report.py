@@ -2,9 +2,8 @@
 # HTML dashboard generator - self-contained interactive Plotly dashboards
 # =============================================================================
 
-import plotly.graph_objects as go
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 
 def generate_html_report(storyline_results: dict, config: dict, output_path: str):
@@ -34,9 +33,7 @@ def generate_html_report(storyline_results: dict, config: dict, output_path: str
     # Build sidebar nav
     nav_items = []
     for key, result in storyline_results.items():
-        nav_items.append(
-            f'<a href="#{key}" class="nav-link">{result["title"]}</a>'
-        )
+        nav_items.append(f'<a href="#{key}" class="nav-link">{result["title"]}</a>')
     nav_html = "\n".join(nav_items)
 
     # Build content sections
@@ -46,12 +43,10 @@ def generate_html_report(storyline_results: dict, config: dict, output_path: str
         section_html += f'<h2 class="storyline-title">{result["title"]}</h2>\n'
 
         for section in result.get("sections", []):
-            section_html += f'<h3>{section["heading"]}</h3>\n'
+            section_html += f"<h3>{section['heading']}</h3>\n"
 
             if section.get("narrative"):
-                section_html += (
-                    f'<div class="narrative">{section["narrative"]}</div>\n'
-                )
+                section_html += f'<div class="narrative">{section["narrative"]}</div>\n'
 
             for fig in section.get("figures", []):
                 chart_html = fig.to_html(
@@ -62,7 +57,7 @@ def generate_html_report(storyline_results: dict, config: dict, output_path: str
                 section_html += f'<div class="chart-container">{chart_html}</div>\n'
 
             for table_title, table_df in section.get("tables", []):
-                section_html += f'<h4>{table_title}</h4>\n'
+                section_html += f"<h4>{table_title}</h4>\n"
                 section_html += '<div class="table-container">\n'
                 section_html += table_df.to_html(
                     classes="data-table",

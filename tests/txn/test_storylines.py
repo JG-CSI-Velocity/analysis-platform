@@ -17,10 +17,17 @@ class TestStorylineRegistry:
         keys = [k for k, _ in STORYLINE_REGISTRY]
         assert len(keys) == 11
         expected = [
-            "s1_portfolio", "s2_merchant", "s3_competition",
-            "s3b_threats", "s3c_segmentation", "s4_finserv",
-            "s5_demographics", "s6_risk", "s7_campaigns",
-            "s8_payroll", "s9_lifecycle",
+            "s1_portfolio",
+            "s2_merchant",
+            "s3_competition",
+            "s3b_threats",
+            "s3c_segmentation",
+            "s4_finserv",
+            "s5_demographics",
+            "s6_risk",
+            "s7_campaigns",
+            "s8_payroll",
+            "s9_lifecycle",
         ]
         assert keys == expected
 
@@ -55,8 +62,12 @@ class TestV4SupportModules:
 
     def test_v4_themes_imports(self):
         from txn_analysis.v4_themes import (
-            COLORS, CATEGORY_PALETTE, apply_theme, format_currency,
+            CATEGORY_PALETTE,
+            COLORS,
+            apply_theme,
+            format_currency,
         )
+
         assert isinstance(COLORS, dict)
         assert isinstance(CATEGORY_PALETTE, list)
         assert callable(apply_theme)
@@ -68,7 +79,7 @@ class TestV4SupportModules:
         assert callable(standardize_merchant_name)
 
     def test_v4_data_loader_imports(self):
-        from txn_analysis.v4_data_loader import load_config, load_all
+        from txn_analysis.v4_data_loader import load_all, load_config
 
         assert callable(load_config)
         assert callable(load_all)
@@ -85,7 +96,9 @@ class TestV4SupportModules:
 
     def test_v4_run_imports(self):
         from txn_analysis.v4_run import (
-            run_pipeline, ALL_STORYLINES, STORYLINE_LABELS,
+            ALL_STORYLINES,
+            STORYLINE_LABELS,
+            run_pipeline,
         )
 
         assert callable(run_pipeline)
@@ -97,20 +110,36 @@ class TestV4RunnerBridge:
     """Test the V4 result conversion in runner.py."""
 
     def test_convert_v4_results(self):
-        from txn_analysis.runner import _convert_v4_results
         from shared.types import AnalysisResult as SharedResult
+        from txn_analysis.runner import _convert_v4_results
 
         v4_results = {
             "s1_portfolio": {
                 "title": "S1: Portfolio Health",
                 "description": "Monthly trends, activation, balances",
                 "sections": [
-                    {"heading": "Monthly Trends", "narrative": "...", "figures": ["fig1", "fig2"], "tables": []},
-                    {"heading": "Activation", "narrative": "...", "figures": ["fig3"], "tables": []},
+                    {
+                        "heading": "Monthly Trends",
+                        "narrative": "...",
+                        "figures": ["fig1", "fig2"],
+                        "tables": [],
+                    },
+                    {
+                        "heading": "Activation",
+                        "narrative": "...",
+                        "figures": ["fig3"],
+                        "tables": [],
+                    },
                 ],
                 "sheets": [
-                    {"name": "Monthly Trends", "df": pd.DataFrame({"month": ["Jan"], "spend": [1000]})},
-                    {"name": "Activation", "df": pd.DataFrame({"status": ["Active"], "count": [50]})},
+                    {
+                        "name": "Monthly Trends",
+                        "df": pd.DataFrame({"month": ["Jan"], "spend": [1000]}),
+                    },
+                    {
+                        "name": "Activation",
+                        "df": pd.DataFrame({"status": ["Active"], "count": [50]}),
+                    },
                 ],
             },
             "s6_risk": {
@@ -146,6 +175,7 @@ class TestV4RunnerBridge:
 
     def test_run_txn_v4_missing_tran_file(self):
         from pathlib import Path
+
         from shared.context import PipelineContext
         from txn_analysis.runner import run_txn_v4
 

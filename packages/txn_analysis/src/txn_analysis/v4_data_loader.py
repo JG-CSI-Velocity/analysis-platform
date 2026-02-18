@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
-from dateutil.relativedelta import relativedelta
 
 from txn_analysis.v4_merchant_rules import standardize_merchant_name
 
@@ -77,12 +76,13 @@ BALANCE_TIERS = [
 # Config
 # =========================================================================
 
+
 def load_config(config_path: str) -> dict:
     """Load YAML config file and return as a plain dict."""
     path = Path(config_path)
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {path}")
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         config = yaml.safe_load(fh)
     print(f"[config] Loaded config from {path.name}")
     print(f"         Client: {config.get('client_id', '?')} - {config.get('client_name', '?')}")
@@ -92,6 +92,7 @@ def load_config(config_path: str) -> dict:
 # =========================================================================
 # Transaction loading
 # =========================================================================
+
 
 def _is_year_folder(path: Path) -> bool:
     """Return True if *path* is a directory whose name is a 4-digit year."""
@@ -153,8 +154,10 @@ def load_transactions(config: dict) -> pd.DataFrame:
     all_files = unique_files
 
     print(f"\n[transactions] Directory : {txn_dir}")
-    print(f"[transactions] Year folders found: "
-          f"{sorted(p.name for p in year_folders) if year_folders else 'none'}")
+    print(
+        f"[transactions] Year folders found: "
+        f"{sorted(p.name for p in year_folders) if year_folders else 'none'}"
+    )
     print(f"[transactions] Total files discovered: {len(all_files)}")
 
     # -- parse dates and select most recent N months --------------------------
@@ -180,8 +183,10 @@ def load_transactions(config: dict) -> pd.DataFrame:
 
     earliest = selected[-1][1]
     latest = selected[0][1]
-    print(f"[transactions] Selected {len(selected)} most recent files "
-          f"({earliest:%Y-%m-%d} to {latest:%Y-%m-%d})")
+    print(
+        f"[transactions] Selected {len(selected)} most recent files "
+        f"({earliest:%Y-%m-%d} to {latest:%Y-%m-%d})"
+    )
 
     # -- load and combine -----------------------------------------------------
     frames: list[pd.DataFrame] = []
@@ -197,33 +202,33 @@ def load_transactions(config: dict) -> pd.DataFrame:
     if combined["amount"].median() < 0:
         combined["amount"] = combined["amount"].abs()
 
-    combined["transaction_date"] = pd.to_datetime(
-        combined["transaction_date"], errors="coerce"
-    )
+    combined["transaction_date"] = pd.to_datetime(combined["transaction_date"], errors="coerce")
     combined["year_month"] = combined["transaction_date"].dt.to_period("M")
 
     # -- merchant consolidation -----------------------------------------------
     print("[transactions] Applying merchant name consolidation...")
-    combined["merchant_consolidated"] = combined["merchant_name"].apply(
-        standardize_merchant_name
-    )
+    combined["merchant_consolidated"] = combined["merchant_name"].apply(standardize_merchant_name)
     original_unique = combined["merchant_name"].nunique()
     consolidated_unique = combined["merchant_consolidated"].nunique()
     reduction = original_unique - consolidated_unique
     reduction_pct = (reduction / original_unique * 100) if original_unique else 0.0
     print(f"  Original merchants : {original_unique:,}")
-    print(f"  After consolidation: {consolidated_unique:,} "
-          f"(-{reduction:,}, {reduction_pct:.1f}% reduction)")
+    print(
+        f"  After consolidation: {consolidated_unique:,} "
+        f"(-{reduction:,}, {reduction_pct:.1f}% reduction)"
+    )
 
     # -- summary --------------------------------------------------------------
-    print(f"\n[transactions] Combined dataset:")
+    print("\n[transactions] Combined dataset:")
     print(f"  Rows        : {len(combined):,}")
     print(f"  Columns     : {combined.shape[1]}")
-    print(f"  Date range  : {combined['transaction_date'].min()} "
-          f"to {combined['transaction_date'].max()}")
+    print(
+        f"  Date range  : {combined['transaction_date'].min()} "
+        f"to {combined['transaction_date'].max()}"
+    )
     print(f"  Accounts    : {combined['primary_account_num'].nunique():,}")
     print(f"  Total spend : ${combined['amount'].sum():,.2f}")
-    print(f"  Memory      : {combined.memory_usage(deep=True).sum() / 1024 ** 2:.1f} MB")
+    print(f"  Memory      : {combined.memory_usage(deep=True).sum() / 1024**2:.1f} MB")
 
     return combined
 
@@ -231,6 +236,7 @@ def load_transactions(config: dict) -> pd.DataFrame:
 # =========================================================================
 # ODD loading
 # =========================================================================
+
 
 def _assign_generation(age) -> str | None:
     """Map numeric age to a generational cohort label."""
@@ -307,7 +313,7 @@ def load_odd(config: dict) -> pd.DataFrame:
     if "Account Holder Age" in odd_df.columns:
         odd_df["generation"] = odd_df["Account Holder Age"].apply(_assign_generation)
         gen_dist = odd_df["generation"].value_counts()
-        print(f"[odd] Generation distribution:")
+        print("[odd] Generation distribution:")
         for gen, count in gen_dist.items():
             print(f"       {gen}: {count:,}")
     else:
@@ -320,16 +326,12 @@ def load_odd(config: dict) -> pd.DataFrame:
             odd_df["tenure_years"] = numeric_age
         elif "Date Opened" in odd_df.columns:
             today = pd.Timestamp.now()
-            odd_df["tenure_years"] = (
-                (today - odd_df["Date Opened"]).dt.days / 365.25
-            ).round(1)
+            odd_df["tenure_years"] = ((today - odd_df["Date Opened"]).dt.days / 365.25).round(1)
         else:
             odd_df["tenure_years"] = None
     elif "Date Opened" in odd_df.columns:
         today = pd.Timestamp.now()
-        odd_df["tenure_years"] = (
-            (today - odd_df["Date Opened"]).dt.days / 365.25
-        ).round(1)
+        odd_df["tenure_years"] = ((today - odd_df["Date Opened"]).dt.days / 365.25).round(1)
     else:
         odd_df["tenure_years"] = None
 
@@ -337,7 +339,7 @@ def load_odd(config: dict) -> pd.DataFrame:
     if "Avg Bal" in odd_df.columns:
         odd_df["balance_tier"] = odd_df["Avg Bal"].apply(_assign_balance_tier)
         tier_dist = odd_df["balance_tier"].value_counts()
-        print(f"[odd] Balance tier distribution:")
+        print("[odd] Balance tier distribution:")
         for tier, count in tier_dist.items():
             print(f"       {tier}: {count:,}")
     else:
@@ -345,12 +347,12 @@ def load_odd(config: dict) -> pd.DataFrame:
 
     # -- auto-detect time series columns --------------------------------------
     ts_cols = _detect_timeseries_columns(odd_df.columns)
-    print(f"[odd] Time series detected:")
+    print("[odd] Time series detected:")
     for series, cols in ts_cols.items():
         print(f"       {series}: {len(cols)} months")
 
     # -- summary --------------------------------------------------------------
-    print(f"\n[odd] Summary:")
+    print("\n[odd] Summary:")
     print(f"  Total accounts  : {len(odd_df):,}")
     if "Business?" in odd_df.columns:
         biz_counts = odd_df["Business?"].value_counts()
@@ -360,7 +362,7 @@ def load_odd(config: dict) -> pd.DataFrame:
         debit_counts = odd_df["Debit?"].value_counts()
         for flag, count in debit_counts.items():
             print(f"  Debit={flag}    : {count:,}")
-    print(f"  Memory          : {odd_df.memory_usage(deep=True).sum() / 1024 ** 2:.1f} MB")
+    print(f"  Memory          : {odd_df.memory_usage(deep=True).sum() / 1024**2:.1f} MB")
 
     return odd_df
 
@@ -405,8 +407,10 @@ def merge_data(
     # Select only the columns that exist in this ODD file
     merge_cols = [c for c in _MERGE_COLS if c in odd_df.columns]
     odd_slim = odd_df[merge_cols].copy()
-    print(f"[merge] Merging {len(merge_cols)} ODD columns "
-          f"(of {len(odd_df.columns)} total) to keep memory low")
+    print(
+        f"[merge] Merging {len(merge_cols)} ODD columns "
+        f"(of {len(odd_df.columns)} total) to keep memory low"
+    )
 
     combined_df = txn_df.merge(
         odd_slim,
@@ -418,7 +422,7 @@ def merge_data(
     matched = combined_df["Acct Number"].notna().sum()
     unmatched = combined_df["Acct Number"].isna().sum()
     match_rate = (matched / len(combined_df) * 100) if len(combined_df) else 0.0
-    print(f"[merge] Results:")
+    print("[merge] Results:")
     print(f"  Total transactions : {len(combined_df):,}")
     print(f"  Matched to ODD     : {matched:,} ({match_rate:.1f}%)")
     print(f"  Unmatched          : {unmatched:,}")
@@ -431,11 +435,9 @@ def merge_data(
         business_df = pd.DataFrame(columns=combined_df.columns)
         personal_df = combined_df.copy()
 
-    print(f"\n[merge] Account type split:")
-    print(f"  Business transactions : {len(business_df):,} "
-          f"(${business_df['amount'].sum():,.2f})")
-    print(f"  Personal transactions : {len(personal_df):,} "
-          f"(${personal_df['amount'].sum():,.2f})")
+    print("\n[merge] Account type split:")
+    print(f"  Business transactions : {len(business_df):,} (${business_df['amount'].sum():,.2f})")
+    print(f"  Personal transactions : {len(personal_df):,} (${personal_df['amount'].sum():,.2f})")
 
     return combined_df, business_df, personal_df
 
@@ -443,6 +445,7 @@ def merge_data(
 # =========================================================================
 # Main entry point
 # =========================================================================
+
 
 def load_all(config: dict) -> dict:
     """Load all data sources and return a context dict for downstream analyses.
@@ -472,8 +475,10 @@ def load_all(config: dict) -> dict:
     print(f"  Combined rows     : {len(combined_df):,}")
     print(f"  Business rows     : {len(business_df):,}")
     print(f"  Personal rows     : {len(personal_df):,}")
-    print(f"  Date range        : {combined_df['transaction_date'].min()} "
-          f"to {combined_df['transaction_date'].max()}")
+    print(
+        f"  Date range        : {combined_df['transaction_date'].min()} "
+        f"to {combined_df['transaction_date'].max()}"
+    )
     print(f"  Unique accounts   : {combined_df['primary_account_num'].nunique():,}")
     print(f"  Unique merchants  : {combined_df['merchant_consolidated'].nunique():,}")
     print("=" * 80)

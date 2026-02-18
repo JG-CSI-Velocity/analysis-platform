@@ -10,8 +10,8 @@ import yaml
 from txn_analysis.exceptions import ConfigError
 from txn_analysis.settings import BRAND_COLORS, ChartConfig, OutputConfig, Settings
 
-
 # -- ChartConfig ---------------------------------------------------------------
+
 
 class TestChartConfig:
     def test_defaults(self):
@@ -29,6 +29,7 @@ class TestChartConfig:
 
 # -- OutputConfig --------------------------------------------------------------
 
+
 class TestOutputConfig:
     def test_defaults(self):
         cfg = OutputConfig()
@@ -39,6 +40,7 @@ class TestOutputConfig:
 
 
 # -- Settings ------------------------------------------------------------------
+
 
 class TestSettings:
     def test_minimal(self, sample_csv_path: Path, tmp_path: Path):
@@ -95,6 +97,7 @@ class TestSettings:
 
 # -- from_yaml -----------------------------------------------------------------
 
+
 class TestFromYaml:
     def test_load_yaml(self, sample_csv_path: Path, tmp_path: Path):
         cfg = tmp_path / "config.yaml"
@@ -120,6 +123,7 @@ class TestFromYaml:
 
 
 # -- from_args -----------------------------------------------------------------
+
 
 class TestFromArgs:
     def test_simple(self, sample_csv_path: Path):

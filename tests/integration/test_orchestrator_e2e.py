@@ -31,7 +31,10 @@ class TestAutoDetection:
         assert len(all_results["ics"]) > 0
 
     def test_multi_pipeline(
-        self, sample_txn_csv: Path, sample_ics_xlsx: Path, integration_output_dir: Path,
+        self,
+        sample_txn_csv: Path,
+        sample_ics_xlsx: Path,
+        integration_output_dir: Path,
     ):
         all_results = run_all(
             input_files={"tran": sample_txn_csv, "ics": sample_ics_xlsx},
@@ -44,7 +47,9 @@ class TestAutoDetection:
         assert "ics" in all_results
 
     def test_explicit_pipeline_selection(
-        self, sample_txn_csv: Path, integration_output_dir: Path,
+        self,
+        sample_txn_csv: Path,
+        integration_output_dir: Path,
     ):
         all_results = run_all(
             input_files={"tran": sample_txn_csv},
@@ -56,7 +61,10 @@ class TestAutoDetection:
         assert len(all_results) == 1
 
     def test_progress_callback_multi(
-        self, sample_txn_csv: Path, sample_ics_xlsx: Path, integration_output_dir: Path,
+        self,
+        sample_txn_csv: Path,
+        sample_ics_xlsx: Path,
+        integration_output_dir: Path,
     ):
         messages = []
         run_all(

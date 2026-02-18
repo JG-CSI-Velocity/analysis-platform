@@ -156,7 +156,9 @@ def _build_input_files(pipeline: str, primary_path: Path) -> dict[str, Path]:
 def _offer_downloads(output_dir: Path) -> None:
     """Find generated output files and offer as Streamlit downloads."""
     files = list(output_dir.rglob("*"))
-    downloadable = [f for f in files if f.is_file() and f.suffix in (".xlsx", ".html", ".pptx", ".csv")]
+    downloadable = [
+        f for f in files if f.is_file() and f.suffix in (".xlsx", ".html", ".pptx", ".csv")
+    ]
 
     if downloadable:
         st.header("Download Outputs")

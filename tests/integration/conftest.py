@@ -26,24 +26,54 @@ def sample_txn_csv(tmp_path: Path) -> Path:
     n = 200
     accounts = [f"ACCT{i:04d}" for i in range(1, 21)]
     merchants = [
-        "WALMART", "AMAZON.COM", "COSTCO", "TARGET", "STARBUCKS",
-        "SHELL OIL", "KROGER", "HOME DEPOT", "NETFLIX", "SPOTIFY",
-        "CHASE BANK", "WELLS FARGO", "APPLE.COM", "UBER", "MCDONALDS",
+        "WALMART",
+        "AMAZON.COM",
+        "COSTCO",
+        "TARGET",
+        "STARBUCKS",
+        "SHELL OIL",
+        "KROGER",
+        "HOME DEPOT",
+        "NETFLIX",
+        "SPOTIFY",
+        "CHASE BANK",
+        "WELLS FARGO",
+        "APPLE.COM",
+        "UBER",
+        "MCDONALDS",
     ]
-    mcc_codes = [5411, 5942, 5300, 5311, 5812, 5541, 5411, 5200, 4899, 5815, 6011, 6011, 5735, 4121, 5814]
+    mcc_codes = [
+        5411,
+        5942,
+        5300,
+        5311,
+        5812,
+        5541,
+        5411,
+        5200,
+        4899,
+        5815,
+        6011,
+        6011,
+        5735,
+        4121,
+        5814,
+    ]
 
     dates = pd.date_range("2025-06-01", periods=90, freq="D")
     rows = []
     for _ in range(n):
         idx = rng.integers(0, len(merchants))
-        rows.append({
-            "merchant_name": merchants[idx],
-            "amount": round(float(rng.uniform(1, 500)), 2),
-            "primary_account_num": rng.choice(accounts),
-            "transaction_date": str(pd.Timestamp(rng.choice(dates)).date()),
-            "mcc_code": mcc_codes[idx],
-            "business_flag": rng.choice(["Yes", "No"], p=[0.15, 0.85]),
-        })
+        rows.append(
+            {
+                "merchant_name": merchants[idx],
+                "amount": round(float(rng.uniform(1, 500)), 2),
+                "primary_account_num": rng.choice(accounts),
+                "transaction_date": str(pd.Timestamp(rng.choice(dates)).date()),
+                "mcc_code": mcc_codes[idx],
+                "business_flag": rng.choice(["Yes", "No"], p=[0.15, 0.85]),
+            }
+        )
 
     df = pd.DataFrame(rows)
     path = tmp_path / "sample_transactions.csv"
@@ -57,8 +87,20 @@ def sample_ics_xlsx(tmp_path: Path) -> Path:
     rng = np.random.default_rng(42)
     n = 60
 
-    l12m_tags = ["Feb25", "Mar25", "Apr25", "May25", "Jun25", "Jul25",
-                 "Aug25", "Sep25", "Oct25", "Nov25", "Dec25", "Jan26"]
+    l12m_tags = [
+        "Feb25",
+        "Mar25",
+        "Apr25",
+        "May25",
+        "Jun25",
+        "Jul25",
+        "Aug25",
+        "Sep25",
+        "Oct25",
+        "Nov25",
+        "Dec25",
+        "Jan26",
+    ]
 
     rows = {
         "ICS Account": rng.choice(["Yes", "No"], size=n, p=[0.3, 0.7]),
@@ -82,7 +124,9 @@ def sample_ics_xlsx(tmp_path: Path) -> Path:
     date_closed = pd.Series([pd.NaT] * n)
     for i in range(n):
         if closed_mask[i]:
-            date_closed.iloc[i] = rows["Date Opened"][i] + pd.Timedelta(days=int(rng.integers(30, 365)))
+            date_closed.iloc[i] = rows["Date Opened"][i] + pd.Timedelta(
+                days=int(rng.integers(30, 365))
+            )
     rows["Date Closed"] = date_closed
 
     for tag in l12m_tags:
@@ -172,8 +216,16 @@ def v4_txn_dir(tmp_path: Path) -> Path:
 
     accounts = [f"ACCT{i:04d}" for i in range(1, 21)]
     merchants = [
-        "WALMART", "AMAZON.COM", "COSTCO", "TARGET", "STARBUCKS",
-        "SHELL OIL", "KROGER", "HOME DEPOT", "NETFLIX", "CHASE BANK",
+        "WALMART",
+        "AMAZON.COM",
+        "COSTCO",
+        "TARGET",
+        "STARBUCKS",
+        "SHELL OIL",
+        "KROGER",
+        "HOME DEPOT",
+        "NETFLIX",
+        "CHASE BANK",
     ]
     mcc_codes = [5411, 5942, 5300, 5311, 5812, 5541, 5411, 5200, 4899, 6011]
 
@@ -184,21 +236,23 @@ def v4_txn_dir(tmp_path: Path) -> Path:
         for _ in range(n):
             idx = rng.integers(0, len(merchants))
             day = rng.integers(1, 29)
-            rows.append([
-                f"2025-{month_num:02d}-{day:02d}",
-                rng.choice(accounts),
-                "DEBIT",
-                f"{rng.uniform(1, 500):.2f}",
-                mcc_codes[idx],
-                merchants[idx],
-                "LOCATION1",
-                "LOCATION2",
-                f"TERM{rng.integers(1, 99):04d}",
-                f"MERCH{rng.integers(1, 999):06d}",
-                "INST001",
-                "Y",
-                "00",
-            ])
+            rows.append(
+                [
+                    f"2025-{month_num:02d}-{day:02d}",
+                    rng.choice(accounts),
+                    "DEBIT",
+                    f"{rng.uniform(1, 500):.2f}",
+                    mcc_codes[idx],
+                    merchants[idx],
+                    "LOCATION1",
+                    "LOCATION2",
+                    f"TERM{rng.integers(1, 99):04d}",
+                    f"MERCH{rng.integers(1, 999):06d}",
+                    "INST001",
+                    "Y",
+                    "00",
+                ]
+            )
 
         # Write tab-delimited with a header row (which gets skipped)
         header = "HEADER ROW - SKIPPED BY LOADER"

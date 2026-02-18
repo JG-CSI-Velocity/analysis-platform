@@ -62,18 +62,23 @@ def run_pipeline(
 
     if pipeline == "ars":
         from ars_analysis.runner import run_ars
+
         return run_ars(ctx)
     elif pipeline == "txn":
         from txn_analysis.runner import run_txn
+
         return run_txn(ctx)
     elif pipeline == "txn_v4":
         from txn_analysis.runner import run_txn_v4
+
         return run_txn_v4(ctx)
     elif pipeline == "ics":
         from ics_toolkit.runner import run_ics
+
         return run_ics(ctx)
     elif pipeline == "ics_append":
         from ics_toolkit.runner import run_ics_append
+
         return run_ics_append(ctx)
     else:
         raise ValueError(f"Unknown pipeline: {pipeline!r}")

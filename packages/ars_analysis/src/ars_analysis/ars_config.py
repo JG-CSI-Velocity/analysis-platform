@@ -13,7 +13,6 @@ Override via:
 import os
 from pathlib import Path
 
-
 _PROJECT_ROOT = Path(__file__).resolve().parent
 
 _DEFAULT_BASE = Path(r"M:\ARS")
@@ -30,6 +29,7 @@ def _get_base() -> Path:
     local_cfg = _PROJECT_ROOT / "ars_config.toml"
     if local_cfg.is_file():
         import tomllib
+
         with open(local_cfg, "rb") as f:
             data = tomllib.load(f)
         base = data.get("paths", {}).get("ars_base")
@@ -72,6 +72,7 @@ CSM_SOURCES = {
 # Config migration — merge old config file into the canonical location
 # ---------------------------------------------------------------------------
 
+
 def migrate_config(old_path: str | Path) -> dict:
     """Merge an old clients_config.json into CONFIG_PATH.
 
@@ -89,12 +90,12 @@ def migrate_config(old_path: str | Path) -> dict:
     if not old_path.exists():
         raise FileNotFoundError(f"Old config not found: {old_path}")
 
-    with open(old_path, 'r') as f:
+    with open(old_path) as f:
         old_cfg = json.load(f)
 
     # Load current canonical config (or start empty)
     if CONFIG_PATH.exists():
-        with open(CONFIG_PATH, 'r') as f:
+        with open(CONFIG_PATH) as f:
             new_cfg = json.load(f)
     else:
         new_cfg = {}
@@ -107,7 +108,7 @@ def migrate_config(old_path: str | Path) -> dict:
             added += 1
         else:
             # Merge manual fields from old into new
-            for key in ('ICRate', 'NSF_OD_Fee', 'BranchMapping'):
+            for key in ("ICRate", "NSF_OD_Fee", "BranchMapping"):
                 old_val = old_entry.get(key)
                 new_val = new_cfg[cid].get(key)
                 if old_val and not new_val:
@@ -115,7 +116,7 @@ def migrate_config(old_path: str | Path) -> dict:
                     enriched += 1
 
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(CONFIG_PATH, 'w') as f:
+    with open(CONFIG_PATH, "w") as f:
         json.dump(new_cfg, f, indent=4)
 
     print(f"Migration complete -> {CONFIG_PATH}")

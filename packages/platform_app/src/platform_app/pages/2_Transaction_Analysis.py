@@ -10,13 +10,16 @@ import streamlit as st
 
 def _offer_downloads(output_dir: Path) -> None:
     files = sorted(
-        f for f in output_dir.rglob("*")
+        f
+        for f in output_dir.rglob("*")
         if f.is_file() and f.suffix in (".xlsx", ".pptx", ".csv", ".html", ".png")
     )
     if files:
         st.header("Downloads")
         for f in files:
-            st.download_button(f.name, f.read_bytes(), file_name=f.name, mime="application/octet-stream")
+            st.download_button(
+                f.name, f.read_bytes(), file_name=f.name, mime="application/octet-stream"
+            )
 
 
 st.set_page_config(page_title="Transaction Analysis", layout="wide")
@@ -33,7 +36,11 @@ col1, col2 = st.columns(2)
 with col1:
     tran_file = st.file_uploader("Transaction CSV", type=["csv"])
 with col2:
-    odd_file = st.file_uploader("ODD File (V4 only)", type=["csv", "xlsx"]) if pipeline_key == "txn_v4" else None
+    odd_file = (
+        st.file_uploader("ODD File (V4 only)", type=["csv", "xlsx"])
+        if pipeline_key == "txn_v4"
+        else None
+    )
 
 if st.button("Run Transaction Analysis", type="primary", disabled=tran_file is None):
     if tran_file is None:

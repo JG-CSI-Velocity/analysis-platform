@@ -6,29 +6,29 @@ Usage:
 
 Loads data, runs selected storylines, generates Excel + HTML reports.
 """
+
 from __future__ import annotations
 
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
-
-from txn_analysis.v4_data_loader import load_config, load_all
-from txn_analysis.v4_excel_report import generate_excel_report
-from txn_analysis.v4_html_report import generate_html_report
 
 # Storyline modules
 from txn_analysis.storylines import v4_s1_portfolio_health as s1
 from txn_analysis.storylines import v4_s2_merchant_intel as s2
 from txn_analysis.storylines import v4_s3_competition as s3
-from txn_analysis.storylines import v4_s3_threat_analysis as s3b
 from txn_analysis.storylines import v4_s3_segmentation as s3c
+from txn_analysis.storylines import v4_s3_threat_analysis as s3b
 from txn_analysis.storylines import v4_s4_finserv as s4
 from txn_analysis.storylines import v4_s5_demographics as s5
 from txn_analysis.storylines import v4_s6_risk as s6
 from txn_analysis.storylines import v4_s7_campaigns as s7
 from txn_analysis.storylines import v4_s8_payroll as s8
 from txn_analysis.storylines import v4_s9_lifecycle as s9
+from txn_analysis.v4_data_loader import load_all, load_config
+from txn_analysis.v4_excel_report import generate_excel_report
+from txn_analysis.v4_html_report import generate_html_report
 
 ALL_STORYLINES = [
     ("s1_portfolio", s1),
@@ -62,8 +62,8 @@ STORYLINE_LABELS: dict[str, str] = {
 
 def run_pipeline(
     config: dict,
-    storylines: Optional[list[str]] = None,
-    progress_cb: Optional[Callable[[int, int, str], None]] = None,
+    storylines: list[str] | None = None,
+    progress_cb: Callable[[int, int, str], None] | None = None,
 ) -> tuple[dict, Path, Path]:
     """Execute the V4 analysis pipeline.
 
@@ -135,13 +135,13 @@ def run_pipeline(
     total_sections = sum(len(r.get("sections", [])) for r in results.values())
     total_sheets = sum(len(r.get("sheets", [])) for r in results.values())
     total_figures = sum(
-        len(s.get("figures", []))
-        for r in results.values()
-        for s in r.get("sections", [])
+        len(s.get("figures", [])) for r in results.values() for s in r.get("sections", [])
     )
     print(f"\n  V4 Analysis complete in {elapsed:.1f}s")
-    print(f"  {len(results)} storylines | {total_sections} sections | "
-          f"{total_figures} charts | {total_sheets} sheets")
+    print(
+        f"  {len(results)} storylines | {total_sections} sections | "
+        f"{total_figures} charts | {total_sheets} sheets"
+    )
     print(f"  Excel: {excel_path}")
     print(f"  HTML:  {html_path}")
 
@@ -155,7 +155,7 @@ def run_all(config_path: str = "v4_config.yaml") -> None:
     client_id = config.get("client_id", "")
 
     print(f"\n{'=' * 80}")
-    print(f"  V4 TRANSACTION ANALYSIS")
+    print("  V4 TRANSACTION ANALYSIS")
     print(f"  Client: {client_id} - {client_name}")
     print(f"{'=' * 80}\n")
 

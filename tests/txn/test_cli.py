@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from typer.testing import CliRunner
 
 from txn_analysis.cli import app
@@ -12,9 +11,7 @@ runner = CliRunner()
 
 class TestCLI:
     def test_analyze_runs(self, sample_csv_path, tmp_path):
-        result = runner.invoke(
-            app, [str(sample_csv_path), "--output-dir", str(tmp_path)]
-        )
+        result = runner.invoke(app, [str(sample_csv_path), "--output-dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "Done" in result.output
 
@@ -41,7 +38,5 @@ class TestCLI:
         assert len(xlsx_files) == 1
 
     def test_analyses_count_in_output(self, sample_csv_path, tmp_path):
-        result = runner.invoke(
-            app, [str(sample_csv_path), "--output-dir", str(tmp_path)]
-        )
+        result = runner.invoke(app, [str(sample_csv_path), "--output-dir", str(tmp_path)])
         assert "31" in result.output

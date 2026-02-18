@@ -68,10 +68,7 @@ class TestLoadData:
 
     def test_alias_columns_resolved(self, tmp_path: Path):
         csv = tmp_path / "aliased.csv"
-        csv.write_text(
-            "merchant,txn_amount,acct_num,date\n"
-            "STARBUCKS,5.50,ACCT001,2025-07-01\n"
-        )
+        csv.write_text("merchant,txn_amount,acct_num,date\nSTARBUCKS,5.50,ACCT001,2025-07-01\n")
         settings = Settings(data_file=csv, output_dir=tmp_path)
         df = load_data(settings)
         assert "merchant_name" in df.columns

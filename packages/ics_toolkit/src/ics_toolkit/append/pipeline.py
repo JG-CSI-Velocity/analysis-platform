@@ -5,10 +5,10 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Callable
 
 import pandas as pd
 

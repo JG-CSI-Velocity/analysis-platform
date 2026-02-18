@@ -2,13 +2,12 @@
 # Excel workbook writer - multi-tab formatted output
 # =============================================================================
 
-import pandas as pd
 from pathlib import Path
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
-from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.utils import get_column_letter
 
+import pandas as pd
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
 
 # Styling constants
 HEADER_FILL = PatternFill(start_color="2E4057", end_color="2E4057", fill_type="solid")
@@ -16,10 +15,10 @@ HEADER_FONT = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
 HEADER_ALIGN = Alignment(horizontal="center", vertical="center", wrap_text=True)
 DATA_FONT = Font(name="Calibri", size=10)
 DATA_ALIGN = Alignment(vertical="center")
-CURRENCY_FORMAT = '#,##0'
-CURRENCY_CENTS_FORMAT = '#,##0.00'
+CURRENCY_FORMAT = "#,##0"
+CURRENCY_CENTS_FORMAT = "#,##0.00"
 PERCENT_FORMAT = '0.0"%"'
-NUMBER_FORMAT = '#,##0'
+NUMBER_FORMAT = "#,##0"
 THIN_BORDER = Border(
     bottom=Side(style="thin", color="E2E8F0"),
 )
@@ -93,9 +92,7 @@ def generate_excel_report(storyline_results: dict, config: dict, output_path: st
                 cell.fill = HEADER_FILL
                 cell.font = HEADER_FONT
                 cell.alignment = HEADER_ALIGN
-                cell.border = Border(
-                    bottom=Side(style="medium", color="2E4057")
-                )
+                cell.border = Border(bottom=Side(style="medium", color="2E4057"))
 
             # Write data rows
             currency_cols = set(sheet_info.get("currency_cols", []))
@@ -155,11 +152,14 @@ def _add_overview_sheet(wb, storyline_results, config, sheet_count):
 
     # Title
     ws.merge_cells("A1:D1")
-    title = ws.cell(row=1, column=1, value=f"{config.get('client_name', '')} - Transaction Analysis")
+    title = ws.cell(
+        row=1, column=1, value=f"{config.get('client_name', '')} - Transaction Analysis"
+    )
     title.font = Font(name="Calibri", size=18, bold=True, color="2E4057")
 
     ws.merge_cells("A2:D2")
     from datetime import datetime
+
     subtitle = ws.cell(
         row=2,
         column=1,
@@ -218,10 +218,6 @@ def format_df_for_excel(df: pd.DataFrame, currency_cols=None, pct_cols=None) -> 
                     )
                     result[col] = pd.to_numeric(result[col], errors="coerce")
                 elif first.endswith("%"):
-                    result[col] = (
-                        result[col]
-                        .astype(str)
-                        .str.replace("%", "", regex=False)
-                    )
+                    result[col] = result[col].astype(str).str.replace("%", "", regex=False)
                     result[col] = pd.to_numeric(result[col], errors="coerce")
     return result

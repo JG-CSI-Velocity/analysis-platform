@@ -3,12 +3,15 @@
 # =============================================================================
 # Top merchants, MCC analysis, business/personal splits, rank movement, growth
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
+
 from txn_analysis.v4_themes import (
-    COLORS, CATEGORY_PALETTE, apply_theme, format_currency,
-    horizontal_bar, line_trend, stacked_bar,
+    COLORS,
+    apply_theme,
+    format_currency,
+    stacked_bar,
 )
 
 
@@ -24,287 +27,393 @@ def run(ctx: dict) -> dict:
 
     sections = []
     sheets = []
-    merch_col = "merchant_consolidated" if "merchant_consolidated" in df.columns else "merchant_name"
+    merch_col = (
+        "merchant_consolidated" if "merchant_consolidated" in df.columns else "merchant_name"
+    )
 
     # --- Top Merchants by Spend ---
     spend_df = _top_merchants(df, merch_col, "amount_sum", top_n)
-    spend_fig = _merchant_bar(spend_df, "Total Spend", f"Top {min(25, top_n)} Merchants by Total Spend")
-    sections.append({
-        "heading": "Top Merchants by Total Spend",
-        "narrative": _top_narrative(spend_df, "spend", df),
-        "figures": [spend_fig],
-        "tables": [("Top Merchants - Spend", spend_df.head(top_n))],
-    })
-    sheets.append({
-        "name": "S2 Top Spend",
-        "df": spend_df,
-        "currency_cols": ["Total Spend", "Avg Transaction"],
-        "number_cols": ["Transactions", "Unique Accounts"],
-    })
+    spend_fig = _merchant_bar(
+        spend_df, "Total Spend", f"Top {min(25, top_n)} Merchants by Total Spend"
+    )
+    sections.append(
+        {
+            "heading": "Top Merchants by Total Spend",
+            "narrative": _top_narrative(spend_df, "spend", df),
+            "figures": [spend_fig],
+            "tables": [("Top Merchants - Spend", spend_df.head(top_n))],
+        }
+    )
+    sheets.append(
+        {
+            "name": "S2 Top Spend",
+            "df": spend_df,
+            "currency_cols": ["Total Spend", "Avg Transaction"],
+            "number_cols": ["Transactions", "Unique Accounts"],
+        }
+    )
 
     # --- Top Merchants by Transaction Count ---
     txn_df = _top_merchants(df, merch_col, "txn_count", top_n)
-    txn_fig = _merchant_bar(txn_df, "Transactions", f"Top {min(25, top_n)} Merchants by Transaction Count", color=COLORS["secondary"])
-    sections.append({
-        "heading": "Top Merchants by Transaction Count",
-        "narrative": "",
-        "figures": [txn_fig],
-        "tables": [("Top Merchants - Transactions", txn_df.head(top_n))],
-    })
-    sheets.append({
-        "name": "S2 Top Txn Count",
-        "df": txn_df,
-        "currency_cols": ["Total Spend", "Avg Transaction"],
-        "number_cols": ["Transactions", "Unique Accounts"],
-    })
+    txn_fig = _merchant_bar(
+        txn_df,
+        "Transactions",
+        f"Top {min(25, top_n)} Merchants by Transaction Count",
+        color=COLORS["secondary"],
+    )
+    sections.append(
+        {
+            "heading": "Top Merchants by Transaction Count",
+            "narrative": "",
+            "figures": [txn_fig],
+            "tables": [("Top Merchants - Transactions", txn_df.head(top_n))],
+        }
+    )
+    sheets.append(
+        {
+            "name": "S2 Top Txn Count",
+            "df": txn_df,
+            "currency_cols": ["Total Spend", "Avg Transaction"],
+            "number_cols": ["Transactions", "Unique Accounts"],
+        }
+    )
 
     # --- Top Merchants by Unique Accounts ---
     acct_df = _top_merchants(df, merch_col, "unique_accounts", top_n)
-    acct_fig = _merchant_bar(acct_df, "Unique Accounts", f"Top {min(25, top_n)} Merchants by Account Penetration", color=COLORS["accent"])
-    sections.append({
-        "heading": "Top Merchants by Unique Accounts",
-        "narrative": "",
-        "figures": [acct_fig],
-        "tables": [],
-    })
-    sheets.append({
-        "name": "S2 Top Accounts",
-        "df": acct_df,
-        "currency_cols": ["Total Spend", "Avg Transaction"],
-        "number_cols": ["Transactions", "Unique Accounts"],
-    })
+    acct_fig = _merchant_bar(
+        acct_df,
+        "Unique Accounts",
+        f"Top {min(25, top_n)} Merchants by Account Penetration",
+        color=COLORS["accent"],
+    )
+    sections.append(
+        {
+            "heading": "Top Merchants by Unique Accounts",
+            "narrative": "",
+            "figures": [acct_fig],
+            "tables": [],
+        }
+    )
+    sheets.append(
+        {
+            "name": "S2 Top Accounts",
+            "df": acct_df,
+            "currency_cols": ["Total Spend", "Avg Transaction"],
+            "number_cols": ["Transactions", "Unique Accounts"],
+        }
+    )
 
     # --- MCC Category Analysis (3-panel: spend, txn count, unique accounts) ---
     if "mcc_code" in df.columns:
         mcc_df = _mcc_analysis(df, top_n)
-        mcc_spend_fig = _merchant_bar(mcc_df, "Total Spend", "Top 20 MCC Categories by Spend", y_col="MCC Code", color=COLORS["primary"])
+        mcc_spend_fig = _merchant_bar(
+            mcc_df,
+            "Total Spend",
+            "Top 20 MCC Categories by Spend",
+            y_col="MCC Code",
+            color=COLORS["primary"],
+        )
         mcc_txn_df = mcc_df.sort_values("Transactions", ascending=False).head(20)
-        mcc_txn_fig = _merchant_bar(mcc_txn_df, "Transactions", "Top 20 MCC Categories by Transaction Count", y_col="MCC Code", color=COLORS["secondary"])
+        mcc_txn_fig = _merchant_bar(
+            mcc_txn_df,
+            "Transactions",
+            "Top 20 MCC Categories by Transaction Count",
+            y_col="MCC Code",
+            color=COLORS["secondary"],
+        )
         mcc_acct_df = mcc_df.sort_values("Unique Accounts", ascending=False).head(20)
-        mcc_acct_fig = _merchant_bar(mcc_acct_df, "Unique Accounts", "Top 20 MCC Categories by Account Penetration", y_col="MCC Code", color=COLORS["accent"])
-        sections.append({
-            "heading": "Merchant Category (MCC) Analysis",
-            "narrative": f"Top {top_n} MCC codes analyzed across spend, transaction volume, and account penetration.",
-            "figures": [mcc_spend_fig, mcc_txn_fig, mcc_acct_fig],
-            "tables": [("MCC Categories", mcc_df.head(20))],
-        })
-        sheets.append({
-            "name": "S2 MCC Analysis",
-            "df": mcc_df,
-            "currency_cols": ["Total Spend", "Avg Transaction"],
-            "number_cols": ["Transactions", "Unique Accounts", "Merchants"],
-        })
+        mcc_acct_fig = _merchant_bar(
+            mcc_acct_df,
+            "Unique Accounts",
+            "Top 20 MCC Categories by Account Penetration",
+            y_col="MCC Code",
+            color=COLORS["accent"],
+        )
+        sections.append(
+            {
+                "heading": "Merchant Category (MCC) Analysis",
+                "narrative": f"Top {top_n} MCC codes analyzed across spend, transaction volume, and account penetration.",
+                "figures": [mcc_spend_fig, mcc_txn_fig, mcc_acct_fig],
+                "tables": [("MCC Categories", mcc_df.head(20))],
+            }
+        )
+        sheets.append(
+            {
+                "name": "S2 MCC Analysis",
+                "df": mcc_df,
+                "currency_cols": ["Total Spend", "Avg Transaction"],
+                "number_cols": ["Transactions", "Unique Accounts", "Merchants"],
+            }
+        )
 
     # --- Business Top Merchants (spend, txn count, unique accounts) ---
     if len(biz) > 0:
         biz_df = _top_merchants(biz, merch_col, "amount_sum", top_n)
-        biz_fig = _merchant_bar(biz_df, "Total Spend", "Top 25 Business Merchants by Spend", color="#7B2D8E")
+        biz_fig = _merchant_bar(
+            biz_df, "Total Spend", "Top 25 Business Merchants by Spend", color="#7B2D8E"
+        )
         biz_txn_df = _top_merchants(biz, merch_col, "txn_count", top_n)
-        biz_txn_fig = _merchant_bar(biz_txn_df, "Transactions", "Top 25 Business Merchants by Txn Count", color="#7B2D8E")
+        biz_txn_fig = _merchant_bar(
+            biz_txn_df, "Transactions", "Top 25 Business Merchants by Txn Count", color="#7B2D8E"
+        )
         biz_acct_df = _top_merchants(biz, merch_col, "unique_accounts", top_n)
-        biz_acct_fig = _merchant_bar(biz_acct_df, "Unique Accounts", "Top 25 Business Merchants by Accounts", color="#7B2D8E")
-        sections.append({
-            "heading": "Business Account - Top Merchants",
-            "narrative": f"<b>{len(biz):,}</b> business transactions across <b>{biz['primary_account_num'].nunique():,}</b> accounts.",
-            "figures": [biz_fig, biz_txn_fig, biz_acct_fig],
-            "tables": [],
-        })
-        sheets.append({
-            "name": "S2 Business Merchants",
-            "df": biz_df,
-            "currency_cols": ["Total Spend", "Avg Transaction"],
-            "number_cols": ["Transactions", "Unique Accounts"],
-        })
+        biz_acct_fig = _merchant_bar(
+            biz_acct_df, "Unique Accounts", "Top 25 Business Merchants by Accounts", color="#7B2D8E"
+        )
+        sections.append(
+            {
+                "heading": "Business Account - Top Merchants",
+                "narrative": f"<b>{len(biz):,}</b> business transactions across <b>{biz['primary_account_num'].nunique():,}</b> accounts.",
+                "figures": [biz_fig, biz_txn_fig, biz_acct_fig],
+                "tables": [],
+            }
+        )
+        sheets.append(
+            {
+                "name": "S2 Business Merchants",
+                "df": biz_df,
+                "currency_cols": ["Total Spend", "Avg Transaction"],
+                "number_cols": ["Transactions", "Unique Accounts"],
+            }
+        )
 
     # --- Personal Top Merchants (spend, txn count, unique accounts) ---
     if len(per) > 0:
         per_df = _top_merchants(per, merch_col, "amount_sum", top_n)
-        per_fig = _merchant_bar(per_df, "Total Spend", "Top 25 Personal Merchants by Spend", color=COLORS["secondary"])
+        per_fig = _merchant_bar(
+            per_df, "Total Spend", "Top 25 Personal Merchants by Spend", color=COLORS["secondary"]
+        )
         per_txn_df = _top_merchants(per, merch_col, "txn_count", top_n)
-        per_txn_fig = _merchant_bar(per_txn_df, "Transactions", "Top 25 Personal Merchants by Txn Count", color=COLORS["secondary"])
+        per_txn_fig = _merchant_bar(
+            per_txn_df,
+            "Transactions",
+            "Top 25 Personal Merchants by Txn Count",
+            color=COLORS["secondary"],
+        )
         per_acct_df = _top_merchants(per, merch_col, "unique_accounts", top_n)
-        per_acct_fig = _merchant_bar(per_acct_df, "Unique Accounts", "Top 25 Personal Merchants by Accounts", color=COLORS["secondary"])
-        sections.append({
-            "heading": "Personal Account - Top Merchants",
-            "narrative": f"<b>{len(per):,}</b> personal transactions across <b>{per['primary_account_num'].nunique():,}</b> accounts.",
-            "figures": [per_fig, per_txn_fig, per_acct_fig],
-            "tables": [],
-        })
-        sheets.append({
-            "name": "S2 Personal Merchants",
-            "df": per_df,
-            "currency_cols": ["Total Spend", "Avg Transaction"],
-            "number_cols": ["Transactions", "Unique Accounts"],
-        })
+        per_acct_fig = _merchant_bar(
+            per_acct_df,
+            "Unique Accounts",
+            "Top 25 Personal Merchants by Accounts",
+            color=COLORS["secondary"],
+        )
+        sections.append(
+            {
+                "heading": "Personal Account - Top Merchants",
+                "narrative": f"<b>{len(per):,}</b> personal transactions across <b>{per['primary_account_num'].nunique():,}</b> accounts.",
+                "figures": [per_fig, per_txn_fig, per_acct_fig],
+                "tables": [],
+            }
+        )
+        sheets.append(
+            {
+                "name": "S2 Personal Merchants",
+                "df": per_df,
+                "currency_cols": ["Total Spend", "Avg Transaction"],
+                "number_cols": ["Transactions", "Unique Accounts"],
+            }
+        )
 
     # --- Monthly Rank Movement ---
     if "year_month" in df.columns:
         rank_df, rank_fig = _monthly_rank_tracking(df, merch_col)
         if rank_df is not None:
-            sections.append({
-                "heading": "Monthly Merchant Rank Movement",
-                "narrative": "Tracks how top merchants move up and down in spend rankings month-over-month. Stable leaders vs. volatile risers/fallers.",
-                "figures": [rank_fig],
-                "tables": [],
-            })
-            sheets.append({
-                "name": "S2 Rank Tracking",
-                "df": rank_df,
-                "number_cols": list(rank_df.columns[1:]),
-            })
+            sections.append(
+                {
+                    "heading": "Monthly Merchant Rank Movement",
+                    "narrative": "Tracks how top merchants move up and down in spend rankings month-over-month. Stable leaders vs. volatile risers/fallers.",
+                    "figures": [rank_fig],
+                    "tables": [],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S2 Rank Tracking",
+                    "df": rank_df,
+                    "number_cols": list(rank_df.columns[1:]),
+                }
+            )
 
     # --- Growth Leaders & Decliners ---
     if "year_month" in df.columns:
         growth_df, growth_fig, decline_fig = _growth_analysis(df, merch_col, config)
         if growth_df is not None:
-            sections.append({
-                "heading": "Growth Leaders & Decliners",
-                "narrative": "Merchants with the largest absolute spend changes between the first and second half of the analysis period.",
-                "figures": [growth_fig, decline_fig],
-                "tables": [("Growth/Decline", growth_df.head(30))],
-            })
-            sheets.append({
-                "name": "S2 Growth Leaders",
-                "df": growth_df,
-                "currency_cols": ["First Half Spend", "Second Half Spend", "Change"],
-                "pct_cols": ["Change %"],
-            })
+            sections.append(
+                {
+                    "heading": "Growth Leaders & Decliners",
+                    "narrative": "Merchants with the largest absolute spend changes between the first and second half of the analysis period.",
+                    "figures": [growth_fig, decline_fig],
+                    "tables": [("Growth/Decline", growth_df.head(30))],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S2 Growth Leaders",
+                    "df": growth_df,
+                    "currency_cols": ["First Half Spend", "Second Half Spend", "Change"],
+                    "pct_cols": ["Change %"],
+                }
+            )
 
     # --- Spending Consistency / Volatility ---
     if "year_month" in df.columns:
         result = _spending_consistency(df, merch_col)
         if result is not None:
             consist_df, consist_fig, volatile_fig = result
-            sections.append({
-                "heading": "Spending Consistency & Volatility",
-                "narrative": (
-                    "Measures how predictable each merchant's monthly spend is. "
-                    "Consistency Score = 100 minus the coefficient of variation "
-                    "(capped at 100). Merchants with $10K+ total spend and 3+ "
-                    "active months are included."
-                ),
-                "figures": [consist_fig, volatile_fig],
-                "tables": [("Consistency Data", consist_df.head(30))],
-            })
-            sheets.append({
-                "name": "S2 Consistency",
-                "df": consist_df,
-                "currency_cols": ["Total Spend", "Avg Monthly"],
-                "number_cols": ["Std Dev", "CV (%)", "Consistency Score", "Months Active"],
-            })
+            sections.append(
+                {
+                    "heading": "Spending Consistency & Volatility",
+                    "narrative": (
+                        "Measures how predictable each merchant's monthly spend is. "
+                        "Consistency Score = 100 minus the coefficient of variation "
+                        "(capped at 100). Merchants with $10K+ total spend and 3+ "
+                        "active months are included."
+                    ),
+                    "figures": [consist_fig, volatile_fig],
+                    "tables": [("Consistency Data", consist_df.head(30))],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S2 Consistency",
+                    "df": consist_df,
+                    "currency_cols": ["Total Spend", "Avg Monthly"],
+                    "number_cols": ["Std Dev", "CV (%)", "Consistency Score", "Months Active"],
+                }
+            )
 
     # --- Month-over-Month Growth ---
     if "year_month" in df.columns:
         result = _mom_growth(df, merch_col)
         if result is not None:
             mom_df, mom_growth_fig, mom_decline_fig = result
-            sections.append({
-                "heading": "Month-over-Month Growth Analysis",
-                "narrative": (
-                    "Tracks the biggest month-over-month spending changes "
-                    "across all consecutive month pairs. Only merchants with "
-                    "$1K+ in either month are included."
-                ),
-                "figures": [mom_growth_fig, mom_decline_fig],
-                "tables": [("MoM Growth", mom_df.head(50))],
-            })
-            sheets.append({
-                "name": "S2 MoM Growth",
-                "df": mom_df,
-                "currency_cols": ["Prev Spend", "Curr Spend", "Change ($)"],
-                "pct_cols": ["Change (%)"],
-            })
+            sections.append(
+                {
+                    "heading": "Month-over-Month Growth Analysis",
+                    "narrative": (
+                        "Tracks the biggest month-over-month spending changes "
+                        "across all consecutive month pairs. Only merchants with "
+                        "$1K+ in either month are included."
+                    ),
+                    "figures": [mom_growth_fig, mom_decline_fig],
+                    "tables": [("MoM Growth", mom_df.head(50))],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S2 MoM Growth",
+                    "df": mom_df,
+                    "currency_cols": ["Prev Spend", "Curr Spend", "Change ($)"],
+                    "pct_cols": ["Change (%)"],
+                }
+            )
 
     # --- New vs Declining Merchant Cohort ---
     if "year_month" in df.columns:
         result = _merchant_cohort(df, merch_col)
         if result is not None:
             cohort_df, cohort_fig = result
-            sections.append({
-                "heading": "New vs Declining Merchant Cohort",
-                "narrative": (
-                    "Tracks merchant lifecycle each month: new merchants "
-                    "(first appearance), returning merchants (seen before but "
-                    "not in the prior month), and lost merchants (active last "
-                    "month but absent this month)."
-                ),
-                "figures": [cohort_fig],
-                "tables": [("Cohort Data", cohort_df)],
-            })
-            sheets.append({
-                "name": "S2 Merchant Cohort",
-                "df": cohort_df,
-                "currency_cols": ["New Merchant $"],
-                "pct_cols": ["New %", "Return %", "New $ %"],
-                "number_cols": ["Total Merchants", "New", "Returning", "Lost"],
-            })
+            sections.append(
+                {
+                    "heading": "New vs Declining Merchant Cohort",
+                    "narrative": (
+                        "Tracks merchant lifecycle each month: new merchants "
+                        "(first appearance), returning merchants (seen before but "
+                        "not in the prior month), and lost merchants (active last "
+                        "month but absent this month)."
+                    ),
+                    "figures": [cohort_fig],
+                    "tables": [("Cohort Data", cohort_df)],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S2 Merchant Cohort",
+                    "df": cohort_df,
+                    "currency_cols": ["New Merchant $"],
+                    "pct_cols": ["New %", "Return %", "New $ %"],
+                    "number_cols": ["Total Merchants", "New", "Returning", "Lost"],
+                }
+            )
 
     # --- Cohort Top-5 New Merchants (most recent months) ---
     if "year_month" in df.columns:
         cohort_top5 = _cohort_top_new(df, merch_col)
         if cohort_top5 is not None:
-            sections.append({
-                "heading": "Top New Merchants by Month",
-                "narrative": (
-                    "The top 5 newly appearing merchants each recent month, "
-                    "ranked by their entry spend. Highlights emerging merchant "
-                    "relationships gaining traction quickly."
-                ),
-                "figures": [],
-                "tables": [("Top New Merchants", cohort_top5)],
-            })
-            sheets.append({
-                "name": "S2 Top New Merchants",
-                "df": cohort_top5,
-                "currency_cols": ["Entry Spend"],
-                "number_cols": ["Accounts"],
-            })
+            sections.append(
+                {
+                    "heading": "Top New Merchants by Month",
+                    "narrative": (
+                        "The top 5 newly appearing merchants each recent month, "
+                        "ranked by their entry spend. Highlights emerging merchant "
+                        "relationships gaining traction quickly."
+                    ),
+                    "figures": [],
+                    "tables": [("Top New Merchants", cohort_top5)],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S2 Top New Merchants",
+                    "df": cohort_top5,
+                    "currency_cols": ["Entry Spend"],
+                    "number_cols": ["Accounts"],
+                }
+            )
 
     # --- Business Account Rank Movers ---
     if "year_month" in df.columns and len(biz) > 0:
         result = _account_rank_movers(biz, merch_col, label="Business")
         if result is not None:
             biz_mover_df, biz_climb_fig, biz_fall_fig = result
-            sections.append({
-                "heading": "Business Account Rank Movers",
-                "narrative": (
-                    "Compares merchant spend rankings between consecutive "
-                    "months for business accounts. Rank change = previous "
-                    "rank minus current rank (positive = climbed)."
-                ),
-                "figures": [biz_climb_fig, biz_fall_fig],
-                "tables": [("Biz Rank Movers", biz_mover_df.head(30))],
-            })
-            sheets.append({
-                "name": "S2 Biz Rank Movers",
-                "df": biz_mover_df,
-                "currency_cols": ["Prev $", "Curr $", "Spend Change"],
-                "pct_cols": ["Spend Change %"],
-                "number_cols": ["Rank Change"],
-            })
+            sections.append(
+                {
+                    "heading": "Business Account Rank Movers",
+                    "narrative": (
+                        "Compares merchant spend rankings between consecutive "
+                        "months for business accounts. Rank change = previous "
+                        "rank minus current rank (positive = climbed)."
+                    ),
+                    "figures": [biz_climb_fig, biz_fall_fig],
+                    "tables": [("Biz Rank Movers", biz_mover_df.head(30))],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S2 Biz Rank Movers",
+                    "df": biz_mover_df,
+                    "currency_cols": ["Prev $", "Curr $", "Spend Change"],
+                    "pct_cols": ["Spend Change %"],
+                    "number_cols": ["Rank Change"],
+                }
+            )
 
     # --- Personal Account Rank Movers ---
     if "year_month" in df.columns and len(per) > 0:
         result = _personal_rank_movers(per, merch_col)
         if result is not None:
             per_mover_df, per_climb_fig, per_fall_fig, per_spend_fig = result
-            sections.append({
-                "heading": "Personal Account Rank Movers",
-                "narrative": (
-                    "Compares merchant spend rankings between consecutive "
-                    "months for personal accounts. Also highlights merchants "
-                    "with the largest absolute spend increases."
-                ),
-                "figures": [per_climb_fig, per_fall_fig, per_spend_fig],
-                "tables": [("Per Rank Movers", per_mover_df.head(30))],
-            })
-            sheets.append({
-                "name": "S2 Per Rank Movers",
-                "df": per_mover_df,
-                "currency_cols": ["Prev $", "Curr $", "Spend Change"],
-                "pct_cols": ["Spend Change %"],
-                "number_cols": ["Rank Change"],
-            })
+            sections.append(
+                {
+                    "heading": "Personal Account Rank Movers",
+                    "narrative": (
+                        "Compares merchant spend rankings between consecutive "
+                        "months for personal accounts. Also highlights merchants "
+                        "with the largest absolute spend increases."
+                    ),
+                    "figures": [per_climb_fig, per_fall_fig, per_spend_fig],
+                    "tables": [("Per Rank Movers", per_mover_df.head(30))],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S2 Per Rank Movers",
+                    "df": per_mover_df,
+                    "currency_cols": ["Prev $", "Curr $", "Spend Change"],
+                    "pct_cols": ["Spend Change %"],
+                    "number_cols": ["Rank Change"],
+                }
+            )
 
     return {
         "title": "S2: Merchant Intelligence",
@@ -318,11 +427,18 @@ def run(ctx: dict) -> dict:
 # Core Analysis Functions
 # =============================================================================
 
+
 def _top_merchants(df, merch_col, sort_by, top_n):
-    agg = df.groupby(merch_col).agg({
-        "amount": ["sum", "count", "mean"],
-        "primary_account_num": "nunique",
-    }).round(2)
+    agg = (
+        df.groupby(merch_col)
+        .agg(
+            {
+                "amount": ["sum", "count", "mean"],
+                "primary_account_num": "nunique",
+            }
+        )
+        .round(2)
+    )
     agg.columns = ["Total Spend", "Transactions", "Avg Transaction", "Unique Accounts"]
 
     sort_map = {
@@ -340,17 +456,23 @@ def _merchant_bar(df, value_col, title, y_col="Merchant", color=None, top_n=25):
     color = color or COLORS["primary"]
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=top[value_col],
-        y=top[y_col].astype(str).str[:40],
-        orientation="h",
-        marker_color=color,
-        text=top[value_col].apply(
-            lambda v: format_currency(v) if value_col in ("Total Spend", "Avg Transaction") else f"{v:,.0f}"
-        ),
-        textposition="outside",
-        textfont=dict(size=10),
-    ))
+    fig.add_trace(
+        go.Bar(
+            x=top[value_col],
+            y=top[y_col].astype(str).str[:40],
+            orientation="h",
+            marker_color=color,
+            text=top[value_col].apply(
+                lambda v: (
+                    format_currency(v)
+                    if value_col in ("Total Spend", "Avg Transaction")
+                    else f"{v:,.0f}"
+                )
+            ),
+            textposition="outside",
+            textfont=dict(size=10),
+        )
+    )
     fig.update_layout(
         title=title,
         xaxis_title=value_col,
@@ -367,11 +489,17 @@ def _merchant_bar(df, value_col, title, y_col="Merchant", color=None, top_n=25):
 
 
 def _mcc_analysis(df, top_n):
-    agg = df.groupby("mcc_code").agg({
-        "amount": ["sum", "count", "mean"],
-        "primary_account_num": "nunique",
-        "merchant_name": "nunique",
-    }).round(2)
+    agg = (
+        df.groupby("mcc_code")
+        .agg(
+            {
+                "amount": ["sum", "count", "mean"],
+                "primary_account_num": "nunique",
+                "merchant_name": "nunique",
+            }
+        )
+        .round(2)
+    )
     agg.columns = ["Total Spend", "Transactions", "Avg Transaction", "Unique Accounts", "Merchants"]
     agg = agg.sort_values("Total Spend", ascending=False).head(top_n)
     agg = agg.reset_index().rename(columns={"mcc_code": "MCC Code"})
@@ -396,6 +524,7 @@ def _top_narrative(spend_df, metric_type, df):
 # =============================================================================
 # Monthly Rank Tracking
 # =============================================================================
+
 
 def _monthly_rank_tracking(df, merch_col):
     sorted_months = sorted(df["year_month"].unique())
@@ -432,14 +561,16 @@ def _monthly_rank_tracking(df, merch_col):
     month_strs = [str(m) for m in sorted_months]
     for _, row in rank_df.iterrows():
         ranks = [row.get(m) for m in month_strs]
-        fig.add_trace(go.Scatter(
-            x=month_strs,
-            y=ranks,
-            mode="lines+markers",
-            name=str(row["Merchant"])[:30],
-            line=dict(width=2),
-            marker=dict(size=6),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=month_strs,
+                y=ranks,
+                mode="lines+markers",
+                name=str(row["Merchant"])[:30],
+                line=dict(width=2),
+                marker=dict(size=6),
+            )
+        )
 
     fig.update_layout(
         title="Top Merchant Rank Movement (Lower = Better)",
@@ -457,6 +588,7 @@ def _monthly_rank_tracking(df, merch_col):
 # =============================================================================
 # Growth Leaders & Decliners
 # =============================================================================
+
 
 def _growth_analysis(df, merch_col, config):
     sorted_months = sorted(df["year_month"].unique())
@@ -480,7 +612,8 @@ def _growth_analysis(df, merch_col, config):
 
     min_threshold = config.get("growth_min_threshold", 1000)
     growth = growth[
-        (growth["First Half Spend"] >= min_threshold) | (growth["Second Half Spend"] >= min_threshold)
+        (growth["First Half Spend"] >= min_threshold)
+        | (growth["Second Half Spend"] >= min_threshold)
     ]
     growth = growth.sort_values("Change", ascending=False)
     growth = growth.reset_index().rename(columns={merch_col: "Merchant"})
@@ -488,14 +621,16 @@ def _growth_analysis(df, merch_col, config):
     # Growth chart (top 15)
     top_growth = growth.head(15).iloc[::-1]
     growth_fig = go.Figure()
-    growth_fig.add_trace(go.Bar(
-        x=top_growth["Change"],
-        y=top_growth["Merchant"].astype(str).str[:35],
-        orientation="h",
-        marker_color=COLORS["positive"],
-        text=top_growth["Change"].apply(lambda v: f"+{format_currency(v)}"),
-        textposition="outside",
-    ))
+    growth_fig.add_trace(
+        go.Bar(
+            x=top_growth["Change"],
+            y=top_growth["Merchant"].astype(str).str[:35],
+            orientation="h",
+            marker_color=COLORS["positive"],
+            text=top_growth["Change"].apply(lambda v: f"+{format_currency(v)}"),
+            textposition="outside",
+        )
+    )
     growth_fig.update_layout(
         title="Top 15 Growth Leaders (Absolute Spend Increase)",
         xaxis_title="Spend Change ($)",
@@ -508,14 +643,16 @@ def _growth_analysis(df, merch_col, config):
     # Decline chart (bottom 15)
     top_decline = growth.tail(15)
     decline_fig = go.Figure()
-    decline_fig.add_trace(go.Bar(
-        x=top_decline["Change"],
-        y=top_decline["Merchant"].astype(str).str[:35],
-        orientation="h",
-        marker_color=COLORS["negative"],
-        text=top_decline["Change"].apply(lambda v: format_currency(v)),
-        textposition="outside",
-    ))
+    decline_fig.add_trace(
+        go.Bar(
+            x=top_decline["Change"],
+            y=top_decline["Merchant"].astype(str).str[:35],
+            orientation="h",
+            marker_color=COLORS["negative"],
+            text=top_decline["Change"].apply(lambda v: format_currency(v)),
+            textposition="outside",
+        )
+    )
     decline_fig.update_layout(
         title="Top 15 Decliners (Absolute Spend Decrease)",
         xaxis_title="Spend Change ($)",
@@ -542,15 +679,9 @@ def _spending_consistency(df, merch_col):
     CV = std / mean * 100. Consistency score = 100 - min(CV, 100).
     Filters: 3+ active months and $10K+ total spend.
     """
-    monthly_spend = (
-        df.groupby([merch_col, "year_month"])["amount"]
-        .sum()
-        .reset_index()
-    )
+    monthly_spend = df.groupby([merch_col, "year_month"])["amount"].sum().reset_index()
 
-    pivot = monthly_spend.pivot(
-        index=merch_col, columns="year_month", values="amount"
-    ).fillna(0)
+    pivot = monthly_spend.pivot(index=merch_col, columns="year_month", values="amount").fillna(0)
 
     # Count months with non-zero spend
     active_months = (pivot > 0).sum(axis=1)
@@ -562,12 +693,14 @@ def _spending_consistency(df, merch_col):
     # Replace zeros with NaN so they do not deflate mean for inactive months
     numeric_pivot = pivot.replace(0, np.nan)
 
-    stats = pd.DataFrame({
-        "Total Spend": pivot.sum(axis=1),
-        "Avg Monthly": numeric_pivot.mean(axis=1),
-        "Std Dev": numeric_pivot.std(axis=1),
-        "Months Active": active_months.reindex(pivot.index),
-    })
+    stats = pd.DataFrame(
+        {
+            "Total Spend": pivot.sum(axis=1),
+            "Avg Monthly": numeric_pivot.mean(axis=1),
+            "Std Dev": numeric_pivot.std(axis=1),
+            "Months Active": active_months.reindex(pivot.index),
+        }
+    )
 
     stats = stats[stats["Total Spend"] >= MIN_TOTAL_SPEND].copy()
     if stats.empty:
@@ -590,15 +723,17 @@ def _spending_consistency(df, merch_col):
     # --- Chart 1: Top 30 Most Consistent (lowest CV) ---
     consistent = stats.sort_values("CV (%)").head(30).iloc[::-1]
     consist_fig = go.Figure()
-    consist_fig.add_trace(go.Bar(
-        x=consistent["Consistency Score"],
-        y=consistent["Merchant"].astype(str).str[:35],
-        orientation="h",
-        marker_color=COLORS["positive"],
-        text=consistent["Consistency Score"].apply(lambda v: f"{v:.0f}"),
-        textposition="outside",
-        textfont=dict(size=10),
-    ))
+    consist_fig.add_trace(
+        go.Bar(
+            x=consistent["Consistency Score"],
+            y=consistent["Merchant"].astype(str).str[:35],
+            orientation="h",
+            marker_color=COLORS["positive"],
+            text=consistent["Consistency Score"].apply(lambda v: f"{v:.0f}"),
+            textposition="outside",
+            textfont=dict(size=10),
+        )
+    )
     consist_fig.update_layout(
         title="Top 30 Most Consistent Merchants (by Consistency Score)",
         xaxis_title="Consistency Score",
@@ -611,15 +746,17 @@ def _spending_consistency(df, merch_col):
     # --- Chart 2: Top 30 Most Volatile (highest CV) ---
     volatile = stats.sort_values("CV (%)", ascending=False).head(30).iloc[::-1]
     volatile_fig = go.Figure()
-    volatile_fig.add_trace(go.Bar(
-        x=volatile["CV (%)"],
-        y=volatile["Merchant"].astype(str).str[:35],
-        orientation="h",
-        marker_color=COLORS["negative"],
-        text=volatile["CV (%)"].apply(lambda v: f"{v:.0f}%"),
-        textposition="outside",
-        textfont=dict(size=10),
-    ))
+    volatile_fig.add_trace(
+        go.Bar(
+            x=volatile["CV (%)"],
+            y=volatile["Merchant"].astype(str).str[:35],
+            orientation="h",
+            marker_color=COLORS["negative"],
+            text=volatile["CV (%)"].apply(lambda v: f"{v:.0f}%"),
+            textposition="outside",
+            textfont=dict(size=10),
+        )
+    )
     volatile_fig.update_layout(
         title="Top 30 Most Volatile Merchants (by CV %)",
         xaxis_title="Coefficient of Variation (%)",
@@ -653,11 +790,7 @@ def _mom_growth(df, merch_col):
     if len(sorted_months) < 2:
         return None
 
-    monthly = (
-        df.groupby([merch_col, "year_month"])["amount"]
-        .sum()
-        .reset_index()
-    )
+    monthly = df.groupby([merch_col, "year_month"])["amount"].sum().reset_index()
 
     rows = []
     for i in range(len(sorted_months) - 1):
@@ -676,18 +809,18 @@ def _mom_growth(df, merch_col):
                 continue
 
             change_abs = curr_val - prev_val
-            change_pct = (
-                (change_abs / prev_val * 100) if prev_val > 0 else 0
-            )
+            change_pct = (change_abs / prev_val * 100) if prev_val > 0 else 0
 
-            rows.append({
-                "Merchant": merchant,
-                "Period": f"{prev_month} -> {curr_month}",
-                "Prev Spend": round(prev_val, 2),
-                "Curr Spend": round(curr_val, 2),
-                "Change ($)": round(change_abs, 2),
-                "Change (%)": round(change_pct, 1),
-            })
+            rows.append(
+                {
+                    "Merchant": merchant,
+                    "Period": f"{prev_month} -> {curr_month}",
+                    "Prev Spend": round(prev_val, 2),
+                    "Curr Spend": round(curr_val, 2),
+                    "Change ($)": round(change_abs, 2),
+                    "Change (%)": round(change_pct, 1),
+                }
+            )
 
     if not rows:
         return None
@@ -705,17 +838,17 @@ def _mom_growth(df, merch_col):
         lambda r: f"{r['Merchant'][:25]} ({r['Period']})", axis=1
     )
     growth_fig = go.Figure()
-    growth_fig.add_trace(go.Bar(
-        x=chart_leaders["Change ($)"],
-        y=chart_leaders_label,
-        orientation="h",
-        marker_color=COLORS["positive"],
-        text=chart_leaders["Change ($)"].apply(
-            lambda v: f"+{format_currency(v)}"
-        ),
-        textposition="outside",
-        textfont=dict(size=9),
-    ))
+    growth_fig.add_trace(
+        go.Bar(
+            x=chart_leaders["Change ($)"],
+            y=chart_leaders_label,
+            orientation="h",
+            marker_color=COLORS["positive"],
+            text=chart_leaders["Change ($)"].apply(lambda v: f"+{format_currency(v)}"),
+            textposition="outside",
+            textfont=dict(size=9),
+        )
+    )
     growth_fig.update_layout(
         title="Top 50 MoM Growth Leaders",
         xaxis_title="Spend Change ($)",
@@ -733,15 +866,17 @@ def _mom_growth(df, merch_col):
         lambda r: f"{r['Merchant'][:25]} ({r['Period']})", axis=1
     )
     decline_fig = go.Figure()
-    decline_fig.add_trace(go.Bar(
-        x=chart_decliners["Change ($)"],
-        y=chart_decliners_label,
-        orientation="h",
-        marker_color=COLORS["negative"],
-        text=chart_decliners["Change ($)"].apply(format_currency),
-        textposition="outside",
-        textfont=dict(size=9),
-    ))
+    decline_fig.add_trace(
+        go.Bar(
+            x=chart_decliners["Change ($)"],
+            y=chart_decliners_label,
+            orientation="h",
+            marker_color=COLORS["negative"],
+            text=chart_decliners["Change ($)"].apply(format_currency),
+            textposition="outside",
+            textfont=dict(size=9),
+        )
+    )
     decline_fig.update_layout(
         title="Top 50 MoM Decliners",
         xaxis_title="Spend Change ($)",
@@ -763,6 +898,7 @@ def _mom_growth(df, merch_col):
 # New vs Declining Merchant Cohort (M5D)
 # =============================================================================
 
+
 def _merchant_cohort(df, merch_col):
     """Track new, returning, and lost merchants each month.
 
@@ -777,24 +913,14 @@ def _merchant_cohort(df, merch_col):
     # Build per-month merchant sets
     month_merchants = {}
     for month in sorted_months:
-        merchants = set(
-            df.loc[df["year_month"] == month, merch_col].unique()
-        )
+        merchants = set(df.loc[df["year_month"] == month, merch_col].unique())
         month_merchants[month] = merchants
 
     # Build per-month spend
-    month_spend = (
-        df.groupby(["year_month", merch_col])["amount"]
-        .sum()
-        .reset_index()
-    )
+    month_spend = df.groupby(["year_month", merch_col])["amount"].sum().reset_index()
 
     # First-month lookup for each merchant
-    first_seen = (
-        df.groupby(merch_col)["year_month"]
-        .min()
-        .to_dict()
-    )
+    first_seen = df.groupby(merch_col)["year_month"].min().to_dict()
 
     all_seen_so_far = set()
     prev_merchants = set()
@@ -822,22 +948,21 @@ def _merchant_cohort(df, merch_col):
 
         new_pct = (new_count / total_count * 100) if total_count > 0 else 0
         return_pct = (returning_count / total_count * 100) if total_count > 0 else 0
-        new_spend_pct = (
-            (new_spend / total_month_spend * 100)
-            if total_month_spend > 0 else 0
-        )
+        new_spend_pct = (new_spend / total_month_spend * 100) if total_month_spend > 0 else 0
 
-        cohort_rows.append({
-            "Month": str(month),
-            "Total Merchants": total_count,
-            "New": new_count,
-            "New %": round(new_pct, 1),
-            "Returning": returning_count,
-            "Return %": round(return_pct, 1),
-            "Lost": lost_count,
-            "New Merchant $": round(new_spend, 2),
-            "New $ %": round(new_spend_pct, 1),
-        })
+        cohort_rows.append(
+            {
+                "Month": str(month),
+                "Total Merchants": total_count,
+                "New": new_count,
+                "New %": round(new_pct, 1),
+                "Returning": returning_count,
+                "Return %": round(return_pct, 1),
+                "Lost": lost_count,
+                "New Merchant $": round(new_spend, 2),
+                "New $ %": round(new_spend_pct, 1),
+            }
+        )
 
         all_seen_so_far.update(current)
         prev_merchants = current
@@ -871,17 +996,25 @@ def _cohort_top_new(df, merch_col, top_n=5, recent_months=3):
         if not new_merchants:
             continue
         m_data = df[(df["year_month"] == month) & (df[merch_col].isin(new_merchants))]
-        agg = m_data.groupby(merch_col).agg(
-            spend=("amount", "sum"),
-            accounts=("primary_account_num", "nunique"),
-        ).sort_values("spend", ascending=False).head(top_n).reset_index()
+        agg = (
+            m_data.groupby(merch_col)
+            .agg(
+                spend=("amount", "sum"),
+                accounts=("primary_account_num", "nunique"),
+            )
+            .sort_values("spend", ascending=False)
+            .head(top_n)
+            .reset_index()
+        )
         for _, r in agg.iterrows():
-            rows.append({
-                "Month": str(month),
-                "Merchant": r[merch_col],
-                "Entry Spend": round(r["spend"], 2),
-                "Accounts": int(r["accounts"]),
-            })
+            rows.append(
+                {
+                    "Month": str(month),
+                    "Merchant": r[merch_col],
+                    "Entry Spend": round(r["spend"], 2),
+                    "Accounts": int(r["accounts"]),
+                }
+            )
 
     if not rows:
         return None
@@ -908,11 +1041,7 @@ def _account_rank_movers(subset_df, merch_col, label="Business"):
     if len(sorted_months) < 2:
         return None
 
-    monthly_spend = (
-        subset_df.groupby([merch_col, "year_month"])["amount"]
-        .sum()
-        .reset_index()
-    )
+    monthly_spend = subset_df.groupby([merch_col, "year_month"])["amount"].sum().reset_index()
 
     all_movers = []
 
@@ -958,9 +1087,7 @@ def _account_rank_movers(subset_df, merch_col, label="Business"):
         merged["prev_spend"] = merged["prev_spend"].fillna(0).round(2)
         merged["curr_spend"] = merged["curr_spend"].fillna(0).round(2)
 
-        merged["Rank Change"] = (
-            merged["prev_rank"] - merged["curr_rank"]
-        ).astype(int)
+        merged["Rank Change"] = (merged["prev_rank"] - merged["curr_rank"]).astype(int)
         merged["Spend Change"] = (merged["curr_spend"] - merged["prev_spend"]).round(2)
         merged["Spend Change %"] = np.where(
             merged["prev_spend"] > 0,
@@ -970,10 +1097,18 @@ def _account_rank_movers(subset_df, merch_col, label="Business"):
         merged["Period"] = f"{prev_month} -> {curr_month}"
 
         all_movers.append(
-            merged[[merch_col, "Rank Change", "prev_spend", "curr_spend",
-                     "Spend Change", "Spend Change %", "Period"]].rename(
-                columns={merch_col: "Merchant", "prev_spend": "Prev $",
-                         "curr_spend": "Curr $"}
+            merged[
+                [
+                    merch_col,
+                    "Rank Change",
+                    "prev_spend",
+                    "curr_spend",
+                    "Spend Change",
+                    "Spend Change %",
+                    "Period",
+                ]
+            ].rename(
+                columns={merch_col: "Merchant", "prev_spend": "Prev $", "curr_spend": "Curr $"}
             )
         )
 
@@ -984,27 +1119,28 @@ def _account_rank_movers(subset_df, merch_col, label="Business"):
 
     # Classify direction
     mover_df["Direction"] = np.where(
-        mover_df["Rank Change"] > 0, "Climber",
+        mover_df["Rank Change"] > 0,
+        "Climber",
         np.where(mover_df["Rank Change"] < 0, "Faller", "Stable"),
     )
 
     # --- Top 30 Climbers ---
     climbers = mover_df.sort_values("Rank Change", ascending=False).head(30)
     climbers_plot = climbers.iloc[::-1]
-    climbers_label = climbers_plot.apply(
-        lambda r: f"{r['Merchant'][:25]} ({r['Period']})", axis=1
-    )
+    climbers_label = climbers_plot.apply(lambda r: f"{r['Merchant'][:25]} ({r['Period']})", axis=1)
 
     climb_fig = go.Figure()
-    climb_fig.add_trace(go.Bar(
-        x=climbers_plot["Rank Change"],
-        y=climbers_label,
-        orientation="h",
-        marker_color=COLORS["positive"],
-        text=climbers_plot["Rank Change"].apply(lambda v: f"+{v}"),
-        textposition="outside",
-        textfont=dict(size=9),
-    ))
+    climb_fig.add_trace(
+        go.Bar(
+            x=climbers_plot["Rank Change"],
+            y=climbers_label,
+            orientation="h",
+            marker_color=COLORS["positive"],
+            text=climbers_plot["Rank Change"].apply(lambda v: f"+{v}"),
+            textposition="outside",
+            textfont=dict(size=9),
+        )
+    )
     climb_fig.update_layout(
         title=f"Top 30 {label} Rank Climbers (Positions Gained)",
         xaxis_title="Rank Positions Gained",
@@ -1017,20 +1153,20 @@ def _account_rank_movers(subset_df, merch_col, label="Business"):
     # --- Top 30 Fallers ---
     fallers = mover_df.sort_values("Rank Change").head(30)
     fallers_plot = fallers.copy()
-    fallers_label = fallers_plot.apply(
-        lambda r: f"{r['Merchant'][:25]} ({r['Period']})", axis=1
-    )
+    fallers_label = fallers_plot.apply(lambda r: f"{r['Merchant'][:25]} ({r['Period']})", axis=1)
 
     fall_fig = go.Figure()
-    fall_fig.add_trace(go.Bar(
-        x=fallers_plot["Rank Change"],
-        y=fallers_label,
-        orientation="h",
-        marker_color=COLORS["negative"],
-        text=fallers_plot["Rank Change"].apply(lambda v: f"{v}"),
-        textposition="outside",
-        textfont=dict(size=9),
-    ))
+    fall_fig.add_trace(
+        go.Bar(
+            x=fallers_plot["Rank Change"],
+            y=fallers_label,
+            orientation="h",
+            marker_color=COLORS["negative"],
+            text=fallers_plot["Rank Change"].apply(lambda v: f"{v}"),
+            textposition="outside",
+            textfont=dict(size=9),
+        )
+    )
     fall_fig.update_layout(
         title=f"Top 30 {label} Rank Fallers (Positions Lost)",
         xaxis_title="Rank Positions Lost",
@@ -1041,9 +1177,7 @@ def _account_rank_movers(subset_df, merch_col, label="Business"):
     fall_fig = apply_theme(fall_fig)
 
     # Sort output by absolute rank change for the sheet
-    mover_df = mover_df.sort_values(
-        "Rank Change", key=lambda s: s.abs(), ascending=False
-    )
+    mover_df = mover_df.sort_values("Rank Change", key=lambda s: s.abs(), ascending=False)
 
     return mover_df, climb_fig, fall_fig
 
@@ -1051,6 +1185,7 @@ def _account_rank_movers(subset_df, merch_col, label="Business"):
 # =============================================================================
 # Personal Account Rank Movers (M5F)
 # =============================================================================
+
 
 def _personal_rank_movers(subset_df, merch_col):
     """Personal account rank movers with an additional spend-increase chart.
@@ -1070,25 +1205,19 @@ def _personal_rank_movers(subset_df, merch_col):
         return None
 
     sorted_months = sorted(subset_df["year_month"].unique())
-    monthly_spend = (
-        subset_df.groupby([merch_col, "year_month"])["amount"]
-        .sum()
-        .reset_index()
-    )
+    monthly_spend = subset_df.groupby([merch_col, "year_month"])["amount"].sum().reset_index()
 
     spend_rows = []
     for i in range(len(sorted_months) - 1):
         prev_month = sorted_months[i]
         curr_month = sorted_months[i + 1]
 
-        prev = (
-            monthly_spend[monthly_spend["year_month"] == prev_month]
-            .set_index(merch_col)["amount"]
-        )
-        curr = (
-            monthly_spend[monthly_spend["year_month"] == curr_month]
-            .set_index(merch_col)["amount"]
-        )
+        prev = monthly_spend[monthly_spend["year_month"] == prev_month].set_index(merch_col)[
+            "amount"
+        ]
+        curr = monthly_spend[monthly_spend["year_month"] == curr_month].set_index(merch_col)[
+            "amount"
+        ]
 
         all_merchants = set(prev.index) | set(curr.index)
         for merchant in all_merchants:
@@ -1096,38 +1225,36 @@ def _personal_rank_movers(subset_df, merch_col):
             curr_val = curr.get(merchant, 0)
             change = curr_val - prev_val
             if change > 0:
-                spend_rows.append({
-                    "Merchant": merchant,
-                    "Period": f"{prev_month} -> {curr_month}",
-                    "Spend Change": round(change, 2),
-                })
+                spend_rows.append(
+                    {
+                        "Merchant": merchant,
+                        "Period": f"{prev_month} -> {curr_month}",
+                        "Spend Change": round(change, 2),
+                    }
+                )
 
     if not spend_rows:
         empty_fig = go.Figure()
         empty_fig = apply_theme(empty_fig)
         return mover_df, climb_fig, fall_fig, empty_fig
 
-    spend_df = pd.DataFrame(spend_rows).sort_values(
-        "Spend Change", ascending=False
-    ).head(30)
+    spend_df = pd.DataFrame(spend_rows).sort_values("Spend Change", ascending=False).head(30)
 
     spend_plot = spend_df.iloc[::-1]
-    spend_label = spend_plot.apply(
-        lambda r: f"{r['Merchant'][:25]} ({r['Period']})", axis=1
-    )
+    spend_label = spend_plot.apply(lambda r: f"{r['Merchant'][:25]} ({r['Period']})", axis=1)
 
     spend_fig = go.Figure()
-    spend_fig.add_trace(go.Bar(
-        x=spend_plot["Spend Change"],
-        y=spend_label,
-        orientation="h",
-        marker_color=COLORS["accent"],
-        text=spend_plot["Spend Change"].apply(
-            lambda v: f"+{format_currency(v)}"
-        ),
-        textposition="outside",
-        textfont=dict(size=9),
-    ))
+    spend_fig.add_trace(
+        go.Bar(
+            x=spend_plot["Spend Change"],
+            y=spend_label,
+            orientation="h",
+            marker_color=COLORS["accent"],
+            text=spend_plot["Spend Change"].apply(lambda v: f"+{format_currency(v)}"),
+            textposition="outside",
+            textfont=dict(size=9),
+        )
+    )
     spend_fig.update_layout(
         title="Top 30 Personal Spend Increases (Absolute $)",
         xaxis_title="Spend Increase ($)",

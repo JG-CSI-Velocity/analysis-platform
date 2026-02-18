@@ -66,8 +66,9 @@ class TestWriteExcelReport:
             assert ws.freeze_panes == "A2"
 
     def test_skips_failed_analyses(self, sample_csv_path, tmp_path):
-        from txn_analysis.analyses.base import AnalysisResult
         import pandas as pd
+
+        from txn_analysis.analyses.base import AnalysisResult
 
         settings = Settings.from_args(data_file=sample_csv_path, output_dir=tmp_path)
         result = PipelineResult(

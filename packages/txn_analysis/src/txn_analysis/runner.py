@@ -61,8 +61,8 @@ def run_txn_v4(ctx: PipelineContext) -> dict[str, SharedResult]:
     This runs the txnv3 storyline pipeline (S1-S9, 99+ analyses) which
     requires both a transaction file (tran) and an ODD file (odd).
     """
-    from txn_analysis.v4_run import run_pipeline as v4_run_pipeline
     from txn_analysis.v4_data_loader import load_config
+    from txn_analysis.v4_run import run_pipeline as v4_run_pipeline
 
     config_file = ctx.input_files.get("v4_config")
     if config_file:
@@ -94,7 +94,8 @@ def run_txn_v4(ctx: PipelineContext) -> dict[str, SharedResult]:
             ctx.progress_callback(f"[V4 {step}/{total}] {msg}")
 
     results, excel_path, html_path = v4_run_pipeline(
-        config, progress_cb=_progress_bridge,
+        config,
+        progress_cb=_progress_bridge,
     )
     return _convert_v4_results(results)
 
@@ -136,10 +137,7 @@ def _convert_v4_results(storyline_results: dict) -> dict[str, SharedResult]:
             "title": sr.get("title", key),
             "description": sr.get("description", ""),
             "section_count": len(sr.get("sections", [])),
-            "chart_count": sum(
-                len(s.get("figures", []))
-                for s in sr.get("sections", [])
-            ),
+            "chart_count": sum(len(s.get("figures", [])) for s in sr.get("sections", [])),
         }
 
         results[key] = SharedResult(

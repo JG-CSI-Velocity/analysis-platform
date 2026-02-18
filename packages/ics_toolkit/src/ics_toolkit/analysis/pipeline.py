@@ -1,10 +1,10 @@
 """Pipeline orchestrator shared by CLI and Jupyter/REPL."""
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Callable
 
 import pandas as pd
 import plotly.graph_objects as go

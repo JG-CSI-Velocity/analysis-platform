@@ -17,10 +17,10 @@ Dependencies:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from itertools import cycle
 from pathlib import Path
-from typing import Callable, Optional
 
 from pptx import Presentation
 from pptx.enum.text import PP_ALIGN
@@ -163,9 +163,9 @@ class SlideContent:
 
     slide_type: str
     title: str
-    images: Optional[list[str]] = None
-    kpis: Optional[dict[str, str]] = None
-    bullets: Optional[list[str]] = None
+    images: list[str] | None = None
+    kpis: dict[str, str] | None = None
+    bullets: list[str] | None = None
     layout_index: int = 5
 
 

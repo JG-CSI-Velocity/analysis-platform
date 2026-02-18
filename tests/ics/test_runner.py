@@ -15,8 +15,8 @@ class TestConvertResults:
     """Test ICS AnalysisResult -> SharedResult conversion."""
 
     def test_converts_successful(self):
-        from ics_toolkit.runner import _convert_results
         from ics_toolkit.analysis.analyses.base import AnalysisResult
+        from ics_toolkit.runner import _convert_results
 
         ar = AnalysisResult(
             name="portfolio_overview",
@@ -34,12 +34,10 @@ class TestConvertResults:
         assert r.metadata["title"] == "Portfolio Overview"
 
     def test_skips_failed(self):
-        from ics_toolkit.runner import _convert_results
         from ics_toolkit.analysis.analyses.base import AnalysisResult
+        from ics_toolkit.runner import _convert_results
 
-        ar = AnalysisResult(
-            name="failed_one", title="Failed", df=pd.DataFrame(), error="broke"
-        )
+        ar = AnalysisResult(name="failed_one", title="Failed", df=pd.DataFrame(), error="broke")
         results = _convert_results([ar])
         assert "failed_one" not in results
 

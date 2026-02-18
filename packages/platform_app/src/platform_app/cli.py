@@ -49,7 +49,9 @@ def run_all(
     output_dir: Path = typer.Option("output", "--output", "-o", help="Output directory"),
     client_id: str = typer.Option("", "--client-id", help="Client identifier"),
     client_name: str = typer.Option("", "--client-name", help="Client display name"),
-    pipelines: str = typer.Option("auto", "--pipelines", help="Comma-separated pipelines or 'auto'"),
+    pipelines: str = typer.Option(
+        "auto", "--pipelines", help="Comma-separated pipelines or 'auto'"
+    ),
 ) -> None:
     """Run all applicable pipelines for a client's data directory."""
     from platform_app.orchestrator import run_all as orchestrator_run_all
@@ -101,7 +103,10 @@ def format_oddd(
 
 
 def _build_input_files(
-    pipeline: str, data_file: Path, odd_file: Path | None, tran_file: Path | None,
+    pipeline: str,
+    data_file: Path,
+    odd_file: Path | None,
+    tran_file: Path | None,
 ) -> dict[str, Path]:
     """Map CLI args to input_files dict based on pipeline type."""
     files: dict[str, Path] = {}

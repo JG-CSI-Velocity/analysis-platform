@@ -15,56 +15,60 @@ Usage:
 
 import re
 import traceback
-import pandas as pd
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+import pandas as pd
 
 # =============================================================================
 # CONSTANTS
 # =============================================================================
 
-RESPONSE_SEGMENTS = ['NU 5+', 'TH-10', 'TH-15', 'TH-20', 'TH-25']
-MAILED_SEGMENTS = ['NU', 'TH-10', 'TH-15', 'TH-20', 'TH-25']
-TH_SEGMENTS = ['TH-10', 'TH-15', 'TH-20', 'TH-25']
+RESPONSE_SEGMENTS = ["NU 5+", "TH-10", "TH-15", "TH-20", "TH-25"]
+MAILED_SEGMENTS = ["NU", "TH-10", "TH-15", "TH-20", "TH-25"]
+TH_SEGMENTS = ["TH-10", "TH-15", "TH-20", "TH-25"]
 
-SPEND_PATTERN = re.compile(r'^[A-Z][a-z]{2}\d{2} Spend$')
-SWIPE_PATTERN = re.compile(r'^[A-Z][a-z]{2}\d{2} Swipes$')
+SPEND_PATTERN = re.compile(r"^[A-Z][a-z]{2}\d{2} Spend$")
+SWIPE_PATTERN = re.compile(r"^[A-Z][a-z]{2}\d{2} Swipes$")
 
 
 # =============================================================================
 # HELPERS
 # =============================================================================
 
+
 def report(ctx, msg):
     """Print a progress message and notify the Streamlit callback if set."""
     print(msg)
-    cb = ctx.get('_progress_callback')
+    cb = ctx.get("_progress_callback")
     if cb:
         cb(msg)
 
 
 def save_chart(fig, path):
     """Save a matplotlib figure to disk and close it."""
-    fig.savefig(str(path), dpi=150, bbox_inches='tight', facecolor='white')
+    fig.savefig(str(path), dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return str(path)
 
 
-def slide(ctx, slide_id, data, category='Mailer'):
+def slide(ctx, slide_id, data, category="Mailer"):
     """Append a slide entry to the pipeline's all_slides list."""
-    ctx['all_slides'].append({
-        'id': slide_id, 'category': category,
-        'data': data, 'include': True,
-    })
+    ctx["all_slides"].append(
+        {
+            "id": slide_id,
+            "category": category,
+            "data": data,
+            "include": True,
+        }
+    )
 
 
 def save_to_excel(ctx, df, sheet, title, metrics=None):
     """Export a DataFrame to the pipeline Excel workbook."""
-    fn = ctx.get('_save_to_excel')
+    fn = ctx.get("_save_to_excel")
     if fn:
         try:
-            fn(ctx, df=df, sheet_name=sheet,
-               analysis_title=title, key_metrics=metrics)
+            fn(ctx, df=df, sheet_name=sheet, analysis_title=title, key_metrics=metrics)
         except Exception as e:
             report(ctx, f"   Export {sheet}: {e}")
 
@@ -72,7 +76,7 @@ def save_to_excel(ctx, df, sheet, title, metrics=None):
 def parse_month(col_name):
     """Parse MmmYY from a column name like 'Aug25 Mail' -> datetime."""
     try:
-        return pd.to_datetime(col_name.split(' ')[0], format='%b%y')
+        return pd.to_datetime(col_name.split(" ")[0], format="%b%y")
     except Exception:
         return pd.NaT
 
@@ -82,37 +86,37 @@ def discover_pairs(ctx):
     Return sorted list of (month, resp_col, mail_col) tuples.
     Caches result in ctx['mailer_pairs'].
     """
-    pairs = ctx.get('mailer_pairs')
+    pairs = ctx.get("mailer_pairs")
     if pairs:
         return pairs
 
-    data = ctx['data']
+    data = ctx["data"]
     cols = list(data.columns)
-    client_id = ctx.get('client_id', '')
+    client_id = ctx.get("client_id", "")
 
     mail_cols = sorted(
-        [c for c in cols if re.match(r'^[A-Z][a-z]{2}\d{2} Mail$', c)],
-        key=parse_month)
+        [c for c in cols if re.match(r"^[A-Z][a-z]{2}\d{2} Mail$", c)], key=parse_month
+    )
 
     pairs = []
     for mc in mail_cols:
-        month = mc.replace(' Mail', '')
+        month = mc.replace(" Mail", "")
         rc = f"{month} Resp"
         if rc in cols and data[rc].notna().any():
             pairs.append((month, rc, mc))
 
-    if client_id == '1200' and pairs:
-        cutoff = pd.to_datetime('Apr24', format='%b%y')
-        pairs = [(m, r, ml) for m, r, ml in pairs
-                 if parse_month(m) >= cutoff]
+    if client_id == "1200" and pairs:
+        cutoff = pd.to_datetime("Apr24", format="%b%y")
+        pairs = [(m, r, ml) for m, r, ml in pairs if parse_month(m) >= cutoff]
 
-    ctx['mailer_pairs'] = pairs
+    ctx["mailer_pairs"] = pairs
     return pairs
 
 
 # =============================================================================
 # RESPONDER / MAILED MASK BUILDERS
 # =============================================================================
+
 
 def build_responder_mask(data, pairs):
     """Build a boolean Series: True for any account that responded in any month."""
@@ -133,6 +137,7 @@ def build_mailed_mask(data, pairs):
 # =============================================================================
 # SAFE WRAPPER
 # =============================================================================
+
 
 def safe(fn, ctx, label):
     """Run fn(ctx) with error isolation; log and continue on failure."""

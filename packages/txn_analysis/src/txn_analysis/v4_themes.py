@@ -8,7 +8,7 @@ Registers a 'v4_consultant' Plotly template lazily via ensure_theme().
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -62,8 +62,7 @@ GENERATION_COLORS = {
 # =============================================================================
 
 FONT_FAMILY = (
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, "
-    "'Helvetica Neue', Arial, sans-serif"
+    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
 )
 
 # =============================================================================
@@ -192,7 +191,7 @@ def _fmt_value(val: float, fmt_spec: str) -> str:
     if spec.startswith("{:"):
         brace_idx = spec.find("}")
         if brace_idx >= 0:
-            suffix = spec[brace_idx + 1:]
+            suffix = spec[brace_idx + 1 :]
             spec = spec[2:brace_idx]
     return f"{prefix}{float(val):{spec}}{suffix}"
 
@@ -550,7 +549,12 @@ def heatmap(
                     y=y_labels[row_idx],
                     text=text,
                     showarrow=False,
-                    font=dict(size=10, color="white" if val and val > (max(max(r) for r in z_values) * 0.6) else COLORS["dark_text"]),
+                    font=dict(
+                        size=10,
+                        color="white"
+                        if val and val > (max(max(r) for r in z_values) * 0.6)
+                        else COLORS["dark_text"],
+                    ),
                 )
             )
 
@@ -698,8 +702,7 @@ def scatter_plot(
     if color_col is not None:
         unique_vals = df[color_col].unique()
         color_map = {
-            v: CATEGORY_PALETTE[i % len(CATEGORY_PALETTE)]
-            for i, v in enumerate(unique_vals)
+            v: CATEGORY_PALETTE[i % len(CATEGORY_PALETTE)] for i, v in enumerate(unique_vals)
         }
         marker_opts["color"] = df[color_col].map(color_map).tolist()
 
@@ -733,8 +736,7 @@ def scatter_plot(
     if color_col is not None:
         unique_vals = df[color_col].unique()
         color_map = {
-            v: CATEGORY_PALETTE[i % len(CATEGORY_PALETTE)]
-            for i, v in enumerate(unique_vals)
+            v: CATEGORY_PALETTE[i % len(CATEGORY_PALETTE)] for i, v in enumerate(unique_vals)
         }
         for val, c in color_map.items():
             fig.add_trace(

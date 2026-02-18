@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import math
-
 from txn_analysis.formatting import (
     excel_number_format,
     format_value,

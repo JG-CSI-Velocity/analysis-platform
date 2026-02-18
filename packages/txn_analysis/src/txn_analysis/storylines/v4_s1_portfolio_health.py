@@ -4,13 +4,15 @@
 # Monthly trends, transaction distribution, PIN/Sig mix, activation, balances
 
 import pandas as pd
-import numpy as np
 import plotly.graph_objects as go
-from txn_analysis.v4_themes import (
-    COLORS, CATEGORY_PALETTE, apply_theme, format_currency,
-    horizontal_bar, line_trend, stacked_bar, donut_chart,
-)
+
 from txn_analysis.v4_html_report import build_kpi_html
+from txn_analysis.v4_themes import (
+    COLORS,
+    apply_theme,
+    donut_chart,
+    format_currency,
+)
 
 
 def run(ctx: dict) -> dict:
@@ -34,163 +36,204 @@ def run(ctx: dict) -> dict:
 
     # --- KPI Summary ---
     kpis = _build_kpis(df, odd)
-    sections.append({
-        "heading": "Key Performance Indicators",
-        "narrative": build_kpi_html(kpis),
-        "figures": [],
-        "tables": [],
-    })
+    sections.append(
+        {
+            "heading": "Key Performance Indicators",
+            "narrative": build_kpi_html(kpis),
+            "figures": [],
+            "tables": [],
+        }
+    )
 
     # --- Monthly Summary ---
     monthly_df, monthly_fig = _monthly_summary(df)
-    sections.append({
-        "heading": "Monthly Transaction Summary",
-        "narrative": _monthly_narrative(monthly_df),
-        "figures": [monthly_fig],
-        "tables": [("Monthly Summary", monthly_df.head(24))],
-    })
-    sheets.append({
-        "name": "S1 Monthly Summary",
-        "df": monthly_df,
-        "currency_cols": ["Total Spend", "Avg Transaction", "Median Transaction"],
-        "pct_cols": ["Spend Growth %", "Transaction Growth %"],
-        "number_cols": ["Accounts", "Transactions", "Unique Merchants"],
-    })
+    sections.append(
+        {
+            "heading": "Monthly Transaction Summary",
+            "narrative": _monthly_narrative(monthly_df),
+            "figures": [monthly_fig],
+            "tables": [("Monthly Summary", monthly_df.head(24))],
+        }
+    )
+    sheets.append(
+        {
+            "name": "S1 Monthly Summary",
+            "df": monthly_df,
+            "currency_cols": ["Total Spend", "Avg Transaction", "Median Transaction"],
+            "pct_cols": ["Spend Growth %", "Transaction Growth %"],
+            "number_cols": ["Accounts", "Transactions", "Unique Merchants"],
+        }
+    )
 
     # --- Transaction Distribution ---
     dist_df, dist_fig = _transaction_distribution(df)
-    sections.append({
-        "heading": "Transaction Distribution by Amount",
-        "narrative": _distribution_narrative(dist_df),
-        "figures": [dist_fig],
-        "tables": [("Distribution", dist_df)],
-    })
-    sheets.append({
-        "name": "S1 Transaction Dist",
-        "df": dist_df,
-        "currency_cols": ["Total Value"],
-        "pct_cols": ["Trans %", "Value %"],
-        "number_cols": ["Transactions"],
-    })
+    sections.append(
+        {
+            "heading": "Transaction Distribution by Amount",
+            "narrative": _distribution_narrative(dist_df),
+            "figures": [dist_fig],
+            "tables": [("Distribution", dist_df)],
+        }
+    )
+    sheets.append(
+        {
+            "name": "S1 Transaction Dist",
+            "df": dist_df,
+            "currency_cols": ["Total Value"],
+            "pct_cols": ["Trans %", "Value %"],
+            "number_cols": ["Transactions"],
+        }
+    )
 
     # --- Monthly Distribution Variance ---
     if "year_month" in df.columns:
         variance_df, variance_fig = _monthly_distribution_variance(df)
         if variance_df is not None and not variance_df.empty:
-            sections.append({
-                "heading": "Monthly Transaction Distribution Variance",
-                "narrative": _variance_narrative(variance_df),
-                "figures": [variance_fig],
-                "tables": [("Monthly Bracket %", variance_df)],
-            })
-            sheets.append({
-                "name": "S1 Monthly Dist Var",
-                "df": variance_df,
-                "currency_cols": [],
-                "pct_cols": [c for c in variance_df.columns if c != "Month"],
-                "number_cols": [],
-            })
+            sections.append(
+                {
+                    "heading": "Monthly Transaction Distribution Variance",
+                    "narrative": _variance_narrative(variance_df),
+                    "figures": [variance_fig],
+                    "tables": [("Monthly Bracket %", variance_df)],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S1 Monthly Dist Var",
+                    "df": variance_df,
+                    "currency_cols": [],
+                    "pct_cols": [c for c in variance_df.columns if c != "Month"],
+                    "number_cols": [],
+                }
+            )
 
             # --- Bracket Volatility Analysis ---
             vol_df = _bracket_volatility(variance_df)
             if vol_df is not None and not vol_df.empty:
-                sections.append({
-                    "heading": "Bracket Volatility Analysis",
-                    "narrative": _volatility_narrative(vol_df),
-                    "figures": [],
-                    "tables": [("Bracket Volatility", vol_df)],
-                })
-                sheets.append({
-                    "name": "S1 Bracket Volatil",
-                    "df": vol_df,
-                    "currency_cols": [],
-                    "pct_cols": ["Mean %", "Std Dev", "Min %", "Max %", "Range"],
-                    "number_cols": [],
-                })
+                sections.append(
+                    {
+                        "heading": "Bracket Volatility Analysis",
+                        "narrative": _volatility_narrative(vol_df),
+                        "figures": [],
+                        "tables": [("Bracket Volatility", vol_df)],
+                    }
+                )
+                sheets.append(
+                    {
+                        "name": "S1 Bracket Volatil",
+                        "df": vol_df,
+                        "currency_cols": [],
+                        "pct_cols": ["Mean %", "Std Dev", "Min %", "Max %", "Range"],
+                        "number_cols": [],
+                    }
+                )
 
     # --- PIN vs Signature Mix ---
     pin_sig_df, pin_sig_fig = _pin_sig_mix(df)
     if pin_sig_df is not None:
-        sections.append({
-            "heading": "PIN vs Signature Transaction Mix",
-            "narrative": (
-                "PIN transactions are typically lower-margin but higher-volume. "
-                "Signature transactions generate higher interchange revenue."
-            ),
-            "figures": [pin_sig_fig],
-            "tables": [("PIN/Sig Mix", pin_sig_df)],
-        })
-        sheets.append({
-            "name": "S1 PIN Sig Mix",
-            "df": pin_sig_df,
-            "currency_cols": [],
-            "pct_cols": ["PIN %", "Sig %"],
-            "number_cols": ["PIN Count", "Sig Count"],
-        })
+        sections.append(
+            {
+                "heading": "PIN vs Signature Transaction Mix",
+                "narrative": (
+                    "PIN transactions are typically lower-margin but higher-volume. "
+                    "Signature transactions generate higher interchange revenue."
+                ),
+                "figures": [pin_sig_fig],
+                "tables": [("PIN/Sig Mix", pin_sig_df)],
+            }
+        )
+        sheets.append(
+            {
+                "name": "S1 PIN Sig Mix",
+                "df": pin_sig_df,
+                "currency_cols": [],
+                "pct_cols": ["PIN %", "Sig %"],
+                "number_cols": ["PIN Count", "Sig Count"],
+            }
+        )
 
     # --- Balance Distribution ---
     if odd is not None and "Avg Bal" in odd.columns:
         bal_df, bal_fig = _balance_distribution(odd)
-        sections.append({
-            "heading": "Account Balance Distribution",
-            "narrative": _balance_narrative(bal_df),
-            "figures": [bal_fig],
-            "tables": [("Balance Tiers", bal_df)],
-        })
-        sheets.append({
-            "name": "S1 Balance Dist",
-            "df": bal_df,
-            "currency_cols": ["Avg Balance", "Total Balance"],
-            "pct_cols": ["% of Accounts"],
-            "number_cols": ["Accounts"],
-        })
+        sections.append(
+            {
+                "heading": "Account Balance Distribution",
+                "narrative": _balance_narrative(bal_df),
+                "figures": [bal_fig],
+                "tables": [("Balance Tiers", bal_df)],
+            }
+        )
+        sheets.append(
+            {
+                "name": "S1 Balance Dist",
+                "df": bal_df,
+                "currency_cols": ["Avg Balance", "Total Balance"],
+                "pct_cols": ["% of Accounts"],
+                "number_cols": ["Accounts"],
+            }
+        )
 
     # --- Account Activation ---
     if odd is not None and "Debit?" in odd.columns:
         act_df, act_fig = _activation_analysis(odd)
-        sections.append({
-            "heading": "Debit Card Activation",
-            "narrative": _activation_narrative(act_df),
-            "figures": [act_fig],
-            "tables": [("Activation", act_df)],
-        })
-        sheets.append({
-            "name": "S1 Activation",
-            "df": act_df,
-            "currency_cols": [],
-            "pct_cols": ["% of Total"],
-            "number_cols": ["Accounts"],
-        })
+        sections.append(
+            {
+                "heading": "Debit Card Activation",
+                "narrative": _activation_narrative(act_df),
+                "figures": [act_fig],
+                "tables": [("Activation", act_df)],
+            }
+        )
+        sheets.append(
+            {
+                "name": "S1 Activation",
+                "df": act_df,
+                "currency_cols": [],
+                "pct_cols": ["% of Total"],
+                "number_cols": ["Accounts"],
+            }
+        )
 
     # --- Overall Summary Statistics ---
     summary_df = _summary_statistics(df, odd)
-    sections.append({
-        "heading": "Overall Summary Statistics",
-        "narrative": "Key portfolio-level scalar metrics.",
-        "figures": [],
-        "tables": [("Summary Statistics", summary_df)],
-    })
-    sheets.append({
-        "name": "S1 Summary Stats", "df": summary_df,
-        "currency_cols": [], "number_cols": ["Value"],
-    })
+    sections.append(
+        {
+            "heading": "Overall Summary Statistics",
+            "narrative": "Key portfolio-level scalar metrics.",
+            "figures": [],
+            "tables": [("Summary Statistics", summary_df)],
+        }
+    )
+    sheets.append(
+        {
+            "name": "S1 Summary Stats",
+            "df": summary_df,
+            "currency_cols": [],
+            "number_cols": ["Value"],
+        }
+    )
 
     # --- Card Present vs Card Not Present ---
     if "card_present" in df.columns:
         cp_df, cp_fig = _card_present_analysis(df)
         if cp_df is not None:
-            sections.append({
-                "heading": "Card Present vs Card Not Present",
-                "narrative": _cp_narrative(cp_df),
-                "figures": [cp_fig],
-                "tables": [("CP vs CNP", cp_df)],
-            })
-            sheets.append({
-                "name": "S1 CP vs CNP", "df": cp_df,
-                "currency_cols": ["Total Spend"],
-                "pct_cols": ["% of Transactions", "% of Spend"],
-                "number_cols": ["Transactions"],
-            })
+            sections.append(
+                {
+                    "heading": "Card Present vs Card Not Present",
+                    "narrative": _cp_narrative(cp_df),
+                    "figures": [cp_fig],
+                    "tables": [("CP vs CNP", cp_df)],
+                }
+            )
+            sheets.append(
+                {
+                    "name": "S1 CP vs CNP",
+                    "df": cp_df,
+                    "currency_cols": ["Total Spend"],
+                    "pct_cols": ["% of Transactions", "% of Spend"],
+                    "number_cols": ["Transactions"],
+                }
+            )
 
     return {
         "title": "S1: Portfolio Health Dashboard",
@@ -207,11 +250,16 @@ def run(ctx: dict) -> dict:
 # KPI Builder
 # =============================================================================
 
+
 def _build_kpis(df, odd):
     total_spend = df["amount"].sum()
     total_txn = len(df)
     unique_accounts = df["primary_account_num"].nunique()
-    unique_merchants = df["merchant_consolidated"].nunique() if "merchant_consolidated" in df.columns else df["merchant_name"].nunique()
+    unique_merchants = (
+        df["merchant_consolidated"].nunique()
+        if "merchant_consolidated" in df.columns
+        else df["merchant_name"].nunique()
+    )
     months = df["year_month"].nunique() if "year_month" in df.columns else 1
 
     kpis = [
@@ -229,11 +277,13 @@ def _build_kpis(df, odd):
             last = monthly.iloc[-1]
             prev = monthly.iloc[-2]
             change = ((last - prev) / prev) * 100 if prev > 0 else 0
-            kpis.append({
-                "label": "Latest Month Spend",
-                "value": format_currency(last),
-                "change": change,
-            })
+            kpis.append(
+                {
+                    "label": "Latest Month Spend",
+                    "value": format_currency(last),
+                    "change": change,
+                }
+            )
 
     return kpis
 
@@ -242,17 +292,28 @@ def _build_kpis(df, odd):
 # Monthly Summary
 # =============================================================================
 
+
 def _monthly_summary(df):
-    monthly = df.groupby("year_month").agg({
-        "primary_account_num": "nunique",
-        "transaction_date": "count",
-        "amount": ["sum", "mean", "median"],
-        "merchant_name": "nunique",
-    }).round(2)
+    monthly = (
+        df.groupby("year_month")
+        .agg(
+            {
+                "primary_account_num": "nunique",
+                "transaction_date": "count",
+                "amount": ["sum", "mean", "median"],
+                "merchant_name": "nunique",
+            }
+        )
+        .round(2)
+    )
 
     monthly.columns = [
-        "Accounts", "Transactions", "Total Spend",
-        "Avg Transaction", "Median Transaction", "Unique Merchants",
+        "Accounts",
+        "Transactions",
+        "Total Spend",
+        "Avg Transaction",
+        "Median Transaction",
+        "Unique Merchants",
     ]
 
     monthly["Spend Growth %"] = monthly["Total Spend"].pct_change() * 100
@@ -263,23 +324,27 @@ def _monthly_summary(df):
 
     # Chart: dual-axis line (spend + transactions)
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=monthly["Month"],
-        y=monthly["Total Spend"],
-        name="Total Spend",
-        marker_color=COLORS["primary"],
-        opacity=0.7,
-        yaxis="y",
-    ))
-    fig.add_trace(go.Scatter(
-        x=monthly["Month"],
-        y=monthly["Transactions"],
-        name="Transactions",
-        mode="lines+markers",
-        line=dict(color=COLORS["accent"], width=3),
-        marker=dict(size=8),
-        yaxis="y2",
-    ))
+    fig.add_trace(
+        go.Bar(
+            x=monthly["Month"],
+            y=monthly["Total Spend"],
+            name="Total Spend",
+            marker_color=COLORS["primary"],
+            opacity=0.7,
+            yaxis="y",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=monthly["Month"],
+            y=monthly["Transactions"],
+            name="Transactions",
+            mode="lines+markers",
+            line=dict(color=COLORS["accent"], width=3),
+            marker=dict(size=8),
+            yaxis="y2",
+        )
+    )
     fig.update_layout(
         title="Monthly Spend & Transaction Volume",
         yaxis=dict(title="Total Spend ($)", tickprefix="$", tickformat=","),
@@ -317,8 +382,14 @@ def _monthly_narrative(monthly_df):
 AMOUNT_BINS = [0, 1, 5, 10, 25, 50, 100, 500, float("inf")]
 AMOUNT_LABELS = ["< $1", "$1-5", "$5-10", "$10-25", "$25-50", "$50-100", "$100-500", "$500+"]
 BRACKET_COLORS = [
-    COLORS["primary"], COLORS["secondary"], COLORS["accent"],
-    COLORS["positive"], "#A23B72", COLORS["negative"], "#5C6B73", COLORS["neutral"],
+    COLORS["primary"],
+    COLORS["secondary"],
+    COLORS["accent"],
+    COLORS["positive"],
+    "#A23B72",
+    COLORS["negative"],
+    "#5C6B73",
+    COLORS["neutral"],
 ]
 
 
@@ -331,26 +402,32 @@ def _transaction_distribution(df):
         bracket_data = df[df["bracket"] == bracket]
         count = len(bracket_data)
         total_val = bracket_data["amount"].sum()
-        stats.append({
-            "Amount Range": bracket,
-            "Transactions": count,
-            "Trans %": round((count / len(df)) * 100, 1) if len(df) > 0 else 0,
-            "Total Value": round(total_val, 2),
-            "Value %": round((total_val / df["amount"].sum()) * 100, 1) if df["amount"].sum() > 0 else 0,
-        })
+        stats.append(
+            {
+                "Amount Range": bracket,
+                "Transactions": count,
+                "Trans %": round((count / len(df)) * 100, 1) if len(df) > 0 else 0,
+                "Total Value": round(total_val, 2),
+                "Value %": round((total_val / df["amount"].sum()) * 100, 1)
+                if df["amount"].sum() > 0
+                else 0,
+            }
+        )
 
     dist_df = pd.DataFrame(stats)
 
     # Chart
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=dist_df["Amount Range"],
-        y=dist_df["Transactions"],
-        marker_color=BRACKET_COLORS[:len(dist_df)],
-        text=[f"{t:,}<br>({p}%)" for t, p in zip(dist_df["Transactions"], dist_df["Trans %"])],
-        textposition="outside",
-        textfont=dict(size=10),
-    ))
+    fig.add_trace(
+        go.Bar(
+            x=dist_df["Amount Range"],
+            y=dist_df["Transactions"],
+            marker_color=BRACKET_COLORS[: len(dist_df)],
+            text=[f"{t:,}<br>({p}%)" for t, p in zip(dist_df["Transactions"], dist_df["Trans %"])],
+            textposition="outside",
+            textfont=dict(size=10),
+        )
+    )
     fig.update_layout(
         title="Transaction Volume by Amount Range",
         xaxis_title="Amount Range",
@@ -385,17 +462,26 @@ def _distribution_narrative(dist_df):
 # Monthly Transaction Distribution Variance
 # =============================================================================
 
+
 def _monthly_distribution_variance(df):
     """Compute bracket percentage distribution per month and build a stacked bar chart."""
     df = df.copy()
     df["bracket"] = pd.cut(
-        df["amount"], bins=AMOUNT_BINS, labels=AMOUNT_LABELS, right=False,
+        df["amount"],
+        bins=AMOUNT_BINS,
+        labels=AMOUNT_LABELS,
+        right=False,
     )
 
     # Crosstab: rows = year_month, columns = bracket, values = % of row total
-    crosstab = pd.crosstab(
-        df["year_month"], df["bracket"], normalize="index",
-    ) * 100
+    crosstab = (
+        pd.crosstab(
+            df["year_month"],
+            df["bracket"],
+            normalize="index",
+        )
+        * 100
+    )
 
     # Ensure all brackets are present as columns in the correct order
     for label in AMOUNT_LABELS:
@@ -415,15 +501,15 @@ def _monthly_distribution_variance(df):
     fig = go.Figure()
     for idx, bracket in enumerate(AMOUNT_LABELS):
         color = BRACKET_COLORS[idx % len(BRACKET_COLORS)]
-        fig.add_trace(go.Bar(
-            x=variance_df["Month"],
-            y=variance_df[bracket],
-            name=bracket,
-            marker_color=color,
-            hovertemplate=(
-                "%{x}<br>" + bracket + ": %{y:.1f}%<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Bar(
+                x=variance_df["Month"],
+                y=variance_df[bracket],
+                name=bracket,
+                marker_color=color,
+                hovertemplate=("%{x}<br>" + bracket + ": %{y:.1f}%<extra></extra>"),
+            )
+        )
 
     fig.update_layout(
         barmode="stack",
@@ -506,15 +592,17 @@ def _bracket_volatility(variance_df):
         else:
             classification = "Volatile"
 
-        rows.append({
-            "Bracket": col,
-            "Mean %": round(mean_val, 2),
-            "Std Dev": round(std_val, 2),
-            "Min %": round(min_val, 2),
-            "Max %": round(max_val, 2),
-            "Range": round(range_val, 2),
-            "Classification": classification,
-        })
+        rows.append(
+            {
+                "Bracket": col,
+                "Mean %": round(mean_val, 2),
+                "Std Dev": round(std_val, 2),
+                "Min %": round(min_val, 2),
+                "Max %": round(max_val, 2),
+                "Range": round(range_val, 2),
+                "Classification": classification,
+            }
+        )
 
     return pd.DataFrame(rows)
 
@@ -556,6 +644,7 @@ def _volatility_narrative(vol_df):
 # PIN vs Signature Mix
 # =============================================================================
 
+
 def _pin_sig_mix(df):
     if "transaction_type" not in df.columns:
         return None, None
@@ -578,24 +667,34 @@ def _pin_sig_mix(df):
     if "SIG" not in pivot.columns:
         pivot["SIG"] = 0
 
-    result = pd.DataFrame({
-        "Month": pivot.index.astype(str),
-        "PIN Count": pivot["PIN"].values,
-        "Sig Count": pivot["SIG"].values,
-    })
+    result = pd.DataFrame(
+        {
+            "Month": pivot.index.astype(str),
+            "PIN Count": pivot["PIN"].values,
+            "Sig Count": pivot["SIG"].values,
+        }
+    )
     result["Total"] = result["PIN Count"] + result["Sig Count"]
     result["PIN %"] = (result["PIN Count"] / result["Total"] * 100).round(1)
     result["Sig %"] = (result["Sig Count"] / result["Total"] * 100).round(1)
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=result["Month"], y=result["PIN %"],
-        name="PIN", marker_color=COLORS["primary"],
-    ))
-    fig.add_trace(go.Bar(
-        x=result["Month"], y=result["Sig %"],
-        name="Signature", marker_color=COLORS["secondary"],
-    ))
+    fig.add_trace(
+        go.Bar(
+            x=result["Month"],
+            y=result["PIN %"],
+            name="PIN",
+            marker_color=COLORS["primary"],
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            x=result["Month"],
+            y=result["Sig %"],
+            name="Signature",
+            marker_color=COLORS["secondary"],
+        )
+    )
     fig.update_layout(
         title="PIN vs Signature Mix Over Time",
         barmode="stack",
@@ -612,6 +711,7 @@ def _pin_sig_mix(df):
 # Balance Distribution
 # =============================================================================
 
+
 def _balance_distribution(odd):
     bal = odd["Avg Bal"].dropna()
     if bal.empty:
@@ -623,27 +723,46 @@ def _balance_distribution(odd):
     odd = odd.copy()
     odd["Balance Tier"] = pd.cut(odd["Avg Bal"], bins=bins, labels=labels)
 
-    tier_stats = odd.groupby("Balance Tier", observed=True).agg({
-        "Acct Number": "count",
-        "Avg Bal": "mean",
-    }).reset_index()
+    tier_stats = (
+        odd.groupby("Balance Tier", observed=True)
+        .agg(
+            {
+                "Acct Number": "count",
+                "Avg Bal": "mean",
+            }
+        )
+        .reset_index()
+    )
     tier_stats.columns = ["Balance Tier", "Accounts", "Avg Balance"]
-    tier_stats["% of Accounts"] = (tier_stats["Accounts"] / tier_stats["Accounts"].sum() * 100).round(1)
+    tier_stats["% of Accounts"] = (
+        tier_stats["Accounts"] / tier_stats["Accounts"].sum() * 100
+    ).round(1)
     tier_stats["Total Balance"] = tier_stats["Accounts"] * tier_stats["Avg Balance"]
     tier_stats["Avg Balance"] = tier_stats["Avg Balance"].round(2)
     tier_stats["Total Balance"] = tier_stats["Total Balance"].round(2)
 
-    colors = [COLORS["negative"], COLORS["neutral"], COLORS["secondary"],
-              COLORS["primary"], COLORS["positive"], COLORS["accent"]]
+    colors = [
+        COLORS["negative"],
+        COLORS["neutral"],
+        COLORS["secondary"],
+        COLORS["primary"],
+        COLORS["positive"],
+        COLORS["accent"],
+    ]
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=tier_stats["Balance Tier"],
-        y=tier_stats["Accounts"],
-        marker_color=colors[:len(tier_stats)],
-        text=[f"{a:,}<br>({p}%)" for a, p in zip(tier_stats["Accounts"], tier_stats["% of Accounts"])],
-        textposition="outside",
-    ))
+    fig.add_trace(
+        go.Bar(
+            x=tier_stats["Balance Tier"],
+            y=tier_stats["Accounts"],
+            marker_color=colors[: len(tier_stats)],
+            text=[
+                f"{a:,}<br>({p}%)"
+                for a, p in zip(tier_stats["Accounts"], tier_stats["% of Accounts"])
+            ],
+            textposition="outside",
+        )
+    )
     fig.update_layout(
         title="Account Distribution by Average Balance",
         xaxis_title="Balance Tier",
@@ -675,25 +794,32 @@ def _balance_narrative(bal_df):
 # Activation Analysis
 # =============================================================================
 
+
 def _activation_analysis(odd):
     debit_counts = odd["Debit?"].value_counts()
     total = len(odd)
 
-    result = pd.DataFrame({
-        "Status": debit_counts.index,
-        "Accounts": debit_counts.values,
-        "% of Total": (debit_counts.values / total * 100).round(1),
-    })
+    result = pd.DataFrame(
+        {
+            "Status": debit_counts.index,
+            "Accounts": debit_counts.values,
+            "% of Total": (debit_counts.values / total * 100).round(1),
+        }
+    )
 
     colors = [COLORS["positive"], COLORS["negative"], COLORS["neutral"]]
-    fig = go.Figure(data=[go.Pie(
-        labels=result["Status"],
-        values=result["Accounts"],
-        hole=0.45,
-        marker_colors=colors[:len(result)],
-        textinfo="label+percent",
-        textfont_size=13,
-    )])
+    fig = go.Figure(
+        data=[
+            go.Pie(
+                labels=result["Status"],
+                values=result["Accounts"],
+                hole=0.45,
+                marker_colors=colors[: len(result)],
+                textinfo="label+percent",
+                textfont_size=13,
+            )
+        ]
+    )
     fig.update_layout(title="Debit Card Activation Status", showlegend=True)
     fig = apply_theme(fig)
 
@@ -721,11 +847,14 @@ def _activation_narrative(act_df):
 # Summary Statistics Table
 # =============================================================================
 
+
 def _summary_statistics(df, odd):
     total_spend = df["amount"].sum()
     total_txn = len(df)
     unique_accts = df["primary_account_num"].nunique()
-    merch_col = "merchant_consolidated" if "merchant_consolidated" in df.columns else "merchant_name"
+    merch_col = (
+        "merchant_consolidated" if "merchant_consolidated" in df.columns else "merchant_name"
+    )
     unique_merchants = df[merch_col].nunique()
     avg_ticket = df["amount"].mean()
     median_ticket = df["amount"].median()
@@ -739,8 +868,14 @@ def _summary_statistics(df, odd):
         {"Metric": "Months of Data", "Value": months},
         {"Metric": "Avg Transaction", "Value": round(avg_ticket, 2)},
         {"Metric": "Median Transaction", "Value": round(median_ticket, 2)},
-        {"Metric": "Avg Txns/Account", "Value": round(total_txn / unique_accts, 1) if unique_accts else 0},
-        {"Metric": "Avg Spend/Account", "Value": round(total_spend / unique_accts, 2) if unique_accts else 0},
+        {
+            "Metric": "Avg Txns/Account",
+            "Value": round(total_txn / unique_accts, 1) if unique_accts else 0,
+        },
+        {
+            "Metric": "Avg Spend/Account",
+            "Value": round(total_spend / unique_accts, 2) if unique_accts else 0,
+        },
     ]
 
     if odd is not None:
@@ -756,19 +891,30 @@ def _summary_statistics(df, odd):
 # Card Present vs Card Not Present
 # =============================================================================
 
+
 def _card_present_analysis(df):
     cp_col = df["card_present"].astype(str).str.strip().str.upper()
     cp_map = {
-        "Y": "Card Present", "YES": "Card Present", "TRUE": "Card Present", "1": "Card Present",
-        "N": "Card Not Present", "NO": "Card Not Present", "FALSE": "Card Not Present", "0": "Card Not Present",
+        "Y": "Card Present",
+        "YES": "Card Present",
+        "TRUE": "Card Present",
+        "1": "Card Present",
+        "N": "Card Not Present",
+        "NO": "Card Not Present",
+        "FALSE": "Card Not Present",
+        "0": "Card Not Present",
     }
     df = df.copy()
     df["cp_label"] = cp_col.map(cp_map).fillna("Unknown")
 
-    agg = df.groupby("cp_label").agg(
-        txn_count=("amount", "count"),
-        total_spend=("amount", "sum"),
-    ).reset_index()
+    agg = (
+        df.groupby("cp_label")
+        .agg(
+            txn_count=("amount", "count"),
+            total_spend=("amount", "sum"),
+        )
+        .reset_index()
+    )
     total_txn = agg["txn_count"].sum()
     total_spend = agg["total_spend"].sum()
     agg["% of Transactions"] = (agg["txn_count"] / total_txn * 100).round(1) if total_txn else 0
@@ -777,7 +923,8 @@ def _card_present_analysis(df):
     agg = agg.sort_values("Transactions", ascending=False)
 
     fig = donut_chart(
-        agg["Channel"], agg["Transactions"],
+        agg["Channel"],
+        agg["Transactions"],
         "Card Present vs Not Present",
         colors=[COLORS["primary"], COLORS["accent"], COLORS["neutral"]],
     )

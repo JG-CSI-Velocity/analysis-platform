@@ -1,0 +1,305 @@
+# =============================================================================
+# V4 Transaction Analysis - Client Configuration
+# =============================================================================
+# Copy this file and edit per client. Run: python v4_run.py v4_config.yaml
+# =============================================================================
+
+# --- Client Identity ---
+client_id: "1453"
+client_name: "Connex Credit Union"
+client_state: "CT"
+
+# --- File Paths ---
+# Transaction files: directory containing CSV/TXT files
+transaction_dir: "C:/Users/james.gilmore/OneDrive - Computer Services, Inc/Desktop/ARS/ARS Analysis/Raw Data/Transaction Files/1453 - Connex"
+file_extension: "csv"
+
+# ODD file: Excel file with account-level data
+odd_file: "C:/Users/james.gilmore/OneDrive - Computer Services, Inc/Desktop/ARS/ARS Analysis/Raw Data/Ready for Analysis/2026.02/1453/1453-2026-02-Connex CU-ODD.xlsx"
+
+# Output directory (created automatically)
+output_dir: "output/1453_Connex"
+
+# --- Analysis Parameters ---
+recent_months: 12        # How many months of transaction data to analyze
+top_n: 50                # Top N merchants/categories in rankings
+growth_min_threshold: 1000.0   # Minimum spend to qualify for growth analysis
+consistency_min_spend: 10000.0 # Minimum spend for consistency analysis
+consistency_min_months: 3      # Minimum months present for consistency
+interchange_rate: 0.015        # Interchange rate for revenue estimates (1.5%)
+
+# --- Competitor Configuration ---
+# Categories: big_nationals, regionals, credit_unions, digital_banks,
+#             wallets_p2p, bnpl, alt_finance
+competitors:
+  big_nationals:
+    starts_with:
+      - "BANK OF AMERICA"
+      - "BANKOFAMERICA"
+      - "B OF A"
+      - "WELLS FARGO"
+      - "WELLSFARGO"
+      - "WF BANK"
+      - "CHASE BANK"
+      - "CHASE BK"
+      - "CHASE CREDIT"
+      - "CHASE CARD"
+      - "CHASE HOME"
+      - "CHASE AUTO"
+      - "JPMORGAN"
+      - "JP MORGAN"
+      - "CITIBANK"
+      - "CITI BANK"
+      - "CITI CARD"
+      - "CITICORP"
+      - "TD BANK"
+      - "TD BK"
+      - "TDBANK"
+      - "CITIZENS BANK"
+      - "CITIZENS BK"
+      - "CITIZENS FINANCIAL"
+      - "SANTANDER"
+      - "M&T BANK"
+      - "M AND T BANK"
+      - "M & T BANK"
+      - "KEYBANK"
+      - "KEY BANK"
+      - "PNC BANK"
+      - "PNC BK"
+      - "US BANK"
+      - "U.S. BANK"
+      - "CAPITAL ONE"
+    exact:
+      - "CHASE"
+      - "BOA"
+      - "KEYBANK"
+
+  regionals:
+    starts_with:
+      # Connecticut-specific regionals
+      - "WEBSTER BANK"
+      - "WEBSTER BK"
+      - "LIBERTY BANK"
+      - "ION BANK"
+      - "UNION SAVINGS"
+      - "NEWTOWN SAVINGS"
+      - "BANKWELL"
+      - "BERKSHIRE BANK"
+      - "THOMASTON SAVINGS"
+      - "SAVINGS BANK OF WALPOLE"
+      - "CHELSEA GROTON"
+      - "DIME BANK"
+      - "ESSEX SAVINGS"
+      - "FIRST NATIONAL BANK CT"
+      - "PATRIOT NATIONAL"
+      - "PEOPLES UNITED"
+      - "SI FINANCIAL"
+      - "WASHINGTON TRUST"
+    exact:
+      - "BANKWELL"
+
+  credit_unions:
+    starts_with:
+      # CT credit unions
+      - "AMERICAN EAGLE FCU"
+      - "CHARTER OAK FCU"
+      - "CINFED CU"
+      - "CONNECTICUT STATE EMPLOYEES"
+      - "CROSSPOINT FEDERAL"
+      - "NUTMEG STATE FCU"
+      - "SIKORSKY FCU"
+      - "TEACHERS FCU"
+      - "YALE FEDERAL"
+      # National CUs with CT presence
+      - "NAVY FEDERAL"
+      - "PENTAGON FCU"
+      - "USAA"
+      - "ALLIANT CREDIT"
+      - "DIGITAL FCU"
+
+  digital_banks:
+    starts_with:
+      - "ALLY BANK"
+      - "ALLY FINANCIAL"
+      - "DISCOVER BANK"
+      - "SOFI"
+      - "MARCUS BY GS"
+      - "MARCUS BY GOLDMAN"
+      - "SYNCHRONY"
+    contains:
+      - "CHIME"
+      - "VARO"
+      - "CURRENT CARD"
+      - "GREEN DOT"
+      - "DAVE INC"
+      - "DAVE APP"
+      - "EARNIN"
+      - "BRIGIT"
+      - "POSSIBLE FINANCE"
+
+  wallets_p2p:
+    contains:
+      - "PAYPAL"
+      - "VENMO"
+      - "CASH APP"
+      - "CASHAPP"
+      - "APPLE CASH"
+      - "GOOGLE PAY"
+      - "ZELLE"
+
+  bnpl:
+    contains:
+      - "AFTERPAY"
+      - "KLARNA"
+      - "AFFIRM"
+      - "SEZZLE"
+      - "ZIP PAY"
+      - "QUADPAY"
+
+  alt_finance:
+    starts_with:
+      - "FLEX FINANCE"
+      - "FLEXFINANCE"
+      - "MONEYLION"
+      - "ALBERT SAVINGS"
+      - "EMPOWER FINANCE"
+
+# --- Financial Services Patterns ---
+financial_services:
+  auto_loans:
+    - "TOYOTA MOTOR CREDIT"
+    - "TOYOTA FINANCIAL"
+    - "VW CREDIT"
+    - "VOLKSWAGEN CREDIT"
+    - "FORD MOTOR CREDIT"
+    - "FORD CREDIT"
+    - "GM FINANCIAL"
+    - "HONDA FINANCE"
+    - "HONDA FINANCIAL"
+    - "NISSAN MOTOR ACCEPTANCE"
+    - "ALLY AUTO"
+    - "CAPITAL ONE AUTO"
+    - "CHASE AUTO FINANCE"
+    - "SANTANDER CONSUMER"
+    - "HYUNDAI MOTOR FINANCE"
+    - "KIA MOTORS FINANCE"
+    - "SUBARU MOTOR FINANCE"
+    - "MAZDA FINANCIAL"
+    - "BMW FINANCIAL"
+    - "MERCEDES-BENZ FINANCIAL"
+    - "TESLA FINANCE"
+
+  investment_brokerage:
+    - "MORGAN STANLEY"
+    - "RAYMOND JAMES"
+    - "CHARLES SCHWAB"
+    - "SCHWAB BROKERAGE"
+    - "FIDELITY INVESTMENTS"
+    - "FIDELITY BROKERAGE"
+    - "VANGUARD"
+    - "ETRADE"
+    - "E*TRADE"
+    - "TD AMERITRADE"
+    - "MERRILL LYNCH"
+    - "MERRILL EDGE"
+    - "LPL FINANCIAL"
+    - "BETTERMENT"
+    - "WEALTHFRONT"
+    - "ROBINHOOD"
+    - "WEBULL"
+    - "INTERACTIVE BROKERS"
+
+  mortgage_heloc:
+    - "ROCKET MORTGAGE"
+    - "QUICKEN LOANS"
+    - "PENNYMAC"
+    - "FREEDOM MORTGAGE"
+    - "MR COOPER"
+    - "CALIBER HOME LOANS"
+    - "NEWREZ"
+    - "FLAGSTAR BANK MORTGAGE"
+    - "LAKEVIEW LOAN"
+    - "GUILD MORTGAGE"
+    - "UNITED WHOLESALE MORTGAGE"
+
+  personal_loans:
+    - "SOFI LENDING"
+    - "SOFI LOAN"
+    - "LENDING CLUB"
+    - "PROSPER FUNDING"
+    - "UPSTART NETWORK"
+    - "MARCUS BY GOLDMAN"
+    - "LIGHTSTREAM"
+    - "BEST EGG"
+    - "ONEMAIN FINANCIAL"
+
+  credit_cards:
+    - "AMEX EPAYMENT"
+    - "AMERICAN EXPRESS PAYMENT"
+    - "DISCOVER CARD PAYMENT"
+    - "DISCOVER E-PAYMENT"
+    - "CAPITAL ONE CREDIT CARD"
+    - "CITI CARD PAYMENT"
+    - "CITICARDS PAYMENT"
+    - "BARCLAYS CREDIT"
+    - "SYNCHRONY BANK PAYMENT"
+    - "CHASE CARD SERVICES"
+
+  student_loans:
+    - "DEPT OF EDUCATION"
+    - "DEPARTMENT OF EDUCATION"
+    - "ED FINANCIAL"
+    - "NAVIENT"
+    - "NELNET"
+    - "GREAT LAKES"
+    - "MOHELA"
+    - "AIDVANTAGE"
+
+  business_loans:
+    - "SBA LOAN"
+    - "SMALL BUSINESS ADMIN"
+    - "KABBAGE"
+    - "BLUEVINE"
+    - "FUNDBOX"
+    - "ONDECK CAPITAL"
+    - "SQUARE CAPITAL"
+
+  treasury_bonds:
+    - "TREASURY DIRECT"
+    - "TREASURYDIRECT"
+    - "US TREASURY"
+
+# --- Payroll Configuration ---
+payroll:
+  processors:
+    - "PAYROLL-BAMBOOHR"
+    - "INTUIT PAYROLL"
+    - "ADP PAYROLL"
+    - "PAYCHEX"
+    - "CAPITAL PAYROLL"
+    - "PAYROLL SERVICE"
+    - "PAYROLLDBT"
+    - "NATPAY-"
+    - "ACCOUNTANTSWORLD"
+  min_spend: 10000
+  max_match_count: 1000
+  skip_terms:
+    - "CAPITAL"
+    - "CONSTRUCTION"
+    - "GREATER"
+    - "ASSOCIATION"
+    - "SERVICES"
+    - "MANAGEMENT"
+
+# --- False Positive Exclusions ---
+false_positives:
+  - "TOWING"
+  - "TOW SERVICE"
+  - "BODY SHOP"
+  - "AUTO REPAIR"
+  - "AUTO PARTS"
+  - "AUTOZONE"
+  - "AUTO TRADER"
+  - "TRADER JOE"
+  - "CHASE OUTDOORS"
+  - "CURRENT ELECTRIC"

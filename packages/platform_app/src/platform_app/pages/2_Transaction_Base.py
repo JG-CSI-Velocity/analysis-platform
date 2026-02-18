@@ -1,4 +1,4 @@
-"""Streamlit page: ARS Analysis pipeline."""
+"""Streamlit page: Transaction Analysis (Base M1-M10)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import streamlit as st
 
-st.set_page_config(page_title="ARS Analysis", layout="wide")
+st.set_page_config(page_title="Transaction Analysis (Base)", layout="wide")
 
 _CSS = """
 <style>
@@ -28,41 +28,36 @@ st.markdown(_CSS, unsafe_allow_html=True)
 # Sidebar
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.title("ARS Analysis")
+    st.title("Transaction Analysis (Base)")
 
-    with st.form("ars_form"):
+    with st.form("txn_base_form"):
         st.subheader("Data Sources")
-        odd_path = st.text_input(
-            "ODD File (.xlsx)",
-            value=st.session_state.get("ars_odd_path", ""),
-            placeholder="/path/to/9999-2026-01-Client Name-ODD.xlsx",
-        )
-        config_path = st.text_input(
-            "Config JSON (optional)",
-            value=st.session_state.get("ars_config_path", ""),
-            placeholder="/path/to/clients_config.json",
-            help="Client config with EligibleStatusCodes, ICRate, etc.",
+        tran_path = st.text_input(
+            "Transaction File (.csv)",
+            value=st.session_state.get("txn_base_tran", ""),
+            placeholder="/path/to/transactions.csv",
         )
 
         st.subheader("Client")
         c1, c2 = st.columns(2)
         with c1:
-            client_id = st.text_input("ID", value="", placeholder="e.g. 9999")
+            client_id = st.text_input("ID", value="", placeholder="e.g. 1453")
         with c2:
-            client_name = st.text_input("Name", value="", placeholder="e.g. Test CU")
+            client_name = st.text_input("Name", value="", placeholder="e.g. Connex CU")
 
         st.divider()
-        submitted = st.form_submit_button("Run ARS Analysis")
+        submitted = st.form_submit_button("Run Base Analysis")
 
 # ---------------------------------------------------------------------------
 # Main area
 # ---------------------------------------------------------------------------
-st.header("ARS Analysis")
-st.caption("ODDD portfolio analysis with Excel, charts, and PowerPoint output")
+st.header("Transaction Analysis (Base)")
+st.caption("Debit card portfolio analysis: M1-M10 modules")
 
 if not submitted:
     st.info(
-        "Enter the ODD file path and client info in the sidebar, then click **Run ARS Analysis**."
+        "Enter the transaction CSV path and client info in the sidebar, "
+        "then click **Run Base Analysis**."
     )
     st.stop()
 
@@ -70,10 +65,10 @@ if not submitted:
 # Validation
 # ---------------------------------------------------------------------------
 errors: list[str] = []
-if not odd_path.strip():
-    errors.append("ODD file path is required.")
-elif not Path(odd_path.strip()).exists():
-    errors.append(f"ODD file not found: `{odd_path.strip()}`")
+if not tran_path.strip():
+    errors.append("Transaction file path is required.")
+elif not Path(tran_path.strip()).exists():
+    errors.append(f"Transaction file not found: `{tran_path.strip()}`")
 if not client_id.strip():
     errors.append("Client ID is required.")
 if not client_name.strip():
@@ -84,18 +79,17 @@ if errors:
         st.error(e)
     st.stop()
 
-st.session_state["ars_odd_path"] = odd_path.strip()
-st.session_state["ars_config_path"] = config_path.strip()
+st.session_state["txn_base_tran"] = tran_path.strip()
 
 # ---------------------------------------------------------------------------
 # Run pipeline
 # ---------------------------------------------------------------------------
-odd_file = Path(odd_path.strip())
-output_dir = odd_file.parent / "output"
+tran_file = Path(tran_path.strip())
+output_dir = tran_file.parent / "output_base"
 output_dir.mkdir(parents=True, exist_ok=True)
 
 progress_bar = st.progress(0, text="Initializing...")
-status_box = st.status("Running ARS analysis...", expanded=True)
+status_box = st.status("Running base transaction analysis...", expanded=True)
 
 messages: list[str] = []
 
@@ -110,18 +104,13 @@ t0 = time.time()
 try:
     from platform_app.orchestrator import run_pipeline
 
-    client_config = {}
-    if config_path.strip():
-        client_config["config_path"] = config_path.strip()
-
     with status_box:
         results = run_pipeline(
-            "ars",
-            input_files={"oddd": odd_file},
+            "txn",
+            input_files={"tran": tran_file},
             output_dir=output_dir,
             client_id=client_id.strip(),
             client_name=client_name.strip(),
-            client_config=client_config,
             progress_callback=_on_progress,
         )
     elapsed = time.time() - t0
@@ -139,7 +128,7 @@ except Exception:
 st.subheader(f"{client_id.strip()} - {client_name.strip()}")
 
 m1, m2 = st.columns(2)
-m1.metric("Analyses", len(results))
+m1.metric("Modules", len(results))
 m2.metric("Output Dir", str(output_dir))
 
 if results:
@@ -160,7 +149,7 @@ st.subheader("Export")
 downloadable = sorted(
     f
     for f in output_dir.rglob("*")
-    if f.is_file() and f.suffix in (".xlsx", ".pptx", ".png", ".csv")
+    if f.is_file() and f.suffix in (".xlsx", ".pptx", ".png", ".csv", ".html")
 )
 
 if downloadable:
@@ -170,6 +159,7 @@ if downloadable:
             ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
             ".png": "image/png",
             ".csv": "text/csv",
+            ".html": "text/html",
         }.get(f.suffix, "application/octet-stream")
         st.download_button(f.name, f.read_bytes(), file_name=f.name, mime=mime)
 else:

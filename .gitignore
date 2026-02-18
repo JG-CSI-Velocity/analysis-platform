@@ -34,6 +34,9 @@ output/
 *.pptx
 *.png
 
+# Allow source templates
+!packages/*/src/templates/
+
 # Data files (keep sample data tracked)
 data/*.csv
 data/*.xlsx

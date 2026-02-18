@@ -22,27 +22,66 @@ analysis_platform/
 
 **uv workspace monorepo** -- all five packages share a single lockfile and virtual environment.
 
-## Setup
+## Quickstart (New Machine)
+
+### 1. Clone
 
 ```
+git clone https://github.com/JG-CSI-Velocity/analysis-platform.git
+cd analysis-platform
+```
+
+### 2. Install uv (if not already installed)
+
+```
+pip install uv
+```
+
+### 3. Install Python and dependencies
+
+```
+uv python install 3.11
 uv sync --all-packages
 ```
+
+### 4. Verify everything works
+
+```
+uv run pytest tests/ -v
+```
+
+Should see 866 tests pass.
 
 ## Running Analyses
 
 ### CLI
 
-Run a single pipeline:
-
+**Transaction analysis:**
 ```
-uv run python -m platform_app run --pipeline txn --tran data/transactions.csv --client-id 1234
+uv run python -m platform_app run --pipeline txn --tran path/to/transactions.csv --client-id 1234
 ```
 
-Run all applicable pipelines (auto-detected from input files):
+**ARS analysis:**
+```
+uv run python -m platform_app run --pipeline ars --oddd path/to/1234-2026-02-ClientName-ODD.xlsx
+```
 
+**ICS analysis:**
+```
+uv run python -m platform_app run --pipeline ics --ics path/to/ics_data.xlsx --client-id 1234
+```
+
+**Auto-detect and run all applicable pipelines:**
 ```
 uv run python -m platform_app run-all --data-dir data/ --client-id 1234
 ```
+
+**Custom output directory:**
+```
+uv run python -m platform_app run --pipeline txn --tran data/tx.csv --output-dir results/
+```
+
+Output goes to `output/` by default (Excel, HTML, PNG charts, PPTX).
 
 ### Streamlit UI
 

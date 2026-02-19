@@ -995,7 +995,9 @@ def run_dctr_11(ctx):
             high_pct = ins.get("highest_dctr", 0) * 100
             low_pct = ins.get("lowest_dctr", 0) * 100
             spread_pp = high_pct - low_pct
-            overall_dctr = ctx["results"].get("dctr_1", {}).get("insights", {}).get("overall_dctr", 0) * 100
+            overall_dctr = (
+                ctx["results"].get("dctr_1", {}).get("insights", {}).get("overall_dctr", 0) * 100
+            )
             high_vs_overall = high_pct - overall_dctr
             holder_age_subtitle = (
                 f"{high_grp} highest at {high_pct:.1f}% ({high_vs_overall:+.1f}pp vs avg);"
@@ -1365,4 +1367,546 @@ def run_dctr_16(ctx):
         "grand_debits": grand_d,
     }
     _report(ctx, f"   {len(all_branches)} branches | Overall: {grand_r:.1f}%")
+    return ctx
+
+
+# =============================================================================
+# A7.18 — DCTR OPPORTUNITY SIZING
+# =============================================================================
+
+
+def run_dctr_opportunity(ctx):
+    """A7.18 -- Quantify the account/revenue opportunity at benchmark targets."""
+    from pathlib import Path
+
+    _report(ctx, "\n📈 A7.18 — DCTR Opportunity Sizing")
+
+    ed = ctx["eligible_data"]
+    if ed.empty:
+        _report(ctx, "   Skipped: no eligible data")
+        return ctx
+
+    total_eligible = len(ed)
+    with_debit = len(ed[ed["Debit?"] == "Yes"])
+    current_dctr = with_debit / total_eligible if total_eligible > 0 else 0
+
+    targets = ctx.get("dctr_targets", {"peer_avg": 0.65, "p75": 0.72, "best_class": 0.80})
+    ic_rate = ctx.get("ic_rate", 0)
+
+    # Calculate opportunity at each target level
+    tiers = []
+    for key, label in [
+        ("peer_avg", "Peer Avg"),
+        ("p75", "75th Pctile"),
+        ("best_class", "Best-in-Class"),
+    ]:
+        target = targets.get(key, 0)
+        if target <= current_dctr:
+            additional = 0
+        else:
+            additional = int(total_eligible * (target - current_dctr))
+        revenue = additional * ic_rate * 12 * 200 if ic_rate > 0 else 0
+        tiers.append(
+            {
+                "label": label,
+                "target": target,
+                "additional_accounts": additional,
+                "revenue": revenue,
+            }
+        )
+
+    # Build summary DataFrame
+    rows = [
+        {
+            "Level": "Current",
+            "DCTR": current_dctr,
+            "Accounts w/ Debit": with_debit,
+            "Additional Accounts": 0,
+            "Est. Annual Revenue Uplift": 0,
+        }
+    ]
+    for tier in tiers:
+        rows.append(
+            {
+                "Level": tier["label"],
+                "DCTR": tier["target"],
+                "Accounts w/ Debit": with_debit + tier["additional_accounts"],
+                "Additional Accounts": tier["additional_accounts"],
+                "Est. Annual Revenue Uplift": tier["revenue"],
+            }
+        )
+    summary_df = pd.DataFrame(rows)
+
+    _save(
+        ctx,
+        summary_df,
+        "DCTR-Opportunity",
+        "DCTR Opportunity Sizing",
+        {
+            "Current DCTR": f"{current_dctr:.1%}",
+            "Eligible Accounts": f"{total_eligible:,}",
+            "Best-Class Gap": f"{max(0, targets.get('best_class', 0.80) - current_dctr):.1%}",
+        },
+    )
+
+    # Chart: waterfall bar chart
+    chart_dir = ctx["chart_dir"]
+    fig, ax = _fig(ctx, "single")
+    try:
+        labels = ["Current"] + [t["label"] for t in tiers]
+        values = [current_dctr * 100] + [t["target"] * 100 for t in tiers]
+        colors = ["#4472C4"] + [
+            "#70AD47" if t["target"] > current_dctr else "#A5A5A5" for t in tiers
+        ]
+
+        bars = ax.bar(labels, values, color=colors, width=0.5, edgecolor="black", linewidth=1.5)
+
+        for bar, val in zip(bars, values):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.5,
+                f"{val:.1f}%",
+                ha="center",
+                va="bottom",
+                fontsize=14,
+                fontweight="bold",
+            )
+
+        # Add account deltas above benchmark bars
+        for i, tier in enumerate(tiers, start=1):
+            if tier["additional_accounts"] > 0:
+                ax.text(
+                    bars[i].get_x() + bars[i].get_width() / 2,
+                    bars[i].get_height() + 2.5,
+                    f"+{tier['additional_accounts']:,} accts",
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    color="#333333",
+                )
+
+        # Reference line at current DCTR
+        ax.axhline(y=current_dctr * 100, color="#E74C3C", linestyle="--", linewidth=1.5, alpha=0.7)
+
+        ax.set_ylabel("DCTR %", fontsize=14, fontweight="bold")
+        ax.set_title(
+            "DCTR Opportunity: Current vs Benchmarks", fontsize=16, fontweight="bold", pad=15
+        )
+        max_val = max(values) if values else 100
+        ax.set_ylim(0, min(100, max_val + 10))
+        ax.tick_params(axis="both", labelsize=12)
+        plt.tight_layout()
+
+        chart_path = _save_chart(fig, Path(chart_dir) / "dctr_opportunity.png")
+    finally:
+        plt.close(fig)
+
+    # Subtitle with key insight
+    try:
+        best_tier = tiers[-1]
+        if best_tier["additional_accounts"] > 0:
+            if ic_rate > 0:
+                subtitle = (
+                    f"Current {current_dctr:.1%} vs best-in-class {best_tier['target']:.0%}"
+                    f" -- {best_tier['additional_accounts']:,} additional accounts"
+                    f" = ${best_tier['revenue']:,.0f}/yr potential"
+                )
+            else:
+                subtitle = (
+                    f"Current {current_dctr:.1%} vs best-in-class {best_tier['target']:.0%}"
+                    f" -- {best_tier['additional_accounts']:,} additional accounts achievable"
+                )
+        else:
+            subtitle = f"Current DCTR {current_dctr:.1%} exceeds all benchmark targets"
+        if len(subtitle) > 120:
+            subtitle = (
+                f"Current {current_dctr:.1%} — up to {best_tier['additional_accounts']:,}"
+                f" additional accounts at best-in-class"
+            )
+    except Exception:
+        subtitle = f"DCTR opportunity analysis ({total_eligible:,} eligible accounts)"
+
+    _slide(
+        ctx,
+        "A7.18 - DCTR Opportunity",
+        {
+            "title": "DCTR Opportunity Sizing",
+            "subtitle": subtitle,
+            "chart_path": chart_path,
+            "layout_index": 8,
+            "slide_type": "chart",
+        },
+    )
+
+    ctx["results"]["dctr_opportunity"] = {
+        "current_dctr": current_dctr,
+        "total_eligible": total_eligible,
+        "with_debit": with_debit,
+        "tiers": tiers,
+    }
+    _report(
+        ctx,
+        f"   Current: {current_dctr:.1%} | "
+        f"Best-class gap: {max(0, targets.get('best_class', 0.80) - current_dctr):.1%}",
+    )
+    return ctx
+
+
+# =============================================================================
+# A7.19 — DCTR BY PRODUCT TYPE
+# =============================================================================
+
+
+def run_dctr_by_product(ctx):
+    """A7.19 -- DCTR breakdown by Prod Code with historical vs L12M comparison."""
+    from pathlib import Path
+
+    _report(ctx, "\n📦 A7.19 — DCTR by Product Type")
+
+    ed = ctx["eligible_data"]
+    if ed.empty or "Prod Code" not in ed.columns:
+        _report(ctx, "   Skipped: no eligible data or missing Prod Code column")
+        return ctx
+
+    # Historical DCTR by product
+    hist_rows = []
+    for pc in sorted(ed["Prod Code"].dropna().unique()):
+        seg = ed[ed["Prod Code"] == pc]
+        t, w, d = _dctr(seg)
+        if t > 0:
+            hist_rows.append(
+                {
+                    "Prod Code": pc,
+                    "Total Accounts": t,
+                    "With Debit": w,
+                    "DCTR %": d,
+                }
+            )
+    hist_df = pd.DataFrame(hist_rows)
+    if hist_df.empty:
+        _report(ctx, "   Skipped: no product type data")
+        return ctx
+    hist_df = hist_df.sort_values("Total Accounts", ascending=False)
+
+    # L12M DCTR by product (if L12M subset available)
+    l12m_data = ctx.get("eligible_last_12m", pd.DataFrame())
+    l12m_map = {}
+    if not l12m_data.empty and "Prod Code" in l12m_data.columns:
+        for pc in l12m_data["Prod Code"].dropna().unique():
+            seg = l12m_data[l12m_data["Prod Code"] == pc]
+            t, w, d = _dctr(seg)
+            if t > 0:
+                l12m_map[pc] = d
+
+    # Build combined DataFrame
+    combined_rows = []
+    for _, row in hist_df.iterrows():
+        pc = row["Prod Code"]
+        combined_rows.append(
+            {
+                "Prod Code": pc,
+                "Total Accounts": row["Total Accounts"],
+                "Historical DCTR %": row["DCTR %"],
+                "L12M DCTR %": l12m_map.get(pc, None),
+            }
+        )
+    combined_df = pd.DataFrame(combined_rows)
+
+    _save(
+        ctx,
+        combined_df,
+        "DCTR-ByProduct",
+        "DCTR by Product Type",
+        {"Products": f"{len(combined_df)}"},
+    )
+
+    # Chart: grouped bar (hist vs L12M)
+    chart_dir = ctx["chart_dir"]
+    fig, ax = _fig(ctx, "single")
+    try:
+        prods = combined_df["Prod Code"].tolist()
+        hist_vals = (combined_df["Historical DCTR %"] * 100).tolist()
+        l12m_vals = (combined_df["L12M DCTR %"].fillna(0) * 100).tolist()
+
+        x = np.arange(len(prods))
+        width = 0.35
+
+        bars1 = ax.bar(
+            x - width / 2,
+            hist_vals,
+            width,
+            label="Historical",
+            color="#4472C4",
+            edgecolor="black",
+            linewidth=1,
+        )
+        bars2 = ax.bar(
+            x + width / 2,
+            l12m_vals,
+            width,
+            label="L12M",
+            color="#70AD47",
+            edgecolor="black",
+            linewidth=1,
+        )
+
+        for bar, val in zip(bars1, hist_vals):
+            if val > 0:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.5,
+                    f"{val:.1f}%",
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                )
+        for bar, val in zip(bars2, l12m_vals):
+            if val > 0:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.5,
+                    f"{val:.1f}%",
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                )
+
+        # Volume overlay on secondary axis
+        ax2 = ax.twinx()
+        volumes = combined_df["Total Accounts"].tolist()
+        ax2.plot(
+            x, volumes, "o-", color="#E74C3C", linewidth=2, markersize=8, label="Account Volume"
+        )
+        ax2.set_ylabel("Account Volume", fontsize=12, color="#E74C3C")
+        ax2.tick_params(axis="y", labelcolor="#E74C3C")
+
+        ax.set_xlabel("Product Code", fontsize=14, fontweight="bold")
+        ax.set_ylabel("DCTR %", fontsize=14, fontweight="bold")
+        ax.set_title(
+            "DCTR by Product Type (Historical vs L12M)", fontsize=16, fontweight="bold", pad=15
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(prods, fontsize=12)
+        ax.legend(loc="upper left", fontsize=11)
+        ax2.legend(loc="upper right", fontsize=11)
+        max_dctr = max(hist_vals + l12m_vals) if hist_vals else 100
+        ax.set_ylim(0, min(100, max_dctr + 10))
+        plt.tight_layout()
+
+        chart_path = _save_chart(fig, Path(chart_dir) / "dctr_by_product.png")
+    finally:
+        plt.close(fig)
+
+    # Subtitle
+    try:
+        best = combined_df.loc[combined_df["Historical DCTR %"].idxmax()]
+        worst = combined_df.loc[combined_df["Historical DCTR %"].idxmin()]
+        spread = best["Historical DCTR %"] - worst["Historical DCTR %"]
+        subtitle = (
+            f"{len(prods)} product types — {best['Prod Code']} leads at"
+            f" {best['Historical DCTR %']:.1%}, {worst['Prod Code']} trails at"
+            f" {worst['Historical DCTR %']:.1%} ({spread:.1%} spread)"
+        )
+        if len(subtitle) > 120:
+            subtitle = (
+                f"{len(prods)} products — {best['Prod Code']} leads at"
+                f" {best['Historical DCTR %']:.1%}"
+            )
+    except Exception:
+        subtitle = f"DCTR by product type ({len(prods)} products)"
+
+    _slide(
+        ctx,
+        "A7.19 - DCTR by Product Type",
+        {
+            "title": "DCTR by Product Type",
+            "subtitle": subtitle,
+            "chart_path": chart_path,
+            "layout_index": 8,
+            "slide_type": "chart",
+        },
+    )
+
+    ctx["results"]["dctr_by_product"] = {
+        "products": len(prods),
+        "data": combined_df,
+    }
+    _report(ctx, f"   {len(prods)} product types analyzed")
+    return ctx
+
+
+# =============================================================================
+# A7.0 — DCTR EXECUTIVE SUMMARY
+# =============================================================================
+
+
+def run_dctr_executive_summary(ctx):
+    """A7.0 -- Single summary slide synthesizing all DCTR findings into KPIs."""
+    from pathlib import Path
+
+    _report(ctx, "\n📋 A7.0 — DCTR Executive Summary")
+
+    results = ctx.get("results", {})
+
+    # Pull KPIs from prior analyses (with safe fallbacks)
+    dctr_1 = results.get("dctr_1", {})
+    ins = dctr_1.get("insights", {})
+    overall_dctr = ins.get("overall_dctr", 0)
+    recent_dctr = ins.get("recent_dctr", 0)
+
+    dctr_3 = results.get("dctr_3", {})
+    l12m_ins = dctr_3.get("insights", {})
+    l12m_dctr = l12m_ins.get("dctr", 0)
+
+    dctr_9_hist = results.get("dctr_9_hist", {})
+    hist_branch = dctr_9_hist.get("insights", {})
+    best_branch = hist_branch.get("best_branch", "N/A")
+    best_dctr = hist_branch.get("best_dctr", 0)
+    worst_branch = hist_branch.get("worst_branch", "N/A")
+    worst_dctr = hist_branch.get("worst_dctr", 0)
+
+    opp = results.get("dctr_opportunity", {})
+    tiers = opp.get("tiers", [])
+    best_class_gap = 0
+    best_class_accts = 0
+    if tiers:
+        best_tier = tiers[-1]
+        best_class_gap = max(0, best_tier.get("target", 0) - overall_dctr)
+        best_class_accts = best_tier.get("additional_accounts", 0)
+
+    targets = ctx.get("dctr_targets", {"peer_avg": 0.65, "p75": 0.72, "best_class": 0.80})
+
+    # Build KPI summary
+    kpis = {
+        "Overall DCTR": f"{overall_dctr:.1%}",
+        "L12M DCTR": f"{l12m_dctr:.1%}" if l12m_dctr else f"{recent_dctr:.1%}",
+        "Best Branch": f"{best_branch} ({best_dctr:.1%})" if best_branch != "N/A" else "N/A",
+        "Worst Branch": f"{worst_branch} ({worst_dctr:.1%})" if worst_branch != "N/A" else "N/A",
+        "Best-Class Target": f"{targets.get('best_class', 0.80):.0%}",
+        "Opportunity": f"{best_class_accts:,} accounts" if best_class_accts else "At target",
+    }
+
+    # Build insight bullets
+    bullets = []
+    if overall_dctr > 0:
+        bullets.append(f"Overall eligible DCTR stands at {overall_dctr:.1%}")
+    trend_dctr = l12m_dctr if l12m_dctr else recent_dctr
+    if trend_dctr and overall_dctr:
+        diff = trend_dctr - overall_dctr
+        direction = "improving" if diff > 0.005 else "declining" if diff < -0.005 else "stable"
+        bullets.append(f"Recent trend is {direction} ({diff:+.1%} vs historical)")
+    if best_branch != "N/A" and worst_branch != "N/A":
+        branch_spread = best_dctr - worst_dctr
+        bullets.append(
+            f"Branch spread: {branch_spread:.1%} ({best_branch} at {best_dctr:.1%}"
+            f" vs {worst_branch} at {worst_dctr:.1%})"
+        )
+    if best_class_accts > 0:
+        bullets.append(
+            f"Closing to best-in-class ({targets.get('best_class', 0.80):.0%}) would"
+            f" capture {best_class_accts:,} additional accounts"
+        )
+
+    # Chart: KPI dashboard with boxes
+    chart_dir = ctx["chart_dir"]
+    fig = plt.figure(figsize=(20, 10))
+    fig.patch.set_facecolor("white")
+    try:
+        ax = fig.add_axes([0.02, 0.02, 0.96, 0.96])
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        ax.axis("off")
+
+        ax.text(
+            5,
+            9.5,
+            "DCTR Executive Summary",
+            fontsize=24,
+            fontweight="bold",
+            color="#1E3D59",
+            ha="center",
+            va="top",
+        )
+
+        # KPI boxes (2 rows of 3)
+        box_colors = ["#4472C4", "#70AD47", "#4472C4", "#E74C3C", "#F39C12", "#70AD47"]
+        kpi_items = list(kpis.items())
+        positions = [
+            (1.5, 7.5),
+            (5.0, 7.5),
+            (8.5, 7.5),
+            (1.5, 5.5),
+            (5.0, 5.5),
+            (8.5, 5.5),
+        ]
+        from matplotlib.patches import FancyBboxPatch
+
+        for i, ((label, value), (px, py)) in enumerate(zip(kpi_items, positions)):
+            color = box_colors[i % len(box_colors)]
+            box = FancyBboxPatch(
+                (px - 1.3, py - 0.7),
+                2.6,
+                1.4,
+                boxstyle="round,pad=0.1",
+                facecolor=color,
+                alpha=0.15,
+                edgecolor=color,
+                linewidth=2,
+            )
+            ax.add_patch(box)
+            ax.text(
+                px,
+                py + 0.25,
+                value,
+                fontsize=18,
+                fontweight="bold",
+                color=color,
+                ha="center",
+                va="center",
+            )
+            ax.text(px, py - 0.3, label, fontsize=11, color="#666666", ha="center", va="center")
+
+        # Bullet insights
+        y_start = 3.8
+        ax.text(1.0, y_start, "Key Insights", fontsize=16, fontweight="bold", color="#1E3D59")
+        for j, bullet in enumerate(bullets[:4]):
+            ax.text(
+                1.2, y_start - 0.7 - j * 0.6, f"  {bullet}", fontsize=12, color="#333333", wrap=True
+            )
+
+        chart_path = _save_chart(fig, Path(chart_dir) / "dctr_executive_summary.png")
+    finally:
+        plt.close(fig)
+
+    # Subtitle
+    try:
+        subtitle = (
+            f"DCTR at {overall_dctr:.1%} — "
+            + (f"L12M {l12m_dctr:.1%}" if l12m_dctr else f"recent {recent_dctr:.1%}")
+            + (f" — {best_class_accts:,} account opportunity" if best_class_accts else "")
+        )
+        if len(subtitle) > 120:
+            subtitle = (
+                f"Overall DCTR {overall_dctr:.1%} with {best_class_accts:,} account opportunity"
+            )
+    except Exception:
+        subtitle = "DCTR Executive Summary"
+
+    _slide(
+        ctx,
+        "A7.0 - DCTR Executive Summary",
+        {
+            "title": "DCTR At a Glance",
+            "subtitle": subtitle,
+            "chart_path": chart_path,
+            "layout_index": 8,
+            "slide_type": "chart",
+        },
+    )
+
+    ctx["results"]["dctr_executive_summary"] = {
+        "kpis": kpis,
+        "bullets": bullets,
+    }
+    _report(ctx, f"   Summary: {overall_dctr:.1%} overall | {len(bullets)} insights")
     return ctx

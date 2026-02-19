@@ -36,22 +36,24 @@ from ars_analysis.dctr import (
     run_dctr_14,
     run_dctr_15,
     run_dctr_16,
-    run_dctr_funnel,
-    run_dctr_combo_slide,
-    run_dctr_segment_trends,
-    run_dctr_decade_trend,
-    run_dctr_l12m_trend,
-    run_dctr_l12m_funnel,
-    run_dctr_branch_trend,
-    run_dctr_heatmap,
-    run_dctr_seasonality,
-    run_dctr_vintage,
-    run_dctr_decade_pb,
-    run_dctr_eligible_vs_non,
     run_dctr_branch_l12m,
+    run_dctr_branch_trend,
+    run_dctr_by_product,
+    run_dctr_combo_slide,
+    run_dctr_decade_pb,
+    run_dctr_decade_trend,
+    run_dctr_eligible_vs_non,
+    run_dctr_executive_summary,
+    run_dctr_funnel,
+    run_dctr_heatmap,
+    run_dctr_l12m_funnel,
+    run_dctr_l12m_trend,
+    run_dctr_opportunity,
+    run_dctr_seasonality,
+    run_dctr_segment_trends,
     run_dctr_suite,
+    run_dctr_vintage,
 )
-
 
 # ---------------------------------------------------------------------------
 # Pure utility function tests (no ctx required)
@@ -306,9 +308,7 @@ class TestRunDctr14:
     def test_adds_heatmap_slide(self, dctr_ctx):
         before = len(dctr_ctx["all_slides"])
         run_dctr_14(dctr_ctx)
-        heatmap_slides = [
-            s for s in dctr_ctx["all_slides"] if "A7.23" in s["id"]
-        ]
+        heatmap_slides = [s for s in dctr_ctx["all_slides"] if "A7.23" in s["id"]]
         assert len(heatmap_slides) >= 1
 
     def test_creates_heatmap_chart(self, dctr_ctx):
@@ -326,9 +326,7 @@ class TestRunDctr15:
 
     def test_adds_heatmap_slide(self, dctr_ctx):
         run_dctr_15(dctr_ctx)
-        heatmap_slides = [
-            s for s in dctr_ctx["all_slides"] if "A7.24" in s["id"]
-        ]
+        heatmap_slides = [s for s in dctr_ctx["all_slides"] if "A7.24" in s["id"]]
         assert len(heatmap_slides) >= 1
 
     def test_creates_heatmap_chart(self, dctr_ctx):
@@ -543,6 +541,142 @@ class TestRunDctrComboSlide:
         initial = len(dctr_ctx["all_slides"])
         run_dctr_combo_slide(dctr_ctx)
         assert len(dctr_ctx["all_slides"]) > initial
+
+
+# ---------------------------------------------------------------------------
+# Sprint 3: New analysis function tests
+# ---------------------------------------------------------------------------
+
+
+class TestRunDctrOpportunity:
+    """A7.18: DCTR Opportunity Sizing -- waterfall chart with benchmark targets."""
+
+    def test_populates_results(self, dctr_ctx):
+        run_dctr_opportunity(dctr_ctx)
+        assert "dctr_opportunity" in dctr_ctx["results"]
+        opp = dctr_ctx["results"]["dctr_opportunity"]
+        assert "current_dctr" in opp
+        assert "tiers" in opp
+        assert len(opp["tiers"]) == 3
+
+    def test_adds_slide(self, dctr_ctx):
+        initial = len(dctr_ctx["all_slides"])
+        run_dctr_opportunity(dctr_ctx)
+        assert len(dctr_ctx["all_slides"]) > initial
+        slide = dctr_ctx["all_slides"][-1]
+        assert slide["id"] == "A7.18 - DCTR Opportunity"
+        assert slide["category"] == "DCTR"
+
+    def test_creates_chart(self, dctr_ctx):
+        run_dctr_opportunity(dctr_ctx)
+        pngs = list(Path(dctr_ctx["chart_dir"]).glob("dctr_opportunity*.png"))
+        assert len(pngs) >= 1
+
+    def test_respects_custom_targets(self, dctr_ctx):
+        dctr_ctx["dctr_targets"] = {"peer_avg": 0.90, "p75": 0.95, "best_class": 0.99}
+        run_dctr_opportunity(dctr_ctx)
+        opp = dctr_ctx["results"]["dctr_opportunity"]
+        # With very high targets, should have non-zero additional accounts
+        assert opp["tiers"][-1]["additional_accounts"] > 0
+
+    def test_above_all_targets(self, dctr_ctx):
+        # Set targets below the fixture's likely DCTR (~0.65)
+        dctr_ctx["dctr_targets"] = {"peer_avg": 0.10, "p75": 0.20, "best_class": 0.30}
+        run_dctr_opportunity(dctr_ctx)
+        opp = dctr_ctx["results"]["dctr_opportunity"]
+        for tier in opp["tiers"]:
+            assert tier["additional_accounts"] == 0
+
+    def test_revenue_with_ic_rate(self, dctr_ctx):
+        dctr_ctx["ic_rate"] = 0.005
+        dctr_ctx["dctr_targets"] = {"peer_avg": 0.90, "p75": 0.95, "best_class": 0.99}
+        run_dctr_opportunity(dctr_ctx)
+        opp = dctr_ctx["results"]["dctr_opportunity"]
+        # With IC rate set, revenue should be non-zero for tiers above current
+        assert opp["tiers"][-1]["revenue"] > 0
+
+    def test_no_revenue_without_ic_rate(self, dctr_ctx):
+        dctr_ctx["ic_rate"] = 0
+        dctr_ctx["dctr_targets"] = {"peer_avg": 0.90, "p75": 0.95, "best_class": 0.99}
+        run_dctr_opportunity(dctr_ctx)
+        opp = dctr_ctx["results"]["dctr_opportunity"]
+        for tier in opp["tiers"]:
+            assert tier["revenue"] == 0
+
+
+class TestRunDctrByProduct:
+    """A7.19: DCTR by Product Type -- grouped bar with volume overlay."""
+
+    def test_populates_results(self, dctr_ctx):
+        run_dctr_by_product(dctr_ctx)
+        assert "dctr_by_product" in dctr_ctx["results"]
+        res = dctr_ctx["results"]["dctr_by_product"]
+        assert res["products"] >= 1
+
+    def test_adds_slide(self, dctr_ctx):
+        initial = len(dctr_ctx["all_slides"])
+        run_dctr_by_product(dctr_ctx)
+        assert len(dctr_ctx["all_slides"]) > initial
+        slide = dctr_ctx["all_slides"][-1]
+        assert slide["id"] == "A7.19 - DCTR by Product Type"
+        assert slide["category"] == "DCTR"
+
+    def test_creates_chart(self, dctr_ctx):
+        run_dctr_by_product(dctr_ctx)
+        pngs = list(Path(dctr_ctx["chart_dir"]).glob("dctr_by_product*.png"))
+        assert len(pngs) >= 1
+
+    def test_handles_multiple_products(self, dctr_ctx):
+        # Fixture has 3 product codes (001, 002, 003)
+        run_dctr_by_product(dctr_ctx)
+        res = dctr_ctx["results"]["dctr_by_product"]
+        assert res["products"] == 3
+
+    def test_skips_without_prod_code(self, dctr_ctx):
+        dctr_ctx["eligible_data"] = dctr_ctx["eligible_data"].drop(columns=["Prod Code"])
+        initial = len(dctr_ctx["all_slides"])
+        run_dctr_by_product(dctr_ctx)
+        assert len(dctr_ctx["all_slides"]) == initial
+
+
+class TestRunDctrExecutiveSummary:
+    """A7.0: DCTR Executive Summary -- KPI dashboard (runs last, reads results)."""
+
+    def test_populates_results_minimal(self, dctr_ctx):
+        """Works even with minimal prior results (just dctr_1)."""
+        run_dctr_executive_summary(dctr_ctx)
+        assert "dctr_executive_summary" in dctr_ctx["results"]
+        res = dctr_ctx["results"]["dctr_executive_summary"]
+        assert "kpis" in res
+        assert "bullets" in res
+
+    def test_adds_slide(self, dctr_ctx):
+        initial = len(dctr_ctx["all_slides"])
+        run_dctr_executive_summary(dctr_ctx)
+        assert len(dctr_ctx["all_slides"]) > initial
+        slide = dctr_ctx["all_slides"][-1]
+        assert slide["id"] == "A7.0 - DCTR Executive Summary"
+        assert slide["category"] == "DCTR"
+
+    def test_creates_chart(self, dctr_ctx):
+        run_dctr_executive_summary(dctr_ctx)
+        pngs = list(Path(dctr_ctx["chart_dir"]).glob("dctr_executive_summary*.png"))
+        assert len(pngs) >= 1
+
+    def test_richer_with_more_results(self, dctr_ctx):
+        """With more analyses pre-run, the summary has more bullets."""
+        run_dctr_3(dctr_ctx)
+        run_dctr_9(dctr_ctx)
+        run_dctr_opportunity(dctr_ctx)
+        run_dctr_executive_summary(dctr_ctx)
+        res = dctr_ctx["results"]["dctr_executive_summary"]
+        assert len(res["bullets"]) >= 2
+
+    def test_kpis_contain_expected_keys(self, dctr_ctx):
+        run_dctr_executive_summary(dctr_ctx)
+        kpis = dctr_ctx["results"]["dctr_executive_summary"]["kpis"]
+        assert "Overall DCTR" in kpis
+        assert "L12M DCTR" in kpis
 
 
 # ---------------------------------------------------------------------------

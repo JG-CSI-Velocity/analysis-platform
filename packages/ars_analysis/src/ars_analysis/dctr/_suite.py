@@ -17,6 +17,9 @@ from ars_analysis.dctr._core import (
     run_dctr_14,
     run_dctr_15,
     run_dctr_16,
+    run_dctr_by_product,
+    run_dctr_executive_summary,
+    run_dctr_opportunity,
 )
 from ars_analysis.dctr._helpers import _report
 from ars_analysis.dctr._visualizations import (
@@ -70,17 +73,21 @@ DCTR_APPENDIX_IDS = {
 
 # Slide ordering for the final deck
 DCTR_ORDER = [
+    # Act 0: Executive Summary
+    "A7.0 - DCTR Executive Summary",
     # Act 1: The Headline
     "A7 - DCTR Comparison",
     # Act 2: Recent Trajectory
     "A7.6a - Last 12 Months DCTR Trend",
     "A7.4 - Segment Trends",
+    "A7.19 - DCTR by Product Type",
     # Act 3: The Funnel (Root Cause)
     "A7.8 - L12M Funnel",
     "A7.7 - Historical Funnel",
     # Act 4: Branch Accountability
     "A7.10a - Branch DCTR (Hist vs L12M)",
     # Act 5: The Opportunity
+    "A7.18 - DCTR Opportunity",
     "A7.9 - Eligible vs Non-Eligible DCTR",
     "A7.11 - DCTR by Account Holder Age",
     "A7.12 - DCTR by Account Age",
@@ -138,6 +145,11 @@ def run_dctr_suite(ctx):
     ctx = _safe(run_dctr_15, "DCTR-15")
     ctx = _safe(run_dctr_16, "DCTR-16")
 
+    # New Sprint 3 analyses
+    _report(ctx, "\n── A6: New Analyses ──")
+    ctx = _safe(run_dctr_opportunity, "Opportunity")
+    ctx = _safe(run_dctr_by_product, "Product Type")
+
     # Extended A7 visualizations
     _report(ctx, "\n── A7: Extended Visualizations ──")
     ctx = _safe(run_dctr_segment_trends, "Segment Trends")
@@ -153,6 +165,10 @@ def run_dctr_suite(ctx):
     ctx = _safe(run_dctr_seasonality, "Seasonality")
     ctx = _safe(run_dctr_vintage, "Vintage")
     ctx = _safe(run_dctr_combo_slide, "Combo Slide")
+
+    # Executive summary runs LAST (reads from all results)
+    _report(ctx, "\n── A7: Executive Summary ──")
+    ctx = _safe(run_dctr_executive_summary, "Executive Summary")
 
     # Reorder DCTR slides to match mapping sequence
     order_map = {sid: i for i, sid in enumerate(DCTR_ORDER)}

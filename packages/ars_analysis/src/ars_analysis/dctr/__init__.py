@@ -31,6 +31,9 @@ from ars_analysis.dctr._core import (
     run_dctr_14,
     run_dctr_15,
     run_dctr_16,
+    run_dctr_by_product,
+    run_dctr_executive_summary,
+    run_dctr_opportunity,
 )
 from ars_analysis.dctr._helpers import _dctr
 from ars_analysis.dctr._shared import analyze_historical_dctr
@@ -88,6 +91,9 @@ __all__ = [
     "run_dctr_14",
     "run_dctr_15",
     "run_dctr_16",
+    "run_dctr_by_product",
+    "run_dctr_executive_summary",
+    "run_dctr_opportunity",
     # Visualizations (A7)
     "run_dctr_branch_l12m",
     "run_dctr_branch_trend",

@@ -1,7 +1,5 @@
 """Tests for shared.data_loader module."""
 
-from pathlib import Path
-
 import pandas as pd
 import pytest
 
@@ -72,7 +70,7 @@ class TestLoadTran:
 
     def test_strips_column_whitespace(self, tmp_path):
         p = tmp_path / "tran.csv"
-        p.write_text(" merchant_name \t amount \n" "STORE\t10\n")
+        p.write_text(" merchant_name \t amount \nSTORE\t10\n")
         df = load_tran(p)
         assert "merchant_name" in df.columns
         assert "amount" in df.columns

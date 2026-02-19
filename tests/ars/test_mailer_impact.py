@@ -6,10 +6,6 @@ Verifies:
 3. Format correct -- charts created
 """
 
-from pathlib import Path
-
-import pytest
-
 from ars_analysis.mailer_impact import (
     run_mailer_impact_suite,
     run_market_reach,

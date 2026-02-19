@@ -1,7 +1,5 @@
 """Tests for shared.deck module."""
 
-import pytest
-
 from shared.context import PipelineContext
 from shared.deck import add_slide, report
 

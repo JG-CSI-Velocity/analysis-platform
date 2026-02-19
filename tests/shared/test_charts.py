@@ -1,7 +1,5 @@
 """Tests for shared.charts module."""
 
-from pathlib import Path
-
 import pytest
 
 from shared.charts import CATEGORY_PALETTE, COLORS, save_chart_png

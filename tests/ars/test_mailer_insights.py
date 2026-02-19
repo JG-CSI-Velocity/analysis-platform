@@ -6,8 +6,6 @@ Verifies:
 3. Format correct -- charts created
 """
 
-import pytest
-
 from ars_analysis.mailer_insights import run_mailer_insights_suite
 
 

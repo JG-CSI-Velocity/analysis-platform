@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from ars_analysis.ars_config import (
-    ARS_BASE,
     ARCHIVE_PATH,
+    ARS_BASE,
     CONFIG_PATH,
     PRESENTATIONS_PATH,
     TEMPLATE_PATH,

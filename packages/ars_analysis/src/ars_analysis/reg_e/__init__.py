@@ -23,9 +23,9 @@ from ars_analysis.reg_e._core import (
     run_reg_e_11,
     run_reg_e_12,
     run_reg_e_13,
+    run_reg_e_cohort,
     run_reg_e_executive_summary,
     run_reg_e_opportunity,
-    run_reg_e_cohort,
     run_reg_e_seasonality,
 )
 from ars_analysis.reg_e._helpers import (

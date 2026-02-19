@@ -9,7 +9,6 @@ Verifies the 3 acceptance criteria for each analysis:
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 from ars_analysis.attrition import (
     categorize_duration,

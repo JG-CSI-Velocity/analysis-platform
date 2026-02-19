@@ -570,15 +570,11 @@ class DeckBuilder:
             if subtitle_text:
                 # Keep subtitle placeholder (idx 1) for the gold-line subtitle area
                 to_remove = [
-                    ph for ph in slide.placeholders
-                    if ph.placeholder_format.idx not in (0, 1)
+                    ph for ph in slide.placeholders if ph.placeholder_format.idx not in (0, 1)
                 ]
             else:
                 # No subtitle — remove all non-title placeholders
-                to_remove = [
-                    ph for ph in slide.placeholders
-                    if ph.placeholder_format.idx != 0
-                ]
+                to_remove = [ph for ph in slide.placeholders if ph.placeholder_format.idx != 0]
             for ph in to_remove:
                 ph.element.getparent().remove(ph.element)
 

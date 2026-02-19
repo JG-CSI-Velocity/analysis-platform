@@ -1,7 +1,6 @@
 """Tests for ars_analysis.deck_builder -- SlideContent, helpers, and DeckBuilder."""
 
 import matplotlib.pyplot as plt
-import pytest
 
 from ars_analysis.deck_builder import (
     DECK_CONFIG,
@@ -46,8 +45,15 @@ class TestSlideContent:
         assert sc.layout_index == 4
 
     def test_valid_slide_types(self):
-        for st in ("title", "section", "screenshot", "screenshot_kpi",
-                    "multi_screenshot", "summary", "blank"):
+        for st in (
+            "title",
+            "section",
+            "screenshot",
+            "screenshot_kpi",
+            "multi_screenshot",
+            "summary",
+            "blank",
+        ):
             sc = SlideContent(slide_type=st, title="test")
             assert sc.slide_type == st
 
@@ -135,7 +141,6 @@ class TestSetupSlideHelpers:
         chart_dir = tmp_path / "charts"
         slides, add_chart, _, _ = setup_slide_helpers(chart_dir)
         fig, ax = plt.subplots()
-        add_chart(fig, "kpi.png", "KPI Slide", slide_type="screenshot_kpi",
-                  kpis={"Total": "500"})
+        add_chart(fig, "kpi.png", "KPI Slide", slide_type="screenshot_kpi", kpis={"Total": "500"})
         assert slides[0].slide_type == "screenshot_kpi"
         assert slides[0].kpis == {"Total": "500"}

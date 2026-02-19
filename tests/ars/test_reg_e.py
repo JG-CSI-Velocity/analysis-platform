@@ -10,9 +10,15 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from ars_analysis.reg_e import (
+    _cat_acct_age,
+    _cat_balance,
+    _cat_holder_age,
+    _opt_list,
+    _reg_col,
+    _rege,
+    _total_row,
     run_reg_e_1,
     run_reg_e_2,
     run_reg_e_3,
@@ -27,20 +33,12 @@ from ars_analysis.reg_e import (
     run_reg_e_11,
     run_reg_e_12,
     run_reg_e_13,
-    run_reg_e_opportunity,
-    run_reg_e_executive_summary,
     run_reg_e_cohort,
+    run_reg_e_executive_summary,
+    run_reg_e_opportunity,
     run_reg_e_seasonality,
     run_reg_e_suite,
-    _rege,
-    _opt_list,
-    _reg_col,
-    _total_row,
-    _cat_acct_age,
-    _cat_holder_age,
-    _cat_balance,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helper function tests
@@ -98,12 +96,14 @@ class TestRegCol:
 
 class TestTotalRow:
     def test_adds_total(self):
-        df = pd.DataFrame({
-            "Branch": ["A", "B"],
-            "Total Accounts": [100, 200],
-            "Opted In": [40, 80],
-            "Opt-In Rate": [0.40, 0.40],
-        })
+        df = pd.DataFrame(
+            {
+                "Branch": ["A", "B"],
+                "Total Accounts": [100, 200],
+                "Opted In": [40, 80],
+                "Opt-In Rate": [0.40, 0.40],
+            }
+        )
         result = _total_row(df, "Branch")
         assert result.iloc[-1]["Branch"] == "TOTAL"
         assert result.iloc[-1]["Total Accounts"] == 300
@@ -658,21 +658,25 @@ class TestPackageExports:
 
     def test_exports_reg_order(self):
         from ars_analysis.reg_e import REG_ORDER
+
         assert isinstance(REG_ORDER, list)
         assert len(REG_ORDER) > 10
 
     def test_exports_rege_merges(self):
         from ars_analysis.reg_e import REGE_MERGES
+
         assert isinstance(REGE_MERGES, list)
         assert len(REGE_MERGES) == 2
 
     def test_exports_rege_appendix_ids(self):
         from ars_analysis.reg_e import REGE_APPENDIX_IDS
+
         assert isinstance(REGE_APPENDIX_IDS, set)
         assert len(REGE_APPENDIX_IDS) >= 6
 
     def test_appendix_ids_include_a8_8_a8_9(self):
         from ars_analysis.reg_e import REGE_APPENDIX_IDS
+
         assert "A8.8a - Reg E Heatmap (Open Personal)" in REGE_APPENDIX_IDS
         assert "A8.9a - Reg E Branch Summary (Open)" in REGE_APPENDIX_IDS
 
@@ -867,14 +871,17 @@ class TestRunRegECohort:
         rng = np.random.default_rng(99)
         n = 50
         col = ars_ctx["latest_reg_e_column"]
-        recent = pd.DataFrame({
-            "Date Opened": pd.date_range("2024-01-15", periods=n, freq="7D"),
-            "Branch": rng.choice(["Main", "North", "South"], n),
-            "Business?": rng.choice(["Yes", "No"], n, p=[0.2, 0.8]),
-            col: rng.choice(["Opted In", "Opted Out"], n, p=[0.5, 0.5]),
-        })
+        recent = pd.DataFrame(
+            {
+                "Date Opened": pd.date_range("2024-01-15", periods=n, freq="7D"),
+                "Branch": rng.choice(["Main", "North", "South"], n),
+                "Business?": rng.choice(["Yes", "No"], n, p=[0.2, 0.8]),
+                col: rng.choice(["Opted In", "Opted Out"], n, p=[0.5, 0.5]),
+            }
+        )
         ars_ctx["open_accounts"] = pd.concat(
-            [ars_ctx["open_accounts"], recent], ignore_index=True,
+            [ars_ctx["open_accounts"], recent],
+            ignore_index=True,
         )
         return ars_ctx
 

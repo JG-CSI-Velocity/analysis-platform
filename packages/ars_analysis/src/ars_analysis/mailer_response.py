@@ -176,7 +176,9 @@ def _compute_inside_numbers(ctx, data, resp_col):
         age_years = (pd.Timestamp.now() - do).dt.days / 365.25
         under_2 = int((age_years < 2).sum())
         pct = under_2 / n_resp * 100
-        metrics.append((f"{pct:.0f}%", "of responders opened their account within the last 2 years"))
+        metrics.append(
+            (f"{pct:.0f}%", "of responders opened their account within the last 2 years")
+        )
 
     # % of responders opted into Reg E
     reg_e_col = ctx.get("latest_reg_e_column")
@@ -203,7 +205,9 @@ def _compute_inside_numbers(ctx, data, resp_col):
                     best_rate = rate
                     best_seg = seg
         if best_seg and best_rate > 0:
-            metrics.append((f"{best_rate:.0f}%", f"response rate from {best_seg} — the top-performing segment"))
+            metrics.append(
+                (f"{best_rate:.0f}%", f"response rate from {best_seg} — the top-performing segment")
+            )
 
     # % with debit card among responders
     if "Debit?" in responders.columns:

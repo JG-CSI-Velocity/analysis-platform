@@ -8,8 +8,6 @@ Verifies:
 
 from pathlib import Path
 
-import pytest
-
 from ars_analysis.value import (
     _find_col,
     run_value_1,

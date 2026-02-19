@@ -4,7 +4,7 @@ import matplotlib
 import numpy as np
 import pandas as pd
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -406,8 +406,13 @@ def run_reg_e_3(ctx):
         if target:
             ax.axhline(y=target * 100, color="#2ecc71", linestyle="--", linewidth=1.5, alpha=0.7)
             ax.text(
-                0.5, target * 100 + 0.3, f"Target: {target:.0%}",
-                ha="left", fontsize=14, color="#2ecc71", fontweight="bold",
+                0.5,
+                target * 100 + 0.3,
+                f"Target: {target:.0%}",
+                ha="left",
+                fontsize=14,
+                color="#2ecc71",
+                fontweight="bold",
             )
 
         ax.set_xticks(list(x))
@@ -921,8 +926,13 @@ def run_reg_e_5(ctx):
         if target:
             ax.axhline(y=target * 100, color="#2ecc71", linestyle="--", linewidth=1.5, alpha=0.7)
             ax.text(
-                0.5, target * 100 + 0.3, f"Target: {target:.0%}",
-                ha="left", fontsize=14, color="#2ecc71", fontweight="bold",
+                0.5,
+                target * 100 + 0.3,
+                f"Target: {target:.0%}",
+                ha="left",
+                fontsize=14,
+                color="#2ecc71",
+                fontweight="bold",
             )
 
         ax.set_xticks(list(x))
@@ -1053,8 +1063,14 @@ def run_reg_e_6(ctx):
 
         target = ctx.get("reg_e_target")
         if target:
-            ax.axhline(y=target * 100, color="#2ecc71", linestyle="--", linewidth=1.5, alpha=0.7,
-                        label=f"Target ({target:.0%})")
+            ax.axhline(
+                y=target * 100,
+                color="#2ecc71",
+                linestyle="--",
+                linewidth=1.5,
+                alpha=0.7,
+                label=f"Target ({target:.0%})",
+            )
 
         ax.set_xticks(x)
         ax.set_xticklabels(ch["Age Group"].tolist(), rotation=30, ha="right", fontsize=14)
@@ -1156,8 +1172,13 @@ def run_reg_e_7(ctx):
         if target:
             ax.axvline(x=target * 100, color="#2ecc71", linestyle="--", linewidth=1.5, alpha=0.7)
             ax.text(
-                target * 100 + 0.3, len(chart) - 0.5, f"Target: {target:.0%}",
-                va="top", fontsize=14, color="#2ecc71", fontweight="bold",
+                target * 100 + 0.3,
+                len(chart) - 0.5,
+                f"Target: {target:.0%}",
+                va="top",
+                fontsize=14,
+                color="#2ecc71",
+                fontweight="bold",
             )
 
         ax.set_yticks(range(len(chart)))
@@ -1867,8 +1888,14 @@ def run_reg_e_12(ctx):
 
         target = ctx.get("reg_e_target")
         if target:
-            ax.axhline(y=target * 100, color="#2ecc71", linestyle="--", linewidth=1.5, alpha=0.7,
-                        label=f"Target ({target:.0%})")
+            ax.axhline(
+                y=target * 100,
+                color="#2ecc71",
+                linestyle="--",
+                linewidth=1.5,
+                alpha=0.7,
+                label=f"Target ({target:.0%})",
+            )
 
         ax.set_ylabel("Opt-In Rate (%)", fontsize=16)
         ax.set_title(
@@ -2035,33 +2062,42 @@ def run_reg_e_opportunity(ctx):
         else:
             additional = int(total_eligible * (t_rate - current_rate))
         revenue = additional * nsf_od_fee * 12 if nsf_od_fee > 0 else 0
-        tiers.append({
-            "label": label,
-            "target": t_rate,
-            "additional_accounts": additional,
-            "revenue": revenue,
-        })
+        tiers.append(
+            {
+                "label": label,
+                "target": t_rate,
+                "additional_accounts": additional,
+                "revenue": revenue,
+            }
+        )
 
     # Build summary DataFrame
-    rows = [{
-        "Level": "Current",
-        "Opt-In Rate": current_rate,
-        "Opted-In Accounts": opted_in,
-        "Additional Accounts": 0,
-        "Est. Annual Revenue Uplift": 0,
-    }]
+    rows = [
+        {
+            "Level": "Current",
+            "Opt-In Rate": current_rate,
+            "Opted-In Accounts": opted_in,
+            "Additional Accounts": 0,
+            "Est. Annual Revenue Uplift": 0,
+        }
+    ]
     for tier in tiers:
-        rows.append({
-            "Level": tier["label"],
-            "Opt-In Rate": tier["target"],
-            "Opted-In Accounts": opted_in + tier["additional_accounts"],
-            "Additional Accounts": tier["additional_accounts"],
-            "Est. Annual Revenue Uplift": tier["revenue"],
-        })
+        rows.append(
+            {
+                "Level": tier["label"],
+                "Opt-In Rate": tier["target"],
+                "Opted-In Accounts": opted_in + tier["additional_accounts"],
+                "Additional Accounts": tier["additional_accounts"],
+                "Est. Annual Revenue Uplift": tier["revenue"],
+            }
+        )
     summary_df = pd.DataFrame(rows)
 
     _save(
-        ctx, summary_df, "A8.14-RegE-Opportunity", "Reg E Opportunity Sizing",
+        ctx,
+        summary_df,
+        "A8.14-RegE-Opportunity",
+        "Reg E Opportunity Sizing",
         {
             "Current Rate": f"{current_rate:.1%}",
             "Eligible Accounts": f"{total_eligible:,}",
@@ -2083,8 +2119,13 @@ def run_reg_e_opportunity(ctx):
 
         for bar, val in zip(bars, values):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
-                f"{val:.1f}%", ha="center", va="bottom", fontsize=16, fontweight="bold",
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.5,
+                f"{val:.1f}%",
+                ha="center",
+                va="bottom",
+                fontsize=16,
+                fontweight="bold",
             )
 
         # Account deltas above benchmark bars
@@ -2094,7 +2135,10 @@ def run_reg_e_opportunity(ctx):
                     bars[i].get_x() + bars[i].get_width() / 2,
                     bars[i].get_height() + 2.5,
                     f"+{tier['additional_accounts']:,} accts",
-                    ha="center", va="bottom", fontsize=14, color="#333333",
+                    ha="center",
+                    va="bottom",
+                    fontsize=14,
+                    color="#333333",
                 )
 
         # Reference line at current rate
@@ -2102,7 +2146,10 @@ def run_reg_e_opportunity(ctx):
 
         ax.set_ylabel("Opt-In Rate %", fontsize=18, fontweight="bold")
         ax.set_title(
-            "Reg E Opportunity: Current vs Benchmarks", fontsize=22, fontweight="bold", pad=15,
+            "Reg E Opportunity: Current vs Benchmarks",
+            fontsize=22,
+            fontweight="bold",
+            pad=15,
         )
         max_val = max(values) if values else 100
         ax.set_ylim(0, min(100, max_val + 10))
@@ -2139,7 +2186,8 @@ def run_reg_e_opportunity(ctx):
         subtitle = f"Reg E opportunity analysis ({total_eligible:,} eligible accounts)"
 
     _slide(
-        ctx, "A8.14 - Reg E Opportunity",
+        ctx,
+        "A8.14 - Reg E Opportunity",
         {
             "title": "Reg E Opportunity Sizing",
             "subtitle": subtitle,
@@ -2157,8 +2205,7 @@ def run_reg_e_opportunity(ctx):
     }
     _report(
         ctx,
-        f"   Current: {current_rate:.1%} | "
-        f"Target gap: {max(0, target - current_rate):.1%}",
+        f"   Current: {current_rate:.1%} | Target gap: {max(0, target - current_rate):.1%}",
     )
     return ctx
 
@@ -2223,7 +2270,9 @@ def run_reg_e_executive_summary(ctx):
     # Build insight bullets
     bullets = []
     if overall_rate > 0:
-        bullets.append(f"Overall Reg E opt-in stands at {overall_rate:.1%} ({opted_in:,} of {total_base:,} eligible)")
+        bullets.append(
+            f"Overall Reg E opt-in stands at {overall_rate:.1%} ({opted_in:,} of {total_base:,} eligible)"
+        )
     if l12m_rate and overall_rate:
         diff = l12m_rate - overall_rate
         direction = "improving" if diff > 0.005 else "declining" if diff < -0.005 else "stable"
@@ -2251,29 +2300,50 @@ def run_reg_e_executive_summary(ctx):
         ax.axis("off")
 
         ax.text(
-            5, 9.5, "Reg E Executive Summary",
-            fontsize=24, fontweight="bold", color="#1E3D59", ha="center", va="top",
+            5,
+            9.5,
+            "Reg E Executive Summary",
+            fontsize=24,
+            fontweight="bold",
+            color="#1E3D59",
+            ha="center",
+            va="top",
         )
 
         # KPI boxes (2 rows of 3)
         box_colors = ["#2E8B57", "#4472C4", "#2E8B57", "#E74C3C", "#F39C12", "#70AD47"]
         kpi_items = list(kpis.items())
         positions = [
-            (1.5, 7.5), (5.0, 7.5), (8.5, 7.5),
-            (1.5, 5.5), (5.0, 5.5), (8.5, 5.5),
+            (1.5, 7.5),
+            (5.0, 7.5),
+            (8.5, 7.5),
+            (1.5, 5.5),
+            (5.0, 5.5),
+            (8.5, 5.5),
         ]
 
         for i, ((label, value), (px, py)) in enumerate(zip(kpi_items, positions)):
             color = box_colors[i % len(box_colors)]
             box = FancyBboxPatch(
-                (px - 1.3, py - 0.7), 2.6, 1.4,
-                boxstyle="round,pad=0.1", facecolor=color, alpha=0.15,
-                edgecolor=color, linewidth=2,
+                (px - 1.3, py - 0.7),
+                2.6,
+                1.4,
+                boxstyle="round,pad=0.1",
+                facecolor=color,
+                alpha=0.15,
+                edgecolor=color,
+                linewidth=2,
             )
             ax.add_patch(box)
             ax.text(
-                px, py + 0.25, value,
-                fontsize=18, fontweight="bold", color=color, ha="center", va="center",
+                px,
+                py + 0.25,
+                value,
+                fontsize=18,
+                fontweight="bold",
+                color=color,
+                ha="center",
+                va="center",
             )
             ax.text(px, py - 0.3, label, fontsize=11, color="#666666", ha="center", va="center")
 
@@ -2282,8 +2352,12 @@ def run_reg_e_executive_summary(ctx):
         ax.text(1.0, y_start, "Key Insights", fontsize=16, fontweight="bold", color="#1E3D59")
         for j, bullet in enumerate(bullets[:4]):
             ax.text(
-                1.2, y_start - 0.7 - j * 0.6, f"  {bullet}",
-                fontsize=12, color="#333333", wrap=True,
+                1.2,
+                y_start - 0.7 - j * 0.6,
+                f"  {bullet}",
+                fontsize=12,
+                color="#333333",
+                wrap=True,
             )
 
         chart_path = _save_chart(fig, Path(chart_dir) / "a8_0_reg_e_executive_summary.png")
@@ -2298,12 +2372,15 @@ def run_reg_e_executive_summary(ctx):
             + (f" — {best_class_accts:,} account opportunity" if best_class_accts else "")
         )
         if len(subtitle) > 120:
-            subtitle = f"Overall Reg E {overall_rate:.1%} with {best_class_accts:,} account opportunity"
+            subtitle = (
+                f"Overall Reg E {overall_rate:.1%} with {best_class_accts:,} account opportunity"
+            )
     except Exception:
         subtitle = "Reg E Executive Summary"
 
     _slide(
-        ctx, "A8.0 - Reg E Executive Summary",
+        ctx,
+        "A8.0 - Reg E Executive Summary",
         {
             "title": "Reg E At a Glance",
             "subtitle": subtitle,
@@ -2373,19 +2450,31 @@ def run_reg_e_cohort(ctx):
         if total == 0:
             continue
         # Personal/Business split
-        personal = cohort[cohort["Business?"] == "No"] if "Business?" in cohort.columns else pd.DataFrame()
-        business = cohort[cohort["Business?"] == "Yes"] if "Business?" in cohort.columns else pd.DataFrame()
-        p_rate = _rege(personal, col, opts)[2] if not personal.empty and col in personal.columns else 0
-        b_rate = _rege(business, col, opts)[2] if not business.empty and col in business.columns else 0
+        personal = (
+            cohort[cohort["Business?"] == "No"] if "Business?" in cohort.columns else pd.DataFrame()
+        )
+        business = (
+            cohort[cohort["Business?"] == "Yes"]
+            if "Business?" in cohort.columns
+            else pd.DataFrame()
+        )
+        p_rate = (
+            _rege(personal, col, opts)[2] if not personal.empty and col in personal.columns else 0
+        )
+        b_rate = (
+            _rege(business, col, opts)[2] if not business.empty and col in business.columns else 0
+        )
 
-        cohort_rows.append({
-            "Cohort": month,
-            "Total Accounts": total,
-            "Opted In": opted_in,
-            "Opt-In Rate": rate,
-            "Personal Rate": p_rate,
-            "Business Rate": b_rate,
-        })
+        cohort_rows.append(
+            {
+                "Cohort": month,
+                "Total Accounts": total,
+                "Opted In": opted_in,
+                "Opt-In Rate": rate,
+                "Personal Rate": p_rate,
+                "Business Rate": b_rate,
+            }
+        )
 
     cohort_df = pd.DataFrame(cohort_rows)
     if cohort_df.empty:
@@ -2393,8 +2482,13 @@ def run_reg_e_cohort(ctx):
         ctx["results"]["reg_e_cohort"] = {}
         return ctx
 
-    _save(ctx, cohort_df, "A8.15-RegE-Cohort", "Reg E Cohort Analysis",
-          {"Cohorts": f"{len(cohort_df)}"})
+    _save(
+        ctx,
+        cohort_df,
+        "A8.15-RegE-Cohort",
+        "Reg E Cohort Analysis",
+        {"Cohorts": f"{len(cohort_df)}"},
+    )
 
     # Chart: line chart with P/B overlay
     chart_dir = ctx["chart_dir"]
@@ -2424,14 +2518,22 @@ def run_reg_e_cohort(ctx):
         # Target line
         target = ctx.get("reg_e_target")
         if target:
-            ax.axhline(y=target * 100, color="#2ecc71", linestyle="--", linewidth=1.5, alpha=0.7,
-                        label=f"Target ({target:.0%})")
+            ax.axhline(
+                y=target * 100,
+                color="#2ecc71",
+                linestyle="--",
+                linewidth=1.5,
+                alpha=0.7,
+                label=f"Target ({target:.0%})",
+            )
 
         ax.set_xlabel("Opening Month Cohort", fontsize=18, fontweight="bold")
         ax.set_ylabel("Opt-In Rate %", fontsize=18, fontweight="bold")
         ax.set_title(
             f"Reg E Cohort Opt-In Rate — {ctx.get('client_name', '')}",
-            fontsize=22, fontweight="bold", pad=15,
+            fontsize=22,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_xticks(x)
         ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=16)
@@ -2458,7 +2560,8 @@ def run_reg_e_cohort(ctx):
         subtitle = f"Reg E cohort analysis ({len(cohort_df)} months)"
 
     _slide(
-        ctx, "A8.15 - Reg E Cohort Analysis",
+        ctx,
+        "A8.15 - Reg E Cohort Analysis",
         {
             "title": "Reg E Cohort Opt-In Rate",
             "subtitle": subtitle,
@@ -2506,8 +2609,18 @@ def run_reg_e_seasonality(ctx):
         return ctx
 
     month_order = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
     ]
     q_order = ["Q1", "Q2", "Q3", "Q4"]
 
@@ -2520,7 +2633,9 @@ def run_reg_e_seasonality(ctx):
         md = valid[valid["Month Name"] == m]
         if len(md) > 0 and col in md.columns:
             t, oi, r = _rege(md, col, opts)
-            m_rows.append({"Month Name": m, "Total Accounts": t, "Opted In": oi, "Opt-In Rate %": r * 100})
+            m_rows.append(
+                {"Month Name": m, "Total Accounts": t, "Opted In": oi, "Opt-In Rate %": r * 100}
+            )
     monthly = pd.DataFrame(m_rows)
 
     # Quarterly
@@ -2529,7 +2644,9 @@ def run_reg_e_seasonality(ctx):
         qd = valid[valid["Quarter"] == q]
         if len(qd) > 0 and col in qd.columns:
             t, oi, r = _rege(qd, col, opts)
-            q_rows.append({"Quarter": q, "Total Accounts": t, "Opted In": oi, "Opt-In Rate %": r * 100})
+            q_rows.append(
+                {"Quarter": q, "Total Accounts": t, "Opted In": oi, "Opt-In Rate %": r * 100}
+            )
     quarterly = pd.DataFrame(q_rows)
 
     # YoY monthly data
@@ -2548,8 +2665,13 @@ def run_reg_e_seasonality(ctx):
         if yr_monthly:
             yoy_data[int(yr)] = yr_monthly
 
-    _save(ctx, monthly, "A8.16-RegE-Seasonality", "Reg E Seasonality",
-          {"Months": f"{len(monthly)}", "Quarters": f"{len(quarterly)}"})
+    _save(
+        ctx,
+        monthly,
+        "A8.16-RegE-Seasonality",
+        "Reg E Seasonality",
+        {"Months": f"{len(monthly)}", "Quarters": f"{len(quarterly)}"},
+    )
 
     chart_dir = ctx["chart_dir"]
 
@@ -2597,8 +2719,16 @@ def run_reg_e_seasonality(ctx):
                 ys = [v for v in m_vals if v is not None]
                 color = yoy_colors[idx % len(yoy_colors)]
                 style = "-" if idx == len(yoy_data) - 1 else "--"
-                ax_yoy.plot(xs, ys, f"o{style}", color=color, linewidth=2, markersize=6,
-                            label=str(yr), alpha=0.9 if style == "-" else 0.6)
+                ax_yoy.plot(
+                    xs,
+                    ys,
+                    f"o{style}",
+                    color=color,
+                    linewidth=2,
+                    markersize=6,
+                    label=str(yr),
+                    alpha=0.9 if style == "-" else 0.6,
+                )
 
             ax_yoy.set_xticks(range(12))
             ax_yoy.set_xticklabels([m[:3] for m in month_order], rotation=45, fontsize=14)
@@ -2612,7 +2742,9 @@ def run_reg_e_seasonality(ctx):
 
         fig.suptitle(
             f"Reg E Opt-In Seasonality — {ctx.get('client_name', '')}",
-            fontsize=22, fontweight="bold", y=1.02,
+            fontsize=22,
+            fontweight="bold",
+            y=1.02,
         )
         plt.tight_layout()
         chart_path = _save_chart(fig, Path(chart_dir) / "a8_16_reg_e_seasonality.png")
@@ -2637,7 +2769,8 @@ def run_reg_e_seasonality(ctx):
         subtitle = "Reg E seasonality analysis"
 
     _slide(
-        ctx, "A8.16 - Reg E Seasonality",
+        ctx,
+        "A8.16 - Reg E Seasonality",
         {
             "title": "Reg E Opt-In Seasonality",
             "subtitle": subtitle,
@@ -2654,4 +2787,3 @@ def run_reg_e_seasonality(ctx):
     }
     _report(ctx, f"   {len(monthly)} months, {len(quarterly)} quarters, {len(yoy_data)} years YoY")
     return ctx
-

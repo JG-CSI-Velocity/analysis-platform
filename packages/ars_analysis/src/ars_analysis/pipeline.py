@@ -346,7 +346,9 @@ def step_load_config(ctx, config_path=None):
         except (ValueError, TypeError):
             val = _DEFAULT_DCTR_TARGETS[key]
         if not (0 < val <= 1):
-            _report(ctx, f"   ⚠️ benchmarks.dctr_targets.{key}={val} out of range (0,1], using default")
+            _report(
+                ctx, f"   ⚠️ benchmarks.dctr_targets.{key}={val} out of range (0,1], using default"
+            )
             val = _DEFAULT_DCTR_TARGETS[key]
         validated_targets[key] = val
     ctx["dctr_targets"] = validated_targets

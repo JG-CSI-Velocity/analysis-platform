@@ -34,7 +34,6 @@ class TestCreateContext:
         assert ctx["results"] == {}
         assert ctx["all_slides"] == []
 
-
     def test_dctr_targets_defaults(self):
         ctx = create_context()
         assert ctx["dctr_targets"] == {"peer_avg": 0.65, "p75": 0.72, "best_class": 0.80}
@@ -164,10 +163,12 @@ class TestStepLoadConfigBenchmarks:
         assert ctx["reg_e_target"] == 0.60
 
     def test_custom_benchmarks(self, tmp_path):
-        cfg = _base_config(benchmarks={
-            "dctr_targets": {"peer_avg": 0.70, "p75": 0.78, "best_class": 0.85},
-            "reg_e_target": 0.55,
-        })
+        cfg = _base_config(
+            benchmarks={
+                "dctr_targets": {"peer_avg": 0.70, "p75": 0.78, "best_class": 0.85},
+                "reg_e_target": 0.55,
+            }
+        )
         path = _write_config(tmp_path, "9999", cfg)
         ctx = create_context()
         ctx["client_id"] = "9999"
@@ -178,9 +179,11 @@ class TestStepLoadConfigBenchmarks:
         assert ctx["reg_e_target"] == 0.55
 
     def test_invalid_benchmark_uses_default(self, tmp_path):
-        cfg = _base_config(benchmarks={
-            "dctr_targets": {"peer_avg": 1.5, "p75": -0.1, "best_class": 0.80},
-        })
+        cfg = _base_config(
+            benchmarks={
+                "dctr_targets": {"peer_avg": 1.5, "p75": -0.1, "best_class": 0.80},
+            }
+        )
         path = _write_config(tmp_path, "9999", cfg)
         ctx = create_context()
         ctx["client_id"] = "9999"

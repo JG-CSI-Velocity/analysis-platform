@@ -1,9 +1,6 @@
 """Tests for shared.excel module."""
 
-from pathlib import Path
-
 import pandas as pd
-import pytest
 
 from shared.excel import (
     _sanitize_sheet_title,

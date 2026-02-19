@@ -1,6 +1,5 @@
 """Reg E constants -- categorization orders and bucket definitions."""
 
-import numpy as np
 import pandas as pd
 
 ACCT_AGE_ORDER = (

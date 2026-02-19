@@ -179,6 +179,11 @@ class AnalysisSettings(BaseModel):
     charts: ChartConfig = ChartConfig()
     pptx_template: Path | None = DEFAULT_PPTX_TEMPLATE
     last_12_months: list[str] = []
+    # Benchmark thresholds (used by analyses/benchmarks.py)
+    interchange_rate: float = 0.0182
+    activation_rate_thresholds: tuple[float, float] = (60.0, 40.0)
+    active_rate_thresholds: tuple[float, float] = (50.0, 30.0)
+    penetration_rate_thresholds: tuple[float, float] = (70.0, 50.0)
 
     @field_validator("data_file", mode="before")
     @classmethod

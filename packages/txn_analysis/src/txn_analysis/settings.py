@@ -62,6 +62,17 @@ class Settings(BaseModel):
     threat_min_accounts: int = 100
     threat_min_spend: float = 50000.0
     ic_rate: float = 0.0
+    # Segmentation thresholds (used by v4_s3_segmentation)
+    seg_balanced_pct: float = 25.0
+    seg_competitor_heavy_pct: float = 50.0
+    seg_at_risk_pct: float = 80.0
+    seg_at_risk_min_spend: float = 500.0
+    # Lifecycle & demographics (used by v4_s9, v4_s5, v4_s4)
+    onboarding_window_days: int = 90
+    high_value_threshold: float = 10000.0
+    medium_value_threshold: float = 1000.0
+    active_days: int = 30
+    recent_days: int = 90
 
     @field_validator("data_file", mode="before")
     @classmethod

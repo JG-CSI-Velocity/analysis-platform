@@ -1,9 +1,9 @@
-"""ARS (Account Revenue Solution) analysis pipeline.
+"""ARS (Account Revenue Solution) v2 modular analysis pipeline.
 
-55+ analyses across DCTR, Reg E, Attrition, Value, and Mailer modules.
-Ported from ars_analysis-jupyter with import fixes for package structure.
+20 analytics modules across 7 sections: Overview, DCTR, Reg E,
+Attrition, Value, Mailer, and Insights. Batch processing for 300+ clients.
 """
 
-from ars_analysis.runner import run_ars, run_ars_from_dict
+from ars_analysis.runner import run_ars
 
-__all__ = ["run_ars", "run_ars_from_dict"]
+__all__ = ["run_ars"]

@@ -1,97 +1,158 @@
-"""ARS pipeline runner — orchestrates all A1-A15 analyses.
+"""ARS v2 pipeline runner -- bridges shared PipelineContext to ARS internals.
 
-Bridges the typed PipelineContext from the unified platform to the
-dict-based ctx pattern used by the ported ARS analysis modules.
+This module is the only coupling point between the unified platform and the
+ARS v2 modular pipeline. It converts shared types at the boundary so the
+100+ ARS source files don't need to know about the shared package.
 """
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
-from shared.context import PipelineContext
-from shared.types import AnalysisResult
+from shared.context import PipelineContext as SharedContext
+from shared.types import AnalysisResult as SharedResult
+
+logger = logging.getLogger(__name__)
 
 
-def run_ars(ctx: PipelineContext) -> dict[str, AnalysisResult]:
-    """Run the full ARS pipeline and return results.
+def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
+    """Run the full ARS v2 pipeline via the shared PipelineContext bridge.
 
-    Converts PipelineContext to the dict-based ctx expected by the
-    ported pipeline module, runs all analyses, then extracts results
-    back into AnalysisResult objects.
+    Converts shared context -> ARS internal context, runs load/subsets/analyze/generate,
+    then converts ARS AnalysisResult objects back to shared AnalysisResult objects.
     """
-    from ars_analysis.pipeline import run_pipeline
+    from ars_analysis.analytics.registry import load_all_modules
+    from ars_analysis.pipeline.context import (
+        ClientInfo,
+        OutputPaths,
+    )
+    from ars_analysis.pipeline.context import (
+        PipelineContext as ARSContext,
+    )
+    from ars_analysis.pipeline.runner import PipelineStep, run_pipeline
+    from ars_analysis.pipeline.steps.analyze import step_analyze, step_analyze_selected
+    from ars_analysis.pipeline.steps.generate import step_generate
+    from ars_analysis.pipeline.steps.load import step_load_file
+    from ars_analysis.pipeline.steps.subsets import step_subsets
 
-    # Build the raw ctx dict that pipeline.run_pipeline expects
-    result_ctx = run_pipeline(
-        file_path=str(ctx.input_files.get("oddd", "")),
-        config_path=str(ctx.client_config.get("config_path", ""))
-        if ctx.client_config.get("config_path")
-        else None,
-        base_paths=_build_base_paths(ctx),
-        template_path=str(ctx.client_config.get("template_path", ""))
-        if ctx.client_config.get("template_path")
-        else None,
-        progress_callback=ctx.progress_callback,
+    # Load all analytics modules (triggers @register decorators)
+    load_all_modules()
+
+    # 1. Build ARS ClientInfo from shared context
+    ccfg = ctx.client_config or {}
+    month = ctx.analysis_date.strftime("%Y.%m") if ctx.analysis_date else ""
+
+    client_info = ClientInfo(
+        client_id=ctx.client_id,
+        client_name=ctx.client_name or ctx.client_id,
+        month=month,
+        assigned_csm=ctx.csm,
+        eligible_stat_codes=ccfg.get("EligibleStatusCodes", []),
+        eligible_prod_codes=ccfg.get("EligibleProductCodes", []),
+        eligible_mailable=ccfg.get("EligibleMailable", []),
+        nsf_od_fee=_safe_float(ccfg.get("NSF_OD_Fee", 0)),
+        ic_rate=_safe_float(ccfg.get("ICRate", 0)),
+        dc_indicator=ccfg.get("DCIndicator", "DC Indicator"),
+        reg_e_opt_in=ccfg.get("RegEOptInCode", []),
+        reg_e_column=ccfg.get("RegEColumn", ""),
     )
 
-    # Extract results from the raw ctx into typed AnalysisResult objects
-    results = {}
-    raw_results = result_ctx.get("results", {})
-    for key, value in raw_results.items():
-        if isinstance(value, dict):
-            results[key] = AnalysisResult(
-                name=key,
-                data=_extract_dataframes(value),
-                summary=str(value.get("insight", "")),
-                metadata={k: v for k, v in value.items() if not _is_dataframe(v)},
-            )
-        else:
-            results[key] = AnalysisResult(name=key, summary=str(value))
+    # 2. Build OutputPaths
+    paths = OutputPaths.from_base(ctx.output_dir, ctx.client_id, month)
 
-    # Copy slides and export log back to PipelineContext
-    ctx.all_slides.extend(result_ctx.get("all_slides", []))
+    # 3. Build ARS PipelineContext
+    ars_ctx = ARSContext(client=client_info, paths=paths)
+
+    # 4. Determine input file
+    oddd_path = ctx.input_files.get("oddd")
+    if not oddd_path:
+        raise FileNotFoundError("No 'oddd' input file in PipelineContext")
+
+    # 5. Build and run pipeline steps
+    module_ids = ccfg.get("module_ids")
+
+    if module_ids:
+        analyze_step = PipelineStep(
+            "run_analyses",
+            lambda c, ids=module_ids: step_analyze_selected(c, ids),
+        )
+    else:
+        analyze_step = PipelineStep("run_analyses", step_analyze)
+
+    steps = [
+        PipelineStep("load_data", lambda c, fp=Path(oddd_path): step_load_file(c, fp)),
+        PipelineStep("create_subsets", step_subsets),
+        analyze_step,
+        PipelineStep("generate_output", step_generate),
+    ]
+
+    if ctx.progress_callback:
+        ctx.progress_callback("Starting ARS v2 pipeline...")
+
+    run_pipeline(ars_ctx, steps)
+
+    if ctx.progress_callback:
+        ctx.progress_callback(f"ARS complete: {len(ars_ctx.all_slides)} slides generated")
+
+    # 6. Convert ARS AnalysisResult[] -> shared AnalysisResult{}
+    results = _convert_results(ars_ctx)
+
+    # 7. Copy back to shared context
     ctx.results.update(results)
 
     return results
 
 
-def run_ars_from_dict(ctx: dict[str, Any]) -> dict[str, Any]:
-    """Run the ARS pipeline directly with a dict-based context.
+def _convert_results(ars_ctx: Any) -> dict[str, SharedResult]:
+    """Convert ARS AnalysisResult objects to shared AnalysisResult objects.
 
-    This is the simpler entry point when you already have a raw ctx dict
-    (e.g., from the original pipeline workflow).
+    ctx.results contains both module output lists (list[AnalysisResult]) and
+    inter-module data (strings, DataFrames, tuples).  Only process the former.
     """
-    from ars_analysis.pipeline import run_pipeline
+    from ars_analysis.analytics.base import AnalysisResult as ARSResult
 
-    file_path = ctx.get("file_path", "")
-    config_path = ctx.get("config_path")
-    progress_callback = ctx.get("_progress_callback")
+    results: dict[str, SharedResult] = {}
 
-    return run_pipeline(
-        file_path=file_path,
-        config_path=config_path,
-        progress_callback=progress_callback,
-    )
+    for module_id, ars_results in ars_ctx.results.items():
+        if not isinstance(ars_results, list):
+            continue
+        for ar in ars_results:
+            if not isinstance(ar, ARSResult):
+                continue
+            data = {}
+            if ar.excel_data:
+                data.update(ar.excel_data)
+
+            charts: list[Path] = []
+            if ar.chart_path and ar.chart_path.exists():
+                charts.append(ar.chart_path)
+
+            meta: dict[str, Any] = {
+                "slide_id": ar.slide_id,
+                "module_id": module_id,
+                "success": ar.success,
+            }
+            if ar.error:
+                meta["error"] = ar.error
+
+            results[ar.slide_id] = SharedResult(
+                name=ar.title,
+                data=data,
+                charts=charts,
+                summary=ar.notes or ar.title,
+                metadata=meta,
+            )
+
+    return results
 
 
-def _build_base_paths(ctx: PipelineContext) -> dict[str, Path] | None:
-    """Build the base_paths dict from PipelineContext if configured."""
-    if not ctx.output_dir:
-        return None
-    return {
-        "presentations": ctx.output_dir,
-        "archive": ctx.output_dir / "archive",
-    }
-
-
-def _extract_dataframes(d: dict) -> dict:
-    """Extract DataFrame values from a dict."""
-    import pandas as pd
-
-    return {k: v for k, v in d.items() if isinstance(v, pd.DataFrame)}
-
-
-def _is_dataframe(obj: object) -> bool:
-    """Check if object is a pandas DataFrame without importing pandas."""
-    return type(obj).__name__ == "DataFrame"
+def _safe_float(value: object, default: float = 0.0) -> float:
+    """Convert a config value to float, returning default for empty/invalid."""
+    if value is None or value == "":
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default

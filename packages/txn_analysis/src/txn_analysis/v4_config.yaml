@@ -11,11 +11,11 @@ client_state: "CT"
 
 # --- File Paths ---
 # Transaction files: directory containing CSV/TXT files
-transaction_dir: "C:/Users/james.gilmore/OneDrive - Computer Services, Inc/Desktop/ARS/ARS Analysis/Raw Data/Transaction Files/1453 - Connex"
+transaction_dir: "./data/transactions"
 file_extension: "csv"
 
 # ODD file: Excel file with account-level data
-odd_file: "C:/Users/james.gilmore/OneDrive - Computer Services, Inc/Desktop/ARS/ARS Analysis/Raw Data/Ready for Analysis/2026.02/1453/1453-2026-02-Connex CU-ODD.xlsx"
+odd_file: "./data/odd/client-ODD.xlsx"
 
 # Output directory (created automatically)
 output_dir: "output/1453_Connex"

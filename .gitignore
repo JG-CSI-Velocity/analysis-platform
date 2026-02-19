@@ -36,6 +36,8 @@ output/
 
 # Allow source templates
 !packages/*/src/templates/
+!packages/*/src/*/output/template/
+!packages/*/src/*/output/template/*.pptx
 
 # Data files (keep sample data tracked)
 data/*.csv

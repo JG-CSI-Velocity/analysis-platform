@@ -1,4 +1,4 @@
-"""Streamlit entry point for the unified analysis platform.
+"""Analysis Platform -- Streamlit multi-page application.
 
 Run with: streamlit run packages/platform_app/src/platform_app/app.py
 """
@@ -9,27 +9,63 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Analysis Platform",
+    page_icon=":material/analytics:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-_CSS = """
-<style>
-section[data-testid="stSidebar"] { background: #f8f9fa; }
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-</style>
-"""
-st.markdown(_CSS, unsafe_allow_html=True)
+from platform_app.pages.config_page import render as config_render  # noqa: E402
+from platform_app.pages.dashboard import render as dashboard_render  # noqa: E402
+from platform_app.pages.history import render as history_render  # noqa: E402
+from platform_app.pages.results_viewer import render as results_render  # noqa: E402
+from platform_app.pages.run_analysis import render as run_render  # noqa: E402
+from platform_app.theme import inject_theme  # noqa: E402
 
-st.title("Unified Analysis Platform")
-st.markdown("Select a pipeline from the sidebar to get started.")
+inject_theme()
 
-st.markdown("""
-### Available Pipelines
+# Define pages
+dashboard_page = st.Page(
+    dashboard_render, title="Dashboard", icon=":material/dashboard:",
+    url_path="dashboard",
+)
+run_page = st.Page(
+    run_render, title="Run Analysis", icon=":material/play_circle:",
+    url_path="run", default=True,
+)
+results_page = st.Page(
+    results_render, title="View Results", icon=":material/monitoring:",
+    url_path="results",
+)
+history_page = st.Page(
+    history_render, title="Run History", icon=":material/history:",
+    url_path="history",
+)
+config_page = st.Page(
+    config_render, title="Client Config", icon=":material/settings:",
+    url_path="config",
+)
 
-- **ARS Analysis** -- OD/NSF analysis from ODDD Excel files
-- **Transaction Analysis (Base)** -- Debit card M1-M10 modules
-- **Transaction Analysis (V4)** -- V4 storyline analytics (S0-S9)
-- **ICS Analysis** -- Instant Card Services portfolio analysis
-""")
+# Store page objects for cross-page navigation
+st.session_state["_pages"] = {
+    "dashboard": dashboard_page,
+    "run": run_page,
+    "results": results_page,
+    "history": history_page,
+    "config": config_page,
+}
+
+if "run_history" not in st.session_state:
+    st.session_state["run_history"] = []
+
+pg = st.navigation(
+    {
+        "Analysis": [dashboard_page, run_page, results_page],
+        "Management": [history_page, config_page],
+    }
+)
+
+with st.sidebar:
+    st.markdown("---")
+    st.caption("Analysis Platform v2.0")
+
+pg.run()

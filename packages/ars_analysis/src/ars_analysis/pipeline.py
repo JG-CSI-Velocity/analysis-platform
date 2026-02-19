@@ -2184,8 +2184,19 @@ def run_pipeline(
     if exec_report:
         ctx["_exec_report"] = exec_report
 
+    # Verify we're running from the project venv
+    import sys
+
     _report(ctx, "=" * 60)
     _report(ctx, "🚀 ARS PIPELINE — STARTING")
+    _report(ctx, f"   Python: {sys.executable}")
+    if ".venv" not in sys.executable:
+        _report(ctx, "")
+        _report(ctx, "⚠️  WARNING: You are NOT running from the project .venv!")
+        _report(ctx, "   Your code changes will NOT take effect.")
+        _report(ctx, "   Fix: use  uv run python -m ars_analysis.pipeline ...")
+        _report(ctx, "   Or:  .venv\\Scripts\\activate  then  python -m ...")
+        _report(ctx, "")
     _report(ctx, "=" * 60)
     start_time = time.time()
     ctx["_phase_start"] = start_time

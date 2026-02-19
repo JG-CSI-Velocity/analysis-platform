@@ -435,6 +435,16 @@ class DeckBuilder:
         # Layout 1: Custom text box on left (existing behavior)
         # -----------------------------------------------------------------
         if content.layout_index == 1:
+            # Clear ALL placeholder default text so template text doesn't show through
+            for ph in slide.placeholders:
+                try:
+                    for paragraph in ph.text_frame.paragraphs:
+                        for run in paragraph.runs:
+                            run.text = ""
+                        paragraph.text = ""
+                except Exception:
+                    pass
+
             title_lines = content.title.split("\n") if "\n" in content.title else [content.title]
             subtitle = content.kpis.get("subtitle", "") if content.kpis else ""
 
@@ -544,19 +554,37 @@ class DeckBuilder:
             except Exception:
                 pass
 
-        # Remove non-title placeholders on layout 8 to prevent
-        # gold bar artifact from subtitle placeholder background fill
+        # Layout 8: handle subtitle (text after \n) separately
+        # Keep the subtitle placeholder (gold line area) if we have subtitle text
+        title_text = content.title or ""
+        subtitle_text = None
+        if "\n" in title_text:
+            parts = title_text.split("\n", 1)
+            title_text = parts[0]
+            subtitle_text = parts[1]
+
         if content.layout_index == 8:
-            to_remove = [ph for ph in slide.placeholders if ph.placeholder_format.idx != 0]
+            if subtitle_text:
+                # Keep subtitle placeholder (idx 1) for the gold-line subtitle area
+                to_remove = [
+                    ph for ph in slide.placeholders
+                    if ph.placeholder_format.idx not in (0, 1)
+                ]
+            else:
+                # No subtitle — remove all non-title placeholders
+                to_remove = [
+                    ph for ph in slide.placeholders
+                    if ph.placeholder_format.idx != 0
+                ]
             for ph in to_remove:
                 ph.element.getparent().remove(ph.element)
 
-        # If a title was provided, set it
-        if content.title:
+        # Set the title
+        if title_text:
             if content.layout_index in self.HEADERONLY_LAYOUTS:
-                self._set_title(slide, content, content.title)
+                self._set_title(slide, content, title_text, subtitle_text)
             elif slide.shapes.title:
-                slide.shapes.title.text = content.title
+                slide.shapes.title.text = title_text
                 # Layout 0 has dark background — make title visible
                 if content.layout_index == 0:
                     for p in slide.shapes.title.text_frame.paragraphs:
@@ -564,6 +592,13 @@ class DeckBuilder:
                         p.font.size = Pt(28)
                         p.font.bold = True
                         p.alignment = PP_ALIGN.LEFT
+
+        # Set subtitle in placeholder idx 1 (next to gold line on layout 8)
+        if subtitle_text and content.layout_index == 8:
+            for ph in slide.placeholders:
+                if ph.placeholder_format.idx == 1:
+                    ph.text = subtitle_text
+                    break
 
     def _build_mailer_summary_slide(self, slide, content: SlideContent) -> None:
         """

@@ -39,6 +39,7 @@ from ars_analysis.dctr import (
     run_dctr_branch_l12m,
     run_dctr_branch_trend,
     run_dctr_by_product,
+    run_dctr_cohort_capture,
     run_dctr_combo_slide,
     run_dctr_decade_pb,
     run_dctr_decade_trend,
@@ -48,6 +49,7 @@ from ars_analysis.dctr import (
     run_dctr_heatmap,
     run_dctr_l12m_funnel,
     run_dctr_l12m_trend,
+    run_dctr_months_to_transact,
     run_dctr_opportunity,
     run_dctr_seasonality,
     run_dctr_segment_trends,
@@ -677,6 +679,116 @@ class TestRunDctrExecutiveSummary:
         kpis = dctr_ctx["results"]["dctr_executive_summary"]["kpis"]
         assert "Overall DCTR" in kpis
         assert "L12M DCTR" in kpis
+
+
+# ---------------------------------------------------------------------------
+# Sprint 4: Advanced analysis function tests
+# ---------------------------------------------------------------------------
+
+
+class TestRunDctrMonthsToTransact:
+    """A7.17: Months to First Transaction -- activation timing histogram."""
+
+    def test_populates_results(self, dctr_ctx):
+        run_dctr_months_to_transact(dctr_ctx)
+        assert "dctr_months_to_transact" in dctr_ctx["results"]
+        res = dctr_ctx["results"]["dctr_months_to_transact"]
+        assert "median_months" in res
+        assert "pct_within_3m" in res
+        assert res["total_transactors"] > 0
+
+    def test_adds_slide(self, dctr_ctx):
+        initial = len(dctr_ctx["all_slides"])
+        run_dctr_months_to_transact(dctr_ctx)
+        assert len(dctr_ctx["all_slides"]) > initial
+        slide = dctr_ctx["all_slides"][-1]
+        assert slide["id"] == "A7.17 - Months to Transact"
+        assert slide["category"] == "DCTR"
+
+    def test_creates_chart(self, dctr_ctx):
+        run_dctr_months_to_transact(dctr_ctx)
+        pngs = list(Path(dctr_ctx["chart_dir"]).glob("dctr_months_to_transact*.png"))
+        assert len(pngs) >= 1
+
+    def test_creates_pb_chart(self, dctr_ctx):
+        run_dctr_months_to_transact(dctr_ctx)
+        pngs = list(Path(dctr_ctx["chart_dir"]).glob("dctr_months_to_transact_pb*.png"))
+        assert len(pngs) >= 1
+
+    def test_skips_without_column(self, dctr_ctx):
+        dctr_ctx["eligible_data"] = dctr_ctx["eligible_data"].drop(
+            columns=["Month to First Transaction"], errors="ignore"
+        )
+        initial = len(dctr_ctx["all_slides"])
+        run_dctr_months_to_transact(dctr_ctx)
+        assert len(dctr_ctx["all_slides"]) == initial
+
+    def test_handles_all_nan(self, dctr_ctx):
+        import numpy as np
+
+        dctr_ctx["eligible_data"]["Month to First Transaction"] = np.nan
+        initial = len(dctr_ctx["all_slides"])
+        run_dctr_months_to_transact(dctr_ctx)
+        # No valid data => should skip
+        assert len(dctr_ctx["all_slides"]) == initial
+
+    def test_distribution_buckets(self, dctr_ctx):
+        run_dctr_months_to_transact(dctr_ctx)
+        dist = dctr_ctx["results"]["dctr_months_to_transact"]["distribution"]
+        assert len(dist) == 6  # M1, M2, M3, M4-6, M7-12, 12+
+        assert dist["Cumulative %"].iloc[-1] == pytest.approx(1.0)
+
+
+class TestRunDctrCohortCapture:
+    """A7.20: Cohort Debit Capture -- monthly cohort onboarding effectiveness."""
+
+    @pytest.fixture
+    def cohort_ctx(self, dctr_ctx):
+        """Adjust L12M range to overlap with fixture data (2015-2022)."""
+        # Fixture dates span 2015-01 to 2022-08; set L12M to match a range with data
+        dctr_ctx["last_12_months"] = (
+            pd.date_range("2020-01-01", periods=12, freq="MS").strftime("%b%y").tolist()
+        )
+        return dctr_ctx
+
+    def test_populates_results(self, cohort_ctx):
+        run_dctr_cohort_capture(cohort_ctx)
+        assert "dctr_cohort_capture" in cohort_ctx["results"]
+        res = cohort_ctx["results"]["dctr_cohort_capture"]
+        assert "cohorts" in res
+        assert "avg_capture" in res
+        assert res["cohorts"] > 0
+
+    def test_adds_slide(self, cohort_ctx):
+        initial = len(cohort_ctx["all_slides"])
+        run_dctr_cohort_capture(cohort_ctx)
+        assert len(cohort_ctx["all_slides"]) > initial
+        slide = cohort_ctx["all_slides"][-1]
+        assert slide["id"] == "A7.20 - Cohort Debit Capture"
+        assert slide["category"] == "DCTR"
+
+    def test_creates_chart(self, cohort_ctx):
+        run_dctr_cohort_capture(cohort_ctx)
+        pngs = list(Path(cohort_ctx["chart_dir"]).glob("dctr_cohort_capture*.png"))
+        assert len(pngs) >= 1
+
+    def test_uses_open_accounts(self, cohort_ctx):
+        """Should use open_accounts (not eligible) for true capture rate."""
+        run_dctr_cohort_capture(cohort_ctx)
+        res = cohort_ctx["results"]["dctr_cohort_capture"]
+        assert 0 < res["avg_capture"] <= 1
+
+    def test_skips_without_open_accounts(self, dctr_ctx):
+        dctr_ctx["open_accounts"] = pd.DataFrame()
+        initial = len(dctr_ctx["all_slides"])
+        run_dctr_cohort_capture(dctr_ctx)
+        assert len(dctr_ctx["all_slides"]) == initial
+
+    def test_skips_without_l12m_overlap(self, dctr_ctx):
+        """No overlap between fixture dates and L12M => skips gracefully."""
+        initial = len(dctr_ctx["all_slides"])
+        run_dctr_cohort_capture(dctr_ctx)
+        assert len(dctr_ctx["all_slides"]) == initial
 
 
 # ---------------------------------------------------------------------------

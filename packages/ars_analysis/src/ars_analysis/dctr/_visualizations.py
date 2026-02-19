@@ -301,9 +301,7 @@ def run_dctr_funnel(ctx):
                     f" converted; {te:,} eligible from {ta:,} total"
                 )
             if len(subtitle) > 120:
-                subtitle = (
-                    f"{dctr_e:.1f}% eligible DCTR — {through:.1f}% end-to-end conversion"
-                )
+                subtitle = f"{dctr_e:.1f}% eligible DCTR — {through:.1f}% end-to-end conversion"
         except Exception:
             subtitle = (
                 f"{through:.1f}% of all accounts end up with debit cards"
@@ -1480,13 +1478,9 @@ def run_dctr_l12m_funnel(ctx):
                     f" — {through:.1f}% end-to-end conversion ({td:,} with debit of {ta:,} total)"
                 )
             if len(l12m_funnel_subtitle) > 120:
-                l12m_funnel_subtitle = (
-                    f"{dctr_e:.1f}% eligible DCTR — {through:.1f}% end-to-end; {td:,} of {ta:,} total"
-                )
+                l12m_funnel_subtitle = f"{dctr_e:.1f}% eligible DCTR — {through:.1f}% end-to-end; {td:,} of {ta:,} total"
         except Exception:
-            l12m_funnel_subtitle = (
-                f"{through:.1f}% conversion — {dctr_e:.1f}% DCTR among eligible"
-            )
+            l12m_funnel_subtitle = f"{through:.1f}% conversion — {dctr_e:.1f}% DCTR among eligible"
         _slide(
             ctx,
             "A7.8 - L12M Funnel",
@@ -1843,9 +1837,7 @@ def run_dctr_heatmap(ctx):
                     f" — {best_hm_branch} best ({best_hm_rate:.1f}%)"
                 )
         except Exception:
-            heatmap_subtitle = (
-                f"Weighted avg: {weighted_avg:.1f}% across {n_branches} branches × {n_months} months"
-            )
+            heatmap_subtitle = f"Weighted avg: {weighted_avg:.1f}% across {n_branches} branches × {n_months} months"
         _slide(
             ctx,
             "A7.13 - Monthly Heatmap",
@@ -1940,8 +1932,31 @@ def run_dctr_seasonality(ctx):
         "DCTR Seasonality Analysis",
     )
 
+    # Year-over-Year monthly DCTR (B4 enhancement)
+    valid["Year"] = valid["Date Opened"].dt.year
+    all_years = sorted(valid["Year"].dropna().unique())
+    # Use the two most recent years with data for YoY comparison
+    recent_years = [y for y in all_years if y >= (max(all_years) - 2)] if all_years else []
+    yoy_data = {}  # year -> {month_name: dctr%}
+    for yr in recent_years:
+        yr_data = valid[valid["Year"] == yr]
+        yr_monthly = {}
+        for m in month_order:
+            md = yr_data[yr_data["Month Name"] == m]
+            if len(md) > 0:
+                _, _, d = _dctr(md)
+                yr_monthly[m] = d * 100
+        if yr_monthly:
+            yoy_data[yr] = yr_monthly
+
     try:
-        fig, axes = plt.subplots(1, 3, figsize=(22, 8))
+        has_yoy = len(yoy_data) >= 2
+        nrows = 2 if has_yoy else 1
+        fig, all_axes = plt.subplots(nrows, 3, figsize=(22, 8 * nrows))
+        if nrows == 1:
+            axes = all_axes
+        else:
+            axes = all_axes[0]
 
         # Monthly
         if not monthly.empty:
@@ -1990,6 +2005,59 @@ def run_dctr_seasonality(ctx):
             ax.tick_params(axis="y", labelsize=12)
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
+
+        # Row 2: Year-over-Year comparison (B4 enhancement)
+        if has_yoy:
+            ax_yoy = all_axes[1][0]
+            sorted_years = sorted(yoy_data.keys())
+            x_months = np.arange(12)
+            month_labels = [m[:3] for m in month_order]
+
+            # Color gradient: older = lighter, newer = darker
+            year_colors = ["#A5C8E1", "#4472C4", "#1E3D59"]
+            for idx, yr in enumerate(sorted_years[-3:]):
+                vals_yr = [yoy_data[yr].get(m, None) for m in month_order]
+                valid_x = [i for i, v in enumerate(vals_yr) if v is not None]
+                valid_v = [v for v in vals_yr if v is not None]
+                if not valid_v:
+                    continue
+                is_latest = yr == sorted_years[-1]
+                color = year_colors[min(idx, len(year_colors) - 1)]
+                ax_yoy.plot(
+                    valid_x,
+                    valid_v,
+                    "o-" if is_latest else "s--",
+                    color=color,
+                    linewidth=3 if is_latest else 1.5,
+                    markersize=8 if is_latest else 5,
+                    label=str(int(yr)),
+                    alpha=1.0 if is_latest else 0.6,
+                )
+
+            # Shade green/red zones between most recent two years
+            if len(sorted_years) >= 2:
+                curr_yr = sorted_years[-1]
+                prev_yr = sorted_years[-2]
+                for i, m in enumerate(month_order):
+                    cv = yoy_data[curr_yr].get(m)
+                    pv = yoy_data[prev_yr].get(m)
+                    if cv is not None and pv is not None:
+                        color = "#2ECC71" if cv >= pv else "#E74C3C"
+                        ax_yoy.axvspan(i - 0.4, i + 0.4, alpha=0.08, color=color)
+
+            ax_yoy.set_xticks(x_months)
+            ax_yoy.set_xticklabels(month_labels, fontsize=12)
+            ax_yoy.set_ylabel("DCTR (%)", fontsize=14)
+            ax_yoy.set_title("Year-over-Year Monthly DCTR", fontweight="bold", fontsize=16)
+            ax_yoy.legend(fontsize=12, loc="upper left")
+            ax_yoy.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
+            ax_yoy.spines["top"].set_visible(False)
+            ax_yoy.spines["right"].set_visible(False)
+            ax_yoy.grid(axis="y", alpha=0.2, ls="--")
+
+            # Hide unused subplot slots in row 2
+            all_axes[1][1].set_visible(False)
+            all_axes[1][2].set_visible(False)
 
         plt.suptitle("DCTR Seasonality Analysis", fontsize=22, fontweight="bold", y=1.02)
         plt.tight_layout()
@@ -2118,11 +2186,39 @@ def run_dctr_vintage(ctx):
         "Vintage & Cohort Analysis",
     )
 
+    # B2 enhancement: maturity spaghetti curves by cohort year
+    # Cross-sectional approximation: for each cohort year, show DCTR at each age bucket
+    maturity_data = {}
+    maturity_buckets = [
+        ("0-1yr", 0, 365),
+        ("1-2yr", 366, 730),
+        ("2-3yr", 731, 1095),
+        ("3-5yr", 1096, 1825),
+        ("5-10yr", 1826, 3650),
+        ("10yr+", 3651, 999999),
+    ]
+    for yr in cohort_years[-6:]:  # Last 6 cohort years to avoid clutter
+        yr_data = valid[valid["Year"] == yr]
+        if len(yr_data) < 10:
+            continue
+        yr_curve = {}
+        for blabel, blo, bhi in maturity_buckets:
+            seg = yr_data[
+                (yr_data["Account Age Days"] >= blo) & (yr_data["Account Age Days"] <= bhi)
+            ]
+            if len(seg) >= 5:
+                _, _, d = _dctr(seg)
+                yr_curve[blabel] = d * 100
+        if yr_curve:
+            maturity_data[int(yr)] = yr_curve
+    has_maturity = len(maturity_data) >= 2
+
     try:
-        fig = plt.figure(figsize=(18, 12))
+        nrows = 3 if has_maturity else 2
+        fig = plt.figure(figsize=(18, 6 * nrows))
         try:
-            # Top: Vintage curve with cumulative line
-            ax1 = plt.subplot(2, 1, 1)
+            # Panel 1: Vintage curve with cumulative line
+            ax1 = plt.subplot(nrows, 1, 1)
             if not vintage_df.empty:
                 x_pos = np.arange(len(vintage_df))
                 bars = ax1.bar(
@@ -2169,8 +2265,8 @@ def run_dctr_vintage(ctx):
                 ax1_twin.tick_params(axis="y", labelsize=14)
                 ax1.grid(axis="y", alpha=0.2, ls="--")
 
-            # Bottom: Cohort trend
-            ax2 = plt.subplot(2, 1, 2)
+            # Panel 2: Cohort trend
+            ax2 = plt.subplot(nrows, 1, 2)
             if not cohort_df.empty and len(cohort_df) >= 2:
                 years = cohort_df["Cohort Year"].values
                 dctr_by_year = cohort_df["DCTR %"].values
@@ -2221,6 +2317,49 @@ def run_dctr_vintage(ctx):
             else:
                 slope = 0
 
+            # Panel 3: Maturity spaghetti curves (B2 enhancement)
+            if has_maturity:
+                ax3 = plt.subplot(nrows, 1, 3)
+                bucket_labels = [b[0] for b in maturity_buckets]
+                x_mat = np.arange(len(bucket_labels))
+                mat_years = sorted(maturity_data.keys())
+                # Color gradient: older = lighter, newer = darker
+                cmap_mat = LinearSegmentedColormap.from_list(
+                    "vintage_grad", ["#BDD7EE", "#2E75B6", "#1E3D59"]
+                )
+                for idx, yr in enumerate(mat_years):
+                    curve = maturity_data[yr]
+                    vals_m = [curve.get(b, None) for b in bucket_labels]
+                    valid_x_m = [i for i, v in enumerate(vals_m) if v is not None]
+                    valid_v_m = [v for v in vals_m if v is not None]
+                    if not valid_v_m:
+                        continue
+                    frac = idx / max(len(mat_years) - 1, 1)
+                    color = cmap_mat(frac)
+                    ax3.plot(
+                        valid_x_m,
+                        valid_v_m,
+                        "o-",
+                        color=color,
+                        linewidth=2,
+                        markersize=6,
+                        label=str(yr),
+                        alpha=0.8,
+                    )
+
+                ax3.set_xticks(x_mat)
+                ax3.set_xticklabels(bucket_labels, fontsize=12)
+                ax3.set_ylabel("DCTR %", fontsize=16)
+                ax3.set_xlabel("Account Age at Observation", fontsize=14)
+                ax3.set_title(
+                    "Maturity Curves by Cohort Year (Cross-Sectional)",
+                    fontweight="bold",
+                    fontsize=18,
+                )
+                ax3.legend(fontsize=11, loc="upper left", ncol=3)
+                ax3.grid(axis="y", alpha=0.2, ls="--")
+                ax3.tick_params(axis="y", labelsize=14)
+
             plt.suptitle("Vintage Curves & Cohort Analysis", fontsize=22, fontweight="bold", y=1.01)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_vintage.png")
@@ -2256,6 +2395,7 @@ def run_dctr_vintage(ctx):
         "new_dctr": vintage_df.iloc[0]["DCTR %"] if not vintage_df.empty else 0,
         "mature_dctr": vintage_df.iloc[-1]["DCTR %"] if not vintage_df.empty else 0,
         "cohort_slope": slope if "slope" in dir() else 0,
+        "maturity_cohorts": len(maturity_data),
     }
     _report(ctx, f"   {len(vintage_df)} vintage buckets | {len(cohort_df)} cohort years")
     return ctx
@@ -2771,9 +2911,7 @@ def run_dctr_branch_l12m(ctx):
                     f" {improving}/{n} branches {trend}"
                 )
         except Exception:
-            branch_l12m_subtitle = (
-                f"TTM avg at {l12m_wa:.0f}% — {improving} of {n} branches {trend} ({avg_change:+.1f}pp)"
-            )
+            branch_l12m_subtitle = f"TTM avg at {l12m_wa:.0f}% — {improving} of {n} branches {trend} ({avg_change:+.1f}pp)"
         _slide(
             ctx,
             "A7.10b - Branch DCTR (L12M Focus)",

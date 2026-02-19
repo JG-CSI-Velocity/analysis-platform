@@ -1,6 +1,5 @@
 """Shared fixtures for ARS analysis tests."""
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -42,31 +41,40 @@ def odd_data():
     holder_age = rng.integers(18, 85, n)
     reg_e = rng.choice(["Opted In", "Opted Out", "N/A", None], n, p=[0.3, 0.3, 0.2, 0.2])
 
+    # Months to first transaction (for DCTR A7.17)
+    # ~65% have debit, so most have a value; rest are NaN
+    months_to_transact = rng.choice(
+        [0, 1, 2, 3, 4, 5, 6, 9, 12, np.nan],
+        n,
+        p=[0.15, 0.20, 0.15, 0.10, 0.05, 0.05, 0.05, 0.03, 0.02, 0.20],
+    )
+
     # Spend/Items columns (L12M)
     spend = rng.uniform(0, 5000, n).round(2)
     items = rng.integers(0, 200, n)
 
-    df = pd.DataFrame({
-        "Stat Code": stat_codes,
-        "Date Opened": dates_opened,
-        "Date Closed": dates_closed,
-        "Business?": business,
-        "Debit?": debit,
-        "Prod Code": prod_codes,
-        "Mailable?": mailable,
-        "Avg Bal": avg_bal,
-        "Branch": branches,
-        "Holder Age": holder_age,
-        "Dec24 Reg E": reg_e,
-        "L12M Spend": spend,
-        "L12M Items": items,
-    })
+    df = pd.DataFrame(
+        {
+            "Stat Code": stat_codes,
+            "Date Opened": dates_opened,
+            "Date Closed": dates_closed,
+            "Business?": business,
+            "Debit?": debit,
+            "Prod Code": prod_codes,
+            "Mailable?": mailable,
+            "Avg Bal": avg_bal,
+            "Branch": branches,
+            "Holder Age": holder_age,
+            "Dec24 Reg E": reg_e,
+            "L12M Spend": spend,
+            "L12M Items": items,
+            "Month to First Transaction": months_to_transact,
+        }
+    )
 
     # Mailer columns (for mailer suite tests)
     df["Jan25 Mail"] = rng.choice(["NU", "TH-10", "TH-15", None], n, p=[0.2, 0.1, 0.1, 0.6])
-    df["Jan25 Resp"] = rng.choice(
-        ["NU 5+", "NU 1-4", "TH-10", None], n, p=[0.05, 0.05, 0.05, 0.85]
-    )
+    df["Jan25 Resp"] = rng.choice(["NU 5+", "NU 1-4", "TH-10", None], n, p=[0.05, 0.05, 0.05, 0.85])
     df["Jan25 Spend"] = rng.uniform(0, 1000, n).round(2)
     df["Jan25 Swipes"] = rng.integers(0, 50, n)
 
@@ -82,7 +90,9 @@ def ars_ctx(odd_data, chart_dir):
     ctx = create_context()
     ctx["data"] = odd_data.copy()
     ctx["data_original"] = odd_data.copy()
-    ctx["chart_dir"] = chart_dir  # Path object -- some modules wrap with Path(), others use directly
+    ctx["chart_dir"] = (
+        chart_dir  # Path object -- some modules wrap with Path(), others use directly
+    )
     ctx["results"] = {}
     ctx["all_slides"] = []
     ctx["export_log"] = []
@@ -104,15 +114,15 @@ def ars_ctx(odd_data, chart_dir):
     # Date ranges
     ctx["start_date"] = pd.Timestamp("2024-01-01")
     ctx["end_date"] = pd.Timestamp("2025-01-01")
-    ctx["last_12_months"] = pd.date_range("2024-01-01", periods=12, freq="MS").strftime("%b%y").tolist()
+    ctx["last_12_months"] = (
+        pd.date_range("2024-01-01", periods=12, freq="MS").strftime("%b%y").tolist()
+    )
 
     # Subsets (mirror step_create_subsets logic)
     data = odd_data
     open_accts = data[data["Stat Code"] == "O"].copy()
     closed_accts = data[data["Stat Code"] == "C"].copy()
-    eligible = open_accts[
-        open_accts["Prod Code"].isin(ctx["eligible_prod_code"])
-    ].copy()
+    eligible = open_accts[open_accts["Prod Code"].isin(ctx["eligible_prod_code"])].copy()
 
     ctx["open_accounts"] = open_accts
     ctx["closed_accounts"] = closed_accts

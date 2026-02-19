@@ -32,7 +32,9 @@ from ars_analysis.dctr._core import (
     run_dctr_15,
     run_dctr_16,
     run_dctr_by_product,
+    run_dctr_cohort_capture,
     run_dctr_executive_summary,
+    run_dctr_months_to_transact,
     run_dctr_opportunity,
 )
 from ars_analysis.dctr._helpers import _dctr
@@ -92,7 +94,9 @@ __all__ = [
     "run_dctr_15",
     "run_dctr_16",
     "run_dctr_by_product",
+    "run_dctr_cohort_capture",
     "run_dctr_executive_summary",
+    "run_dctr_months_to_transact",
     "run_dctr_opportunity",
     # Visualizations (A7)
     "run_dctr_branch_l12m",

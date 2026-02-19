@@ -18,7 +18,9 @@ from ars_analysis.dctr._core import (
     run_dctr_15,
     run_dctr_16,
     run_dctr_by_product,
+    run_dctr_cohort_capture,
     run_dctr_executive_summary,
+    run_dctr_months_to_transact,
     run_dctr_opportunity,
 )
 from ars_analysis.dctr._helpers import _report
@@ -86,6 +88,9 @@ DCTR_ORDER = [
     "A7.7 - Historical Funnel",
     # Act 4: Branch Accountability
     "A7.10a - Branch DCTR (Hist vs L12M)",
+    # Act 4b: Activation & Onboarding
+    "A7.17 - Months to Transact",
+    "A7.20 - Cohort Debit Capture",
     # Act 5: The Opportunity
     "A7.18 - DCTR Opportunity",
     "A7.9 - Eligible vs Non-Eligible DCTR",
@@ -145,10 +150,12 @@ def run_dctr_suite(ctx):
     ctx = _safe(run_dctr_15, "DCTR-15")
     ctx = _safe(run_dctr_16, "DCTR-16")
 
-    # New Sprint 3 analyses
+    # New analyses (Sprints 3 & 4)
     _report(ctx, "\n── A6: New Analyses ──")
     ctx = _safe(run_dctr_opportunity, "Opportunity")
     ctx = _safe(run_dctr_by_product, "Product Type")
+    ctx = _safe(run_dctr_months_to_transact, "Months to Transact")
+    ctx = _safe(run_dctr_cohort_capture, "Cohort Capture")
 
     # Extended A7 visualizations
     _report(ctx, "\n── A7: Extended Visualizations ──")

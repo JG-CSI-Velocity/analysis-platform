@@ -1910,3 +1910,381 @@ def run_dctr_executive_summary(ctx):
     }
     _report(ctx, f"   Summary: {overall_dctr:.1%} overall | {len(bullets)} insights")
     return ctx
+
+
+# =============================================================================
+# A7.17 — MONTHS TO FIRST TRANSACTION
+# =============================================================================
+
+MONTHS_BUCKETS = ["M1", "M2", "M3", "M4-6", "M7-12", "12+"]
+
+
+def _bucket_months(val):
+    """Map raw months-to-transact integer to display bucket."""
+    if pd.isna(val):
+        return None
+    val = int(val)
+    if val <= 1:
+        return "M1"
+    if val == 2:
+        return "M2"
+    if val == 3:
+        return "M3"
+    if val <= 6:
+        return "M4-6"
+    if val <= 12:
+        return "M7-12"
+    return "12+"
+
+
+def run_dctr_months_to_transact(ctx):
+    """A7.17 -- How quickly new accounts start transacting (activation timing)."""
+    from pathlib import Path
+
+    _report(ctx, "\n⏱️ A7.17 — Months to First Transaction")
+
+    col = "Month to First Transaction"
+    ed = ctx["eligible_data"]
+
+    if ed.empty or col not in ed.columns:
+        _report(ctx, f"   Skipped: column '{col}' not found")
+        return ctx
+
+    df = ed.copy()
+    # Validate: coerce, filter negatives and unreasonable values
+    df[col] = pd.to_numeric(df[col], errors="coerce")
+    df.loc[df[col] < 0, col] = pd.NA
+    df.loc[df[col] > 120, col] = pd.NA
+
+    # Only analyze accounts that have debit AND a valid months value
+    transactors = df[(df["Debit?"] == "Yes") & df[col].notna()].copy()
+    if transactors.empty:
+        _report(ctx, "   Skipped: no valid Month to First Transaction data")
+        return ctx
+
+    transactors["Bucket"] = transactors[col].apply(_bucket_months)
+
+    # Distribution
+    dist_rows = []
+    total_transactors = len(transactors)
+    cumulative = 0
+    for bucket in MONTHS_BUCKETS:
+        count = len(transactors[transactors["Bucket"] == bucket])
+        cumulative += count
+        dist_rows.append(
+            {
+                "Bucket": bucket,
+                "Accounts": count,
+                "% of Total": count / total_transactors if total_transactors else 0,
+                "Cumulative %": cumulative / total_transactors if total_transactors else 0,
+            }
+        )
+    dist_df = pd.DataFrame(dist_rows)
+
+    # KPIs
+    median_months = transactors[col].median()
+    pct_within_3m = (
+        len(transactors[transactors[col] <= 3]) / total_transactors if total_transactors else 0
+    )
+
+    _save(
+        ctx,
+        dist_df,
+        "DCTR-MonthsToTransact",
+        "Months to First Transaction",
+        {
+            "Median": f"{median_months:.1f} months",
+            "Within 3 Months": f"{pct_within_3m:.1%}",
+            "Transactors": f"{total_transactors:,}",
+        },
+    )
+
+    # Chart: histogram bars + cumulative line overlay
+    chart_dir = ctx["chart_dir"]
+    fig, ax = _fig(ctx, "single")
+    try:
+        x = np.arange(len(MONTHS_BUCKETS))
+        counts = [dist_rows[i]["Accounts"] for i in range(len(MONTHS_BUCKETS))]
+        cum_pcts = [dist_rows[i]["Cumulative %"] * 100 for i in range(len(MONTHS_BUCKETS))]
+
+        bars = ax.bar(
+            x,
+            counts,
+            color="#4472C4",
+            width=0.6,
+            edgecolor="black",
+            linewidth=1.5,
+            label="Accounts",
+        )
+        for bar, c in zip(bars, counts):
+            if c > 0:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.5,
+                    f"{c:,}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                )
+
+        # Cumulative line on secondary axis
+        ax2 = ax.twinx()
+        ax2.plot(
+            x, cum_pcts, "o-", color="#E74C3C", linewidth=2.5, markersize=8, label="Cumulative %"
+        )
+        for xi, cp in zip(x, cum_pcts):
+            ax2.text(
+                xi,
+                cp + 2,
+                f"{cp:.0f}%",
+                ha="center",
+                fontsize=10,
+                color="#E74C3C",
+                fontweight="bold",
+            )
+        ax2.set_ylabel("Cumulative %", fontsize=12, color="#E74C3C")
+        ax2.set_ylim(0, 110)
+        ax2.tick_params(axis="y", labelcolor="#E74C3C")
+
+        ax.set_xlabel("Months to First Transaction", fontsize=14, fontweight="bold")
+        ax.set_ylabel("Number of Accounts", fontsize=14, fontweight="bold")
+        ax.set_title(
+            "Activation Timing: Months to First Debit Transaction",
+            fontsize=16,
+            fontweight="bold",
+            pad=15,
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(MONTHS_BUCKETS, fontsize=12)
+        ax.legend(loc="upper left", fontsize=11)
+        ax2.legend(loc="upper right", fontsize=11)
+        plt.tight_layout()
+
+        chart_path = _save_chart(fig, Path(chart_dir) / "dctr_months_to_transact.png")
+    finally:
+        plt.close(fig)
+
+    # P/B split chart (second chart)
+    chart_path_pb = None
+    if "Business?" in transactors.columns:
+        fig2, (ax_p, ax_b) = plt.subplots(1, 2, figsize=(16, 7), sharey=True)
+        try:
+            for ax_sub, biz_val, title, color in [
+                (ax_p, "No", "Personal", "#4472C4"),
+                (ax_b, "Yes", "Business", "#70AD47"),
+            ]:
+                seg = transactors[transactors["Business?"] == biz_val]
+                seg_counts = [len(seg[seg["Bucket"] == b]) for b in MONTHS_BUCKETS]
+                ax_sub.bar(x, seg_counts, color=color, width=0.6, edgecolor="black", linewidth=1)
+                for xi, c in zip(x, seg_counts):
+                    if c > 0:
+                        ax_sub.text(xi, c + 0.3, f"{c}", ha="center", fontsize=9)
+                ax_sub.set_title(title, fontsize=14, fontweight="bold")
+                ax_sub.set_xticks(x)
+                ax_sub.set_xticklabels(MONTHS_BUCKETS, fontsize=10)
+                ax_sub.set_xlabel("Months", fontsize=12)
+            ax_p.set_ylabel("Accounts", fontsize=12)
+            fig2.suptitle(
+                "Activation Timing: Personal vs Business", fontsize=16, fontweight="bold", y=1.02
+            )
+            plt.tight_layout()
+            chart_path_pb = _save_chart(fig2, Path(chart_dir) / "dctr_months_to_transact_pb.png")
+        finally:
+            plt.close(fig2)
+
+    # Subtitle
+    try:
+        subtitle = (
+            f"Median {median_months:.0f} months — {pct_within_3m:.0%} transact within"
+            f" 3 months ({total_transactors:,} debit cardholders)"
+        )
+        if len(subtitle) > 120:
+            subtitle = f"Median {median_months:.0f} months — {pct_within_3m:.0%} within 3 months"
+    except Exception:
+        subtitle = f"Activation timing for {total_transactors:,} debit cardholders"
+
+    _slide(
+        ctx,
+        "A7.17 - Months to Transact",
+        {
+            "title": "Months to First Debit Transaction",
+            "subtitle": subtitle,
+            "chart_path": chart_path,
+            "layout_index": 8,
+            "slide_type": "chart",
+        },
+    )
+
+    ctx["results"]["dctr_months_to_transact"] = {
+        "median_months": median_months,
+        "pct_within_3m": pct_within_3m,
+        "total_transactors": total_transactors,
+        "distribution": dist_df,
+    }
+    _report(
+        ctx,
+        f"   Median: {median_months:.1f}mo | Within 3mo: {pct_within_3m:.1%}"
+        f" | {total_transactors:,} transactors",
+    )
+    return ctx
+
+
+# =============================================================================
+# A7.20 — COHORT DEBIT CAPTURE
+# =============================================================================
+
+
+def run_dctr_cohort_capture(ctx):
+    """A7.20 -- Monthly cohort debit capture rate (onboarding effectiveness)."""
+    from pathlib import Path
+
+    _report(ctx, "\n📅 A7.20 — Cohort Debit Capture")
+
+    # Use ALL open accounts (not just eligible) for true capture rate
+    data = ctx.get("open_accounts", pd.DataFrame())
+    if data.empty:
+        _report(ctx, "   Skipped: no open accounts")
+        return ctx
+
+    df = data.copy()
+    df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce")
+    df = df.dropna(subset=["Date Opened"])
+    if df.empty:
+        _report(ctx, "   Skipped: no valid Date Opened values")
+        return ctx
+
+    # Filter to L12M cohorts
+    l12m = ctx.get("last_12_months", [])
+    if not l12m:
+        _report(ctx, "   Skipped: no L12M date range")
+        return ctx
+
+    df["Cohort"] = df["Date Opened"].dt.strftime("%b%y")
+    l12m_df = df[df["Cohort"].isin(l12m)].copy()
+    if l12m_df.empty:
+        _report(ctx, "   Skipped: no accounts in L12M cohorts")
+        return ctx
+
+    # Calculate cohort DCTR
+    cohort_rows = []
+    for month in l12m:
+        cohort = l12m_df[l12m_df["Cohort"] == month]
+        total = len(cohort)
+        if total == 0:
+            continue
+        with_debit = len(cohort[cohort["Debit?"] == "Yes"])
+        rate = with_debit / total
+        # P/B split
+        personal = cohort[cohort["Business?"] == "No"]
+        business = cohort[cohort["Business?"] == "Yes"]
+        p_rate = (
+            len(personal[personal["Debit?"] == "Yes"]) / len(personal) if len(personal) > 0 else 0
+        )
+        b_rate = (
+            len(business[business["Debit?"] == "Yes"]) / len(business) if len(business) > 0 else 0
+        )
+        cohort_rows.append(
+            {
+                "Cohort": month,
+                "Total Accounts": total,
+                "With Debit": with_debit,
+                "Capture Rate": rate,
+                "Personal Rate": p_rate,
+                "Business Rate": b_rate,
+            }
+        )
+
+    cohort_df = pd.DataFrame(cohort_rows)
+    if cohort_df.empty:
+        _report(ctx, "   Skipped: no cohort data")
+        return ctx
+
+    _save(
+        ctx,
+        cohort_df,
+        "DCTR-CohortCapture",
+        "Cohort Debit Capture",
+        {"Cohorts": f"{len(cohort_df)}"},
+    )
+
+    # Chart: line chart with P/B overlay
+    chart_dir = ctx["chart_dir"]
+    fig, ax = _fig(ctx, "single")
+    try:
+        x = np.arange(len(cohort_df))
+        overall = (cohort_df["Capture Rate"] * 100).tolist()
+        personal = (cohort_df["Personal Rate"] * 100).tolist()
+        business = (cohort_df["Business Rate"] * 100).tolist()
+        labels = cohort_df["Cohort"].tolist()
+
+        ax.plot(x, overall, "o-", color="#1E3D59", linewidth=2.5, markersize=8, label="Overall")
+        ax.plot(x, personal, "s--", color="#4472C4", linewidth=2, markersize=6, label="Personal")
+        ax.plot(x, business, "^--", color="#70AD47", linewidth=2, markersize=6, label="Business")
+
+        # Annotate overall line
+        for xi, val in zip(x, overall):
+            ax.text(xi, val + 1.5, f"{val:.0f}%", ha="center", fontsize=9, fontweight="bold")
+
+        # Volume bars on secondary axis
+        ax2 = ax.twinx()
+        volumes = cohort_df["Total Accounts"].tolist()
+        ax2.bar(x, volumes, alpha=0.15, color="#999999", width=0.6, label="Volume")
+        ax2.set_ylabel("Account Volume", fontsize=12, color="#999999")
+        ax2.tick_params(axis="y", labelcolor="#999999")
+
+        ax.set_xlabel("Opening Month Cohort", fontsize=14, fontweight="bold")
+        ax.set_ylabel("Debit Capture Rate %", fontsize=14, fontweight="bold")
+        ax.set_title(
+            "Debit Card Capture by Opening Cohort (L12M)", fontsize=16, fontweight="bold", pad=15
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=11)
+        max_rate = max(overall + personal + business) if overall else 100
+        ax.set_ylim(0, min(100, max_rate + 15))
+        ax.legend(loc="upper left", fontsize=11)
+        plt.tight_layout()
+
+        chart_path = _save_chart(fig, Path(chart_dir) / "dctr_cohort_capture.png")
+    finally:
+        plt.close(fig)
+
+    # Subtitle
+    try:
+        avg_rate = cohort_df["Capture Rate"].mean()
+        best_cohort = cohort_df.loc[cohort_df["Capture Rate"].idxmax()]
+        worst_cohort = cohort_df.loc[cohort_df["Capture Rate"].idxmin()]
+        spread = best_cohort["Capture Rate"] - worst_cohort["Capture Rate"]
+        subtitle = (
+            f"Avg {avg_rate:.0%} capture — {best_cohort['Cohort']} best"
+            f" ({best_cohort['Capture Rate']:.0%}), {worst_cohort['Cohort']} lowest"
+            f" ({worst_cohort['Capture Rate']:.0%}) — older cohorts had more maturation time"
+        )
+        if len(subtitle) > 120:
+            subtitle = (
+                f"Avg {avg_rate:.0%} capture across {len(cohort_df)} cohorts"
+                f" — {spread:.0%} spread between best and worst"
+            )
+    except Exception:
+        subtitle = f"Debit capture rate across {len(cohort_df)} monthly cohorts"
+
+    _slide(
+        ctx,
+        "A7.20 - Cohort Debit Capture",
+        {
+            "title": "Debit Card Capture by Opening Cohort",
+            "subtitle": subtitle,
+            "chart_path": chart_path,
+            "layout_index": 8,
+            "slide_type": "chart",
+        },
+    )
+
+    ctx["results"]["dctr_cohort_capture"] = {
+        "cohorts": len(cohort_df),
+        "avg_capture": cohort_df["Capture Rate"].mean(),
+        "data": cohort_df,
+    }
+    _report(
+        ctx, f"   {len(cohort_df)} cohorts | Avg capture: {cohort_df['Capture Rate'].mean():.1%}"
+    )
+    return ctx

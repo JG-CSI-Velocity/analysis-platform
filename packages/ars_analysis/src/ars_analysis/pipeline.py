@@ -1086,27 +1086,7 @@ def _reorder_analysis_slides(ctx, selected):
     # Consolidation: merge paired slides and move detail to appendix
     # ------------------------------------------------------------------
     from ars_analysis.dctr import DCTR_APPENDIX_IDS, DCTR_MERGES
-
-    REGE_MERGES = [
-        (
-            "A8.10 - Reg E All-Time Funnel",
-            "A8.11 - Reg E L12M Funnel",
-            "Reg E Funnel: All-Time vs TTM",
-        ),
-        (
-            "A8.5 - Reg E by Account Age",
-            "A8.6 - Reg E by Holder Age",
-            "Reg E Opportunity: Age Analysis",
-        ),
-    ]
-    REGE_APPENDIX_IDS = {
-        "A8.7 - Reg E by Product",
-        "A8.4c - Reg E Branch Scatter",
-        "A8.2 - Reg E Historical",
-        "A8.1 - Reg E Overall Status",
-        "A8.12 - Reg E Trend",
-        "A8.4b - Reg E by Branch (Vertical)",
-    }
+    from ars_analysis.reg_e import REGE_APPENDIX_IDS, REGE_MERGES
 
     def _consolidate(slides, merges, appendix_ids):
         """Merge paired slides and separate appendix slides.

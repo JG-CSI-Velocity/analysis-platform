@@ -557,7 +557,7 @@ def run_dctr_2(ctx):
         fig, ax = _fig(ctx, "half")
         od, ed_v = open_ins["overall_dctr"] * 100, hist_ins["overall_dctr"] * 100
         bars = ax.bar(
-            ["All Open\nAccounts", "Eligible\nAccounts"],
+            ["All Open\n(incl. Ineligible)", "Eligible Only\n(Debit Qualified)"],
             [od, ed_v],
             color=["#70AD47", "#4472C4"],
             width=0.5,
@@ -586,7 +586,7 @@ def run_dctr_2(ctx):
                 color="white",
             )
         ax.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")
-        ax.set_title("DCTR: Open vs Eligible Accounts", fontsize=24, fontweight="bold", pad=20)
+        ax.set_title("DCTR by Eligibility", fontsize=24, fontweight="bold", pad=20)
         ax.set_ylim(0, max(od, ed_v) * 1.15)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
         ax.tick_params(axis="both", labelsize=18)
@@ -680,7 +680,7 @@ def run_dctr_3(ctx):
         ht = ctx["results"]["dctr_1"]["insights"]["total_accounts"]
         lt = l12m_ins["total_accounts"]
         bars = ax.bar(
-            ["Historical\n(All Time)", "Trailing Twelve Months"],
+            ["All-Time\n(Cumulative)", "Last 12 Months\n(Recent)"],
             [hd, ld],
             color=["#5B9BD5", "#FFC000"],
             width=0.5,
@@ -707,7 +707,7 @@ def run_dctr_3(ctx):
                 color="white",
             )
         ax.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")
-        ax.set_title("Historical vs Recent DCTR", fontsize=24, fontweight="bold", pad=20)
+        ax.set_title("DCTR by Time Period", fontsize=24, fontweight="bold", pad=20)
         ax.set_ylim(0, max(hd, ld) * 1.15)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
         ax.tick_params(axis="both", labelsize=18)
@@ -1999,37 +1999,123 @@ def run_dctr_funnel(ctx):
 
 
 def run_dctr_combo_slide(ctx):
-    """Build a side-by-side slide if both comparison charts exist."""
-    _report(ctx, "\n📊 DCTR — Combo Slide (A7.1+A7.3)")
-    cp1 = ctx["results"].get("dctr_2_chart")
-    cp3 = ctx["results"].get("dctr_3_chart")
-    if not cp1 or not cp3:
-        _report(ctx, "   ⚠️ Missing one or both comparison charts — skipping combo")
-        return ctx
+    """Build a single 3-bar chart: All Open → Eligible All-Time → Eligible L12M.
 
+    Bars = population (account count), line = DCTR rate.
+    """
+    _report(ctx, "\n📊 DCTR — Overview Slide (A7.1+A7.3)")
+    chart_dir = ctx["chart_dir"]
+
+    d1 = ctx["results"].get("dctr_1", {}).get("insights", {})
     d2 = ctx["results"].get("dctr_2", {}).get("insights", {})
     d3 = ctx["results"].get("dctr_3", {}).get("insights", {})
-    diff = d2.get("difference", 0) * 100
-    comp = d3.get("comparison_to_overall", 0) * 100
-    trend = "improving" if comp > 0 else "declining" if comp < 0 else "stable"
+
+    if not d1 or not d2:
+        _report(ctx, "   ⚠️ Missing DCTR results — skipping overview")
+        return ctx
+
+    # Population counts
+    open_total = d2.get("open_total", 0)
+    elig_total = d1.get("total_accounts", 0)
+    l12m_total = d3.get("total_accounts", 0)
+
+    # DCTR rates (stored as 0-1 fractions)
+    open_rate = d2.get("open_dctr", 0) * 100
+    elig_rate = d1.get("overall_dctr", 0) * 100
+    l12m_rate = d3.get("dctr", 0) * 100
+
+    cats = ["All Open\nAccounts", "Eligible\n(All-Time)", "Eligible\n(Last 12 Mo.)"]
+    counts = [open_total, elig_total, l12m_total]
+    rates = [open_rate, elig_rate, l12m_rate]
+    bar_colors = ["#70AD47", "#4472C4", "#FFC000"]
+
+    try:
+        fig, ax = plt.subplots(figsize=(14, 8))
+        fig.patch.set_facecolor("white")
+        x = np.arange(len(cats))
+
+        # Bars = population count (primary axis)
+        bars = ax.bar(
+            x, counts, color=bar_colors, width=0.55,
+            edgecolor="black", linewidth=2, alpha=0.85,
+        )
+        for bar, cnt in zip(bars, counts):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                cnt / 2,
+                f"{cnt:,}",
+                ha="center", va="center",
+                fontweight="bold", fontsize=20, color="white",
+            )
+
+        ax.set_ylabel("Number of Accounts", fontsize=20, fontweight="bold")
+        ax.set_xticks(x)
+        ax.set_xticklabels(cats, fontsize=18)
+        ax.tick_params(axis="y", labelsize=16)
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(v):,}"))
+        max_count = max(counts) if counts else 100
+        ax.set_ylim(0, max_count * 1.15)
+
+        # Rate markers -- independent horizontal line per bar
+        ax2 = ax.twinx()
+        for i, (r, c) in enumerate(zip(rates, bar_colors)):
+            # Short horizontal line centered on bar
+            ax2.plot(
+                [i - 0.2, i + 0.2], [r, r],
+                color="black", linewidth=4, solid_capstyle="round", zorder=5,
+            )
+            ax2.plot(
+                i, r, marker="o", markersize=12,
+                markerfacecolor="white", markeredgecolor="black",
+                markeredgewidth=3, zorder=6,
+            )
+            ax2.text(
+                i, r + 2.5, f"{r:.1f}%",
+                ha="center", fontweight="bold", fontsize=20, color="black",
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="gray", alpha=0.9),
+            )
+        ax2.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")
+        ax2.tick_params(axis="y", labelsize=16)
+        ax2.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{v:.0f}%"))
+        min_rate = min(rates) if rates else 0
+        max_rate = max(rates) if rates else 100
+        ax2.set_ylim(max(0, min_rate - 15), max_rate + 15)
+
+        ax.set_title(
+            "DCTR Overview: Population & Take Rate",
+            fontsize=24, fontweight="bold", pad=20,
+        )
+        ax.spines["top"].set_visible(False)
+        ax2.spines["top"].set_visible(False)
+        ax.set_axisbelow(True)
+        ax.grid(True, axis="y", alpha=0.2, linestyle="--")
+        plt.tight_layout()
+        cp = _save_chart(fig, chart_dir / "dctr_overview.png")
+    except Exception as e:
+        cp = None
+        _report(ctx, f"   ⚠️ Overview chart: {e}")
+
+    diff = (elig_rate - open_rate)
+    comp = (l12m_rate - elig_rate)
+    trend = "improving" if comp > 2 else "declining" if comp < -2 else "stable"
 
     _slide(
         ctx,
         "A7 - DCTR Comparison",
         {
-            "title": "DCTR Comparison",
-            "subtitle": f"Eligible {diff:+.1f}pp higher — Recent trend: {trend}",
-            "chart_path": cp1,
-            "chart_path_2": cp3,
-            "layout_index": 6,
-            "slide_type": "multi_screenshot",
+            "title": "DCTR Overview: Population & Take Rate",
+            "subtitle": f"Eligible {diff:+.1f}pp vs All Open | Last 12 Mo. {trend} ({comp:+.1f}pp)",
+            "chart_path": cp,
+            "layout_index": 9,
+            "slide_type": "screenshot",
             "insights": [
-                f"Open vs Eligible gap: {diff:+.1f}pp",
-                f"TTM vs Historical: {comp:+.1f}pp ({trend})",
+                f"All Open: {open_total:,} accounts, {open_rate:.1f}% DCTR",
+                f"Eligible: {elig_total:,} accounts, {elig_rate:.1f}% DCTR ({diff:+.1f}pp)",
+                f"Last 12 Mo: {l12m_total:,} accounts, {l12m_rate:.1f}% DCTR ({comp:+.1f}pp)",
             ],
         },
     )
-    _report(ctx, f"   Combo slide created — gap: {diff:+.1f}pp, trend: {trend}")
+    _report(ctx, f"   Overview: Open {open_rate:.1f}% → Eligible {elig_rate:.1f}% → L12M {l12m_rate:.1f}%")
     return ctx
 
 
@@ -2096,15 +2182,15 @@ def run_dctr_segment_trends(ctx):
         fig, ax = plt.subplots(figsize=(14, 7))
         if has_biz:
             cats = [
-                "Personal\nHistorical",
-                "Personal\nTTM",
-                "Business\nHistorical",
-                "Business\nTTM",
+                "Personal\nAll-Time",
+                "Personal\nLast 12 Mo.",
+                "Business\nAll-Time",
+                "Business\nLast 12 Mo.",
             ]
             vals = [p_hist, p_l12m, b_hist, b_l12m]
             colors = ["#4472C4", "#5B9BD5", "#ED7D31", "#F4B183"]
         else:
-            cats = ["Personal\nHistorical", "Personal\nTTM"]
+            cats = ["Personal\nAll-Time", "Personal\nLast 12 Mo."]
             vals = [p_hist, p_l12m]
             colors = ["#4472C4", "#5B9BD5"]
 
@@ -2139,7 +2225,7 @@ def run_dctr_segment_trends(ctx):
                 )
         ax.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")
         ax.set_title(
-            "DCTR Segment Trends: Historical vs Trailing Twelve Months",
+            "Eligible Account DCTR by Segment",
             fontsize=24,
             fontweight="bold",
             pad=20,
@@ -2543,7 +2629,8 @@ def run_dctr_l12m_trend(ctx):
         ax.tick_params(axis="y", labelsize=24)
         valid_rates = [v for v in overall_rates if not np.isnan(v)]
         if valid_rates:
-            ax.set_ylim(min(valid_rates) - 5, max(valid_rates) * 1.15)
+            y_min = max(0, min(valid_rates) - 10)
+            ax.set_ylim(y_min, max(valid_rates) + 10)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{int(x)}%"))
         ax.legend(
             loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, fontsize=18, frameon=True

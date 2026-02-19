@@ -602,6 +602,8 @@ def _init_summary_sheet(ws):
 
 def save_to_excel(ctx, df, sheet_name, analysis_title, key_metrics=None):
     """Write to source Excel + master Excel (deferred save via flush_workbooks)."""
+    if ctx.get("_skip_excel"):
+        return
     sheet_title = sanitize_sheet_title(sheet_name)
 
     for file_path in [ctx["source_excel_path"], ctx["global_report_excel_file_path"]]:
@@ -2166,13 +2168,20 @@ def run_pipeline(
     progress_callback=None,
     exec_report=None,
     metadata=None,
+    deck_only=False,
 ):
     """
     Run the full ARS pipeline: Cells 1-16 + A1-A5 + Build Deck.
 
+    Set deck_only=True to skip Excel writes and archive -- just regenerate
+    charts and rebuild the PowerPoint.  Much faster for iterating on
+    slide layout and chart design.
+
     Returns the pipeline context with all results.
     """
     ctx = create_context()
+    if deck_only:
+        ctx["_skip_excel"] = True
     if progress_callback:
         ctx["_progress_callback"] = progress_callback
     if exec_report:
@@ -2314,18 +2323,22 @@ def run_pipeline(
         traceback.print_exc()
     _phase_time(ctx, "Impact")
 
-    # Flush cached Excel workbooks to disk
-    _report(ctx, "\n💾 Saving Excel workbooks...")
-    flush_workbooks(ctx)
-    _phase_time(ctx, "Excel Save")
+    if not ctx.get("_skip_excel"):
+        # Flush cached Excel workbooks to disk
+        _report(ctx, "\n💾 Saving Excel workbooks...")
+        flush_workbooks(ctx)
+        _phase_time(ctx, "Excel Save")
+    else:
+        _report(ctx, "\n⏩ Skipping Excel (deck_only mode)")
 
     # Build deck
     _report(ctx, "\n📽️ Phase 4: PowerPoint")
     ctx = step_build_deck(ctx)
     _phase_time(ctx, "Deck Build")
 
-    # Archive
-    ctx = step_archive_excel(ctx)
+    if not ctx.get("_skip_excel"):
+        # Archive
+        ctx = step_archive_excel(ctx)
 
     elapsed = time.time() - start_time
     _report(ctx, f"\n{'=' * 60}")

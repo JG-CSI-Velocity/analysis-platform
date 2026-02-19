@@ -1572,6 +1572,7 @@ def run_a1(ctx):
         for ax in fig.get_axes():
             for spine in ax.spines.values():
                 spine.set_visible(False)
+            ax.grid(False)
         chart_path = str(chart_dir / "a1_stat_code.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)
@@ -1685,6 +1686,7 @@ def run_a2(ctx):
         for ax in fig.get_axes():
             for spine in ax.spines.values():
                 spine.set_visible(False)
+            ax.grid(False)
         chart_path = str(chart_dir / "a2_debit_card.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)
@@ -1852,6 +1854,7 @@ def run_a3(ctx):
         for ax in fig.get_axes():
             for spine in ax.spines.values():
                 spine.set_visible(False)
+            ax.grid(False)
         chart_path = str(chart_dir / "a3_eligibility_funnel.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)
@@ -1959,6 +1962,7 @@ def run_a4(ctx):
         for ax in fig.get_axes():
             for spine in ax.spines.values():
                 spine.set_visible(False)
+            ax.grid(False)
         chart_path = str(chart_dir / "a4_yearly_trends.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)
@@ -2041,6 +2045,7 @@ def run_a5(ctx):
         for ax in fig.get_axes():
             for spine in ax.spines.values():
                 spine.set_visible(False)
+            ax.grid(False)
         chart_path = str(chart_dir / "a5_branch_distribution.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)

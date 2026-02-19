@@ -6,8 +6,7 @@ figure.facecolor   : white
 figure.dpi         : 150
 
 axes.facecolor     : white
-axes.grid          : true
-axes.grid.which    : major
+axes.grid          : false
 axes.spines.top    : false
 axes.spines.right  : false
 axes.spines.left   : false
@@ -16,9 +15,8 @@ axes.labelsize     : 20
 axes.titlesize     : 24
 axes.titleweight   : bold
 
-grid.color         : 0.92
-grid.linestyle     : -
-grid.linewidth     : 0.8
+grid.color         : white
+grid.linewidth     : 0
 
 xtick.labelsize    : 18
 ytick.labelsize    : 18

@@ -1053,6 +1053,7 @@ def setup_slide_helpers(
         for ax in fig.get_axes():
             for spine in ax.spines.values():
                 spine.set_visible(False)
+            ax.grid(False)
         fig.savefig(path, dpi=dpi, bbox_inches="tight", facecolor=facecolor)
         plt.close(fig)
 
@@ -1092,6 +1093,7 @@ def setup_slide_helpers(
             for ax in fig.get_axes():
                 for spine in ax.spines.values():
                     spine.set_visible(False)
+                ax.grid(False)
         fig1.savefig(path1, dpi=dpi, bbox_inches="tight", facecolor=facecolor)
         fig2.savefig(path2, dpi=dpi, bbox_inches="tight", facecolor=facecolor)
 

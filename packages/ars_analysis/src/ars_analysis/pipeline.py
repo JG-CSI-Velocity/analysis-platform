@@ -1398,47 +1398,56 @@ def step_build_deck(ctx):
     pptx_path = ctx["pptx_output_path"]
 
     # Pre-flight: detect locked output file (open in PowerPoint)
+    source_locked = False
     if os.path.exists(pptx_path):
         lock_file = Path(pptx_path).parent / f"~${Path(pptx_path).name}"
         if lock_file.exists():
+            _report(ctx, "")
+            _report(ctx, "=" * 60)
             _report(
                 ctx,
-                f"❌ Cannot write — {os.path.basename(pptx_path)} is open in another application. Close it and retry.",
+                f"⚠️  {os.path.basename(pptx_path)} is open in PowerPoint!",
             )
-            ctx["pptx_built"] = False
-            return ctx
+            _report(ctx, "   Source folder copy will be SKIPPED (file locked).")
+            _report(ctx, "   Archive copy will still be written.")
+            _report(ctx, "=" * 60)
+            _report(ctx, "")
+            source_locked = True
 
     _report(ctx, f"📽️ Building PowerPoint — {len(final_slides)} slides...")
 
-    # Debug: check all layout indices before building
-    from pptx import Presentation as _Prs
+    # Build to a temp path first, then copy to both destinations
+    archive_path = ctx["pptx_archive_path"]
+    import tempfile
 
-    _test_prs = _Prs(template)
-    _max_layout = len(_test_prs.slide_layouts) - 1
-    for i, s in enumerate(final_slides):
-        if s.layout_index > _max_layout:
-            print(
-                f"🔴 BAD LAYOUT: slide {i} '{s.title}' type='{s.slide_type}' layout_index={s.layout_index} (max={_max_layout})"
-            )
-        else:
-            print(f"   ✅ slide {i} '{s.title}' type='{s.slide_type}' layout={s.layout_index}")
-    del _test_prs
+    tmp_dir = Path(tempfile.gettempdir())
+    tmp_pptx = str(tmp_dir / f"ars_build_{os.getpid()}.pptx")
 
     try:
         builder = DB(template)
-        builder.build(final_slides, pptx_path)
+        builder.build(final_slides, tmp_pptx)
         ctx["pptx_built"] = True
-        _report(ctx, f"✅ PowerPoint saved: {os.path.basename(pptx_path)}")
 
-        # Archive copy
-        archive_path = ctx["pptx_archive_path"]
+        # Copy to source folder (unless locked)
+        if not source_locked:
+            shutil.copy2(tmp_pptx, pptx_path)
+            _report(ctx, f"✅ PowerPoint saved: {pptx_path}")
+        else:
+            _report(ctx, f"⏩ Skipped source (locked): {pptx_path}")
+
+        # Always copy to archive
         Path(archive_path).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(pptx_path, archive_path)
+        shutil.copy2(tmp_pptx, archive_path)
         _report(ctx, f"📁 Archived: {archive_path}")
+
+        # Clean up temp
+        os.remove(tmp_pptx)
 
     except Exception as e:
         _report(ctx, f"❌ PowerPoint build failed: {e}")
         ctx["pptx_built"] = False
+        if os.path.exists(tmp_pptx):
+            os.remove(tmp_pptx)
 
     return ctx
 

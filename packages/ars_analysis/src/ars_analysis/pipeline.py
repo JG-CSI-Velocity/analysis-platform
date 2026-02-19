@@ -1066,7 +1066,7 @@ def _reorder_analysis_slides(ctx, selected):
         (
             "A7.6a - Last 12 Months DCTR Trend",
             "A7.4 - Segment Trends",
-            "DCTR Trajectory: Recent Trend & Segments",
+            "DCTR Recent Trend & Account Types",
         ),
         ("A7.7 - Historical Funnel", "A7.8 - L12M Funnel", "DCTR Funnel: Historical vs TTM"),
         (

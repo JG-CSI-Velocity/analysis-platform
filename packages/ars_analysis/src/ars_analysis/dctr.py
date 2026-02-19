@@ -1916,7 +1916,7 @@ def run_dctr_funnel(ctx):
         ax.text(
             0.5,
             0.98,
-            "Historical Account Eligibility & Debit Card Funnel",
+            "Account Eligibility & Debit Card Funnel",
             ha="center",
             va="top",
             fontsize=28,
@@ -1927,7 +1927,7 @@ def run_dctr_funnel(ctx):
         ax.text(
             0.5,
             0.93,
-            "All-Time Analysis",
+            "All-Time (Historical)",
             ha="center",
             va="top",
             fontsize=20,
@@ -2039,7 +2039,8 @@ def run_dctr_combo_slide(ctx):
             x, counts, color=bar_colors, width=0.55,
             edgecolor="black", linewidth=2, alpha=0.85,
         )
-        for bar, cnt in zip(bars, counts):
+        for bar, cnt, label in zip(bars, counts, cats):
+            # Account count centered in bar
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
                 cnt / 2,
@@ -2047,14 +2048,22 @@ def run_dctr_combo_slide(ctx):
                 ha="center", va="center",
                 fontweight="bold", fontsize=20, color="white",
             )
+            # Category label at base of column
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                -max(counts) * 0.06,
+                label.replace("\n", " "),
+                ha="center", va="top",
+                fontweight="bold", fontsize=16, color="#333",
+            )
 
         ax.set_ylabel("Number of Accounts", fontsize=20, fontweight="bold")
         ax.set_xticks(x)
-        ax.set_xticklabels(cats, fontsize=18)
+        ax.set_xticklabels([""] * len(cats))  # hide default tick labels
         ax.tick_params(axis="y", labelsize=16)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(v):,}"))
         max_count = max(counts) if counts else 100
-        ax.set_ylim(0, max_count * 1.15)
+        ax.set_ylim(-max_count * 0.10, max_count * 1.15)
 
         # Rate markers -- independent horizontal line per bar
         ax2 = ax.twinx()
@@ -2627,10 +2636,7 @@ def run_dctr_l12m_trend(ctx):
             pad=25,
         )
         ax.tick_params(axis="y", labelsize=24)
-        valid_rates = [v for v in overall_rates if not np.isnan(v)]
-        if valid_rates:
-            y_min = max(0, min(valid_rates) - 10)
-            ax.set_ylim(y_min, max(valid_rates) + 10)
+        ax.set_ylim(50, 100)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{int(x)}%"))
         ax.legend(
             loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, fontsize=18, frameon=True
@@ -2926,7 +2932,7 @@ def run_dctr_l12m_funnel(ctx):
         ax.text(
             0.5,
             0.98,
-            "Trailing Twelve Months Account Eligibility & Debit Card Funnel",
+            "Account Eligibility & Debit Card Funnel",
             ha="center",
             va="top",
             fontsize=28,
@@ -3036,80 +3042,94 @@ def run_dctr_branch_trend(ctx):
         {"Improving": f"{improving} of {len(merged)}", "Avg Change": f"{avg_change:+.1f}pp"},
     )
 
-    # Chart: Horizontal grouped bars — matching notebook A7.10a format
+    # Chart: Vertical bars (volume) + DCTR lines — matching Reg E A8.4b format
     try:
         n = len(merged)
-        fig_h = max(10, n * 0.6 + 2)
-        fig, ax = plt.subplots(figsize=(14, fig_h))
-        y = np.arange(n)
-        h = 0.35
-        ax.barh(
-            y + h / 2,
-            merged["Historical DCTR %"],
-            h,
-            label="Historical",
-            color="#BDC3C7",
-            edgecolor="black",
-            linewidth=1.5,
-        )
-        ax.barh(
-            y - h / 2,
-            merged["L12M DCTR %"],
-            h,
-            label="TTM",
-            color="#2E86AB",
-            edgecolor="black",
-            linewidth=1.5,
-        )
-        ax.set_yticks(y)
-        ax.set_yticklabels(merged["Branch"].values, fontsize=18, fontweight="bold")
-        ax.set_xlabel("DCTR (%)", fontsize=20, fontweight="bold")
-        ax.set_title(
-            "Branch DCTR: Historical vs Trailing Twelve Months",
-            fontsize=24,
-            fontweight="bold",
-            pad=20,
-        )
-        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-        ax.tick_params(axis="x", labelsize=18)
-        ax.legend(loc="lower right", fontsize=18)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.grid(True, axis="x", alpha=0.3, linestyle="--")
-        ax.set_axisbelow(True)
+        fig, ax1 = plt.subplots(figsize=(28, 14))
+        x_pos = np.arange(n)
 
-        # Change annotations
-        for i, (_, row) in enumerate(merged.iterrows()):
-            chg = row["Change pp"]
-            color = "#27AE60" if chg > 0 else "#E74C3C" if chg < 0 else "#95A5A6"
-            marker = "▲" if chg > 0 else "▼" if chg < 0 else "–"
-            ax.text(
-                max(row["Historical DCTR %"], row["L12M DCTR %"]) + 1,
-                i,
-                f"{marker} {chg:+.1f}pp",
-                va="center",
-                fontsize=18,
-                color=color,
-                fontweight="bold",
+        # L12M volume bars
+        bars = ax1.bar(
+            x_pos, merged["L12M Volume"], width=0.6,
+            color="#D9D9D9", edgecolor="black", linewidth=2,
+        )
+        ax1.set_ylabel("Eligible Accounts (TTM)", fontsize=28, fontweight="bold")
+        ax1.set_xticks(x_pos)
+        ax1.set_xticklabels(
+            merged["Branch"].values, rotation=45, ha="right", fontsize=24, fontweight="bold",
+        )
+        ax1.tick_params(axis="y", labelsize=22)
+        ax1.grid(False)
+        for spine in ax1.spines.values():
+            spine.set_visible(False)
+
+        # Volume labels
+        max_vol = merged["L12M Volume"].max() if n > 0 else 1
+        for i, v in enumerate(merged["L12M Volume"]):
+            ax1.text(
+                i, v + max_vol * 0.015, f"{int(v):,}",
+                ha="center", va="bottom", fontsize=22, fontweight="bold", color="#333",
             )
 
-        # Period text
-        sd = ctx["start_date"]
-        ed_d = ctx["end_date"]
-        period_text = f"{sd.strftime('%b %Y')} - {ed_d.strftime('%b %Y')}"
-        ax.text(
-            0.98,
-            0.02,
-            period_text,
-            transform=ax.transAxes,
-            fontsize=18,
-            ha="right",
-            va="bottom",
-            style="italic",
-            color="gray",
+        # DCTR lines on secondary axis
+        ax2 = ax1.twinx()
+        hist_line = ax2.plot(
+            x_pos, merged["Historical DCTR %"], "o-",
+            color="#BDC3C7", lw=3, ms=10, label="Historical DCTR",
+        )
+        l12m_line = ax2.plot(
+            x_pos, merged["L12M DCTR %"], "o-",
+            color="#2E86AB", lw=4, ms=14, label="TTM DCTR", zorder=5,
         )
 
-        plt.subplots_adjust(left=0.25, right=0.95)
+        # Data labels on lines
+        for i, v in enumerate(merged["L12M DCTR %"]):
+            if v > 0:
+                ax2.text(
+                    i, v + 2, f"{v:.0f}%",
+                    ha="center", fontsize=22, fontweight="bold", color="#2E86AB",
+                )
+        for i, v in enumerate(merged["Historical DCTR %"]):
+            if v > 0:
+                ax2.text(
+                    i, v - 3, f"{v:.0f}%",
+                    ha="center", va="top", fontsize=18, color="#95A5A6",
+                )
+
+        # Weighted average lines
+        hist_wa = (
+            (merged["Historical DCTR"] * merged["Hist Volume"]).sum()
+            / merged["Hist Volume"].sum() * 100
+            if merged["Hist Volume"].sum() > 0 else 0
+        )
+        l12m_wa = (
+            (merged["L12M DCTR"] * merged["L12M Volume"]).sum()
+            / merged["L12M Volume"].sum() * 100
+            if merged["L12M Volume"].sum() > 0 else 0
+        )
+        ax2.axhline(hist_wa, color="#BDC3C7", linestyle="--", linewidth=3, alpha=0.5)
+        ax2.axhline(l12m_wa, color="#2E86AB", linestyle="--", linewidth=3, alpha=0.5)
+
+        ax2.set_ylabel("DCTR (%)", fontsize=28, fontweight="bold")
+        ax2.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(v)}%"))
+        ax2.tick_params(axis="y", labelsize=22)
+        max_dctr = max(merged["L12M DCTR %"].max(), merged["Historical DCTR %"].max())
+        ax2.set_ylim(0, max_dctr * 1.2 if max_dctr > 0 else 100)
+        ax2.grid(False)
+        for spine in ax2.spines.values():
+            spine.set_visible(False)
+
+        plt.title(
+            "Debit Card Take Rate by Branch\nHistorical vs Trailing Twelve Months",
+            fontsize=34, fontweight="bold", pad=30,
+        )
+        ax2.legend(
+            handles=[hist_line[0], l12m_line[0]],
+            labels=["Historical DCTR", "TTM DCTR"],
+            loc="upper right", bbox_to_anchor=(1.0, 0.98),
+            fontsize=22, frameon=True, fancybox=True,
+        )
+        plt.subplots_adjust(left=0.08, right=0.92, top=0.93, bottom=0.15)
         plt.tight_layout()
         cp = _save_chart(fig, chart_dir / "dctr_branch_trend.png")
 

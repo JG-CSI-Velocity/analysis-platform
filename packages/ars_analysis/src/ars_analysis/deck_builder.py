@@ -282,29 +282,29 @@ class DeckBuilder:
         Sized for 13.33" wide slides.
         """
         if layout_index == 8:
-            return (Inches(0.5), Inches(2.2), Inches(12.0))
-        if layout_index == 4:
-            return (Inches(2.4), Inches(1.8), Inches(8.5))
-        if layout_index == 5:
-            return (Inches(2.4), Inches(1.8), Inches(8.5))
-        if layout_index == 9:
-            return (Inches(2.4), Inches(1.8), Inches(8.5))
-        if layout_index == 10:
-            return (Inches(5.0), Inches(1.75), Inches(7.8))
-        if layout_index == 11:
-            return (Inches(2.4), Inches(1.8), Inches(8.5))
-        if layout_index == 12:
             return (Inches(0.5), Inches(1.8), Inches(12.0))
+        if layout_index == 4:
+            return (Inches(2.4), Inches(1.6), Inches(8.5))
+        if layout_index == 5:
+            return (Inches(2.4), Inches(1.6), Inches(8.5))
+        if layout_index == 9:
+            return (Inches(2.4), Inches(1.6), Inches(8.5))
+        if layout_index == 10:
+            return (Inches(5.0), Inches(1.6), Inches(7.8))
+        if layout_index == 11:
+            return (Inches(2.4), Inches(1.6), Inches(8.5))
+        if layout_index == 12:
+            return (Inches(0.5), Inches(1.6), Inches(12.0))
         if layout_index == 13:
             return (Inches(0.5), Inches(1.55), Inches(12.0))
         # Default fallback
-        return (Inches(2.4), Inches(1.8), Inches(8.5))
+        return (Inches(2.4), Inches(1.6), Inches(8.5))
 
     # Maximum chart height: slide is 7.5", title ~1.8", footer ~0.3"
     MAX_CHART_HEIGHT = Inches(5.0)
 
     def _add_fitted_picture(self, slide, img_path, left, top, max_width, max_height=None):
-        """Add image scaled to fit within max_width and max_height."""
+        """Add image scaled to fit within max_width and max_height, centered."""
         effective_max_h = max_height or self.MAX_CHART_HEIGHT
         from PIL import Image
 
@@ -313,7 +313,10 @@ class DeckBuilder:
         aspect = native_h / native_w
         height_at_width = int(max_width * aspect)
         if height_at_width > effective_max_h:
-            slide.shapes.add_picture(img_path, left, top, height=effective_max_h)
+            # Height-constrained: center horizontally within allocated width
+            actual_width = int(effective_max_h / aspect)
+            offset = (max_width - actual_width) // 2
+            slide.shapes.add_picture(img_path, left + offset, top, height=effective_max_h)
         else:
             slide.shapes.add_picture(img_path, left, top, width=max_width)
 
@@ -324,11 +327,11 @@ class DeckBuilder:
         Sized for 13.33" wide slides.
         """
         if layout_index == 6:
-            return (Inches(2.0), Inches(0.5), Inches(6.8), Inches(5.8))
+            return (Inches(1.8), Inches(0.8), Inches(7.0), Inches(5.5))
         if layout_index == 7:
-            return (Inches(2.0), Inches(0.5), Inches(6.8), Inches(5.8))
+            return (Inches(1.8), Inches(0.8), Inches(7.0), Inches(5.5))
         # Default
-        return (Inches(2.0), Inches(0.5), Inches(6.8), Inches(5.8))
+        return (Inches(1.8), Inches(0.8), Inches(7.0), Inches(5.5))
 
     def build(self, slides: list[SlideContent], output_path: str) -> str:
         """
@@ -997,6 +1000,8 @@ def apply_matplotlib_defaults() -> None:
             "figure.titlesize": 16,
             "axes.spines.top": False,
             "axes.spines.right": False,
+            "axes.spines.left": False,
+            "axes.spines.bottom": False,
             "axes.grid": False,
             "figure.facecolor": "white",
             "axes.facecolor": "white",

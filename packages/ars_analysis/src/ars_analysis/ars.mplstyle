@@ -10,6 +10,8 @@ axes.grid          : true
 axes.grid.which    : major
 axes.spines.top    : false
 axes.spines.right  : false
+axes.spines.left   : false
+axes.spines.bottom : false
 axes.labelsize     : 20
 axes.titlesize     : 24
 axes.titleweight   : bold

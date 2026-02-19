@@ -170,8 +170,6 @@ def run_dctr_2(ctx):
         ax.set_ylim(0, max(od, ed_v) * 1.15)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
         ax.tick_params(axis="both", labelsize=18)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
         color = "green" if diff > 0 else "red"
         ax.text(
             0.5,
@@ -286,8 +284,6 @@ def run_dctr_3(ctx):
         ax.set_ylim(0, max(hd, ld) * 1.15)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
         ax.tick_params(axis="both", labelsize=18)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
         t = comp * 100
         tc = "green" if t > 0 else "red" if t < 0 else "gray"
         ax.text(
@@ -393,8 +389,6 @@ def run_dctr_4_5(ctx):
         ax.set_ylim(0, max(vals) * 1.15)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
         ax.tick_params(axis="both", labelsize=18)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
         ax.grid(True, axis="y", alpha=0.3, linestyle="--")
         ax.set_axisbelow(True)
         ax.text(
@@ -738,8 +732,6 @@ def run_dctr_9(ctx):
                 fontsize=18,
                 fontweight="bold",
             )
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
         ax.grid(True, axis="x", alpha=0.3, linestyle="--")
         ax.set_axisbelow(True)
         plt.tight_layout()
@@ -852,8 +844,6 @@ def run_dctr_10(ctx):
                 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
                 ax.grid(True, axis="y", alpha=0.3, linestyle="--")
                 ax.set_axisbelow(True)
-                ax.spines["top"].set_visible(False)
-                ax2.spines["top"].set_visible(False)
                 plt.tight_layout()
                 cp = _save_chart(fig, chart_dir / "dctr_account_age.png")
             finally:
@@ -983,8 +973,6 @@ def run_dctr_11(ctx):
             ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
             ax.grid(True, axis="y", alpha=0.3, linestyle="--")
             ax.set_axisbelow(True)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_holder_age.png")
         finally:
@@ -1459,7 +1447,7 @@ def run_dctr_opportunity(ctx):
             "#70AD47" if t["target"] > current_dctr else "#A5A5A5" for t in tiers
         ]
 
-        bars = ax.bar(labels, values, color=colors, width=0.5, edgecolor="black", linewidth=1.5)
+        bars = ax.bar(labels, values, color=colors, width=0.5, edgecolor="white", linewidth=0.5)
 
         for bar, val in zip(bars, values):
             ax.text(
@@ -1468,7 +1456,7 @@ def run_dctr_opportunity(ctx):
                 f"{val:.1f}%",
                 ha="center",
                 va="bottom",
-                fontsize=14,
+                fontsize=16,
                 fontweight="bold",
             )
 
@@ -1481,20 +1469,20 @@ def run_dctr_opportunity(ctx):
                     f"+{tier['additional_accounts']:,} accts",
                     ha="center",
                     va="bottom",
-                    fontsize=10,
+                    fontsize=14,
                     color="#333333",
                 )
 
         # Reference line at current DCTR
         ax.axhline(y=current_dctr * 100, color="#E74C3C", linestyle="--", linewidth=1.5, alpha=0.7)
 
-        ax.set_ylabel("DCTR %", fontsize=14, fontweight="bold")
+        ax.set_ylabel("DCTR %", fontsize=18, fontweight="bold")
         ax.set_title(
-            "DCTR Opportunity: Current vs Benchmarks", fontsize=16, fontweight="bold", pad=15
+            "DCTR Opportunity: Current vs Benchmarks", fontsize=22, fontweight="bold", pad=15
         )
         max_val = max(values) if values else 100
         ax.set_ylim(0, min(100, max_val + 10))
-        ax.tick_params(axis="both", labelsize=12)
+        ax.tick_params(axis="both", labelsize=16)
         plt.tight_layout()
 
         chart_path = _save_chart(fig, Path(chart_dir) / "dctr_opportunity.png")
@@ -1637,8 +1625,8 @@ def run_dctr_by_product(ctx):
             width,
             label="Historical",
             color="#4472C4",
-            edgecolor="black",
-            linewidth=1,
+            edgecolor="white",
+            linewidth=0.5,
         )
         bars2 = ax.bar(
             x + width / 2,
@@ -1646,8 +1634,8 @@ def run_dctr_by_product(ctx):
             width,
             label="L12M",
             color="#70AD47",
-            edgecolor="black",
-            linewidth=1,
+            edgecolor="white",
+            linewidth=0.5,
         )
 
         for bar, val in zip(bars1, hist_vals):
@@ -1658,7 +1646,7 @@ def run_dctr_by_product(ctx):
                     f"{val:.1f}%",
                     ha="center",
                     va="bottom",
-                    fontsize=10,
+                    fontsize=14,
                 )
         for bar, val in zip(bars2, l12m_vals):
             if val > 0:
@@ -1668,7 +1656,7 @@ def run_dctr_by_product(ctx):
                     f"{val:.1f}%",
                     ha="center",
                     va="bottom",
-                    fontsize=10,
+                    fontsize=14,
                 )
 
         # Volume overlay on secondary axis
@@ -1677,18 +1665,18 @@ def run_dctr_by_product(ctx):
         ax2.plot(
             x, volumes, "o-", color="#E74C3C", linewidth=2, markersize=8, label="Account Volume"
         )
-        ax2.set_ylabel("Account Volume", fontsize=12, color="#E74C3C")
+        ax2.set_ylabel("Account Volume", fontsize=14, color="#E74C3C")
         ax2.tick_params(axis="y", labelcolor="#E74C3C")
 
-        ax.set_xlabel("Product Code", fontsize=14, fontweight="bold")
-        ax.set_ylabel("DCTR %", fontsize=14, fontweight="bold")
+        ax.set_xlabel("Product Code", fontsize=18, fontweight="bold")
+        ax.set_ylabel("DCTR %", fontsize=18, fontweight="bold")
         ax.set_title(
-            "DCTR by Product Type (Historical vs L12M)", fontsize=16, fontweight="bold", pad=15
+            "DCTR by Product Type (Historical vs L12M)", fontsize=22, fontweight="bold", pad=15
         )
         ax.set_xticks(x)
-        ax.set_xticklabels(prods, fontsize=12)
-        ax.legend(loc="upper left", fontsize=11)
-        ax2.legend(loc="upper right", fontsize=11)
+        ax.set_xticklabels(prods, fontsize=16)
+        ax.legend(loc="upper left", fontsize=14)
+        ax2.legend(loc="upper right", fontsize=14)
         max_dctr = max(hist_vals + l12m_vals) if hist_vals else 100
         ax.set_ylim(0, min(100, max_dctr + 10))
         plt.tight_layout()
@@ -2223,25 +2211,25 @@ def run_dctr_cohort_capture(ctx):
 
         # Annotate overall line
         for xi, val in zip(x, overall):
-            ax.text(xi, val + 1.5, f"{val:.0f}%", ha="center", fontsize=9, fontweight="bold")
+            ax.text(xi, val + 1.5, f"{val:.0f}%", ha="center", fontsize=14, fontweight="bold")
 
         # Volume bars on secondary axis
         ax2 = ax.twinx()
         volumes = cohort_df["Total Accounts"].tolist()
         ax2.bar(x, volumes, alpha=0.15, color="#999999", width=0.6, label="Volume")
-        ax2.set_ylabel("Account Volume", fontsize=12, color="#999999")
+        ax2.set_ylabel("Account Volume", fontsize=18, color="#999999")
         ax2.tick_params(axis="y", labelcolor="#999999")
 
-        ax.set_xlabel("Opening Month Cohort", fontsize=14, fontweight="bold")
-        ax.set_ylabel("Debit Capture Rate %", fontsize=14, fontweight="bold")
+        ax.set_xlabel("Opening Month Cohort", fontsize=18, fontweight="bold")
+        ax.set_ylabel("Debit Capture Rate %", fontsize=18, fontweight="bold")
         ax.set_title(
-            "Debit Card Capture by Opening Cohort (L12M)", fontsize=16, fontweight="bold", pad=15
+            "Debit Card Capture by Opening Cohort (L12M)", fontsize=22, fontweight="bold", pad=15
         )
         ax.set_xticks(x)
-        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=11)
+        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=16)
         max_rate = max(overall + personal + business) if overall else 100
         ax.set_ylim(0, min(100, max_rate + 15))
-        ax.legend(loc="upper left", fontsize=11)
+        ax.legend(loc="upper left", fontsize=14)
         plt.tight_layout()
 
         chart_path = _save_chart(fig, Path(chart_dir) / "dctr_cohort_capture.png")

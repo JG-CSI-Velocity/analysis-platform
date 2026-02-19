@@ -474,8 +474,6 @@ def run_dctr_combo_slide(ctx):
                 fontweight="bold",
                 pad=20,
             )
-            ax.spines["top"].set_visible(False)
-            ax2.spines["top"].set_visible(False)
             ax.set_axisbelow(True)
             ax.grid(True, axis="y", alpha=0.2, linestyle="--")
             plt.tight_layout()
@@ -645,8 +643,6 @@ def run_dctr_segment_trends(ctx):
             ax.tick_params(axis="y", labelsize=20)
             ax.set_ylim(0, max(vals) * 1.2 if vals else 100)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
             ax.grid(True, axis="y", alpha=0.3, linestyle="--")
             ax.set_axisbelow(True)
 
@@ -877,8 +873,6 @@ def run_dctr_decade_trend(ctx):
 
             ax.grid(True, axis="y", alpha=0.3, linestyle="--")
             ax.set_axisbelow(True)
-            ax.spines["top"].set_visible(False)
-            ax2.spines["top"].set_visible(False)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_decade_trend.png")
         finally:
@@ -1095,8 +1089,6 @@ def run_dctr_l12m_trend(ctx):
             )
             ax.grid(True, axis="y", alpha=0.3, linestyle="--")
             ax.set_axisbelow(True)
-            ax.spines["top"].set_visible(False)
-            ax2.spines["top"].set_visible(False)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_l12m_trend.png")
         finally:
@@ -1971,8 +1963,6 @@ def run_dctr_seasonality(ctx):
             ax.set_title("By Month", fontweight="bold", fontsize=16)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
             ax.tick_params(axis="y", labelsize=12)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
 
         # Quarterly
         if not quarterly.empty:
@@ -1985,8 +1975,6 @@ def run_dctr_seasonality(ctx):
             ax.set_title("By Quarter", fontweight="bold", fontsize=16)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
             ax.tick_params(axis="both", labelsize=12)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
 
         # Day of Week
         if not dow.empty:
@@ -2003,8 +1991,6 @@ def run_dctr_seasonality(ctx):
             ax.set_title("By Day of Week", fontweight="bold", fontsize=16)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
             ax.tick_params(axis="y", labelsize=12)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
 
         # Row 2: Year-over-Year comparison (B4 enhancement)
         if has_yoy:
@@ -2051,8 +2037,6 @@ def run_dctr_seasonality(ctx):
             ax_yoy.set_title("Year-over-Year Monthly DCTR", fontweight="bold", fontsize=16)
             ax_yoy.legend(fontsize=12, loc="upper left")
             ax_yoy.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-            ax_yoy.spines["top"].set_visible(False)
-            ax_yoy.spines["right"].set_visible(False)
             ax_yoy.grid(axis="y", alpha=0.2, ls="--")
 
             # Hide unused subplot slots in row 2
@@ -2522,8 +2506,6 @@ def run_dctr_decade_pb(ctx):
             )
             ax.grid(True, axis="y", alpha=0.3, linestyle="--")
             ax.set_axisbelow(True)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_decade_pb.png")
         finally:
@@ -2705,9 +2687,6 @@ def run_dctr_eligible_vs_non(ctx):
             ax.tick_params(axis="both", labelsize=20)
             ax.grid(False)
             ax.set_axisbelow(True)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-
             period_text = f"Period: {sd.strftime('%b %Y')} - {ed_date.strftime('%b %Y')}"
             ax.text(
                 0.5,

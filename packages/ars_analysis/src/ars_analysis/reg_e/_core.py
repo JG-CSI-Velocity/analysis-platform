@@ -1,9 +1,9 @@
 """Reg E core analysis functions -- A8.1 through A8.13."""
 
+import matplotlib
 import numpy as np
 import pandas as pd
 
-import matplotlib
 matplotlib.use('Agg')
 
 import matplotlib.patches as patches
@@ -13,22 +13,21 @@ from matplotlib.ticker import FuncFormatter
 from ars_analysis.reg_e._constants import (
     ACCT_AGE_ORDER,
     HOLDER_AGE_ORDER,
-    BALANCE_ORDER,
     _cat_acct_age,
     _cat_holder_age,
-    _cat_balance,
 )
 from ars_analysis.reg_e._helpers import (
-    _report,
     _fig,
-    _save_chart,
-    _slide,
-    _save,
-    _rege,
     _opt_list,
     _reg_col,
+    _rege,
+    _report,
+    _save,
+    _save_chart,
+    _slide,
     _total_row,
 )
+
 
 def run_reg_e_1(ctx):
     """A8.1 — Overall Reg E opt-in status with donut chart."""
@@ -1662,7 +1661,7 @@ def run_reg_e_10(ctx):
 
     # Chart
     try:
-        fig, ax = plt.subplots(figsize=(12, 10))
+        fig, ax = plt.subplots(figsize=(10, 12))
         fig.patch.set_facecolor("white")
 
         rege_rate = personal_w_rege / personal_w_debit * 100 if personal_w_debit > 0 else 0
@@ -1761,7 +1760,7 @@ def run_reg_e_11(ctx):
 
     # Chart
     try:
-        fig, ax = plt.subplots(figsize=(12, 10))
+        fig, ax = plt.subplots(figsize=(10, 12))
         fig.patch.set_facecolor("white")
 
         rege_rate = rege_l12m / p_wd_l12m * 100 if p_wd_l12m > 0 else 0
@@ -2080,12 +2079,12 @@ def run_reg_e_opportunity(ctx):
             "#70AD47" if t["target"] > current_rate else "#A5A5A5" for t in tiers
         ]
 
-        bars = ax.bar(labels, values, color=colors, width=0.5, edgecolor="black", linewidth=1.5)
+        bars = ax.bar(labels, values, color=colors, width=0.5, edgecolor="white", linewidth=0.5)
 
         for bar, val in zip(bars, values):
             ax.text(
                 bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
-                f"{val:.1f}%", ha="center", va="bottom", fontsize=14, fontweight="bold",
+                f"{val:.1f}%", ha="center", va="bottom", fontsize=16, fontweight="bold",
             )
 
         # Account deltas above benchmark bars
@@ -2095,19 +2094,19 @@ def run_reg_e_opportunity(ctx):
                     bars[i].get_x() + bars[i].get_width() / 2,
                     bars[i].get_height() + 2.5,
                     f"+{tier['additional_accounts']:,} accts",
-                    ha="center", va="bottom", fontsize=10, color="#333333",
+                    ha="center", va="bottom", fontsize=14, color="#333333",
                 )
 
         # Reference line at current rate
         ax.axhline(y=current_rate * 100, color="#E74C3C", linestyle="--", linewidth=1.5, alpha=0.7)
 
-        ax.set_ylabel("Opt-In Rate %", fontsize=14, fontweight="bold")
+        ax.set_ylabel("Opt-In Rate %", fontsize=18, fontweight="bold")
         ax.set_title(
-            "Reg E Opportunity: Current vs Benchmarks", fontsize=16, fontweight="bold", pad=15,
+            "Reg E Opportunity: Current vs Benchmarks", fontsize=22, fontweight="bold", pad=15,
         )
         max_val = max(values) if values else 100
         ax.set_ylim(0, min(100, max_val + 10))
-        ax.tick_params(axis="both", labelsize=12)
+        ax.tick_params(axis="both", labelsize=16)
         plt.tight_layout()
 
         chart_path = _save_chart(fig, Path(chart_dir) / "a8_14_reg_e_opportunity.png")
@@ -2172,6 +2171,7 @@ def run_reg_e_opportunity(ctx):
 def run_reg_e_executive_summary(ctx):
     """A8.0 -- Single summary slide synthesizing all Reg E findings into KPIs."""
     from pathlib import Path
+
     from matplotlib.patches import FancyBboxPatch
 
     _report(ctx, "\n📋 A8.0 — Reg E Executive Summary")
@@ -2412,13 +2412,13 @@ def run_reg_e_cohort(ctx):
 
         # Annotate overall line
         for xi, val in zip(x, overall):
-            ax.text(xi, val + 1.5, f"{val:.0f}%", ha="center", fontsize=9, fontweight="bold")
+            ax.text(xi, val + 1.5, f"{val:.0f}%", ha="center", fontsize=14, fontweight="bold")
 
         # Volume bars on secondary axis
         ax2 = ax.twinx()
         volumes = cohort_df["Total Accounts"].tolist()
         ax2.bar(x, volumes, alpha=0.15, color="#999999", width=0.6, label="Volume")
-        ax2.set_ylabel("Account Volume", fontsize=12, color="#999999")
+        ax2.set_ylabel("Account Volume", fontsize=14, color="#999999")
         ax2.tick_params(axis="y", labelcolor="#999999")
 
         # Target line
@@ -2427,17 +2427,17 @@ def run_reg_e_cohort(ctx):
             ax.axhline(y=target * 100, color="#2ecc71", linestyle="--", linewidth=1.5, alpha=0.7,
                         label=f"Target ({target:.0%})")
 
-        ax.set_xlabel("Opening Month Cohort", fontsize=14, fontweight="bold")
-        ax.set_ylabel("Opt-In Rate %", fontsize=14, fontweight="bold")
+        ax.set_xlabel("Opening Month Cohort", fontsize=18, fontweight="bold")
+        ax.set_ylabel("Opt-In Rate %", fontsize=18, fontweight="bold")
         ax.set_title(
             f"Reg E Cohort Opt-In Rate — {ctx.get('client_name', '')}",
-            fontsize=16, fontweight="bold", pad=15,
+            fontsize=22, fontweight="bold", pad=15,
         )
         ax.set_xticks(x)
-        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=12)
-        ax.legend(loc="upper left", fontsize=12)
+        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=16)
+        ax.legend(loc="upper left", fontsize=14)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
-        ax.tick_params(axis="y", labelsize=12)
+        ax.tick_params(axis="y", labelsize=16)
         plt.tight_layout()
 
         chart_path = _save_chart(fig, Path(chart_dir) / "a8_15_reg_e_cohort.png")
@@ -2569,14 +2569,12 @@ def run_reg_e_seasonality(ctx):
             vals = monthly["Opt-In Rate %"].values
             ax.bar(range(len(monthly)), vals, color="#2E8B57", edgecolor="white")
             ax.set_xticks(range(len(monthly)))
-            ax.set_xticklabels([m[:3] for m in monthly["Month Name"]], rotation=45, fontsize=12)
+            ax.set_xticklabels([m[:3] for m in monthly["Month Name"]], rotation=45, fontsize=14)
             for i, v in enumerate(vals):
-                ax.text(i, v + 0.5, f"{v:.0f}%", ha="center", fontsize=10, fontweight="bold")
-            ax.set_ylabel("Opt-In Rate (%)", fontsize=12)
-            ax.set_title("By Month (All-Time)", fontweight="bold", fontsize=14)
+                ax.text(i, v + 0.5, f"{v:.0f}%", ha="center", fontsize=14, fontweight="bold")
+            ax.set_ylabel("Opt-In Rate (%)", fontsize=16)
+            ax.set_title("By Month (All-Time)", fontweight="bold", fontsize=18)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
 
         # Panel 2: Quarterly
         if not quarterly.empty:
@@ -2584,12 +2582,10 @@ def run_reg_e_seasonality(ctx):
             vals = quarterly["Opt-In Rate %"].values
             ax.bar(quarterly["Quarter"], vals, color="#4472C4", edgecolor="white", width=0.6)
             for i, v in enumerate(vals):
-                ax.text(i, v + 0.5, f"{v:.1f}%", ha="center", fontsize=12, fontweight="bold")
-            ax.set_ylabel("Opt-In Rate (%)", fontsize=12)
-            ax.set_title("By Quarter", fontweight="bold", fontsize=14)
+                ax.text(i, v + 0.5, f"{v:.1f}%", ha="center", fontsize=14, fontweight="bold")
+            ax.set_ylabel("Opt-In Rate (%)", fontsize=16)
+            ax.set_title("By Quarter", fontweight="bold", fontsize=18)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
 
         # Row 2: YoY overlay
         if has_yoy and nrows == 2:
@@ -2605,20 +2601,18 @@ def run_reg_e_seasonality(ctx):
                             label=str(yr), alpha=0.9 if style == "-" else 0.6)
 
             ax_yoy.set_xticks(range(12))
-            ax_yoy.set_xticklabels([m[:3] for m in month_order], rotation=45, fontsize=12)
-            ax_yoy.set_ylabel("Opt-In Rate (%)", fontsize=12)
-            ax_yoy.set_title("Year-over-Year Comparison", fontweight="bold", fontsize=14)
-            ax_yoy.legend(fontsize=12)
+            ax_yoy.set_xticklabels([m[:3] for m in month_order], rotation=45, fontsize=14)
+            ax_yoy.set_ylabel("Opt-In Rate (%)", fontsize=16)
+            ax_yoy.set_title("Year-over-Year Comparison", fontweight="bold", fontsize=18)
+            ax_yoy.legend(fontsize=14)
             ax_yoy.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
-            ax_yoy.spines["top"].set_visible(False)
-            ax_yoy.spines["right"].set_visible(False)
 
             # Hide unused subplot
             all_axes[1][1].axis("off")
 
         fig.suptitle(
             f"Reg E Opt-In Seasonality — {ctx.get('client_name', '')}",
-            fontsize=18, fontweight="bold", y=1.02,
+            fontsize=22, fontweight="bold", y=1.02,
         )
         plt.tight_layout()
         chart_path = _save_chart(fig, Path(chart_dir) / "a8_16_reg_e_seasonality.png")

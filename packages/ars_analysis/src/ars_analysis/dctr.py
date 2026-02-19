@@ -1738,7 +1738,7 @@ def run_dctr_funnel(ctx):
         import matplotlib.colors as mcolors
         import matplotlib.patches as patches
 
-        fig, ax = plt.subplots(figsize=(12, 10))
+        fig, ax = plt.subplots(figsize=(10, 12))
         fig.patch.set_facecolor("white")
         ax.set_facecolor("#f8f9fa")
 
@@ -2188,7 +2188,7 @@ def run_dctr_segment_trends(ctx):
 
     # Chart A7.4: Grouped bar — matching notebook format
     try:
-        fig, ax = plt.subplots(figsize=(14, 7))
+        fig, ax = plt.subplots(figsize=(12, 10))
         if has_biz:
             cats = [
                 "Personal\nAll-Time",
@@ -2532,7 +2532,7 @@ def run_dctr_l12m_trend(ctx):
     _save(ctx, trend_df, "DCTR-L12M-Trend", "L12M Monthly DCTR Trend")
 
     try:
-        fig = plt.figure(figsize=(16, 8))
+        fig = plt.figure(figsize=(14, 10))
         ax = plt.gca()
         ax2 = ax.twinx()
         x = np.arange(len(l12m_months))
@@ -2588,7 +2588,7 @@ def run_dctr_l12m_trend(ctx):
                         v + 1.5,
                         f"{v:.0f}%",
                         ha="center",
-                        fontsize=18,
+                        fontsize=24,
                         fontweight="bold",
                         color="black",
                     )
@@ -2734,7 +2734,7 @@ def run_dctr_l12m_funnel(ctx):
         import matplotlib.colors as mcolors
         import matplotlib.patches as patches
 
-        fig, ax = plt.subplots(figsize=(12, 10))
+        fig, ax = plt.subplots(figsize=(10, 12))
         fig.patch.set_facecolor("white")
         ax.set_facecolor("#f8f9fa")
 

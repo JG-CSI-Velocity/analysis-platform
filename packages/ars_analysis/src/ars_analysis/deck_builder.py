@@ -324,11 +324,11 @@ class DeckBuilder:
         Sized for 13.33" wide slides.
         """
         if layout_index == 6:
-            return (Inches(1.8), Inches(0.5), Inches(6.8), Inches(5.8))
+            return (Inches(2.0), Inches(0.5), Inches(6.8), Inches(5.8))
         if layout_index == 7:
-            return (Inches(1.8), Inches(0.5), Inches(6.8), Inches(5.8))
+            return (Inches(2.0), Inches(0.5), Inches(6.8), Inches(5.8))
         # Default
-        return (Inches(1.8), Inches(0.5), Inches(6.8), Inches(5.8))
+        return (Inches(2.0), Inches(0.5), Inches(6.8), Inches(5.8))
 
     def build(self, slides: list[SlideContent], output_path: str) -> str:
         """

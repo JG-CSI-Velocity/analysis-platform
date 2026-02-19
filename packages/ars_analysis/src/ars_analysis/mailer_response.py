@@ -161,7 +161,7 @@ def _build_insights(ctx, data, resp_col, seg_details, total_mailed, total_resp, 
 
 def _compute_inside_numbers(ctx, data, resp_col):
     """
-    Compute percentage metrics for the 'Inside the Numbers' panel.
+    Compute executive-level insight metrics for the 'Inside the Numbers' panel.
     Returns list of (pct_string, description) tuples.
     """
     metrics = []
@@ -176,7 +176,7 @@ def _compute_inside_numbers(ctx, data, resp_col):
         age_years = (pd.Timestamp.now() - do).dt.days / 365.25
         under_2 = int((age_years < 2).sum())
         pct = under_2 / n_resp * 100
-        metrics.append((f"{pct:.0f}%", "of Responders were accounts opened fewer than 2 years ago"))
+        metrics.append((f"{pct:.0f}%", "of responders opened their account within the last 2 years"))
 
     # % of responders opted into Reg E
     reg_e_col = ctx.get("latest_reg_e_column")
@@ -184,7 +184,32 @@ def _compute_inside_numbers(ctx, data, resp_col):
         opted_in = responders[reg_e_col].astype(str).str.strip().str.upper()
         n_opted = int(opted_in.isin(["Y", "YES", "1"]).sum())
         pct = n_opted / n_resp * 100
-        metrics.append((f"{pct:.0f}%", "of Responders opted into Reg E"))
+        metrics.append((f"{pct:.0f}%", "of responders are already Reg E opted-in"))
+
+    # Standout segment: highest response rate
+    mail_col = resp_col.replace("Resp", "Mailed").replace("resp", "mailed")
+    if mail_col not in data.columns:
+        mail_col = resp_col.replace("Response", "Mailed")
+    if mail_col in data.columns:
+        best_seg = None
+        best_rate = 0
+        for seg in RESPONSE_SEGMENTS:
+            seg_data = data[data[mail_col] == seg]
+            if len(seg_data) > 0:
+                valid = VALID_RESPONSES.get(seg, set())
+                n_seg_resp = len(seg_data[seg_data[resp_col].isin(valid)])
+                rate = n_seg_resp / len(seg_data) * 100
+                if rate > best_rate:
+                    best_rate = rate
+                    best_seg = seg
+        if best_seg and best_rate > 0:
+            metrics.append((f"{best_rate:.0f}%", f"response rate from {best_seg} — the top-performing segment"))
+
+    # % with debit card among responders
+    if "Debit?" in responders.columns:
+        with_debit = int((responders["Debit?"].astype(str).str.upper().isin(["YES", "Y"])).sum())
+        pct = with_debit / n_resp * 100
+        metrics.append((f"{pct:.0f}%", "of responders already have an active debit card"))
 
     return metrics
 
@@ -323,8 +348,8 @@ def _render_hbar_chart(seg_details, month_title, chart_path):
     ax.set_xlabel("Response Rate (%)", fontsize=18, fontweight="bold")
     ax.set_xlim(0, max_rate * 1.45 if max_rate > 0 else 1)
     ax.invert_yaxis()
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
     ax.tick_params(axis="x", labelsize=15)
 
     plt.tight_layout()
@@ -422,8 +447,8 @@ def _render_3col(seg_details, insights, title, chart_path):
     ax2.tick_params(axis="y", labelsize=12)
     if rates:
         ax2.set_ylim(0, max(rates) * 1.30)
-    ax2.spines["top"].set_visible(False)
-    ax2.spines["right"].set_visible(False)
+    for spine in ax2.spines.values():
+        spine.set_visible(False)
 
     # ── COL 3: TEXT INSIGHTS ──────────────────────────────────────
     ax3 = fig.add_subplot(gs[2])
@@ -504,13 +529,24 @@ def run_monthly_summaries(ctx):
         # Compute "Inside the Numbers" metrics
         inside_numbers = _compute_inside_numbers(ctx, data, resp_col)
 
-        # Build comparison insight text (avoid repeating KPI stats)
+        # Build executive commentary
+        best_seg = max(seg_details, key=lambda s: seg_details[s]["rate"]) if seg_details else None
+        best_rate = seg_details[best_seg]["rate"] if best_seg else 0
         if prev_resp is not None and prev_resp > 0:
             change_pct = (total_resp - prev_resp) / prev_resp * 100
-            direction = "increase" if change_pct > 0 else "decrease"
-            insight_text = f"{abs(change_pct):.0f}% {direction} in responses vs. prior mailer."
+            direction = "up" if change_pct > 0 else "down"
+            insight_text = (
+                f"Response volume {direction} {abs(change_pct):.0f}% vs. prior mailer. "
+                f"{best_seg} leads at {best_rate:.1f}% response rate with "
+                f"{seg_details[best_seg]['responders']:,} of {seg_details[best_seg]['mailed']:,} "
+                f"mailed pieces converting."
+            )
         else:
-            insight_text = "Baseline campaign — first mailer in series."
+            insight_text = (
+                f"Baseline campaign establishing program benchmarks. "
+                f"{best_seg} leads at {best_rate:.1f}% response rate — "
+                f"{total_resp:,} total responders from {total_mailed:,} mail pieces."
+            )
 
         # KPIs
         kpis = {
@@ -852,7 +888,7 @@ def run_count_trend(ctx):
                             f"{val:,}",
                             ha="center",
                             va="center",
-                            fontsize=9,
+                            fontsize=14,
                             fontweight="bold",
                             color="white",
                         )
@@ -866,7 +902,7 @@ def run_count_trend(ctx):
                 f"Total: {total:,}",
                 ha="center",
                 va="bottom",
-                fontsize=10,
+                fontsize=14,
                 fontweight="bold",
             )
 
@@ -874,9 +910,9 @@ def run_count_trend(ctx):
         ax.set_xticklabels(months, fontsize=14, fontweight="bold", rotation=45, ha="right")
         ax.set_ylabel("Count of Responders", fontsize=16, fontweight="bold")
         ax.tick_params(axis="y", labelsize=14)
-        ax.legend(fontsize=12, loc="upper left")
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
+        ax.legend(fontsize=12, loc="upper right")
+        for spine in ax.spines.values():
+            spine.set_visible(False)
         ax.set_ylim(0, max(totals) * 1.12)
 
         plt.tight_layout()

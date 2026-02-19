@@ -69,25 +69,22 @@ DECK_CONFIG = {
     "fig_wide": (14, 6),
     "fig_square": (7, 7),
     # -------------------------------------------------------------------------
-    # TEMPLATE LAYOUTS - CSI Template (Updated)
+    # TEMPLATE LAYOUTS - CSI Template12.25.pptx (14 layouts, max index = 13)
     # -------------------------------------------------------------------------
-    #   0: Cover / Intro - Slide 1
+    #   0: Cover / Intro - Slide 1      <- Dark bg, centered white text
     #   1: Cover / Intro - Slide 2      <- Title slide (text on left)
     #   2: Divider - Slide 1            <- Section divider
     #   3: Divider - Slide 2
-    #   4: Divider - Slide 3
-    #   5: Analysis - Slide 1           <- Single chart
-    #   6: Analysis - Slide 2           <- Single chart
+    #   4: Divider - Slide 3            <- Chart with header
+    #   5: Analysis - Slide 1           <- Single chart + KPI
+    #   6: Analysis - Slide 2           <- Side-by-side (multi_screenshot)
     #   7: Analysis - Slide 3 - Split   <- Side-by-side
-    #   8: Analysis - Slide 4 - Split   <- Blank, flexible
-    #   9: Analysis - Slide 5 - Thirds  <- Three charts
-    #  10: Analysis - Slide 6 - Main    <- Single chart
-    #  11: Analysis - Slide 7 - Stacked Two  <- Chart on right 2/3
-    #  12: Analysis - Slide 8 - Blank   <- Flexible
-    #  13: Analysis - Slide 9 - Split   <- Side-by-side (spaced)
-    #  14: Analysis - Slide 10 - Blank  <- Flexible
-    #  15: Analysis - Slide 11 - Header1
-    #  16: Analysis - Slide 11 - Header2
+    #   8: Analysis - Slide 4           <- Blank, flexible (full width)
+    #   9: Analysis - Slide 5           <- Single chart (centered)
+    #  10: Analysis - Slide 6 - Main    <- Single chart (right 2/3)
+    #  11: Analysis - Slide 7 - Stacked <- Chart on right 2/3
+    #  12: Analysis - Slide 8 - Blank   <- Flexible (summary, revenue)
+    #  13: Analysis - Slide 9 - Split   <- Full-width spaced (header-only)
     # -------------------------------------------------------------------------
     "layout_title": 1,
     "layout_title_alt": 0,

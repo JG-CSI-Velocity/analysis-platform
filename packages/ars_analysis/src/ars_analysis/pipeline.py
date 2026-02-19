@@ -915,8 +915,8 @@ def _build_preamble_slides(ctx):
             title=f"{client_name}\nAccount Revenue Solution | {title_date}",
             layout_index=1,
         ),
-        # 2. Agenda — uses dedicated Agenda layout
-        SC(slide_type="blank", title="Agenda", layout_index=14),
+        # 2. Agenda — blank flexible layout (template max index = 13)
+        SC(slide_type="blank", title="Agenda", layout_index=8),
         # 3. Program Performance — section divider (client name + section | month)
         SC(
             slide_type="title",

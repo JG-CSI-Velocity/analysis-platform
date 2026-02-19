@@ -1,5 +1,15 @@
-"""Run this on Windows to verify spine-stripping code is loaded."""
+"""Run this on Windows to verify spine-stripping code is loaded.
+
+Usage:
+    uv run python verify_spines.py
+"""
+import sys
 import inspect
+
+print(f"Python executable: {sys.executable}")
+print(f"Python version: {sys.version}")
+print()
+
 from ars_analysis.mailer_common import save_chart
 
 # Check if save_chart has our spine-stripping code

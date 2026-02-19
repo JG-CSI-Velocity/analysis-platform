@@ -1054,6 +1054,9 @@ def setup_slide_helpers(
     ) -> None:
         """Save matplotlib figure and add slide to list."""
         path = chart_dir / filename
+        for ax in fig.get_axes():
+            for spine in ax.spines.values():
+                spine.set_visible(False)
         fig.savefig(path, dpi=dpi, bbox_inches="tight", facecolor=facecolor)
         plt.close(fig)
 
@@ -1089,6 +1092,10 @@ def setup_slide_helpers(
         path1 = chart_dir / filename1
         path2 = chart_dir / filename2
 
+        for fig in (fig1, fig2):
+            for ax in fig.get_axes():
+                for spine in ax.spines.values():
+                    spine.set_visible(False)
         fig1.savefig(path1, dpi=dpi, bbox_inches="tight", facecolor=facecolor)
         fig2.savefig(path2, dpi=dpi, bbox_inches="tight", facecolor=facecolor)
 

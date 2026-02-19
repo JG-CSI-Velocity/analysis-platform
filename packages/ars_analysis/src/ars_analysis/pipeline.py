@@ -1558,6 +1558,9 @@ def run_a1(ctx):
                 fontsize=9,
             )
         plt.tight_layout()
+        for ax in fig.get_axes():
+            for spine in ax.spines.values():
+                spine.set_visible(False)
         chart_path = str(chart_dir / "a1_stat_code.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)
@@ -1668,6 +1671,9 @@ def run_a2(ctx):
                 c + pd2["Count"].max() * 0.01, i, f"{c:,.0f} ({p:.1%})", va="center", fontsize=9
             )
         plt.tight_layout()
+        for ax in fig.get_axes():
+            for spine in ax.spines.values():
+                spine.set_visible(False)
         chart_path = str(chart_dir / "a2_debit_card.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)
@@ -1832,6 +1838,9 @@ def run_a3(ctx):
         for j in range(len(tdf.columns)):
             t[(0, j)].set_text_props(weight="bold", color="white")
         plt.tight_layout()
+        for ax in fig.get_axes():
+            for spine in ax.spines.values():
+                spine.set_visible(False)
         chart_path = str(chart_dir / "a3_eligibility_funnel.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)
@@ -1936,6 +1945,9 @@ def run_a4(ctx):
         if ny > 10:
             plt.xticks(rotation=45)
         plt.tight_layout()
+        for ax in fig.get_axes():
+            for spine in ax.spines.values():
+                spine.set_visible(False)
         chart_path = str(chart_dir / "a4_yearly_trends.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)
@@ -2015,6 +2027,9 @@ def run_a5(ctx):
         for i, (c, p) in enumerate(zip(dp["Total"], dp["Pct of Total"])):
             ax.text(c + dp["Total"].max() * 0.01, i, f"{c:,.0f} ({p:.1%})", va="center", fontsize=9)
         plt.tight_layout()
+        for ax in fig.get_axes():
+            for spine in ax.spines.values():
+                spine.set_visible(False)
         chart_path = str(chart_dir / "a5_branch_distribution.png")
         fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig)

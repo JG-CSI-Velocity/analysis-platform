@@ -1,9 +1,8 @@
 """Reg E helper functions -- shared across all A8 analyses."""
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-import matplotlib.pyplot as plt
 
 
 def _report(ctx, msg):
@@ -29,6 +28,9 @@ def _fig(ctx, size="single"):
 
 
 def _save_chart(fig, path):
+    for ax in fig.get_axes():
+        for spine in ax.spines.values():
+            spine.set_visible(False)
     fig.savefig(str(path), dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return str(path)

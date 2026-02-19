@@ -47,6 +47,9 @@ def _fig(ctx: dict, size: str = "single") -> tuple:
 
 def _save_chart(fig: Any, path: str | Path) -> str:
     """Save a matplotlib figure to PNG and close it."""
+    for ax in fig.get_axes():
+        for spine in ax.spines.values():
+            spine.set_visible(False)
     fig.savefig(str(path), dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return str(path)

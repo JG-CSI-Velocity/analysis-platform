@@ -86,6 +86,9 @@ def _fig(ctx, size="single"):
 
 
 def _save_chart(fig, path):
+    for ax in fig.get_axes():
+        for spine in ax.spines.values():
+            spine.set_visible(False)
     fig.savefig(str(path), dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return str(path)

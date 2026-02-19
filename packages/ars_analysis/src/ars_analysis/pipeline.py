@@ -81,6 +81,8 @@ def create_context():
         "reg_e_opt_in": None,
         "nsf_od_fee": 0.0,
         "ic_rate": 0.0,
+        "dctr_targets": {"peer_avg": 0.65, "p75": 0.72, "best_class": 0.80},
+        "reg_e_target": 0.60,
         # Cleaned data
         "latest_reg_e_column": None,
         # Date ranges
@@ -331,12 +333,33 @@ def step_load_config(ctx, config_path=None):
     except (ValueError, TypeError):
         ctx["nsf_od_fee"] = 0.0
 
+    # Benchmark targets (optional, per-client)
+    _DEFAULT_DCTR_TARGETS = {"peer_avg": 0.65, "p75": 0.72, "best_class": 0.80}
+    benchmarks = config.get("benchmarks", {})
+    dctr_targets = benchmarks.get("dctr_targets", _DEFAULT_DCTR_TARGETS)
+    # Validate: all values must be fractions in (0, 1]
+    validated_targets = {}
+    for key in ("peer_avg", "p75", "best_class"):
+        val = dctr_targets.get(key, _DEFAULT_DCTR_TARGETS[key])
+        try:
+            val = float(val)
+        except (ValueError, TypeError):
+            val = _DEFAULT_DCTR_TARGETS[key]
+        if not (0 < val <= 1):
+            _report(ctx, f"   ⚠️ benchmarks.dctr_targets.{key}={val} out of range (0,1], using default")
+            val = _DEFAULT_DCTR_TARGETS[key]
+        validated_targets[key] = val
+    ctx["dctr_targets"] = validated_targets
+    ctx["reg_e_target"] = float(benchmarks.get("reg_e_target", 0.60))
+
     _report(ctx, f"✅ Config loaded for {client_id} — {ctx['client_name']}")
     _report(ctx, f"   NSF/OD Fee: ${ctx['nsf_od_fee']:.2f}  |  IC Rate: {ctx['ic_rate']:.4%}")
     _report(
         ctx,
         f"   Stat codes: {len(ctx['eligible_stat_code'])}  |  Prod codes: {len(ctx['eligible_prod_code'])}",
     )
+    if benchmarks:
+        _report(ctx, f"   DCTR targets: {validated_targets}")
     return ctx
 
 
@@ -1062,30 +1085,7 @@ def _reorder_analysis_slides(ctx, selected):
     # ------------------------------------------------------------------
     # Consolidation: merge paired slides and move detail to appendix
     # ------------------------------------------------------------------
-    DCTR_MERGES = [
-        (
-            "A7.6a - Last 12 Months DCTR Trend",
-            "A7.4 - Segment Trends",
-            "DCTR Recent Trend & Account Types",
-        ),
-        ("A7.7 - Historical Funnel", "A7.8 - L12M Funnel", "DCTR Funnel: Historical vs TTM"),
-        (
-            "A7.11 - DCTR by Account Holder Age",
-            "A7.12 - DCTR by Account Age",
-            "DCTR Opportunity: Age Analysis",
-        ),
-    ]
-    DCTR_APPENDIX_IDS = {
-        "A7.5 - Decade Trend",
-        "A7.6b - Personal vs Business by Decade",
-        "A7.13 - Monthly Heatmap",
-        "A7.14 - Seasonality",
-        "A7.15 - Vintage & Cohort",
-        "A7.16 - Branch L12M Table",
-        "A7.9 - Eligible vs Non-Eligible DCTR",
-        "A7.10b - Branch DCTR (L12M Focus)",
-        "A7.10c - Branch Top 10",
-    }
+    from ars_analysis.dctr import DCTR_APPENDIX_IDS, DCTR_MERGES
 
     REGE_MERGES = [
         (

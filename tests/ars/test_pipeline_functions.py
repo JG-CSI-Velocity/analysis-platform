@@ -1,5 +1,7 @@
 """Tests for key pipeline functions from ars_analysis.pipeline."""
 
+import json
+
 import pandas as pd
 
 from ars_analysis.pipeline import (
@@ -11,6 +13,7 @@ from ars_analysis.pipeline import (
     sanitize_sheet_title,
     step_create_subsets,
     step_date_range,
+    step_load_config,
 )
 
 
@@ -30,6 +33,12 @@ class TestCreateContext:
         ctx = create_context()
         assert ctx["results"] == {}
         assert ctx["all_slides"] == []
+
+
+    def test_dctr_targets_defaults(self):
+        ctx = create_context()
+        assert ctx["dctr_targets"] == {"peer_avg": 0.65, "p75": 0.72, "best_class": 0.80}
+        assert ctx["reg_e_target"] == 0.60
 
 
 class TestCleanCodeColumn:
@@ -121,3 +130,73 @@ class TestStepCreateSubsets:
         assert "closed_accounts" in ctx
         assert len(ctx["open_accounts"]) == 2
         assert len(ctx["closed_accounts"]) == 1
+
+
+def _write_config(tmp_path, client_id, config_entry):
+    """Helper: write a clients_config.json with one entry."""
+    config_path = tmp_path / "clients_config.json"
+    config_path.write_text(json.dumps({client_id: config_entry}))
+    return str(config_path)
+
+
+def _base_config(**overrides):
+    """Minimal valid client config dict."""
+    cfg = {
+        "EligibleStatusCodes": ["O"],
+        "EligibleProductCodes": ["001"],
+        "EligibleMailCode": ["Yes"],
+        "RegEOptInCode": ["Opted In"],
+        "ICRate": "0.005",
+        "NSF_OD_Fee": "25",
+    }
+    cfg.update(overrides)
+    return cfg
+
+
+class TestStepLoadConfigBenchmarks:
+    def test_defaults_when_no_benchmarks(self, tmp_path):
+        path = _write_config(tmp_path, "9999", _base_config())
+        ctx = create_context()
+        ctx["client_id"] = "9999"
+        ctx["client_name"] = "Test CU"
+        step_load_config(ctx, config_path=path)
+        assert ctx["dctr_targets"] == {"peer_avg": 0.65, "p75": 0.72, "best_class": 0.80}
+        assert ctx["reg_e_target"] == 0.60
+
+    def test_custom_benchmarks(self, tmp_path):
+        cfg = _base_config(benchmarks={
+            "dctr_targets": {"peer_avg": 0.70, "p75": 0.78, "best_class": 0.85},
+            "reg_e_target": 0.55,
+        })
+        path = _write_config(tmp_path, "9999", cfg)
+        ctx = create_context()
+        ctx["client_id"] = "9999"
+        ctx["client_name"] = "Test CU"
+        step_load_config(ctx, config_path=path)
+        assert ctx["dctr_targets"]["peer_avg"] == 0.70
+        assert ctx["dctr_targets"]["best_class"] == 0.85
+        assert ctx["reg_e_target"] == 0.55
+
+    def test_invalid_benchmark_uses_default(self, tmp_path):
+        cfg = _base_config(benchmarks={
+            "dctr_targets": {"peer_avg": 1.5, "p75": -0.1, "best_class": 0.80},
+        })
+        path = _write_config(tmp_path, "9999", cfg)
+        ctx = create_context()
+        ctx["client_id"] = "9999"
+        ctx["client_name"] = "Test CU"
+        step_load_config(ctx, config_path=path)
+        # Out-of-range values should fall back to defaults
+        assert ctx["dctr_targets"]["peer_avg"] == 0.65
+        assert ctx["dctr_targets"]["p75"] == 0.72
+        # Valid value should be preserved
+        assert ctx["dctr_targets"]["best_class"] == 0.80
+
+    def test_ic_rate_loaded(self, tmp_path):
+        path = _write_config(tmp_path, "9999", _base_config())
+        ctx = create_context()
+        ctx["client_id"] = "9999"
+        ctx["client_name"] = "Test CU"
+        step_load_config(ctx, config_path=path)
+        assert ctx["ic_rate"] == 0.005
+        assert ctx["nsf_od_fee"] == 25.0

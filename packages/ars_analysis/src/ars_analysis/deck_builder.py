@@ -69,7 +69,8 @@ DECK_CONFIG = {
     "fig_wide": (14, 6),
     "fig_square": (7, 7),
     # -------------------------------------------------------------------------
-    # TEMPLATE LAYOUTS - CSI Template12.25.pptx (14 layouts, max index = 13)
+    # TEMPLATE LAYOUTS - CSI Template12.25.pptx (network: M:\ARS\Presentations\)
+    # NOTE: Network template has 17 layouts (0-16). Bundled fallback has fewer.
     # -------------------------------------------------------------------------
     #   0: Cover / Intro - Slide 1      <- Dark bg, centered white text
     #   1: Cover / Intro - Slide 2      <- Title slide (text on left)
@@ -85,6 +86,9 @@ DECK_CONFIG = {
     #  11: Analysis - Slide 7 - Stacked <- Chart on right 2/3
     #  12: Analysis - Slide 8 - Blank   <- Flexible (summary, revenue)
     #  13: Analysis - Slide 9 - Split   <- Full-width spaced (header-only)
+    #  14: Agenda                       <- Dedicated Agenda layout
+    #  15: Analysis - Slide 11 - Header1
+    #  16: Analysis - Slide 11 - Header2
     # -------------------------------------------------------------------------
     "layout_title": 1,
     "layout_title_alt": 0,

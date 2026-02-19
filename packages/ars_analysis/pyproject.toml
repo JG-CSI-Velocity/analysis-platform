@@ -1,6 +1,6 @@
 [project]
 name = "ars-analysis"
-version = "1.0.0"
+version = "1.1.0"
 description = "ARS (Account Revenue Solution) analysis pipeline: DCTR, Reg E, attrition, value, mailer"
 requires-python = ">=3.11"
 dependencies = [

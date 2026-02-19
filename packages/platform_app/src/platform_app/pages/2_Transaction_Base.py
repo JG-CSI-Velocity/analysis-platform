@@ -146,7 +146,11 @@ if use_dir:
     tmp = tempfile.NamedTemporaryFile(suffix=".csv", delete=False, prefix="txn_merged_")
     merged.to_csv(tmp.name, index=False)
     tran_file = Path(tmp.name)
-    output_dir = txn_path.parent / "output_base" / f"{client_id.strip()}_{client_name.strip().replace(' ', '_')}"
+    output_dir = (
+        txn_path.parent
+        / "output_base"
+        / f"{client_id.strip()}_{client_name.strip().replace(' ', '_')}"
+    )
 else:
     tran_file = Path(single_file.strip())
     output_dir = tran_file.parent / "output_base"

@@ -10,7 +10,7 @@ analysis_platform/
     shared/           Shared types, context, and config (PipelineContext, AnalysisResult)
     ars_analysis/     ARS pipeline (70+ analyses, PPTX deck, Excel reports)
     txn_analysis/     Transaction pipeline (M1-M10 base + V4 S1-S9 storylines)
-    ics_toolkit/      ICS pipeline (37 analyses + append pipeline)
+    ics_toolkit/      ICS pipeline (37 analyses + append + referral intelligence)
     platform_app/     Orchestrator, CLI, and Streamlit UI
   tests/
     ars/              ARS unit tests (141 tests)
@@ -227,9 +227,23 @@ Base analysis: M1-M10 (31 analyses, 19 charts). V4 storylines: S1-S9 (99+ analys
 ```
 uv run python -m ics_toolkit analyze data/ics_data.xlsx
 uv run python -m ics_toolkit append run-all
+uv run python -m ics_toolkit referral data/referral_file.xlsx
 ```
 
-37 analyses + Plotly charts + PPTX output.
+37 analyses + Plotly charts + PPTX output. Append pipeline for organizing/merging/matching ICS accounts.
+
+### Referral Intelligence
+
+```
+uv run python -m ics_toolkit referral data/referral_file.xlsx
+```
+
+```python
+from ics_toolkit import run_referral
+run_referral("data/referral_file.xlsx")
+```
+
+8-step pipeline: data loading, entity normalization, code decoding, temporal signals, network inference, influence scoring (0-100), 8 analysis artifacts, 5 Plotly chart builders. Configurable scoring weights, burst/dormancy thresholds, and code prefix mapping via `config.yaml`.
 
 ---
 
@@ -242,6 +256,7 @@ uv run python -m ics_toolkit append run-all
 | Transaction (V4) | Tab-delimited + ODD Excel + YAML config | Excel + HTML + PNG charts |
 | ICS Analysis | ICS Excel/CSV | Excel + Plotly charts + PPTX |
 | ICS Append | Directory of ICS source files | Merged/organized output |
+| ICS Referral | Referral Excel/CSV | Excel + Plotly charts + PPTX |
 
 ## Tests
 
@@ -254,10 +269,11 @@ uv run pytest tests/ -v
 Run by package:
 
 ```
-uv run pytest tests/ars/ -v       # 141 ARS tests
-uv run pytest tests/txn/ -v       # Transaction tests
-uv run pytest tests/ics/ -v       # ICS tests
-uv run pytest tests/shared/ -v    # 50 shared tests
+uv run pytest tests/ars/ -v              # 141 ARS tests
+uv run pytest tests/txn/ -v              # Transaction tests
+uv run pytest tests/ics/ -v              # ICS tests (incl. 212 referral)
+uv run pytest tests/ics/referral/ -v     # Referral tests only
+uv run pytest tests/shared/ -v           # 50 shared tests
 ```
 
 Using make (macOS/Linux):
@@ -269,7 +285,7 @@ make lint    # ruff check + format check
 make fmt     # auto-fix lint + format
 ```
 
-**976 tests, ~55s runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
+**1431 tests, ~105s runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
 
 ## Lint
 

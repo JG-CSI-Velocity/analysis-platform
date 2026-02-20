@@ -226,69 +226,74 @@ def analyze(
         raise typer.Exit(code=1) from None
 
 
-@app.command(name="chart-catalog")
-def chart_catalog(
+# ---------------------------------------------------------------------------
+# Referral command
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def referral(
     data_file: Path = typer.Argument(
         None,
-        help="Path to the client CSV/Excel file.",
+        help="Path to the referral CSV/Excel file.",
         exists=False,
     ),
     config: Path = typer.Option(
         DEFAULT_CONFIG_PATH, "--config", "-c", help="Path to config.yaml file."
     ),
-    output_dir: Path = typer.Option(None, "--output", "-o", help="Output directory."),
+    output_dir: Path = typer.Option(
+        None, "--output", "-o", help="Output directory for referral reports."
+    ),
     client_id: str = typer.Option(None, "--client-id", help="Client identifier."),
+    client_name: str = typer.Option(None, "--client-name", help="Client name for report titles."),
+    no_charts: bool = typer.Option(False, "--no-charts", help="Skip chart rendering (faster)."),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug logging."),
 ) -> None:
-    """Generate a chart catalog PPTX with one slide per chart and metadata labels.
-
-    Each slide shows the chart image, section, function name, and source .py file.
-    Use this to review charts one-by-one and provide feedback.
+    """Run referral intelligence analysis and generate reports.
 
     Usage:
-        python -m ics_toolkit chart-catalog data/client_file.xlsx
+        python -m ics_toolkit referral data/referral_file.xlsx
+        python -m ics_toolkit referral --config config.yaml
     """
     _setup_logging(verbose)
     logger = logging.getLogger(__name__)
 
     try:
-        overrides: dict = {"analysis": {}}
+        overrides: dict = {"referral": {}}
         if data_file is not None:
-            overrides["analysis"]["data_file"] = data_file
+            overrides["referral"]["data_file"] = data_file
         if output_dir is not None:
-            overrides["analysis"]["output_dir"] = output_dir
+            overrides["referral"]["output_dir"] = output_dir
         if client_id is not None:
-            overrides["analysis"]["client_id"] = client_id
+            overrides["referral"]["client_id"] = client_id
+        if client_name is not None:
+            overrides["referral"]["client_name"] = client_name
 
         from ics_toolkit.settings import Settings
 
         settings = Settings.from_yaml(config_path=config, **overrides)
-        analysis_settings = settings.analysis
+        ref_settings = settings.referral
 
-        logger.info("Client: %s (%s)", analysis_settings.client_name, analysis_settings.client_id)
-        logger.info("Data: %s", analysis_settings.data_file)
+        logger.info("Client: %s (%s)", ref_settings.client_name, ref_settings.client_id)
+        logger.info("Data: %s", ref_settings.data_file)
+        logger.info("Output: %s", ref_settings.output_dir)
 
-        from ics_toolkit.analysis.pipeline import run_pipeline
+        from ics_toolkit.referral.pipeline import export_outputs, run_pipeline
 
-        result = run_pipeline(analysis_settings, skip_charts=False)
+        result = run_pipeline(ref_settings, skip_charts=no_charts)
 
         successful = [a for a in result.analyses if a.error is None]
-        logger.info(
-            "Analyses: %d/%d  Charts: %d",
-            len(successful),
-            len(result.analyses),
-            len(result.chart_pngs),
-        )
+        logger.info("Analyses completed: %d/%d", len(successful), len(result.analyses))
 
-        from ics_toolkit.analysis.exports.pptx import write_chart_catalog
+        generated = export_outputs(result, skip_charts=no_charts)
 
-        path = write_chart_catalog(
-            analysis_settings,
-            result.analyses,
-            result.chart_pngs,
-        )
-        logger.info("")
-        logger.info("Chart catalog: %s", path)
+        if generated:
+            logger.info("")
+            logger.info("Generated reports:")
+            for path in generated:
+                logger.info("  %s", path)
+        else:
+            logger.warning("No reports were generated.")
 
     except ICSToolkitError as e:
         logger.error(str(e))

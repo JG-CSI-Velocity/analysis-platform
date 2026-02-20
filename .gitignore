@@ -41,6 +41,10 @@ data/*.csv
 data/*.xlsx
 !data/.gitkeep
 
+# Allow E2E test fixtures
+!tests/e2e_data/*.xlsx
+!tests/e2e_data/*.csv
+
 # Environment
 .env
 .env.local

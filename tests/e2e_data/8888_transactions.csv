@@ -1,0 +1,201 @@
+primary_account_num,merchant_name,merchant_consolidated,amount,transaction_date,mcc_code,mcc_description,business_flag
+4315042023,Home Depot,Home Depot,248.21,2025-12-12,5211,Building Materials,Yes
+4440655936,McDonald's,McDonald's,455.58,2025-08-08,5812,Restaurants,No
+4763023444,Costco,Costco,419.23,2025-08-19,5311,Department Stores,No
+4350268043,Walgreens,Walgreens,406.68,2025-10-10,5912,Drug Stores,No
+4198912260,Target,Target,113.97,2025-07-09,5311,Department Stores,No
+4437293312,Chevron,Chevron,77.83,2025-07-27,5541,Service Stations,Yes
+4265858355,DoorDash,DoorDash,345.51,2025-10-10,5812,Restaurants,Yes
+4864885195,Amazon,Amazon,235.12,2025-09-30,5411,Grocery Stores,Yes
+4772776927,Kroger,Kroger,342.33,2025-10-26,5411,Grocery Stores,No
+4621139557,Chevron,Chevron,380.67,2025-07-21,5541,Service Stations,No
+4335283709,Home Depot,Home Depot,148.71,2025-12-01,5211,Building Materials,No
+4462743903,Kroger,Kroger,143.4,2025-09-26,5411,Grocery Stores,No
+4161587915,DoorDash,DoorDash,246.18,2025-07-28,5812,Restaurants,No
+4505393902,Walmart,Walmart,137.86,2025-08-26,5411,Grocery Stores,No
+4493160228,Lyft,Lyft,334.15,2025-08-10,4121,Ride Sharing,No
+4172338602,Home Depot,Home Depot,373.75,2025-09-20,5211,Building Materials,No
+4961851092,Walmart,Walmart,236.81,2025-09-23,5411,Grocery Stores,No
+4558288360,Costco,Costco,362.31,2025-09-17,5311,Department Stores,No
+4518729733,Costco,Costco,255.95,2025-09-21,5311,Department Stores,No
+4522540577,Shell Gas,Shell Gas,356.87,2025-12-11,5541,Service Stations,No
+4860527880,Chevron,Chevron,113.65,2025-12-20,5541,Service Stations,No
+4771646431,CVS Pharmacy,CVS Pharmacy,369.81,2025-09-27,5912,Drug Stores,No
+4880871631,Chevron,Chevron,357.99,2025-12-21,5541,Service Stations,Yes
+4441142363,Netflix,Netflix,134.4,2025-11-25,4899,Cable/Satellite,No
+4338638428,Shell Gas,Shell Gas,278.65,2025-11-25,5541,Service Stations,No
+4484681554,Shell Gas,Shell Gas,427.87,2025-08-10,5541,Service Stations,No
+4605341693,Shell Gas,Shell Gas,125.89,2025-09-17,5541,Service Stations,No
+4403252957,Chevron,Chevron,368.39,2025-09-02,5541,Service Stations,No
+4514052157,Verizon,Verizon,477.05,2025-07-18,4812,Telecom,No
+4235827779,Kroger,Kroger,433.32,2025-07-14,5411,Grocery Stores,No
+4625459252,Shell Gas,Shell Gas,201.66,2025-10-21,5541,Service Stations,No
+4742428291,DoorDash,DoorDash,304.19,2025-09-14,5812,Restaurants,No
+4574441117,Walgreens,Walgreens,495.9,2025-11-26,5912,Drug Stores,No
+4885727821,Target,Target,284.87,2025-10-29,5311,Department Stores,No
+4996109946,Uber,Uber,58.84,2025-07-16,4121,Ride Sharing,No
+4915033383,Target,Target,24.15,2025-11-28,5311,Department Stores,Yes
+4183680223,Target,Target,395.47,2025-09-28,5311,Department Stores,No
+4892722643,Starbucks,Starbucks,212.68,2025-10-10,5814,Fast Food,No
+4400334289,Walgreens,Walgreens,124.54,2025-12-21,5912,Drug Stores,Yes
+4506605421,Target,Target,174.81,2025-10-24,5311,Department Stores,No
+4470780802,AT&T,AT&T,379.05,2025-07-05,4812,Telecom,No
+4355659572,Target,Target,233.43,2025-08-01,5311,Department Stores,No
+4889506804,AT&T,AT&T,434.45,2025-09-15,4812,Telecom,No
+4674131373,Amazon,Amazon,367.86,2025-07-07,5411,Grocery Stores,No
+4970270522,Subway,Subway,487.05,2025-07-31,5812,Restaurants,No
+4959234419,CVS Pharmacy,CVS Pharmacy,444.42,2025-11-20,5912,Drug Stores,No
+4477785038,Shell Gas,Shell Gas,128.39,2025-07-26,5541,Service Stations,No
+4754345582,CVS Pharmacy,CVS Pharmacy,330.04,2025-07-31,5912,Drug Stores,No
+4552127903,Walgreens,Walgreens,11.74,2025-09-29,5912,Drug Stores,No
+4545363704,Walgreens,Walgreens,495.57,2025-07-17,5912,Drug Stores,No
+4765675472,McDonald's,McDonald's,131.61,2025-08-16,5812,Restaurants,No
+4719927716,AT&T,AT&T,332.9,2025-12-16,4812,Telecom,Yes
+4920571599,Netflix,Netflix,424.8,2025-10-22,4899,Cable/Satellite,No
+4795284120,Chevron,Chevron,81.49,2025-12-21,5541,Service Stations,No
+4659927297,Netflix,Netflix,424.17,2025-09-02,4899,Cable/Satellite,No
+4192145969,Lyft,Lyft,7.6,2025-10-19,4121,Ride Sharing,No
+4786894177,Verizon,Verizon,221.83,2025-08-12,4812,Telecom,No
+4453054808,Netflix,Netflix,236.81,2025-09-07,4899,Cable/Satellite,Yes
+4489871499,AT&T,AT&T,187.98,2025-08-01,4812,Telecom,No
+4803507319,Verizon,Verizon,293.81,2025-11-27,4812,Telecom,No
+4346245866,Shell Gas,Shell Gas,457.55,2025-08-03,5541,Service Stations,No
+4895268445,Netflix,Netflix,164.5,2025-08-06,4899,Cable/Satellite,No
+4549893497,Target,Target,290.26,2025-09-22,5311,Department Stores,No
+4395360149,McDonald's,McDonald's,438.92,2025-09-16,5812,Restaurants,Yes
+4478829697,Lyft,Lyft,386.84,2025-08-26,4121,Ride Sharing,No
+4948488132,Shell Gas,Shell Gas,21.81,2025-09-03,5541,Service Stations,No
+4192379290,Verizon,Verizon,471.48,2025-08-23,4812,Telecom,No
+4557169258,Starbucks,Starbucks,24.75,2025-12-12,5814,Fast Food,No
+4851504040,Kroger,Kroger,295.0,2025-10-13,5411,Grocery Stores,No
+4524850701,Amazon,Amazon,288.31,2025-12-13,5411,Grocery Stores,No
+4609416037,Home Depot,Home Depot,393.52,2025-12-25,5211,Building Materials,No
+4413376595,Subway,Subway,75.5,2025-10-26,5812,Restaurants,No
+4222591561,Home Depot,Home Depot,90.92,2025-11-26,5211,Building Materials,No
+4675466290,Walmart,Walmart,376.43,2025-07-20,5411,Grocery Stores,No
+4927959582,Shell Gas,Shell Gas,76.03,2025-12-18,5541,Service Stations,No
+4488833709,Walmart,Walmart,235.52,2025-09-25,5411,Grocery Stores,No
+4216144030,Chevron,Chevron,366.23,2025-11-06,5541,Service Stations,No
+4950256265,Lyft,Lyft,326.14,2025-08-14,4121,Ride Sharing,No
+4882287028,Target,Target,106.49,2025-07-18,5311,Department Stores,No
+4911756746,Walgreens,Walgreens,153.02,2025-12-07,5912,Drug Stores,No
+4423111548,Walmart,Walmart,484.53,2025-09-19,5411,Grocery Stores,No
+4662769163,Lowe's,Lowe's,225.16,2025-07-25,5211,Building Materials,No
+4489320586,Lyft,Lyft,23.66,2025-10-27,4121,Ride Sharing,No
+4311186222,Chevron,Chevron,110.96,2025-07-10,5541,Service Stations,Yes
+4285100350,Target,Target,172.2,2025-09-20,5311,Department Stores,No
+4445467203,Lowe's,Lowe's,499.75,2025-11-04,5211,Building Materials,No
+4598058386,Shell Gas,Shell Gas,152.39,2025-11-07,5541,Service Stations,Yes
+4731849555,Uber,Uber,14.66,2025-09-20,4121,Ride Sharing,No
+4511988264,Verizon,Verizon,257.19,2025-09-05,4812,Telecom,No
+4893048787,Walgreens,Walgreens,43.18,2025-11-28,5912,Drug Stores,No
+4350913866,CVS Pharmacy,CVS Pharmacy,138.12,2025-08-03,5912,Drug Stores,No
+4146446898,CVS Pharmacy,CVS Pharmacy,496.2,2025-07-14,5912,Drug Stores,No
+4975998717,Netflix,Netflix,352.76,2025-07-29,4899,Cable/Satellite,No
+4389797798,Subway,Subway,26.76,2025-11-22,5812,Restaurants,No
+4858963017,DoorDash,DoorDash,225.17,2025-09-23,5812,Restaurants,Yes
+4355868815,Chevron,Chevron,87.06,2025-07-07,5541,Service Stations,No
+4678336850,Walmart,Walmart,62.79,2025-07-31,5411,Grocery Stores,Yes
+4284027279,Walgreens,Walgreens,294.15,2025-07-06,5912,Drug Stores,No
+4425985872,Walgreens,Walgreens,253.57,2025-11-24,5912,Drug Stores,No
+4366479126,DoorDash,DoorDash,371.82,2025-09-22,5812,Restaurants,No
+4705149238,McDonald's,McDonald's,446.31,2025-07-13,5812,Restaurants,No
+4888153175,Starbucks,Starbucks,124.47,2025-08-09,5814,Fast Food,No
+4327144572,Lowe's,Lowe's,461.61,2025-10-19,5211,Building Materials,Yes
+4362251155,McDonald's,McDonald's,259.72,2025-10-15,5812,Restaurants,Yes
+4838848930,AT&T,AT&T,130.53,2025-11-25,4812,Telecom,Yes
+4516539020,Starbucks,Starbucks,423.12,2025-07-05,5814,Fast Food,Yes
+4223826994,AT&T,AT&T,19.21,2025-07-13,4812,Telecom,No
+4884790876,Starbucks,Starbucks,280.42,2025-07-07,5814,Fast Food,No
+4692714045,Kroger,Kroger,361.23,2025-09-09,5411,Grocery Stores,No
+4488963657,DoorDash,DoorDash,141.07,2025-11-08,5812,Restaurants,No
+4650424947,Home Depot,Home Depot,431.95,2025-10-28,5211,Building Materials,Yes
+4255994116,Netflix,Netflix,121.28,2025-08-07,4899,Cable/Satellite,No
+4269059973,Lowe's,Lowe's,420.18,2025-10-27,5211,Building Materials,No
+4567644184,McDonald's,McDonald's,40.65,2025-10-27,5812,Restaurants,No
+4348147264,DoorDash,DoorDash,81.22,2025-08-04,5812,Restaurants,No
+4228932245,McDonald's,McDonald's,191.42,2025-11-12,5812,Restaurants,Yes
+4215540347,DoorDash,DoorDash,427.25,2025-09-15,5812,Restaurants,No
+4927913070,Starbucks,Starbucks,73.58,2025-07-11,5814,Fast Food,No
+4281475932,Walmart,Walmart,437.91,2025-09-09,5411,Grocery Stores,No
+4476991954,Walmart,Walmart,116.02,2025-11-16,5411,Grocery Stores,No
+4222986772,DoorDash,DoorDash,227.08,2025-11-03,5812,Restaurants,Yes
+4594690984,Home Depot,Home Depot,177.34,2025-08-18,5211,Building Materials,No
+4663418809,McDonald's,McDonald's,60.39,2025-11-14,5812,Restaurants,No
+4986759355,Verizon,Verizon,472.24,2025-09-09,4812,Telecom,No
+4278031487,CVS Pharmacy,CVS Pharmacy,219.93,2025-09-21,5912,Drug Stores,No
+4220014284,Walgreens,Walgreens,345.63,2025-07-16,5912,Drug Stores,No
+4439453335,Walgreens,Walgreens,288.27,2025-12-27,5912,Drug Stores,No
+4641009004,Target,Target,251.61,2025-11-28,5311,Department Stores,No
+4159967745,Amazon,Amazon,308.86,2025-08-05,5411,Grocery Stores,No
+4783086703,Netflix,Netflix,449.32,2025-10-09,4899,Cable/Satellite,No
+4514096758,Walmart,Walmart,350.11,2025-11-18,5411,Grocery Stores,No
+4813878535,Netflix,Netflix,266.94,2025-09-29,4899,Cable/Satellite,No
+4517246101,Costco,Costco,323.13,2025-08-07,5311,Department Stores,No
+4239961340,Shell Gas,Shell Gas,303.79,2025-12-22,5541,Service Stations,No
+4601180360,Netflix,Netflix,217.41,2025-08-18,4899,Cable/Satellite,No
+4585495267,CVS Pharmacy,CVS Pharmacy,312.94,2025-08-30,5912,Drug Stores,No
+4832310532,AT&T,AT&T,222.62,2025-09-05,4812,Telecom,No
+4889528911,CVS Pharmacy,CVS Pharmacy,379.17,2025-12-08,5912,Drug Stores,No
+4244978309,Walmart,Walmart,484.5,2025-09-29,5411,Grocery Stores,No
+4383218344,Verizon,Verizon,479.99,2025-11-07,4812,Telecom,No
+4286914026,Kroger,Kroger,410.64,2025-12-10,5411,Grocery Stores,No
+4102170257,Costco,Costco,301.48,2025-12-15,5311,Department Stores,No
+4174080568,Uber,Uber,375.04,2025-12-02,4121,Ride Sharing,No
+4572170740,Target,Target,90.26,2025-12-11,5311,Department Stores,Yes
+4236678548,Home Depot,Home Depot,240.29,2025-12-18,5211,Building Materials,No
+4275213526,Subway,Subway,129.77,2025-12-26,5812,Restaurants,No
+4206051900,AT&T,AT&T,3.24,2025-10-24,4812,Telecom,No
+4751818317,Walmart,Walmart,483.42,2025-07-24,5411,Grocery Stores,No
+4672114680,Costco,Costco,432.13,2025-07-21,5311,Department Stores,No
+4965992468,Starbucks,Starbucks,257.58,2025-11-21,5814,Fast Food,No
+4200345159,Subway,Subway,128.19,2025-08-26,5812,Restaurants,No
+4287879939,AT&T,AT&T,346.95,2025-11-22,4812,Telecom,No
+4510130352,CVS Pharmacy,CVS Pharmacy,218.25,2025-12-16,5912,Drug Stores,No
+4684187309,Costco,Costco,401.97,2025-10-24,5311,Department Stores,No
+4217071284,DoorDash,DoorDash,499.76,2025-11-15,5812,Restaurants,No
+4479361481,Subway,Subway,175.52,2025-08-20,5812,Restaurants,No
+4116206172,DoorDash,DoorDash,123.33,2025-09-17,5812,Restaurants,No
+4455747121,DoorDash,DoorDash,134.79,2025-12-21,5812,Restaurants,No
+4782698773,Amazon,Amazon,48.03,2025-11-25,5411,Grocery Stores,No
+4573975648,Home Depot,Home Depot,197.93,2025-08-06,5211,Building Materials,No
+4490604208,Starbucks,Starbucks,10.19,2025-12-16,5814,Fast Food,No
+4539124640,Subway,Subway,58.53,2025-09-28,5812,Restaurants,No
+4952108174,Chevron,Chevron,136.94,2025-11-29,5541,Service Stations,No
+4580857293,Lowe's,Lowe's,81.19,2025-10-02,5211,Building Materials,No
+4937734347,Subway,Subway,366.48,2025-10-17,5812,Restaurants,No
+4241734581,Target,Target,54.14,2025-07-30,5311,Department Stores,No
+4386725229,Shell Gas,Shell Gas,433.2,2025-08-30,5541,Service Stations,No
+4207553364,Costco,Costco,111.73,2025-11-08,5311,Department Stores,No
+4890226344,Verizon,Verizon,55.63,2025-11-29,4812,Telecom,No
+4652862381,Walgreens,Walgreens,6.54,2025-07-16,5912,Drug Stores,No
+4721812861,McDonald's,McDonald's,358.03,2025-07-14,5812,Restaurants,No
+4407114923,McDonald's,McDonald's,129.42,2025-11-02,5812,Restaurants,No
+4658748227,Amazon,Amazon,255.49,2025-09-19,5411,Grocery Stores,No
+4575038289,Shell Gas,Shell Gas,57.14,2025-11-30,5541,Service Stations,Yes
+4702532168,Lyft,Lyft,492.67,2025-07-13,4121,Ride Sharing,No
+4472003041,Walmart,Walmart,64.0,2025-09-01,5411,Grocery Stores,No
+4172132488,Costco,Costco,206.85,2025-07-07,5311,Department Stores,No
+4922038697,Verizon,Verizon,426.05,2025-11-05,4812,Telecom,No
+4120266957,Home Depot,Home Depot,123.58,2025-12-02,5211,Building Materials,Yes
+4355302059,Walmart,Walmart,134.59,2025-07-29,5411,Grocery Stores,No
+4203007427,Subway,Subway,404.54,2025-08-28,5812,Restaurants,No
+4308647157,Netflix,Netflix,137.76,2025-11-30,4899,Cable/Satellite,No
+4455496678,Chevron,Chevron,2.93,2025-07-08,5541,Service Stations,No
+4216648331,McDonald's,McDonald's,214.81,2025-12-19,5812,Restaurants,Yes
+4520035948,CVS Pharmacy,CVS Pharmacy,7.75,2025-12-07,5912,Drug Stores,No
+4934591925,Lowe's,Lowe's,455.03,2025-07-28,5211,Building Materials,No
+4222815466,Lyft,Lyft,321.44,2025-07-26,4121,Ride Sharing,Yes
+4933924910,Kroger,Kroger,292.13,2025-11-02,5411,Grocery Stores,No
+4470037823,Shell Gas,Shell Gas,101.99,2025-07-02,5541,Service Stations,No
+4633211461,Target,Target,350.42,2025-09-30,5311,Department Stores,No
+4634005849,Walgreens,Walgreens,339.11,2025-07-12,5912,Drug Stores,No
+4568709372,Home Depot,Home Depot,31.64,2025-10-04,5211,Building Materials,No
+4679369338,Chevron,Chevron,440.6,2025-09-02,5541,Service Stations,No
+4449681976,Walgreens,Walgreens,290.34,2025-11-05,5912,Drug Stores,No
+4208539761,McDonald's,McDonald's,396.54,2025-12-06,5812,Restaurants,No
+4556216464,Target,Target,132.56,2025-09-26,5311,Department Stores,No
+4882034968,Home Depot,Home Depot,62.34,2025-10-24,5211,Building Materials,Yes
+4382777737,Starbucks,Starbucks,351.67,2025-10-17,5814,Fast Food,No
+4868897927,Starbucks,Starbucks,397.25,2025-12-25,5814,Fast Food,No
+4617513536,Starbucks,Starbucks,193.94,2025-08-11,5814,Fast Food,No

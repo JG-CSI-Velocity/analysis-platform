@@ -1,28 +1,19 @@
 # Analysis Platform -- Claude Code Instructions
 
-## Session Pickup: 2.21.26
+## Current State (2026-02-20)
 
-### What just shipped (2/20)
-- **PR #9** (`feat/referral-intelligence-engine`): Referral Intelligence Engine added to ICS Toolkit
-  - https://github.com/JG-CSI-Velocity/analysis-platform/pull/9
-  - 58 files, ~4,100 lines, 212 tests, lint clean
-  - 8-step pipeline: load -> normalize -> decode -> temporal -> network -> score -> analyze -> chart
-  - 8 analysis artifacts (R01-R08), 5 Plotly chart builders, Excel + PPTX export
-  - CLI: `python -m ics_toolkit referral data/file.xlsx`
-  - REPL: `from ics_toolkit import run_referral; run_referral("data/file.xlsx")`
-  - Settings: `ReferralScoringWeights`, `ReferralStaffWeights`, `ReferralSettings` (Pydantic v2)
+**Monorepo health:** CI green, 2168 tests, 81% coverage, all PRs merged.
 
-### Done (2/21)
-1. ~~Merge PR #9~~ -- merged into main
-2. ~~Close PR #6 on standalone repo~~ -- closed with note pointing to PR #9
-3. ~~Update README.md~~ -- added Referral Pipeline section, Python API, CLI usage
-4. ~~Update test counts~~ -- 976 -> 1431
-5. ~~config.example.yaml~~ -- no config.example.yaml exists in monorepo, skipped
-6. ~~Pre-existing platform test failures~~ -- already fixed by platform_app v2 rewrite (merged with PR #9); all 39 platform tests pass
+### Recent milestones
+- **PR #4**: ARS v2 modular pipeline migration (545 tests, 20 analytics modules)
+- **PR #9**: ICS Referral Intelligence Engine (212 tests, 8-step pipeline)
+- **UAP V2.0**: Unified Streamlit UI with industrial theme, module registry
 
-### Notes
-- ICS analysis PPTX uses `DeckBuilder` class; referral PPTX has its own self-contained slide helpers. Both work fine, just two patterns in the same package.
-- `kaleido==0.2.1` pinned; deprecation warnings are noisy but harmless.
+### What needs attention
+- **Real-data validation**: All tests use synthetic fixtures. Run each pipeline with a real client file before deploying.
+- **Windows .bat validation**: `run.bat`, `dashboard.bat`, `run_batch.bat` need testing on Windows M: drive.
+- **Standalone repo archival**: `ars-pipeline`, `ars_analysis-jupyter`, `ics_toolkit`, `ics_append` are superseded by this monorepo.
+- See `plans/chore-consolidate-moving-parts.md` for the full roadmap.
 
 ---
 
@@ -31,32 +22,47 @@
 ```
 analysis_platform/
   packages/
-    shared/           Shared types, context, config
-    ars_analysis/     ARS pipeline (70+ analyses, PPTX deck)
-    txn_analysis/     Transaction pipeline (M1-M10 + V4 S1-S9)
-    ics_toolkit/      ICS pipeline (37 analyses + append + referral)
-    platform_app/     Orchestrator, CLI, Streamlit UI
+    shared/           Shared types, context, config (50 tests)
+    ars_analysis/     ARS pipeline -- 20 modules, 70+ analyses, PPTX deck (545 tests)
+    txn_analysis/     Transaction pipeline -- M1-M10 base + V4 S1-S9 storylines (446 tests)
+    ics_toolkit/      ICS pipeline -- 37 analyses + append + referral (1049 tests)
+    platform_app/     Orchestrator, Streamlit UI, CLI (60 tests)
   tests/
-    ars/              ARS tests (141)
-    txn/              Transaction tests
-    ics/              ICS tests (including ics/referral/ -- 212 tests)
-    shared/           Shared tests (50)
-    platform/         Platform tests
-    integration/      E2E tests
+    ars/              ARS unit tests
+    txn/              Transaction unit tests
+    ics/              ICS unit tests (including referral)
+    shared/           Shared unit tests
+    platform/         Platform unit tests
+    integration/      E2E tests (18 tests)
+  scripts/
+    sync_ars.sh/.bat  Sync from ars-pipeline upstream (renames ars.* -> ars_analysis.*)
+    sync_ics.sh/.bat  Sync from ics_toolkit upstream
 ```
 
 ## Commands
 
 ```bash
-make test          # all tests
-make cov           # tests + coverage
-make lint          # ruff check + format check
-make fmt           # auto-fix lint + format
+# Development
+uv run pytest tests/ -q              # all tests (~2168, ~2 min)
+uv run pytest tests/ars/ -q          # ARS only
+uv run pytest tests/ics/ -q          # ICS only
+uv run pytest tests/integration/ -q  # E2E only
+uv run ruff check .                  # lint
+uv run ruff format --check .         # format check
 
-# Per-package
-.venv/bin/python -m pytest tests/ics/referral/ -v   # referral only
-.venv/bin/python -m pytest tests/ics/ -v             # all ICS
-.venv/bin/python -m pytest tests/ -v                 # everything
+# Make targets
+make test    # all tests
+make cov     # tests + coverage
+make lint    # ruff check + format check
+make fmt     # auto-fix lint + format
+
+# Pipeline CLIs
+uv run python -m ars_analysis --help
+uv run python -m ics_toolkit --help
+uv run python -m txn_analysis --help
+
+# Streamlit UI
+uv run streamlit run packages/platform_app/src/platform_app/app.py
 ```
 
 ## Conventions
@@ -65,4 +71,10 @@ make fmt           # auto-fix lint + format
 - `kaleido==0.2.1` pinned (v1.0+ has 50x regression)
 - `ruff check` + `ruff format` must pass before push
 - Tests must pass before push
-- CI coverage floor is 70% (`--cov-fail-under=70`) -- currently at 81%. 1657 tests, passing on main.
+- CI coverage floor: 70% (`--cov-fail-under=70`), currently at ~81%
+
+## Upstream Sync
+- `ars-upstream` remote -> `JG-CSI-Velocity/ars-pipeline` (sync scripts rename `ars.*` -> `ars_analysis.*`)
+- `ics-upstream` remote -> `JG-CSI-Velocity/ics_toolkit` (direct copy, same package name)
+- Sync is manual: `./scripts/sync_ars.sh` or `scripts\sync_ars.bat`
+- After sync: run tests, fix lint, verify no stale `from ars.` imports

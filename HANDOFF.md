@@ -105,7 +105,7 @@ analysis_platform/                    https://github.com/JG-CSI-Velocity/analysi
     platform_app/     4,271 LOC  Orchestrator, Typer CLI, Streamlit UI
   tests/
     shared/           50 tests
-    ars/              545 collected (13 fail to collect -- pydantic_settings dep)
+    ars/              545 tests (collection failures resolved)
     txn/              597 tests
     ics/              1,049 tests (incl. referral: 212)
     platform/         60 tests
@@ -119,7 +119,7 @@ analysis_platform/                    https://github.com/JG-CSI-Velocity/analysi
 | Source LOC | 44,708 |
 | Test LOC | 21,854 |
 | Total tests collected | 2,318 |
-| Tests passing | 2,305 (13 ARS pre-existing collection failures) |
+| Tests passing | 2,318 |
 | Coverage | 89% (16,018 stmts, 1,737 missed) |
 | CI floor | 80% (`--cov-fail-under=80`) |
 | Test time | ~2 min |
@@ -136,7 +136,7 @@ None. All merged.
 
 | # | Title | Notes |
 |---|-------|-------|
-| 14 | Platform App: Wire Pipeline Execution | Tier 4.1 -- biggest remaining feature. BLOCKS on Tier 3.1 (unified AnalysisResult). |
+| 14 | Platform App: Wire Pipeline Execution | **CLOSED** -- implementation already complete in run_analysis.py |
 
 **txn-analysis (standalone -- superseded, commented for migration):**
 

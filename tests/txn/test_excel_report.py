@@ -75,8 +75,8 @@ class TestWriteExcelReport:
             settings=settings,
             df=pd.DataFrame(),
             analyses=[
-                AnalysisResult(name="ok", title="OK", df=pd.DataFrame({"a": [1]}), sheet_name="OK"),
-                AnalysisResult(name="bad", title="Bad", df=pd.DataFrame(), error="boom"),
+                AnalysisResult.from_df("ok", "OK", pd.DataFrame({"a": [1]}), sheet_name="OK"),
+                AnalysisResult.from_df("bad", "Bad", pd.DataFrame(), error="boom"),
             ],
         )
         path = tmp_path / "test_report.xlsx"

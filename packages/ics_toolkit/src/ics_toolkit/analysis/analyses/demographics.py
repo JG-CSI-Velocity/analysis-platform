@@ -35,10 +35,10 @@ def analyze_age_comparison(
         pct_of=["Count"],
     )
 
-    return AnalysisResult(
-        name="Age Comparison",
-        title="ICS Stat Code O - Account Age Distribution",
-        df=result,
+    return AnalysisResult.from_df(
+        "Age Comparison",
+        "ICS Stat Code O - Account Age Distribution",
+        result,
         sheet_name="14_Age_Comparison",
     )
 
@@ -69,10 +69,10 @@ def analyze_closures(
 
     result = append_grand_total_row(result, label_col="Month Closed")
 
-    return AnalysisResult(
-        name="Closures",
-        title="ICS Accounts - Closures by Month",
-        df=result,
+    return AnalysisResult.from_df(
+        "Closures",
+        "ICS Accounts - Closures by Month",
+        result,
         sheet_name="15_Closures",
     )
 
@@ -99,10 +99,10 @@ def analyze_open_vs_close(
 
     result = kpi_summary(metrics)
 
-    return AnalysisResult(
-        name="Open vs Close",
-        title="ICS Accounts - Open vs Closed",
-        df=result,
+    return AnalysisResult.from_df(
+        "Open vs Close",
+        "ICS Accounts - Open vs Closed",
+        result,
         sheet_name="16_Open_vs_Close",
     )
 
@@ -125,10 +125,10 @@ def analyze_balance_tiers(
         pct_of=["Count"],
     )
 
-    return AnalysisResult(
-        name="Balance Tiers",
-        title="ICS Stat Code O - Balance Tier Distribution",
-        df=result,
+    return AnalysisResult.from_df(
+        "Balance Tiers",
+        "ICS Stat Code O - Balance Tier Distribution",
+        result,
         sheet_name="17_Balance_Tiers",
     )
 
@@ -154,10 +154,10 @@ def analyze_stat_open_close(
     result["Avg Curr Bal"] = result["Avg Curr Bal"].round(2)
     result = append_grand_total_row(result, label_col="Stat Code")
 
-    return AnalysisResult(
-        name="Stat Open Close",
-        title="ICS Accounts - Open/Close by Stat Code",
-        df=result,
+    return AnalysisResult.from_df(
+        "Stat Open Close",
+        "ICS Accounts - Open/Close by Stat Code",
+        result,
         sheet_name="18_Stat_Open_Close",
     )
 
@@ -187,10 +187,10 @@ def analyze_age_vs_balance(
 
     result["Avg Curr Bal"] = result["Avg Curr Bal"].round(2)
 
-    return AnalysisResult(
-        name="Age vs Balance",
-        title="ICS Stat Code O - Age vs Average Balance",
-        df=result,
+    return AnalysisResult.from_df(
+        "Age vs Balance",
+        "ICS Stat Code O - Age vs Average Balance",
+        result,
         sheet_name="19_Age_vs_Balance",
     )
 
@@ -228,10 +228,10 @@ def analyze_balance_tier_detail(
     result["Avg Swipes"] = result["Avg Swipes"].round(1)
     result["Avg Spend"] = result["Avg Spend"].round(2)
 
-    return AnalysisResult(
-        name="Balance Tier Detail",
-        title="ICS Stat Code O Debit - Balance Tier Detail",
-        df=result,
+    return AnalysisResult.from_df(
+        "Balance Tier Detail",
+        "ICS Stat Code O Debit - Balance Tier Detail",
+        result,
         sheet_name="20_Bal_Tier_Detail",
     )
 
@@ -257,10 +257,10 @@ def analyze_age_dist(
         pct_of=["Count"],
     )
 
-    return AnalysisResult(
-        name="Age Distribution",
-        title="ICS Stat Code O - Age Distribution",
-        df=result,
+    return AnalysisResult.from_df(
+        "Age Distribution",
+        "ICS Stat Code O - Age Distribution",
+        result,
         sheet_name="21_Age_Dist",
     )
 
@@ -277,10 +277,10 @@ def analyze_balance_trajectory(
     Shows whether accounts are growing or draining balances.
     """
     if "Avg Bal" not in ics_stat_o.columns:
-        return AnalysisResult(
-            name="Balance Trajectory",
-            title="ICS Balance Trajectory (Avg Bal vs Curr Bal)",
-            df=kpi_summary([("Status", "No Avg Bal column in data")]),
+        return AnalysisResult.from_df(
+            "Balance Trajectory",
+            "ICS Balance Trajectory (Avg Bal vs Curr Bal)",
+            kpi_summary([("Status", "No Avg Bal column in data")]),
             sheet_name="83_Bal_Trajectory",
         )
 
@@ -319,9 +319,9 @@ def analyze_balance_trajectory(
 
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="Balance Trajectory",
-        title="ICS Balance Trajectory (Avg Bal vs Curr Bal)",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Balance Trajectory",
+        "ICS Balance Trajectory (Avg Bal vs Curr Bal)",
+        result_df,
         sheet_name="83_Bal_Trajectory",
     )

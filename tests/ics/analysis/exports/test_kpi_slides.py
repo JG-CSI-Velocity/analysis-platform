@@ -19,10 +19,10 @@ def _exec_summary_result(hero_kpis=None, traffic_lights=None, narrative=None):
         metadata["traffic_lights"] = traffic_lights
     if narrative is not None:
         metadata["narrative"] = narrative
-    return AnalysisResult(
-        name="Executive Summary",
-        title="Executive Summary - Key ICS Metrics",
-        df=pd.DataFrame({"Metric": ["A"], "Value": [1]}),
+    return AnalysisResult.from_df(
+        "Executive Summary",
+        "Executive Summary - Key ICS Metrics",
+        pd.DataFrame({"Metric": ["A"], "Value": [1]}),
         metadata=metadata,
     )
 
@@ -101,18 +101,18 @@ class TestBuildNarrativeSlide:
 
 class TestGenerateDeclarativeTitle:
     def test_fallback_to_title(self):
-        result = AnalysisResult(
-            name="Unknown",
-            title="Some Title",
-            df=pd.DataFrame({"x": [1]}),
+        result = AnalysisResult.from_df(
+            "Unknown",
+            "Some Title",
+            pd.DataFrame({"x": [1]}),
         )
         assert generate_declarative_title(result) == "Some Title"
 
     def test_empty_df_falls_back(self):
-        result = AnalysisResult(
-            name="Activation Funnel",
-            title="Activation Funnel",
-            df=pd.DataFrame(),
+        result = AnalysisResult.from_df(
+            "Activation Funnel",
+            "Activation Funnel",
+            pd.DataFrame(),
         )
         assert generate_declarative_title(result) == "Activation Funnel"
 
@@ -123,10 +123,10 @@ class TestGenerateDeclarativeTitle:
                 "Count": [1000, 600],
             }
         )
-        result = AnalysisResult(
-            name="Activation Funnel",
-            title="Activation Funnel",
-            df=df,
+        result = AnalysisResult.from_df(
+            "Activation Funnel",
+            "Activation Funnel",
+            df,
         )
         title = generate_declarative_title(result)
         assert "60%" in title
@@ -139,10 +139,10 @@ class TestGenerateDeclarativeTitle:
                 "Count": [50, 30, 20],
             }
         )
-        result = AnalysisResult(
-            name="Days to First Use",
-            title="Days to First Use",
-            df=df,
+        result = AnalysisResult.from_df(
+            "Days to First Use",
+            "Days to First Use",
+            df,
         )
         title = generate_declarative_title(result)
         assert "80%" in title
@@ -156,10 +156,10 @@ class TestGenerateDeclarativeTitle:
                 "% of Total": [60.0, 25.0, 15.0],
             }
         )
-        result = AnalysisResult(
-            name="Engagement Decay",
-            title="Engagement Decay",
-            df=df,
+        result = AnalysisResult.from_df(
+            "Engagement Decay",
+            "Engagement Decay",
+            df,
         )
         title = generate_declarative_title(result)
         assert "25.0%" in title
@@ -173,10 +173,10 @@ class TestGenerateDeclarativeTitle:
                 "Spend Share %": [65.0, 80.0, 95.0],
             }
         )
-        result = AnalysisResult(
-            name="Spend Concentration",
-            title="Spend Concentration",
-            df=df,
+        result = AnalysisResult.from_df(
+            "Spend Concentration",
+            "Spend Concentration",
+            df,
         )
         title = generate_declarative_title(result)
         assert "65%" in title
@@ -189,10 +189,10 @@ class TestGenerateDeclarativeTitle:
                 "Composite Score": [120.0, 95.0],
             }
         )
-        result = AnalysisResult(
-            name="Branch Performance Index",
-            title="Branch Performance Index",
-            df=df,
+        result = AnalysisResult.from_df(
+            "Branch Performance Index",
+            "Branch Performance Index",
+            df,
         )
         title = generate_declarative_title(result)
         assert "Branch A" in title

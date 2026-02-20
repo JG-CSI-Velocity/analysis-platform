@@ -56,9 +56,9 @@ def analyze_new_vs_declining(
         prev_merchants = current_merchants
 
     result = pd.DataFrame(rows)
-    return AnalysisResult(
-        name="new_vs_declining_merchants",
-        title="New vs Declining Merchants",
-        df=result,
+    return AnalysisResult.from_df(
+        "new_vs_declining_merchants",
+        "New vs Declining Merchants",
+        result,
         sheet_name="M5D Cohorts",
     )

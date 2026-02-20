@@ -55,10 +55,10 @@ def analyze_ref_overview(
         ("Total L12M Spend", total_spend),
     ]
 
-    return AnalysisResult(
-        name="REF Overview",
-        title="Referral Source - Overview KPIs",
-        df=kpi_summary(metrics),
+    return AnalysisResult.from_df(
+        "REF Overview",
+        "Referral Source - Overview KPIs",
+        kpi_summary(metrics),
         sheet_name="73_REF_Overview",
     )
 
@@ -74,10 +74,10 @@ def analyze_ref_by_branch(
     data = _ref_filter(ics_stat_o)
 
     if data.empty:
-        return AnalysisResult(
-            name="REF by Branch",
-            title="REF Open Accounts by Branch",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "REF by Branch",
+            "REF Open Accounts by Branch",
+            pd.DataFrame(
                 columns=["Branch", "Count", "% of REF", "Debit Count", "Debit %", "Avg Balance"]
             ),
             sheet_name="74_REF_Branch",
@@ -109,10 +109,10 @@ def analyze_ref_by_branch(
 
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="REF by Branch",
-        title="REF Open Accounts by Branch",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "REF by Branch",
+        "REF Open Accounts by Branch",
+        result_df,
         sheet_name="74_REF_Branch",
     )
 
@@ -129,10 +129,10 @@ def analyze_ref_by_debit(
     data = add_l12m_activity(data, settings.last_12_months)
 
     if data.empty:
-        return AnalysisResult(
-            name="REF by Debit Status",
-            title="REF Open Accounts by Debit Status",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "REF by Debit Status",
+            "REF Open Accounts by Debit Status",
+            pd.DataFrame(
                 columns=[
                     "Debit?",
                     "Count",
@@ -183,10 +183,10 @@ def analyze_ref_by_debit(
     result_df = grouped[debit_cols].reset_index(drop=True)
     result_df = append_grand_total_row(result_df, label_col="Debit?")
 
-    return AnalysisResult(
-        name="REF by Debit Status",
-        title="REF Open Accounts by Debit Status",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "REF by Debit Status",
+        "REF Open Accounts by Debit Status",
+        result_df,
         sheet_name="75_REF_Debit",
     )
 
@@ -202,10 +202,10 @@ def analyze_ref_by_product(
     data = _ref_filter(ics_stat_o)
 
     if data.empty:
-        return AnalysisResult(
-            name="REF by Product",
-            title="REF Open Accounts by Product Code",
-            df=pd.DataFrame(columns=["Prod Code", "Count", "%", "Debit Count", "Debit %"]),
+        return AnalysisResult.from_df(
+            "REF by Product",
+            "REF Open Accounts by Product Code",
+            pd.DataFrame(columns=["Prod Code", "Count", "%", "Debit Count", "Debit %"]),
             sheet_name="76_REF_Product",
         )
 
@@ -233,10 +233,10 @@ def analyze_ref_by_product(
 
     result_df = append_grand_total_row(result_df, label_col="Prod Code")
 
-    return AnalysisResult(
-        name="REF by Product",
-        title="REF Open Accounts by Product Code",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "REF by Product",
+        "REF Open Accounts by Product Code",
+        result_df,
         sheet_name="76_REF_Product",
     )
 
@@ -252,10 +252,10 @@ def analyze_ref_by_year(
     data = _ref_filter(ics_stat_o)
 
     if data.empty:
-        return AnalysisResult(
-            name="REF by Year Opened",
-            title="REF Open Accounts by Year Opened",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "REF by Year Opened",
+            "REF Open Accounts by Year Opened",
+            pd.DataFrame(
                 columns=["Year Opened", "Count", "%", "Debit Count", "Debit %", "Avg Balance"]
             ),
             sheet_name="77_REF_Year",
@@ -292,10 +292,10 @@ def analyze_ref_by_year(
 
     result_df = append_grand_total_row(result_df, label_col="Year Opened")
 
-    return AnalysisResult(
-        name="REF by Year Opened",
-        title="REF Open Accounts by Year Opened",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "REF by Year Opened",
+        "REF Open Accounts by Year Opened",
+        result_df,
         sheet_name="77_REF_Year",
     )
 
@@ -341,10 +341,10 @@ def analyze_ref_activity(
         ),
     ]
 
-    return AnalysisResult(
-        name="REF Activity Summary",
-        title="REF Debit Accounts - L12M Activity KPIs",
-        df=kpi_summary(metrics),
+    return AnalysisResult.from_df(
+        "REF Activity Summary",
+        "REF Debit Accounts - L12M Activity KPIs",
+        kpi_summary(metrics),
         sheet_name="78_REF_Activity",
     )
 
@@ -361,10 +361,10 @@ def analyze_ref_activity_by_branch(
     data = add_l12m_activity(data, settings.last_12_months)
 
     if data.empty:
-        return AnalysisResult(
-            name="REF Activity by Branch",
-            title="REF Debit Accounts - Activity by Branch",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "REF Activity by Branch",
+            "REF Debit Accounts - Activity by Branch",
+            pd.DataFrame(
                 columns=[
                     "Branch",
                     "Count",
@@ -407,10 +407,10 @@ def analyze_ref_activity_by_branch(
 
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="REF Activity by Branch",
-        title="REF Debit Accounts - Activity by Branch",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "REF Activity by Branch",
+        "REF Debit Accounts - Activity by Branch",
+        result_df,
         sheet_name="79_REF_Act_Branch",
     )
 
@@ -450,9 +450,9 @@ def analyze_ref_monthly_trends(
             }
         )
 
-    return AnalysisResult(
-        name="REF Monthly Trends",
-        title="REF Debit Accounts - Monthly Activity Trends",
-        df=pd.DataFrame(rows),
+    return AnalysisResult.from_df(
+        "REF Monthly Trends",
+        "REF Debit Accounts - Monthly Activity Trends",
+        pd.DataFrame(rows),
         sheet_name="80_REF_Monthly",
     )

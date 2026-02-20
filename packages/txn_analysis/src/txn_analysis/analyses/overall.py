@@ -22,10 +22,10 @@ def analyze_top_by_spend(
         top_n=settings.top_n,
         ic_rate=settings.ic_rate,
     )
-    return AnalysisResult(
-        name="top_merchants_by_spend",
-        title="Top Merchants by Total Spend",
-        df=result,
+    return AnalysisResult.from_df(
+        "top_merchants_by_spend",
+        "Top Merchants by Total Spend",
+        result,
         sheet_name="M1 Top Spend",
     )
 
@@ -43,10 +43,10 @@ def analyze_top_by_transactions(
         top_n=settings.top_n,
         ic_rate=settings.ic_rate,
     )
-    return AnalysisResult(
-        name="top_merchants_by_transactions",
-        title="Top Merchants by Transaction Count",
-        df=result,
+    return AnalysisResult.from_df(
+        "top_merchants_by_transactions",
+        "Top Merchants by Transaction Count",
+        result,
         sheet_name="M1 Top Transactions",
     )
 
@@ -64,9 +64,9 @@ def analyze_top_by_accounts(
         top_n=settings.top_n,
         ic_rate=settings.ic_rate,
     )
-    return AnalysisResult(
-        name="top_merchants_by_accounts",
-        title="Top Merchants by Unique Accounts",
-        df=result,
+    return AnalysisResult.from_df(
+        "top_merchants_by_accounts",
+        "Top Merchants by Unique Accounts",
+        result,
         sheet_name="M1 Top Accounts",
     )

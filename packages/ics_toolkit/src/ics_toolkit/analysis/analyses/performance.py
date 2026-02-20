@@ -19,19 +19,19 @@ def analyze_days_to_first_use(
     data = ics_stat_o_debit.copy()
 
     if "Date Opened" not in data.columns or data.empty:
-        return AnalysisResult(
-            name="Days to First Use",
-            title="ICS Days to First Use",
-            df=pd.DataFrame(columns=["Days Bucket", "Count", "% of Total"]),
+        return AnalysisResult.from_df(
+            "Days to First Use",
+            "ICS Days to First Use",
+            pd.DataFrame(columns=["Days Bucket", "Count", "% of Total"]),
             sheet_name="43_Days_First_Use",
         )
 
     tags = settings.last_12_months
     if not tags:
-        return AnalysisResult(
-            name="Days to First Use",
-            title="ICS Days to First Use",
-            df=pd.DataFrame(columns=["Days Bucket", "Count", "% of Total"]),
+        return AnalysisResult.from_df(
+            "Days to First Use",
+            "ICS Days to First Use",
+            pd.DataFrame(columns=["Days Bucket", "Count", "% of Total"]),
             sheet_name="43_Days_First_Use",
         )
 
@@ -106,10 +106,10 @@ def analyze_days_to_first_use(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Days to First Use",
-        title="ICS Days to First Use",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Days to First Use",
+        "ICS Days to First Use",
+        result_df,
         sheet_name="43_Days_First_Use",
     )
 
@@ -126,10 +126,10 @@ def analyze_branch_performance_index(
 
     cols_needed = ["Branch", "Active in L12M", "Total L12M Swipes", "Total L12M Spend", "Curr Bal"]
     if data.empty or not all(c in data.columns for c in cols_needed):
-        return AnalysisResult(
-            name="Branch Performance Index",
-            title="ICS Branch Performance Index",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "Branch Performance Index",
+            "ICS Branch Performance Index",
+            pd.DataFrame(
                 columns=[
                     "Branch",
                     "Accounts",
@@ -198,10 +198,10 @@ def analyze_branch_performance_index(
         .reset_index(drop=True)
     )
 
-    return AnalysisResult(
-        name="Branch Performance Index",
-        title="ICS Branch Performance Index",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Branch Performance Index",
+        "ICS Branch Performance Index",
+        result_df,
         sheet_name="44_Branch_Perf",
     )
 
@@ -217,10 +217,10 @@ def analyze_product_code_performance(
     data = add_l12m_activity(ics_stat_o_debit.copy(), settings.last_12_months)
 
     if data.empty or "Prod Code" not in data.columns:
-        return AnalysisResult(
-            name="Product Code Performance",
-            title="ICS Product Code Performance",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "Product Code Performance",
+            "ICS Product Code Performance",
+            pd.DataFrame(
                 columns=[
                     "Prod Code",
                     "Accounts",
@@ -276,9 +276,9 @@ def analyze_product_code_performance(
 
     result_df = append_grand_total_row(result_df, label_col="Prod Code")
 
-    return AnalysisResult(
-        name="Product Code Performance",
-        title="ICS Product Code Performance",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Product Code Performance",
+        "ICS Product Code Performance",
+        result_df,
         sheet_name="81_Prod_Perf",
     )

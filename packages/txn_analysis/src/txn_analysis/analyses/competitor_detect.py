@@ -53,9 +53,9 @@ def analyze_competitor_detection(
         context["competitor_data"] = all_competitor_data
         context["competitor_summary"] = summary_df
 
-    return AnalysisResult(
-        name="competitor_detection",
-        title="Competitor Detection",
-        df=summary_df,
+    return AnalysisResult.from_df(
+        "competitor_detection",
+        "Competitor Detection",
+        summary_df,
         sheet_name="M6A Detection",
     )

@@ -22,10 +22,10 @@ def analyze_mcc_by_accounts(
         top_n=settings.top_n,
         ic_rate=settings.ic_rate,
     )
-    return AnalysisResult(
-        name="mcc_by_accounts",
-        title="Top MCC Codes by Unique Accounts",
-        df=result,
+    return AnalysisResult.from_df(
+        "mcc_by_accounts",
+        "Top MCC Codes by Unique Accounts",
+        result,
         sheet_name="M2 MCC Accounts",
     )
 
@@ -43,10 +43,10 @@ def analyze_mcc_by_transactions(
         top_n=settings.top_n,
         ic_rate=settings.ic_rate,
     )
-    return AnalysisResult(
-        name="mcc_by_transactions",
-        title="Top MCC Codes by Transaction Count",
-        df=result,
+    return AnalysisResult.from_df(
+        "mcc_by_transactions",
+        "Top MCC Codes by Transaction Count",
+        result,
         sheet_name="M2 MCC Transactions",
     )
 
@@ -64,9 +64,9 @@ def analyze_mcc_by_spend(
         top_n=settings.top_n,
         ic_rate=settings.ic_rate,
     )
-    return AnalysisResult(
-        name="mcc_by_spend",
-        title="Top MCC Codes by Total Spend",
-        df=result,
+    return AnalysisResult.from_df(
+        "mcc_by_spend",
+        "Top MCC Codes by Total Spend",
+        result,
         sheet_name="M2 MCC Spend",
     )

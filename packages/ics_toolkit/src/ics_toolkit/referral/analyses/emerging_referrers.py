@@ -19,11 +19,11 @@ def analyze_emerging_referrers(ctx: ReferralContext) -> AnalysisResult:
     df = ctx.df
 
     if m.empty:
-        return AnalysisResult(name=name, title=name, df=m, sheet_name="R02_Emerging")
+        return AnalysisResult.from_df(name, name, m, sheet_name="R02_Emerging")
 
     max_date = df["Issue Date"].max()
     if pd.isna(max_date):
-        return AnalysisResult(name=name, title=name, df=pd.DataFrame(), sheet_name="R02_Emerging")
+        return AnalysisResult.from_df(name, name, pd.DataFrame(), sheet_name="R02_Emerging")
 
     lookback_cutoff = max_date - pd.Timedelta(days=ctx.settings.emerging_lookback_days)
 
@@ -46,4 +46,4 @@ def analyze_emerging_referrers(ctx: ReferralContext) -> AnalysisResult:
     out = emerging[list(available.keys())].rename(columns=available)
     out = out.sort_values("Influence Score", ascending=False).reset_index(drop=True)
 
-    return AnalysisResult(name=name, title=name, df=out, sheet_name="R02_Emerging")
+    return AnalysisResult.from_df(name, name, out, sheet_name="R02_Emerging")

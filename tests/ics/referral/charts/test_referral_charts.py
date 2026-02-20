@@ -182,7 +182,7 @@ class TestChartCodeHealth:
 class TestCreateReferralCharts:
     def test_creates_charts_for_matching_analyses(self, top_referrers_df, chart_config):
         analyses = [
-            AnalysisResult(name="Top Referrers", title="Top Referrers", df=top_referrers_df),
+            AnalysisResult.from_df("Top Referrers", "Top Referrers", top_referrers_df),
         ]
         charts = create_referral_charts(analyses, chart_config)
         assert "Top Referrers" in charts
@@ -190,15 +190,18 @@ class TestCreateReferralCharts:
 
     def test_skips_empty_analyses(self, chart_config):
         analyses = [
-            AnalysisResult(name="Top Referrers", title="Top Referrers", df=pd.DataFrame()),
+            AnalysisResult.from_df("Top Referrers", "Top Referrers", pd.DataFrame()),
         ]
         charts = create_referral_charts(analyses, chart_config)
         assert "Top Referrers" not in charts
 
     def test_skips_errored_analyses(self, top_referrers_df, chart_config):
         analyses = [
-            AnalysisResult(
-                name="Top Referrers", title="Top Referrers", df=top_referrers_df, error="oops"
+            AnalysisResult.from_df(
+                "Top Referrers",
+                "Top Referrers",
+                top_referrers_df,
+                error="oops",
             ),
         ]
         charts = create_referral_charts(analyses, chart_config)
@@ -206,7 +209,7 @@ class TestCreateReferralCharts:
 
     def test_skips_unregistered_analyses(self, chart_config):
         analyses = [
-            AnalysisResult(name="Unknown Analysis", title="Unknown", df=pd.DataFrame({"a": [1]})),
+            AnalysisResult.from_df("Unknown Analysis", "Unknown", pd.DataFrame({"a": [1]})),
         ]
         charts = create_referral_charts(analyses, chart_config)
         assert len(charts) == 0

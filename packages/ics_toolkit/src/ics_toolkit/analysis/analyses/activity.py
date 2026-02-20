@@ -58,10 +58,10 @@ def analyze_activity_summary(
 
     result_df = kpi_summary(metrics)
 
-    return AnalysisResult(
-        name="Activity Summary",
-        title="ICS Stat O Debit - L12M Activity KPIs",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Activity Summary",
+        "ICS Stat O Debit - L12M Activity KPIs",
+        result_df,
         sheet_name="22_Activity_KPIs",
     )
 
@@ -87,10 +87,10 @@ def analyze_activity_by_debit_source(
                 "Avg Spend",
             ]
         )
-        return AnalysisResult(
-            name="Activity by Debit+Source",
-            title="ICS Stat O - Activity by Source",
-            df=result_df,
+        return AnalysisResult.from_df(
+            "Activity by Debit+Source",
+            "ICS Stat O - Activity by Source",
+            result_df,
             sheet_name="23_Activity_Source",
         )
 
@@ -124,10 +124,10 @@ def analyze_activity_by_debit_source(
 
     result_df = append_grand_total_row(result_df, label_col="Source")
 
-    return AnalysisResult(
-        name="Activity by Debit+Source",
-        title="ICS Stat O - Activity by Source",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Activity by Debit+Source",
+        "ICS Stat O - Activity by Source",
+        result_df,
         sheet_name="23_Activity_Source",
     )
 
@@ -153,10 +153,10 @@ def analyze_activity_by_balance(
                 "Avg Swipes",
             ]
         )
-        return AnalysisResult(
-            name="Activity by Balance",
-            title="ICS Stat O Debit - Activity by Balance Tier",
-            df=result_df,
+        return AnalysisResult.from_df(
+            "Activity by Balance",
+            "ICS Stat O Debit - Activity by Balance Tier",
+            result_df,
             sheet_name="24_Activity_Bal",
         )
 
@@ -183,10 +183,10 @@ def analyze_activity_by_balance(
         ["Balance Tier", "Count", "Active Count", "Activation Rate", "Avg Swipes"]
     ].reset_index(drop=True)
 
-    return AnalysisResult(
-        name="Activity by Balance",
-        title="ICS Stat O Debit - Activity by Balance Tier",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Activity by Balance",
+        "ICS Stat O Debit - Activity by Balance Tier",
+        result_df,
         sheet_name="24_Activity_Bal",
     )
 
@@ -212,10 +212,10 @@ def analyze_activity_by_branch(
                 "Avg Spend",
             ]
         )
-        return AnalysisResult(
-            name="Activity by Branch",
-            title="ICS Stat O Debit - Activity by Branch",
-            df=result_df,
+        return AnalysisResult.from_df(
+            "Activity by Branch",
+            "ICS Stat O Debit - Activity by Branch",
+            result_df,
             sheet_name="25_Activity_Branch",
         )
 
@@ -249,10 +249,10 @@ def analyze_activity_by_branch(
 
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="Activity by Branch",
-        title="ICS Stat O Debit - Activity by Branch",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Activity by Branch",
+        "ICS Stat O Debit - Activity by Branch",
+        result_df,
         sheet_name="25_Activity_Branch",
     )
 
@@ -294,10 +294,10 @@ def analyze_monthly_trends(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Monthly Trends",
-        title="ICS Stat O Debit - Monthly Activity Trends",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Monthly Trends",
+        "ICS Stat O Debit - Monthly Activity Trends",
+        result_df,
         sheet_name="26_Monthly_Trends",
     )
 
@@ -361,10 +361,10 @@ def analyze_activity_by_source_comparison(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Activity by Source Comparison",
-        title="L12M Activity KPIs - DM vs Referral",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Activity by Source Comparison",
+        "L12M Activity KPIs - DM vs Referral",
+        result_df,
         sheet_name="63_Activity_DM_Ref",
     )
 
@@ -406,10 +406,10 @@ def analyze_monthly_interchange(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Monthly Interchange Trend",
-        title="ICS Monthly Interchange Revenue Trend",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Monthly Interchange Trend",
+        "ICS Monthly Interchange Revenue Trend",
+        result_df,
         sheet_name="71_Monthly_Interchange",
     )
 
@@ -423,10 +423,10 @@ def analyze_business_vs_personal(
 ) -> AnalysisResult:
     """ax72: Activity KPIs comparing Business vs Personal accounts."""
     if "Business?" not in ics_stat_o_debit.columns:
-        return AnalysisResult(
-            name="Business vs Personal",
-            title="Business vs Personal Card Activity",
-            df=kpi_summary([("Status", "No Business? column in data")]),
+        return AnalysisResult.from_df(
+            "Business vs Personal",
+            "Business vs Personal Card Activity",
+            kpi_summary([("Status", "No Business? column in data")]),
             sheet_name="72_Biz_vs_Personal",
         )
 
@@ -449,9 +449,9 @@ def analyze_business_vs_personal(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Business vs Personal",
-        title="Business vs Personal Card Activity",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Business vs Personal",
+        "Business vs Personal Card Activity",
+        result_df,
         sheet_name="72_Biz_vs_Personal",
     )

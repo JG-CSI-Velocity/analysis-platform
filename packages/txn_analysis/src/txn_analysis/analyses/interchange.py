@@ -33,10 +33,10 @@ def analyze_interchange_summary(
                 "total_ic_revenue": 0.0,
                 "ic_rate": ic_rate,
             }
-        return AnalysisResult(
-            name="interchange_summary",
-            title="Interchange Revenue Summary",
-            df=pd.DataFrame(),
+        return AnalysisResult.from_df(
+            "interchange_summary",
+            "Interchange Revenue Summary",
+            pd.DataFrame(),
             sheet_name="M8 IC Summary",
             metadata={"ic_rate": ic_rate, "note": "IC rate not configured"},
         )
@@ -154,10 +154,10 @@ def analyze_interchange_summary(
             "personal_spend": round(personal_df["amount"].sum(), 2),
         }
 
-    return AnalysisResult(
-        name="interchange_summary",
-        title="Interchange Revenue Summary (Estimated)",
-        df=result,
+    return AnalysisResult.from_df(
+        "interchange_summary",
+        "Interchange Revenue Summary (Estimated)",
+        result,
         sheet_name="M8 IC Summary",
         metadata={
             "ic_rate": ic_rate,

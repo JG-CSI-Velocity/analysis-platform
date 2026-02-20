@@ -48,7 +48,7 @@ class TestAnalyzeOverview:
 
     def test_accepts_prior_results(self, referral_context):
         prior = [
-            AnalysisResult(name="dummy", title="dummy", df=pd.DataFrame()),
+            AnalysisResult.from_df("dummy", "dummy", pd.DataFrame()),
         ]
         result = analyze_overview(referral_context, prior_results=prior)
         assert isinstance(result, AnalysisResult)

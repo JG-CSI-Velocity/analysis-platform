@@ -57,18 +57,18 @@ def analyze_spending_consistency(
 
     result = pd.DataFrame(rows)
     if result.empty:
-        return AnalysisResult(
-            name="spending_consistency",
-            title="Spending Consistency Analysis",
-            df=result,
+        return AnalysisResult.from_df(
+            "spending_consistency",
+            "Spending Consistency Analysis",
+            result,
             sheet_name="M5C Consistency",
         )
 
     result = result.sort_values("consistency_score", ascending=False).reset_index(drop=True)
 
-    return AnalysisResult(
-        name="spending_consistency",
-        title="Spending Consistency Analysis",
-        df=result,
+    return AnalysisResult.from_df(
+        "spending_consistency",
+        "Spending Consistency Analysis",
+        result,
         sheet_name="M5C Consistency",
     )

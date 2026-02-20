@@ -1,29 +1,18 @@
-"""Base types and helpers for all analyses."""
+"""Base types and helpers for all analyses.
+
+Canonical types and helpers live in the ``shared`` package.
+Re-exported here so existing TXN code needs zero import changes.
+``add_grand_total`` is TXN-specific and stays here.
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
 import pandas as pd
 
+from shared.helpers import safe_percentage
+from shared.types import AnalysisResult
 
-@dataclass
-class AnalysisResult:
-    """Outcome of a single analysis function."""
-
-    name: str
-    title: str
-    df: pd.DataFrame
-    error: str | None = None
-    sheet_name: str | None = None
-    metadata: dict = field(default_factory=dict)
-
-
-def safe_percentage(part: float, total: float) -> float:
-    """Return part/total * 100 without ZeroDivisionError."""
-    if total == 0:
-        return 0.0
-    return round((part / total) * 100, 2)
+__all__ = ["AnalysisResult", "safe_percentage", "add_grand_total"]
 
 
 def add_grand_total(df: pd.DataFrame, label_col: str) -> pd.DataFrame:

@@ -42,10 +42,10 @@ def _wrap_storyline_result(
     """Convert a V4 storyline result dict into an AnalysisResult."""
     sheets = result.get("sheets", [])
     primary_df = sheets[0]["df"] if sheets else pd.DataFrame()
-    return AnalysisResult(
-        name=name,
-        title=result.get("title", name),
-        df=primary_df,
+    return AnalysisResult.from_df(
+        name,
+        result.get("title", name),
+        primary_df,
         metadata={
             "storyline": result,
             "section_count": len(result.get("sections", [])),

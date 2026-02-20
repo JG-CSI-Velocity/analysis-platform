@@ -19,11 +19,11 @@ def analyze_dormant_referrers(ctx: ReferralContext) -> AnalysisResult:
     m = ctx.referrer_metrics.copy()
 
     if m.empty:
-        return AnalysisResult(name=name, title=name, df=m, sheet_name="R03_Dormant")
+        return AnalysisResult.from_df(name, name, m, sheet_name="R03_Dormant")
 
     max_date = ctx.df["Issue Date"].max()
     if pd.isna(max_date):
-        return AnalysisResult(name=name, title=name, df=pd.DataFrame(), sheet_name="R03_Dormant")
+        return AnalysisResult.from_df(name, name, pd.DataFrame(), sheet_name="R03_Dormant")
 
     dormancy_cutoff = max_date - pd.Timedelta(days=ctx.settings.dormancy_days)
 
@@ -31,7 +31,7 @@ def analyze_dormant_referrers(ctx: ReferralContext) -> AnalysisResult:
     dormant = m[m["last_referral"] < dormancy_cutoff].copy()
 
     if dormant.empty:
-        return AnalysisResult(name=name, title=name, df=pd.DataFrame(), sheet_name="R03_Dormant")
+        return AnalysisResult.from_df(name, name, pd.DataFrame(), sheet_name="R03_Dormant")
 
     # High-value: meets min referrals OR top quartile influence
     score_q75 = m["Influence Score"].quantile(0.75) if len(m) >= 4 else 0
@@ -54,4 +54,4 @@ def analyze_dormant_referrers(ctx: ReferralContext) -> AnalysisResult:
     out = high_value[list(available.keys())].rename(columns=available)
     out = out.sort_values("Historical Score", ascending=False).reset_index(drop=True)
 
-    return AnalysisResult(name=name, title=name, df=out, sheet_name="R03_Dormant")
+    return AnalysisResult.from_df(name, name, out, sheet_name="R03_Dormant")

@@ -74,10 +74,10 @@ class TestAnalyzeExecutiveSummary:
                 ("Total Spend", 150000.00),
             ]
         )
-        mock_activity = AnalysisResult(
-            name="Activity Summary",
-            title="test",
-            df=activity_kpis,
+        mock_activity = AnalysisResult.from_df(
+            "Activity Summary",
+            "test",
+            activity_kpis,
         )
 
         persona_df = pd.DataFrame(
@@ -94,10 +94,10 @@ class TestAnalyzeExecutiveSummary:
                 "% of Total": [40.0, 20.0, 15.0, 25.0],
             }
         )
-        mock_personas = AnalysisResult(
-            name="Activation Personas",
-            title="test",
-            df=persona_df,
+        mock_personas = AnalysisResult.from_df(
+            "Activation Personas",
+            "test",
+            persona_df,
         )
 
         result = analyze_executive_summary(
@@ -190,7 +190,7 @@ class TestAnalyzeExecutiveSummary:
         self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
     ):
         activity_kpis = kpi_summary([("% Active", 62.5), ("Total Swipes", 5000)])
-        mock_activity = AnalysisResult(name="Activity Summary", title="test", df=activity_kpis)
+        mock_activity = AnalysisResult.from_df("Activity Summary", "test", activity_kpis)
 
         revenue_kpis = kpi_summary(
             [
@@ -198,7 +198,7 @@ class TestAnalyzeExecutiveSummary:
                 ("Revenue at Risk (Dormant)", 5000.0),
             ]
         )
-        mock_revenue = AnalysisResult(name="Revenue Impact", title="test", df=revenue_kpis)
+        mock_revenue = AnalysisResult.from_df("Revenue Impact", "test", revenue_kpis)
 
         persona_df = pd.DataFrame(
             {
@@ -209,7 +209,7 @@ class TestAnalyzeExecutiveSummary:
                 "% of Total": [61.5, 38.5],
             }
         )
-        mock_personas = AnalysisResult(name="Activation Personas", title="test", df=persona_df)
+        mock_personas = AnalysisResult.from_df("Activation Personas", "test", persona_df)
 
         result = analyze_executive_summary(
             sample_df,

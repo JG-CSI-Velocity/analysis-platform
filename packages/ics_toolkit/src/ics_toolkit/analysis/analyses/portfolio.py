@@ -18,10 +18,10 @@ def analyze_engagement_decay(
     """Accounts active in first half of L12M but inactive in second half."""
     tags = settings.last_12_months
     if len(tags) < 4:
-        return AnalysisResult(
-            name="Engagement Decay",
-            title="ICS Engagement Decay Analysis",
-            df=kpi_summary([("Status", "Insufficient L12M data")]),
+        return AnalysisResult.from_df(
+            "Engagement Decay",
+            "ICS Engagement Decay Analysis",
+            kpi_summary([("Status", "Insufficient L12M data")]),
             sheet_name="40_Engagement_Decay",
         )
 
@@ -66,10 +66,10 @@ def analyze_engagement_decay(
     summary = summary.sort_values("Decay Category").reset_index(drop=True)
     summary["Decay Category"] = summary["Decay Category"].astype(str)
 
-    return AnalysisResult(
-        name="Engagement Decay",
-        title="ICS Engagement Decay Analysis",
-        df=summary,
+    return AnalysisResult.from_df(
+        "Engagement Decay",
+        "ICS Engagement Decay Analysis",
+        summary,
         sheet_name="40_Engagement_Decay",
     )
 
@@ -85,10 +85,10 @@ def analyze_net_portfolio_growth(
     data = ics_all.copy()
 
     if "Date Opened" not in data.columns:
-        return AnalysisResult(
-            name="Net Portfolio Growth",
-            title="ICS Net Portfolio Growth",
-            df=pd.DataFrame(columns=["Month", "Opens", "Closes", "Net", "Cumulative"]),
+        return AnalysisResult.from_df(
+            "Net Portfolio Growth",
+            "ICS Net Portfolio Growth",
+            pd.DataFrame(columns=["Month", "Opens", "Closes", "Net", "Cumulative"]),
             sheet_name="41_Net_Growth",
         )
 
@@ -133,10 +133,10 @@ def analyze_net_portfolio_growth(
     result["Net"] = result["Opens"] - result["Closes"]
     result["Cumulative"] = result["Net"].cumsum()
 
-    return AnalysisResult(
-        name="Net Portfolio Growth",
-        title="ICS Net Portfolio Growth",
-        df=result,
+    return AnalysisResult.from_df(
+        "Net Portfolio Growth",
+        "ICS Net Portfolio Growth",
+        result,
         sheet_name="41_Net_Growth",
     )
 
@@ -152,19 +152,19 @@ def analyze_concentration(
     data = add_l12m_activity(ics_stat_o_debit.copy(), settings.last_12_months)
 
     if "Total L12M Spend" not in data.columns or data.empty:
-        return AnalysisResult(
-            name="Spend Concentration",
-            title="ICS Spend Concentration",
-            df=pd.DataFrame(columns=["Percentile", "Account Count", "Spend Share %"]),
+        return AnalysisResult.from_df(
+            "Spend Concentration",
+            "ICS Spend Concentration",
+            pd.DataFrame(columns=["Percentile", "Account Count", "Spend Share %"]),
             sheet_name="42_Concentration",
         )
 
     total_spend = data["Total L12M Spend"].sum()
     if total_spend == 0:
-        return AnalysisResult(
-            name="Spend Concentration",
-            title="ICS Spend Concentration",
-            df=pd.DataFrame(columns=["Percentile", "Account Count", "Spend Share %"]),
+        return AnalysisResult.from_df(
+            "Spend Concentration",
+            "ICS Spend Concentration",
+            pd.DataFrame(columns=["Percentile", "Account Count", "Spend Share %"]),
             sheet_name="42_Concentration",
         )
 
@@ -187,10 +187,10 @@ def analyze_concentration(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Spend Concentration",
-        title="ICS Spend Concentration",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Spend Concentration",
+        "ICS Spend Concentration",
+        result_df,
         sheet_name="42_Concentration",
     )
 
@@ -217,10 +217,10 @@ def analyze_closure_by_source(
     closed = ics_all[ics_all["Stat Code"].isin(settings.closed_stat_codes)].copy()
 
     if closed.empty or "Source" not in closed.columns:
-        return AnalysisResult(
-            name="Closure by Source",
-            title="ICS Closures by Source Channel",
-            df=pd.DataFrame(columns=["Source", "Closed Count", "% of Closures"]),
+        return AnalysisResult.from_df(
+            "Closure by Source",
+            "ICS Closures by Source Channel",
+            pd.DataFrame(columns=["Source", "Closed Count", "% of Closures"]),
             sheet_name="67_Closure_Source",
         )
 
@@ -233,10 +233,10 @@ def analyze_closure_by_source(
     result_df = grouped.sort_values("Closed Count", ascending=False).reset_index(drop=True)
     result_df = append_grand_total_row(result_df, label_col="Source")
 
-    return AnalysisResult(
-        name="Closure by Source",
-        title="ICS Closures by Source Channel",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Closure by Source",
+        "ICS Closures by Source Channel",
+        result_df,
         sheet_name="67_Closure_Source",
     )
 
@@ -252,10 +252,10 @@ def analyze_closure_by_branch(
     closed = ics_all[ics_all["Stat Code"].isin(settings.closed_stat_codes)].copy()
 
     if closed.empty or "Branch" not in closed.columns:
-        return AnalysisResult(
-            name="Closure by Branch",
-            title="ICS Closures by Branch",
-            df=pd.DataFrame(columns=["Branch", "Closed Count", "% of Closures"]),
+        return AnalysisResult.from_df(
+            "Closure by Branch",
+            "ICS Closures by Branch",
+            pd.DataFrame(columns=["Branch", "Closed Count", "% of Closures"]),
             sheet_name="68_Closure_Branch",
         )
 
@@ -268,10 +268,10 @@ def analyze_closure_by_branch(
     result_df = grouped.sort_values("Closed Count", ascending=False).reset_index(drop=True)
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="Closure by Branch",
-        title="ICS Closures by Branch",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Closure by Branch",
+        "ICS Closures by Branch",
+        result_df,
         sheet_name="68_Closure_Branch",
     )
 
@@ -287,10 +287,10 @@ def analyze_closure_by_account_age(
     closed = ics_all[ics_all["Stat Code"].isin(settings.closed_stat_codes)].copy()
 
     if closed.empty or "Date Opened" not in closed.columns:
-        return AnalysisResult(
-            name="Closure by Account Age",
-            title="ICS Closures by Account Age at Closure",
-            df=pd.DataFrame(columns=["Age Range", "Closed Count", "% of Closures"]),
+        return AnalysisResult.from_df(
+            "Closure by Account Age",
+            "ICS Closures by Account Age at Closure",
+            pd.DataFrame(columns=["Age Range", "Closed Count", "% of Closures"]),
             sheet_name="69_Closure_Age",
         )
 
@@ -309,10 +309,10 @@ def analyze_closure_by_account_age(
     closed = add_age_range(closed, settings)
 
     if "Age Range" not in closed.columns:
-        return AnalysisResult(
-            name="Closure by Account Age",
-            title="ICS Closures by Account Age at Closure",
-            df=pd.DataFrame(columns=["Age Range", "Closed Count", "% of Closures"]),
+        return AnalysisResult.from_df(
+            "Closure by Account Age",
+            "ICS Closures by Account Age at Closure",
+            pd.DataFrame(columns=["Age Range", "Closed Count", "% of Closures"]),
             sheet_name="69_Closure_Age",
         )
 
@@ -323,10 +323,10 @@ def analyze_closure_by_account_age(
         lambda x: safe_percentage(x, total_closed)
     )
 
-    return AnalysisResult(
-        name="Closure by Account Age",
-        title="ICS Closures by Account Age at Closure",
-        df=grouped,
+    return AnalysisResult.from_df(
+        "Closure by Account Age",
+        "ICS Closures by Account Age at Closure",
+        grouped,
         sheet_name="69_Closure_Age",
     )
 
@@ -342,10 +342,10 @@ def analyze_net_growth_by_source(
     data = ics_all.copy()
 
     if "Date Opened" not in data.columns or "Source" not in data.columns:
-        return AnalysisResult(
-            name="Net Growth by Source",
-            title="ICS Net Portfolio Growth by Source",
-            df=pd.DataFrame(columns=["Source", "Opens", "Closes", "Net"]),
+        return AnalysisResult.from_df(
+            "Net Growth by Source",
+            "ICS Net Portfolio Growth by Source",
+            pd.DataFrame(columns=["Source", "Opens", "Closes", "Net"]),
             sheet_name="70_Net_Growth_Source",
         )
 
@@ -382,10 +382,10 @@ def analyze_net_growth_by_source(
     result_df = result_df.sort_values("Net", ascending=False).reset_index(drop=True)
     result_df = append_grand_total_row(result_df, label_col="Source")
 
-    return AnalysisResult(
-        name="Net Growth by Source",
-        title="ICS Net Portfolio Growth by Source",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Net Growth by Source",
+        "ICS Net Portfolio Growth by Source",
+        result_df,
         sheet_name="70_Net_Growth_Source",
     )
 
@@ -399,19 +399,19 @@ def analyze_closure_rate_trend(
 ) -> AnalysisResult:
     """ax82: Monthly closure rate trend -- closures per month as % of portfolio."""
     if "Date Closed" not in ics_all.columns:
-        return AnalysisResult(
-            name="Closure Rate Trend",
-            title="ICS Monthly Closure Rate Trend",
-            df=pd.DataFrame(columns=["Month", "Closures", "Portfolio Size", "Closure Rate %"]),
+        return AnalysisResult.from_df(
+            "Closure Rate Trend",
+            "ICS Monthly Closure Rate Trend",
+            pd.DataFrame(columns=["Month", "Closures", "Portfolio Size", "Closure Rate %"]),
             sheet_name="82_Closure_Rate",
         )
 
     closed = ics_all[ics_all["Stat Code"].isin(settings.closed_stat_codes)].copy()
     if closed.empty or closed["Date Closed"].isna().all():
-        return AnalysisResult(
-            name="Closure Rate Trend",
-            title="ICS Monthly Closure Rate Trend",
-            df=pd.DataFrame(columns=["Month", "Closures", "Portfolio Size", "Closure Rate %"]),
+        return AnalysisResult.from_df(
+            "Closure Rate Trend",
+            "ICS Monthly Closure Rate Trend",
+            pd.DataFrame(columns=["Month", "Closures", "Portfolio Size", "Closure Rate %"]),
             sheet_name="82_Closure_Rate",
         )
 
@@ -436,9 +436,9 @@ def analyze_closure_rate_trend(
         columns={"Close Month": "Month"}
     )
 
-    return AnalysisResult(
-        name="Closure Rate Trend",
-        title="ICS Monthly Closure Rate Trend",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Closure Rate Trend",
+        "ICS Monthly Closure Rate Trend",
+        result_df,
         sheet_name="82_Closure_Rate",
     )

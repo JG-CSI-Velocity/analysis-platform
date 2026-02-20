@@ -69,10 +69,10 @@ def analyze_financial_services_detection(
     if not result.empty:
         result = result.sort_values("total_spend", ascending=False).reset_index(drop=True)
 
-    return AnalysisResult(
-        name="financial_services_detection",
-        title="Financial Services Detection",
-        df=result,
+    return AnalysisResult.from_df(
+        "financial_services_detection",
+        "Financial Services Detection",
+        result,
         sheet_name="M7 Detection",
     )
 
@@ -103,10 +103,10 @@ def analyze_financial_services_summary(
         det_df = detection.df
 
     if det_df.empty:
-        return AnalysisResult(
-            name="financial_services_summary",
-            title="Financial Services Summary",
-            df=pd.DataFrame(),
+        return AnalysisResult.from_df(
+            "financial_services_summary",
+            "Financial Services Summary",
+            pd.DataFrame(),
             sheet_name="M7 Summary",
         )
 
@@ -134,9 +134,9 @@ def analyze_financial_services_summary(
         ]
     )
 
-    return AnalysisResult(
-        name="financial_services_summary",
-        title="Financial Services Summary",
-        df=summary,
+    return AnalysisResult.from_df(
+        "financial_services_summary",
+        "Financial Services Summary",
+        summary,
         sheet_name="M7 Summary",
     )

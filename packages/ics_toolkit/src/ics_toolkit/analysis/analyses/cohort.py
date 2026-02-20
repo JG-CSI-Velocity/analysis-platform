@@ -76,10 +76,10 @@ def analyze_cohort_activation(
             "M12 Active",
             "M12 Activation %",
         ]
-        return AnalysisResult(
-            name="Cohort Activation",
-            title="ICS Stat O Debit - Cohort Activation",
-            df=pd.DataFrame(columns=cols),
+        return AnalysisResult.from_df(
+            "Cohort Activation",
+            "ICS Stat O Debit - Cohort Activation",
+            pd.DataFrame(columns=cols),
             sheet_name="27_Cohort_Activ",
         )
 
@@ -115,10 +115,10 @@ def analyze_cohort_activation(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Cohort Activation",
-        title="ICS Stat O Debit - Cohort Activation",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Cohort Activation",
+        "ICS Stat O Debit - Cohort Activation",
+        result_df,
         sheet_name="27_Cohort_Activ",
     )
 
@@ -140,10 +140,10 @@ def analyze_cohort_heatmap(
 
     if data.empty:
         cols = ["Opening Month"] + settings.last_12_months
-        return AnalysisResult(
-            name="Cohort Heatmap",
-            title="ICS Stat O Debit - Cohort Heatmap",
-            df=pd.DataFrame(columns=cols),
+        return AnalysisResult.from_df(
+            "Cohort Heatmap",
+            "ICS Stat O Debit - Cohort Heatmap",
+            pd.DataFrame(columns=cols),
             sheet_name="28_Cohort_Heatmap",
         )
 
@@ -171,9 +171,9 @@ def analyze_cohort_heatmap(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Cohort Heatmap",
-        title="ICS Stat O Debit - Cohort Heatmap",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Cohort Heatmap",
+        "ICS Stat O Debit - Cohort Heatmap",
+        result_df,
         sheet_name="28_Cohort_Heatmap",
     )

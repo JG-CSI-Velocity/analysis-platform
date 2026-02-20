@@ -154,6 +154,6 @@ def run_all_analyses(
             context["completed_results"][name] = result
         except Exception as e:
             logger.warning("Analysis '%s' failed: %s", name, e)
-            results.append(AnalysisResult(name=name, title=name, df=pd.DataFrame(), error=str(e)))
+            results.append(AnalysisResult.from_df(name, name, pd.DataFrame(), error=str(e)))
 
     return results

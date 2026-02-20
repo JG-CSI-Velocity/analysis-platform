@@ -62,10 +62,10 @@ def analyze_threat_assessment(
     result = result.drop(columns=["_pen_rank", "_spend_rank", "_growth_rank"])
     result = result.sort_values("threat_score", ascending=False).head(10).reset_index(drop=True)
 
-    return AnalysisResult(
-        name="competitor_threat_assessment",
-        title="Competitor Threat Assessment",
-        df=result,
+    return AnalysisResult.from_df(
+        "competitor_threat_assessment",
+        "Competitor Threat Assessment",
+        result,
         sheet_name="M6B-6 Threat",
     )
 
@@ -89,9 +89,9 @@ def _calc_growth_rate(comp_df: pd.DataFrame, months: list[str]) -> float:
 
 
 def _empty_result() -> AnalysisResult:
-    return AnalysisResult(
-        name="competitor_threat_assessment",
-        title="Competitor Threat Assessment",
-        df=pd.DataFrame(),
+    return AnalysisResult.from_df(
+        "competitor_threat_assessment",
+        "Competitor Threat Assessment",
+        pd.DataFrame(),
         sheet_name="M6B-6 Threat",
     )

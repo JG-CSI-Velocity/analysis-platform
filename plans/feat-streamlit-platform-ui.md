@@ -1,3 +1,5 @@
+> **SUPERSEDED** by `chore-unified-consolidation.md` (2026-02-13). UI is built and wired; remaining work is real-data validation.
+
 # Streamlit Analysis Platform -- Integration Plan
 
 **Repo:** `/Users/jgmbp/Desktop/analysis_platform/` (JG-CSI-Velocity/analysis-platform)

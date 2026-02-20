@@ -18,10 +18,10 @@ class TestConvertResults:
         from ics_toolkit.analysis.analyses.base import AnalysisResult
         from ics_toolkit.runner import _convert_results
 
-        ar = AnalysisResult(
-            name="portfolio_overview",
-            title="Portfolio Overview",
-            df=pd.DataFrame({"metric": ["Total"], "value": [1000]}),
+        ar = AnalysisResult.from_df(
+            "portfolio_overview",
+            "Portfolio Overview",
+            pd.DataFrame({"metric": ["Total"], "value": [1000]}),
             sheet_name="Portfolio",
             metadata={"count": 50},
         )
@@ -37,7 +37,7 @@ class TestConvertResults:
         from ics_toolkit.analysis.analyses.base import AnalysisResult
         from ics_toolkit.runner import _convert_results
 
-        ar = AnalysisResult(name="failed_one", title="Failed", df=pd.DataFrame(), error="broke")
+        ar = AnalysisResult.from_df("failed_one", "Failed", pd.DataFrame(), error="broke")
         results = _convert_results([ar])
         assert "failed_one" not in results
 

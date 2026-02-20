@@ -288,10 +288,10 @@ def analyze_executive_summary(
         debit_count=debit_count,
     )
 
-    return AnalysisResult(
-        name="Executive Summary",
-        title="Executive Summary - Key ICS Metrics",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Executive Summary",
+        "Executive Summary - Key ICS Metrics",
+        result_df,
         sheet_name="99_Exec_Summary",
         metadata={
             "hero_kpis": hero_kpis,

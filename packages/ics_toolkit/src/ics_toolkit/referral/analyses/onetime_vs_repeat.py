@@ -17,7 +17,7 @@ def analyze_onetime_vs_repeat(ctx: ReferralContext) -> AnalysisResult:
     m = ctx.referrer_metrics.copy()
 
     if m.empty:
-        return AnalysisResult(name=name, title=name, df=pd.DataFrame(), sheet_name="R04_Repeat")
+        return AnalysisResult.from_df(name, name, pd.DataFrame(), sheet_name="R04_Repeat")
 
     m["Category"] = m["total_referrals"].apply(lambda x: "Repeat" if x >= 2 else "One-time")
 
@@ -66,4 +66,4 @@ def analyze_onetime_vs_repeat(ctx: ReferralContext) -> AnalysisResult:
     )
     summary = pd.concat([summary, total_row], ignore_index=True)
 
-    return AnalysisResult(name=name, title=name, df=summary, sheet_name="R04_Repeat")
+    return AnalysisResult.from_df(name, name, summary, sheet_name="R04_Repeat")

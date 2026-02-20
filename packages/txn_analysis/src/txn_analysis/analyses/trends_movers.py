@@ -66,10 +66,10 @@ def analyze_business_movers(
     context: dict | None = None,
 ) -> AnalysisResult:
     result = _compute_movers(business_df, top_n=settings.top_n)
-    return AnalysisResult(
-        name="business_monthly_movers",
-        title="Business Monthly Movers",
-        df=result,
+    return AnalysisResult.from_df(
+        "business_monthly_movers",
+        "Business Monthly Movers",
+        result,
         sheet_name="M5E Biz Movers",
     )
 
@@ -82,9 +82,9 @@ def analyze_personal_movers(
     context: dict | None = None,
 ) -> AnalysisResult:
     result = _compute_movers(personal_df, top_n=settings.top_n)
-    return AnalysisResult(
-        name="personal_monthly_movers",
-        title="Personal Monthly Movers",
-        df=result,
+    return AnalysisResult.from_df(
+        "personal_monthly_movers",
+        "Personal Monthly Movers",
+        result,
         sheet_name="M5F Personal Movers",
     )

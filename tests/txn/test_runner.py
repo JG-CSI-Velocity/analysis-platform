@@ -14,10 +14,10 @@ class TestConvertResults:
     def test_converts_successful(self):
         from txn_analysis.analyses.base import AnalysisResult
 
-        ar = AnalysisResult(
-            name="top_merchants_by_spend",
-            title="Top Merchants by Spend",
-            df=pd.DataFrame({"merchant": ["A"], "spend": [1000]}),
+        ar = AnalysisResult.from_df(
+            "top_merchants_by_spend",
+            "Top Merchants by Spend",
+            pd.DataFrame({"merchant": ["A"], "spend": [1000]}),
             sheet_name="TopSpend",
             metadata={"top_n": 50},
         )
@@ -35,10 +35,10 @@ class TestConvertResults:
     def test_skips_failed(self):
         from txn_analysis.analyses.base import AnalysisResult
 
-        ar = AnalysisResult(
-            name="failed_one",
-            title="Failed Analysis",
-            df=pd.DataFrame(),
+        ar = AnalysisResult.from_df(
+            "failed_one",
+            "Failed Analysis",
+            pd.DataFrame(),
             error="Something broke",
         )
         results = _convert_results([ar])

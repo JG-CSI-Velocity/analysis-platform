@@ -25,10 +25,10 @@ def analyze_competitor_high_level(
     """M6B-1: High-level competitor metrics summary."""
     _, summary = _get_context_data(context)
     if summary.empty:
-        return AnalysisResult(
-            name="competitor_high_level",
-            title="Competitor High Level Metrics",
-            df=pd.DataFrame(),
+        return AnalysisResult.from_df(
+            "competitor_high_level",
+            "Competitor High Level Metrics",
+            pd.DataFrame(),
             sheet_name="M6B-1 Metrics",
         )
 
@@ -52,10 +52,10 @@ def analyze_competitor_high_level(
         ]
     )
 
-    return AnalysisResult(
-        name="competitor_high_level",
-        title="Competitor High Level Metrics",
-        df=metrics,
+    return AnalysisResult.from_df(
+        "competitor_high_level",
+        "Competitor High Level Metrics",
+        metrics,
         sheet_name="M6B-1 Metrics",
     )
 
@@ -70,10 +70,10 @@ def analyze_top_20_competitors(
     """M6B-2: Top 20 competitors by spend."""
     _, summary = _get_context_data(context)
     result = summary.head(20).copy() if not summary.empty else pd.DataFrame()
-    return AnalysisResult(
-        name="top_20_competitors",
-        title="Top 20 Competitors by Spend",
-        df=result,
+    return AnalysisResult.from_df(
+        "top_20_competitors",
+        "Top 20 Competitors by Spend",
+        result,
         sheet_name="M6B-2 Top 20",
     )
 
@@ -88,10 +88,10 @@ def analyze_competitor_categories(
     """M6B-3: Competitor category breakdown."""
     _, summary = _get_context_data(context)
     if summary.empty:
-        return AnalysisResult(
-            name="competitor_categories",
-            title="Competitor Category Breakdown",
-            df=pd.DataFrame(),
+        return AnalysisResult.from_df(
+            "competitor_categories",
+            "Competitor Category Breakdown",
+            pd.DataFrame(),
             sheet_name="M6B-3 Categories",
         )
 
@@ -112,10 +112,10 @@ def analyze_competitor_categories(
     )
     cat = cat.sort_values("total_amount", ascending=False).reset_index(drop=True)
 
-    return AnalysisResult(
-        name="competitor_categories",
-        title="Competitor Category Breakdown",
-        df=cat,
+    return AnalysisResult.from_df(
+        "competitor_categories",
+        "Competitor Category Breakdown",
+        cat,
         sheet_name="M6B-3 Categories",
     )
 
@@ -130,19 +130,19 @@ def analyze_competitor_biz_personal(
     """M6B-4: Business vs personal split for competitor transactions."""
     comp_data, _ = _get_context_data(context)
     if not comp_data:
-        return AnalysisResult(
-            name="competitor_biz_personal",
-            title="Competitor Biz/Personal Split",
-            df=pd.DataFrame(),
+        return AnalysisResult.from_df(
+            "competitor_biz_personal",
+            "Competitor Biz/Personal Split",
+            pd.DataFrame(),
             sheet_name="M6B-4 Biz Personal",
         )
 
     all_comp = pd.concat(comp_data.values(), ignore_index=True)
     if "business_flag" not in all_comp.columns:
-        return AnalysisResult(
-            name="competitor_biz_personal",
-            title="Competitor Biz/Personal Split",
-            df=pd.DataFrame(),
+        return AnalysisResult.from_df(
+            "competitor_biz_personal",
+            "Competitor Biz/Personal Split",
+            pd.DataFrame(),
             sheet_name="M6B-4 Biz Personal",
         )
 
@@ -158,10 +158,10 @@ def analyze_competitor_biz_personal(
         .reset_index()
     )
 
-    return AnalysisResult(
-        name="competitor_biz_personal",
-        title="Competitor Biz/Personal Split",
-        df=split,
+    return AnalysisResult.from_df(
+        "competitor_biz_personal",
+        "Competitor Biz/Personal Split",
+        split,
         sheet_name="M6B-4 Biz Personal",
     )
 
@@ -176,19 +176,19 @@ def analyze_competitor_monthly_trends(
     """M6B-5: Monthly competitor spend/transaction trends."""
     comp_data, _ = _get_context_data(context)
     if not comp_data:
-        return AnalysisResult(
-            name="competitor_monthly_trends",
-            title="Competitor Monthly Trends",
-            df=pd.DataFrame(),
+        return AnalysisResult.from_df(
+            "competitor_monthly_trends",
+            "Competitor Monthly Trends",
+            pd.DataFrame(),
             sheet_name="M6B-5 Monthly",
         )
 
     all_comp = pd.concat(comp_data.values(), ignore_index=True)
     if "year_month" not in all_comp.columns:
-        return AnalysisResult(
-            name="competitor_monthly_trends",
-            title="Competitor Monthly Trends",
-            df=pd.DataFrame(),
+        return AnalysisResult.from_df(
+            "competitor_monthly_trends",
+            "Competitor Monthly Trends",
+            pd.DataFrame(),
             sheet_name="M6B-5 Monthly",
         )
 
@@ -207,9 +207,9 @@ def analyze_competitor_monthly_trends(
     monthly["spend_growth_pct"] = monthly["total_spend"].pct_change() * 100
     monthly["spend_growth_pct"] = monthly["spend_growth_pct"].round(2)
 
-    return AnalysisResult(
-        name="competitor_monthly_trends",
-        title="Competitor Monthly Trends",
-        df=monthly,
+    return AnalysisResult.from_df(
+        "competitor_monthly_trends",
+        "Competitor Monthly Trends",
+        monthly,
         sheet_name="M6B-5 Monthly",
     )

@@ -12,13 +12,13 @@
   - REPL: `from ics_toolkit import run_referral; run_referral("data/file.xlsx")`
   - Settings: `ReferralScoringWeights`, `ReferralStaffWeights`, `ReferralSettings` (Pydantic v2)
 
-### TODO for 2/21
-1. **Merge PR #9** -- review and merge the referral engine into main
-2. **Close PR #6 on standalone repo** -- `JG-CSI-Velocity/ics_toolkit` PR #6 targeted the wrong repo (standalone instead of monorepo). Close it with a note pointing to PR #9.
-3. **Update README.md** -- add Referral Pipeline section alongside ARS/TXN/ICS (CLI usage, Python API, what it does)
-4. **Update test counts in README** -- currently says "976 tests", actual is now 1410+
-5. **Add `referral:` section to config.example.yaml** if one exists in monorepo (scoring weights, thresholds, code_prefix_map)
-6. **Pre-existing failures** -- 4 tests in `tests/platform/test_components.py` fail on main (BatchPipelineRegistry tests expect 3 pipelines but platform_app page structure changed). Fix or update those tests.
+### Done (2/21)
+1. ~~Merge PR #9~~ -- merged into main
+2. ~~Close PR #6 on standalone repo~~ -- closed with note pointing to PR #9
+3. ~~Update README.md~~ -- added Referral Pipeline section, Python API, CLI usage
+4. ~~Update test counts~~ -- 976 -> 1431
+5. ~~config.example.yaml~~ -- no config.example.yaml exists in monorepo, skipped
+6. ~~Pre-existing platform test failures~~ -- already fixed by platform_app v2 rewrite (merged with PR #9); all 39 platform tests pass
 
 ### Notes
 - ICS analysis PPTX uses `DeckBuilder` class; referral PPTX has its own self-contained slide helpers. Both work fine, just two patterns in the same package.
@@ -64,4 +64,5 @@ make fmt           # auto-fix lint + format
 - Pydantic v2 with `ConfigDict(extra="forbid")` on all settings models
 - `kaleido==0.2.1` pinned (v1.0+ has 50x regression)
 - `ruff check` + `ruff format` must pass before push
-- Tests must pass before push (except 4 pre-existing platform_app failures)
+- Tests must pass before push
+- CI coverage floor is 70% (`--cov-fail-under=70`) -- currently at ~64% due to low txn_analysis storyline coverage. Failing on main.

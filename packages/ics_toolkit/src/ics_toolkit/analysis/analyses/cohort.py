@@ -108,8 +108,8 @@ def analyze_cohort_activation(
                 row[f"{milestone} Active"] = active
                 row[f"{milestone} Activation %"] = safe_percentage(active, size)
             else:
-                row[f"{milestone} Active"] = "N/A"
-                row[f"{milestone} Activation %"] = "N/A"
+                row[f"{milestone} Active"] = None
+                row[f"{milestone} Activation %"] = None
 
         rows.append(row)
 
@@ -152,14 +152,20 @@ def analyze_cohort_heatmap(
 
     for cohort in cohorts:
         cohort_data = data[data["Opening Month"] == cohort]
+        cohort_date = datetime.strptime(cohort, "%Y-%m")
         row = {"Opening Month": cohort}
 
         for tag in settings.last_12_months:
-            swipe_col = f"{tag} Swipes"
-            if swipe_col in cohort_data.columns:
-                row[tag] = int(cohort_data[swipe_col].sum())
+            tag_date = datetime.strptime(tag, "%b%y")
+            if tag_date < cohort_date:
+                # Month before this cohort existed -- leave blank
+                row[tag] = None
             else:
-                row[tag] = 0
+                swipe_col = f"{tag} Swipes"
+                if swipe_col in cohort_data.columns:
+                    row[tag] = int(cohort_data[swipe_col].sum())
+                else:
+                    row[tag] = None
 
         rows.append(row)
 

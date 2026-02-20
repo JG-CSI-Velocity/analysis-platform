@@ -27,8 +27,8 @@ class TestChartCohortMilestones:
                 "M3 Activation %": [40.0, 40.0],
                 "M3 Avg Swipes": [5.0, 5.5],
                 "M3 Avg Spend": [80.0, 90.0],
-                "M6 Avg Swipes": ["N/A", "N/A"],
-                "M12 Avg Swipes": ["N/A", "N/A"],
+                "M6 Avg Swipes": [None, None],
+                "M12 Avg Swipes": [None, None],
             }
         )
         fig = chart_cohort_milestones(df, chart_config)
@@ -99,7 +99,7 @@ class TestChartActivationSummary:
                     "M6 Activation Rate",
                     "M12 Activation Rate",
                 ],
-                "Value": [62.1, 55.0, "N/A", "N/A"],
+                "Value": [62.1, 55.0, None, None],
             }
         )
         fig = chart_activation_summary(df, chart_config)
@@ -116,8 +116,8 @@ class TestChartGrowthPatterns:
                 "Cohort Size": [20, 15],
                 "M1 Swipes": [100, 80],
                 "M3 Swipes": [150, 120],
-                "M6 Swipes": ["N/A", "N/A"],
-                "M12 Swipes": ["N/A", "N/A"],
+                "M6 Swipes": [None, None],
+                "M12 Swipes": [None, None],
             }
         )
         fig = chart_growth_patterns(df, chart_config)
@@ -130,8 +130,8 @@ class TestChartGrowthPatterns:
                 "Cohort Size": [20, 15],
                 "M1 Swipes": [100, 80],
                 "M3 Swipes": [150, 120],
-                "M6 Swipes": [200, "N/A"],
-                "M12 Swipes": ["N/A", "N/A"],
+                "M6 Swipes": [200, None],
+                "M12 Swipes": [None, None],
             }
         )
         fig = chart_growth_patterns(df, chart_config)
@@ -144,8 +144,8 @@ class TestChartGrowthPatterns:
                 "Cohort Size": [20],
                 "M1 Swipes": [100],
                 "M3 Swipes": [150],
-                "M6 Swipes": ["N/A"],
-                "M12 Swipes": ["N/A"],
+                "M6 Swipes": [None],
+                "M12 Swipes": [None],
             }
         )
         fig = chart_growth_patterns(df, chart_config)

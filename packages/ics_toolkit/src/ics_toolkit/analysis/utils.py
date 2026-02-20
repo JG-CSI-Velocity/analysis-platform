@@ -20,21 +20,24 @@ def get_ics_accounts(df: pd.DataFrame) -> pd.DataFrame:
     return df[df["ICS Account"] == "Yes"].copy()
 
 
-def get_ics_stat_o(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter to ICS Account == 'Yes' and Stat Code == 'O'."""
-    return df[(df["ICS Account"] == "Yes") & (df["Stat Code"] == "O")].copy()
+def get_ics_stat_o(df: pd.DataFrame, open_codes: list[str] | None = None) -> pd.DataFrame:
+    """Filter to ICS Account == 'Yes' and open stat codes."""
+    codes = open_codes or ["O"]
+    return df[(df["ICS Account"] == "Yes") & (df["Stat Code"].isin(codes))].copy()
 
 
-def get_ics_stat_o_debit(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter to ICS Account == 'Yes', Stat Code == 'O', Debit? == 'Yes'."""
+def get_ics_stat_o_debit(df: pd.DataFrame, open_codes: list[str] | None = None) -> pd.DataFrame:
+    """Filter to ICS Account == 'Yes', open stat code, Debit? == 'Yes'."""
+    codes = open_codes or ["O"]
     return df[
-        (df["ICS Account"] == "Yes") & (df["Stat Code"] == "O") & (df["Debit?"] == "Yes")
+        (df["ICS Account"] == "Yes") & (df["Stat Code"].isin(codes)) & (df["Debit?"] == "Yes")
     ].copy()
 
 
-def get_open_accounts(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter to accounts with Stat Code == 'O' (open accounts)."""
-    return df[df["Stat Code"] == "O"].copy()
+def get_open_accounts(df: pd.DataFrame, open_codes: list[str] | None = None) -> pd.DataFrame:
+    """Filter to accounts with open stat codes."""
+    codes = open_codes or ["O"]
+    return df[df["Stat Code"].isin(codes)].copy()
 
 
 # ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ from ics_toolkit.analysis.analyses.demographics import (
     analyze_age_vs_balance,
     analyze_balance_tier_detail,
     analyze_balance_tiers,
+    analyze_balance_trajectory,
     analyze_closures,
     analyze_open_vs_close,
     analyze_stat_open_close,
@@ -232,3 +233,39 @@ class TestAnalyzeAgeDist:
     def test_sheet_name(self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings):
         result = analyze_age_dist(sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings)
         assert result.sheet_name == "21_Age_Dist"
+
+
+class TestAnalyzeBalanceTrajectory:
+    """ax83: Balance Trajectory by Branch."""
+
+    def test_returns_analysis_result(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_balance_trajectory(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert isinstance(result, AnalysisResult)
+        assert result.name == "Balance Trajectory"
+
+    def test_has_expected_columns(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_balance_trajectory(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        expected = {"Branch", "Avg Bal", "Curr Bal", "Change ($)", "Change (%)"}
+        assert expected.issubset(set(result.df.columns))
+
+    def test_has_grand_total_row(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_balance_trajectory(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert "Total" in result.df["Branch"].values
+
+    def test_sheet_name(self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings):
+        result = analyze_balance_trajectory(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert result.sheet_name == "83_Bal_Trajectory"

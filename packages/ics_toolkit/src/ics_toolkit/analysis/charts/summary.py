@@ -1,5 +1,6 @@
-"""Charts for summary analyses (ax01-ax07)."""
+"""Charts for summary analyses (ax01-ax07, ax64)."""
 
+import pandas as pd
 import plotly.graph_objects as go
 
 from ics_toolkit.settings import ChartConfig
@@ -182,6 +183,34 @@ def chart_debit_by_branch(df, config: ChartConfig) -> go.Figure:
         template=config.theme,
         xaxis_title="% with Debit Card",
         xaxis=dict(tickformat=".0%"),
+        yaxis_title="Branch",
+        **LAYOUT_DEFAULTS,
+    )
+    return fig
+
+
+def chart_penetration_by_branch(df, config: ChartConfig) -> go.Figure:
+    """ax64: Horizontal bar chart of ICS penetration rate by branch."""
+    data = df[df["Branch"] != "Total"].copy() if "Branch" in df.columns else df
+    colors = config.colors
+
+    data["Penetration %"] = pd.to_numeric(data["Penetration %"], errors="coerce")
+    data = data.sort_values("Penetration %", ascending=True)
+
+    fig = go.Figure(
+        go.Bar(
+            y=data["Branch"].astype(str),
+            x=data["Penetration %"],
+            orientation="h",
+            marker_color=colors[0],
+            text=data["Penetration %"].apply(lambda v: f"{v:.1f}%"),
+            textposition="outside",
+        )
+    )
+
+    fig.update_layout(
+        template=config.theme,
+        xaxis_title="ICS Penetration Rate (%)",
         yaxis_title="Branch",
         **LAYOUT_DEFAULTS,
     )

@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 
 from ics_toolkit.analysis.analyses import run_all_analyses
 from ics_toolkit.analysis.analyses.base import AnalysisResult
-from ics_toolkit.analysis.charts import create_charts, render_all_chart_pngs
+from ics_toolkit.analysis.charts import create_charts, render_all_chart_pngs, save_charts_html
 from ics_toolkit.analysis.data_loader import load_data
 from ics_toolkit.analysis.utils import get_ics_accounts, get_ics_stat_o, get_ics_stat_o_debit
 from ics_toolkit.settings import AnalysisSettings as Settings
@@ -27,6 +27,7 @@ class AnalysisPipelineResult:
     df: pd.DataFrame
     analyses: list[AnalysisResult] = field(default_factory=list)
     charts: dict[str, go.Figure] = field(default_factory=dict)
+    chart_pngs: dict[str, bytes] = field(default_factory=dict)
 
 
 def run_pipeline(
@@ -47,6 +48,38 @@ def run_pipeline(
         on_progress(0, 5, "Loading data...")
     df = load_data(settings)
 
+    # Filter out records before data_start_date (e.g. test data)
+    if settings.data_start_date:
+        cutoff = pd.to_datetime(settings.data_start_date)
+
+        # Filter rows by Date Opened
+        if "Date Opened" in df.columns:
+            before = len(df)
+            opened = pd.to_datetime(df["Date Opened"], errors="coerce")
+            df = df[opened.isna() | (opened >= cutoff)].copy()
+            dropped = before - len(df)
+            if dropped > 0:
+                logger.info(
+                    "Filtered %d records opened before %s", dropped, settings.data_start_date
+                )
+
+        # Prune L12M month tags before cutoff (e.g. drop Feb24 when cutoff is 2025-01-01)
+        if settings.last_12_months:
+            filtered_tags = []
+            for tag in settings.last_12_months:
+                tag_dt = datetime.strptime(tag, "%b%y")
+                if tag_dt >= cutoff:
+                    filtered_tags.append(tag)
+            pruned = len(settings.last_12_months) - len(filtered_tags)
+            if pruned > 0:
+                logger.info(
+                    "Pruned %d L12M month tags before %s (kept %d)",
+                    pruned,
+                    settings.data_start_date,
+                    len(filtered_tags),
+                )
+            settings.last_12_months = filtered_tags
+
     # Auto-detect cohort_start from L12M month tags if not set
     if settings.cohort_start is None and settings.last_12_months:
         first_tag = settings.last_12_months[0]
@@ -64,8 +97,9 @@ def run_pipeline(
     if on_progress:
         on_progress(1, 5, "Filtering data...")
     ics_all = get_ics_accounts(df)
-    ics_stat_o = get_ics_stat_o(df)
-    ics_stat_o_debit = get_ics_stat_o_debit(df)
+    open_codes = settings.open_stat_codes
+    ics_stat_o = get_ics_stat_o(df, open_codes=open_codes)
+    ics_stat_o_debit = get_ics_stat_o_debit(df, open_codes=open_codes)
     logger.info(
         "Filters: %d ICS total, %d stat O, %d stat O + debit",
         len(ics_all),
@@ -108,17 +142,30 @@ def run_pipeline(
         except Exception as e:
             logger.error("Chart generation failed: %s", e, exc_info=True)
 
+    # Step 4b: Render chart PNGs via matplotlib
+    chart_pngs: dict[str, bytes] = {}
+    if not skip_charts and charts:
+        logger.info("[4b/5] Rendering %d chart PNGs...", len(charts))
+        if on_progress:
+            on_progress(3, 5, "Rendering chart PNGs...")
+        try:
+            chart_pngs = render_all_chart_pngs(charts)
+            logger.info("Rendered %d chart PNGs", len(chart_pngs))
+        except Exception as e:
+            logger.error("Chart PNG rendering failed: %s", e, exc_info=True)
+
     return AnalysisPipelineResult(
         settings=settings,
         df=df,
         analyses=analyses,
         charts=charts,
+        chart_pngs=chart_pngs,
     )
 
 
 def export_outputs(
     result: AnalysisPipelineResult,
-    skip_chart_pngs: bool = False,
+    skip_charts: bool = False,
 ) -> list[Path]:
     """Export pipeline results to configured output formats.
 
@@ -133,14 +180,11 @@ def export_outputs(
 
     logger.info("[5/5] Exporting reports...")
 
-    # Render chart PNGs once, reuse for both Excel and PPTX
-    chart_pngs: dict[str, bytes] = {}
-    if skip_chart_pngs:
-        logger.info("Skipping chart PNG rendering (--no-charts)")
-    elif result.charts:
-        logger.info("Rendering %d charts to PNG...", len(result.charts))
-        chart_pngs = render_all_chart_pngs(result.charts, settings.charts)
-        logger.info("Rendered %d chart PNGs", len(chart_pngs))
+    # Save charts as interactive HTML files
+    if not skip_charts and result.charts:
+        logger.info("Saving %d charts as HTML...", len(result.charts))
+        html_paths = save_charts_html(result.charts, settings.output_dir)
+        logger.info("Saved %d chart HTML files to charts/", len(html_paths))
 
     if settings.outputs.excel:
         try:
@@ -152,8 +196,8 @@ def export_outputs(
                 settings,
                 result.df,
                 result.analyses,
-                chart_pngs=chart_pngs,
                 output_path=path,
+                chart_pngs=result.chart_pngs,
             )
             generated.append(path)
         except Exception as e:
@@ -168,8 +212,8 @@ def export_outputs(
             write_pptx_report(
                 settings,
                 result.analyses,
-                chart_pngs=chart_pngs,
                 output_path=path,
+                chart_pngs=result.chart_pngs,
             )
             generated.append(path)
         except Exception as e:

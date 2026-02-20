@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from ics_toolkit.analysis.analyses.base import AnalysisResult, safe_percentage
+from ics_toolkit.analysis.analyses.base import AnalysisResult, safe_percentage, safe_ratio
 from ics_toolkit.analysis.analyses.templates import (
     append_grand_total_row,
     binned_summary,
@@ -51,7 +51,7 @@ def analyze_closures(
     settings: Settings,
 ) -> AnalysisResult:
     """ax15: ICS accounts closed (Stat Code C) grouped by month closed."""
-    closed = ics_all[ics_all["Stat Code"] == "C"].copy()
+    closed = ics_all[ics_all["Stat Code"].isin(settings.closed_stat_codes)].copy()
 
     if "Date Closed" in closed.columns and not closed.empty:
         closed["Month Closed"] = closed["Date Closed"].dt.to_period("M").astype(str)
@@ -86,8 +86,8 @@ def analyze_open_vs_close(
 ) -> AnalysisResult:
     """ax16: ICS accounts by Open (O) vs Closed (C) status."""
     total = len(ics_all)
-    open_count = len(ics_all[ics_all["Stat Code"] == "O"])
-    closed_count = len(ics_all[ics_all["Stat Code"] == "C"])
+    open_count = len(ics_all[ics_all["Stat Code"].isin(settings.open_stat_codes)])
+    closed_count = len(ics_all[ics_all["Stat Code"].isin(settings.closed_stat_codes)])
 
     metrics = [
         ("Total ICS Accounts", total),
@@ -262,4 +262,66 @@ def analyze_age_dist(
         title="ICS Stat Code O - Age Distribution",
         df=result,
         sheet_name="21_Age_Dist",
+    )
+
+
+def analyze_balance_trajectory(
+    df: pd.DataFrame,
+    ics_all: pd.DataFrame,
+    ics_stat_o: pd.DataFrame,
+    ics_stat_o_debit: pd.DataFrame,
+    settings: Settings,
+) -> AnalysisResult:
+    """ax83: Balance trajectory -- Avg Bal vs Curr Bal by branch.
+
+    Shows whether accounts are growing or draining balances.
+    """
+    if "Avg Bal" not in ics_stat_o.columns:
+        return AnalysisResult(
+            name="Balance Trajectory",
+            title="ICS Balance Trajectory (Avg Bal vs Curr Bal)",
+            df=kpi_summary([("Status", "No Avg Bal column in data")]),
+            sheet_name="83_Bal_Trajectory",
+        )
+
+    data = ics_stat_o.copy()
+
+    if "Branch" not in data.columns:
+        data["Branch"] = "All"
+
+    grouped = (
+        data.groupby("Branch", dropna=False)
+        .agg(
+            Accounts=("Branch", "size"),
+            Avg_AvgBal=("Avg Bal", "mean"),
+            Avg_CurrBal=("Curr Bal", "mean"),
+        )
+        .reset_index()
+    )
+
+    grouped["Avg Bal"] = grouped["Avg_AvgBal"].round(2)
+    grouped["Curr Bal"] = grouped["Avg_CurrBal"].round(2)
+    grouped["Change ($)"] = (grouped["Avg_CurrBal"] - grouped["Avg_AvgBal"]).round(2)
+    grouped["Change (%)"] = grouped.apply(
+        lambda row: (
+            round(safe_ratio(row["Change ($)"], row["Avg Bal"]) * 100, 1)
+            if row["Avg Bal"] != 0
+            else 0.0
+        ),
+        axis=1,
+    )
+
+    result_df = (
+        grouped[["Branch", "Accounts", "Avg Bal", "Curr Bal", "Change ($)", "Change (%)"]]
+        .sort_values("Accounts", ascending=False)
+        .reset_index(drop=True)
+    )
+
+    result_df = append_grand_total_row(result_df, label_col="Branch")
+
+    return AnalysisResult(
+        name="Balance Trajectory",
+        title="ICS Balance Trajectory (Avg Bal vs Curr Bal)",
+        df=result_df,
+        sheet_name="83_Bal_Trajectory",
     )

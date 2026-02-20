@@ -3,6 +3,7 @@
 from ics_toolkit.analysis.analyses.base import AnalysisResult
 from ics_toolkit.analysis.analyses.source import (
     analyze_account_type,
+    analyze_source_acquisition_mix,
     analyze_source_by_branch,
     analyze_source_by_prod,
     analyze_source_by_stat,
@@ -195,3 +196,39 @@ class TestAnalyzeSourceByYear:
             sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
         )
         assert result.sheet_name == "13_Source_x_Year"
+
+
+class TestAnalyzeSourceAcquisitionMix:
+    """ax85: Source Acquisition Mix Over Time."""
+
+    def test_returns_analysis_result(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_source_acquisition_mix(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert isinstance(result, AnalysisResult)
+        assert result.name == "Source Acquisition Mix"
+
+    def test_has_month_column(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_source_acquisition_mix(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert "Month" in result.df.columns
+
+    def test_has_total_column(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_source_acquisition_mix(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        if not result.df.empty:
+            assert "Total" in result.df.columns
+
+    def test_sheet_name(self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings):
+        result = analyze_source_acquisition_mix(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert result.sheet_name == "85_Source_Acq_Mix"

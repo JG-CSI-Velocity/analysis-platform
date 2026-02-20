@@ -41,6 +41,37 @@ class TestFilters:
         result = get_open_accounts(sample_df)
         assert all(result["Stat Code"] == "O")
 
+    def test_get_ics_stat_o_custom_codes(self, sample_df):
+        """open_codes=['A'] filters to Stat Code A instead of O."""
+        # Overwrite some stat codes to 'A'
+        df = sample_df.copy()
+        df.loc[df["Stat Code"] == "O", "Stat Code"] = "A"
+        result = get_ics_stat_o(df, open_codes=["A"])
+        assert all(result["ICS Account"] == "Yes")
+        assert all(result["Stat Code"] == "A")
+        assert len(result) > 0
+
+    def test_get_ics_stat_o_debit_custom_codes(self, sample_df):
+        df = sample_df.copy()
+        df.loc[df["Stat Code"] == "O", "Stat Code"] = "A"
+        result = get_ics_stat_o_debit(df, open_codes=["A"])
+        assert all(result["ICS Account"] == "Yes")
+        assert all(result["Stat Code"] == "A")
+        assert all(result["Debit?"] == "Yes")
+
+    def test_get_open_accounts_custom_codes(self, sample_df):
+        df = sample_df.copy()
+        df.loc[df["Stat Code"] == "O", "Stat Code"] = "A"
+        result = get_open_accounts(df, open_codes=["A"])
+        assert all(result["Stat Code"] == "A")
+        assert len(result) > 0
+
+    def test_get_ics_stat_o_multiple_codes(self, sample_df):
+        """Multiple open codes work (e.g. both O and A)."""
+        result = get_ics_stat_o(sample_df, open_codes=["O", "A"])
+        assert all(result["ICS Account"] == "Yes")
+        assert all(result["Stat Code"].isin(["O", "A"]))
+
     def test_filters_return_copies(self, sample_df):
         result = get_ics_accounts(sample_df)
         result["ICS Account"] = "Modified"

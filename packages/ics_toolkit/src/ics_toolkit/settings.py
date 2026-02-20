@@ -132,6 +132,18 @@ class AppendSettings(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class AnalysisClientConfig(BaseModel):
+    """Per-client analysis overrides (stat codes, label mappings, etc.)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    open_stat_codes: list[str] | None = None
+    closed_stat_codes: list[str] | None = None
+    interchange_rate: float | None = None
+    branch_mapping: dict[str, str] | None = None
+    prod_code_mapping: dict[str, str] | None = None
+
+
 class BalanceTierConfig(BaseModel):
     """Balance tier bin configuration."""
 
@@ -171,19 +183,22 @@ class AnalysisSettings(BaseModel):
     client_id: str | None = None
     client_name: str | None = None
     output_dir: Path = Path("output/")
+    data_start_date: str | None = None
     cohort_start: str | None = None
     ics_not_in_dump: int = 0
+    interchange_rate: float = 0.0182
+    open_stat_codes: list[str] = Field(default_factory=lambda: ["O"])
+    closed_stat_codes: list[str] = Field(default_factory=lambda: ["C"])
+    client_config_path: Path | None = None
+    clients: dict[str, AnalysisClientConfig] = Field(default_factory=dict)
+    branch_mapping: dict[str, str] | None = None
+    prod_code_mapping: dict[str, str] | None = None
     balance_tiers: BalanceTierConfig = BalanceTierConfig()
     age_ranges: AgeRangeConfig = AgeRangeConfig()
     outputs: OutputConfig = OutputConfig()
     charts: ChartConfig = ChartConfig()
     pptx_template: Path | None = DEFAULT_PPTX_TEMPLATE
     last_12_months: list[str] = []
-    # Benchmark thresholds (used by analyses/benchmarks.py)
-    interchange_rate: float = 0.0182
-    activation_rate_thresholds: tuple[float, float] = (60.0, 40.0)
-    active_rate_thresholds: tuple[float, float] = (50.0, 30.0)
-    penetration_rate_thresholds: tuple[float, float] = (70.0, 50.0)
 
     @field_validator("data_file", mode="before")
     @classmethod
@@ -203,6 +218,13 @@ class AnalysisSettings(BaseModel):
             )
         return v
 
+    @field_validator("client_config_path", mode="before")
+    @classmethod
+    def expand_client_config_path(cls, v: Path | str | None) -> Path | None:
+        if v is None:
+            return v
+        return Path(v).expanduser().resolve()
+
     @model_validator(mode="after")
     def derive_client_fields(self):
         if self.data_file and self.client_id is None:
@@ -217,7 +239,54 @@ class AnalysisSettings(BaseModel):
                 )
         if self.data_file and self.client_name is None:
             self.client_name = f"Client {self.client_id}"
+
+        # Layer 1: Master config file (base layer)
+        if self.client_id and self.client_id != "unknown":
+            self._apply_master_config()
+
+        # Layer 2: config.yaml clients dict (overrides master)
+        if self.client_id and self.client_id in self.clients:
+            client_cfg = self.clients[self.client_id]
+            if client_cfg.open_stat_codes is not None:
+                self.open_stat_codes = client_cfg.open_stat_codes
+            if client_cfg.closed_stat_codes is not None:
+                self.closed_stat_codes = client_cfg.closed_stat_codes
+            if client_cfg.interchange_rate is not None:
+                self.interchange_rate = client_cfg.interchange_rate
+            if client_cfg.branch_mapping is not None:
+                self.branch_mapping = client_cfg.branch_mapping
+            if client_cfg.prod_code_mapping is not None:
+                self.prod_code_mapping = client_cfg.prod_code_mapping
+
         return self
+
+    def _apply_master_config(self) -> None:
+        """Load and apply master config file values (lowest priority layer)."""
+        from ics_toolkit.client_registry import (
+            get_client_config,
+            load_master_config,
+            resolve_master_config_path,
+        )
+
+        path = resolve_master_config_path(self.client_config_path)
+        if path is None:
+            return
+        registry = load_master_config(path)
+        cfg = get_client_config(self.client_id, registry)
+        if cfg is None:
+            return
+
+        for field_name in (
+            "open_stat_codes",
+            "closed_stat_codes",
+            "interchange_rate",
+            "client_name",
+            "branch_mapping",
+            "prod_code_mapping",
+        ):
+            val = getattr(cfg, field_name)
+            if val is not None:
+                setattr(self, field_name, val)
 
 
 # ---------------------------------------------------------------------------

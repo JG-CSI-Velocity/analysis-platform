@@ -199,15 +199,18 @@ def _write_analysis_sheet(
             max_len = max(max_len, display_len)
         ws.column_dimensions[get_column_letter(col_idx)].width = min(max_len + 4, 30)
 
-    # Embed chart image if available
+    # Chart image (if available)
     if chart_png:
+        img_row = len(df) + 3
         img = XLImage(BytesIO(chart_png))
-        img.width = 700
-        img.height = 400
-        ws.add_image(img, f"A{len(df) + 4}")
+        img.width = 800
+        img.height = 480
+        ws.add_image(img, f"A{img_row}")
+        link_row = img_row + 26  # ~26 rows for the image height
+    else:
+        link_row = len(df) + 3
 
     # Back to Contents link
-    link_row = len(df) + 3 if not chart_png else len(df) + 25
     ws.cell(row=link_row, column=1, value="Back to Contents")
     ws.cell(row=link_row, column=1).hyperlink = "#Contents!A1"
     ws.cell(row=link_row, column=1).font = Font(
@@ -222,16 +225,10 @@ def write_excel_report(
     settings,
     df: pd.DataFrame,
     analyses: list,
-    charts: dict | None = None,
-    chart_pngs: dict[str, bytes] | None = None,
     output_path: Path | None = None,
+    chart_pngs: dict[str, bytes] | None = None,
 ) -> Path:
     """Write the complete Excel report.
-
-    Args:
-        chart_pngs: Pre-rendered PNG bytes keyed by analysis name.
-            If provided, charts arg is ignored (avoids double-rendering).
-        charts: Plotly figure dict (legacy; rendered on the fly if chart_pngs not given).
 
     Returns the path to the generated file.
     """
@@ -246,29 +243,11 @@ def write_excel_report(
     _write_cover_sheet(wb, settings, df, analyses)
     _write_toc_sheet(wb, analyses)
 
-    # Use pre-rendered PNGs if available, otherwise render from figures
-    if chart_pngs is None:
-        chart_pngs = {}
-        if charts:
-            try:
-                from ics_toolkit.analysis.charts import render_chart_png
-
-                for name, fig in charts.items():
-                    try:
-                        chart_pngs[name] = render_chart_png(fig, settings.charts)
-                    except Exception as e:
-                        logger.warning("Chart PNG for '%s' failed: %s", name, e)
-            except ImportError:
-                logger.warning("kaleido not available; skipping chart images in Excel")
-
+    pngs = chart_pngs or {}
     for analysis in analyses:
         if analysis.error is not None:
             continue
-        _write_analysis_sheet(
-            wb,
-            analysis,
-            chart_png=chart_pngs.get(analysis.name),
-        )
+        _write_analysis_sheet(wb, analysis, chart_png=pngs.get(analysis.name))
 
     wb.save(output_path)
     logger.info("Excel report saved: %s", output_path)

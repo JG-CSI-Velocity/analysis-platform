@@ -204,7 +204,7 @@ def analyze(
         successful = [a for a in result.analyses if a.error is None]
         logger.info("Analyses completed: %d/%d", len(successful), len(result.analyses))
 
-        generated = export_outputs(result, skip_chart_pngs=no_charts)
+        generated = export_outputs(result, skip_charts=no_charts)
 
         if generated:
             logger.info("")
@@ -213,6 +213,82 @@ def analyze(
                 logger.info("  %s", path)
         else:
             logger.warning("No reports were generated.")
+
+    except ICSToolkitError as e:
+        logger.error(str(e))
+        raise typer.Exit(code=1) from None
+    except Exception as e:
+        logger.error("Unexpected error: %s", e)
+        if verbose:
+            import traceback
+
+            traceback.print_exc()
+        raise typer.Exit(code=1) from None
+
+
+@app.command(name="chart-catalog")
+def chart_catalog(
+    data_file: Path = typer.Argument(
+        None,
+        help="Path to the client CSV/Excel file.",
+        exists=False,
+    ),
+    config: Path = typer.Option(
+        DEFAULT_CONFIG_PATH, "--config", "-c", help="Path to config.yaml file."
+    ),
+    output_dir: Path = typer.Option(None, "--output", "-o", help="Output directory."),
+    client_id: str = typer.Option(None, "--client-id", help="Client identifier."),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug logging."),
+) -> None:
+    """Generate a chart catalog PPTX with one slide per chart and metadata labels.
+
+    Each slide shows the chart image, section, function name, and source .py file.
+    Use this to review charts one-by-one and provide feedback.
+
+    Usage:
+        python -m ics_toolkit chart-catalog data/client_file.xlsx
+    """
+    _setup_logging(verbose)
+    logger = logging.getLogger(__name__)
+
+    try:
+        overrides: dict = {"analysis": {}}
+        if data_file is not None:
+            overrides["analysis"]["data_file"] = data_file
+        if output_dir is not None:
+            overrides["analysis"]["output_dir"] = output_dir
+        if client_id is not None:
+            overrides["analysis"]["client_id"] = client_id
+
+        from ics_toolkit.settings import Settings
+
+        settings = Settings.from_yaml(config_path=config, **overrides)
+        analysis_settings = settings.analysis
+
+        logger.info("Client: %s (%s)", analysis_settings.client_name, analysis_settings.client_id)
+        logger.info("Data: %s", analysis_settings.data_file)
+
+        from ics_toolkit.analysis.pipeline import run_pipeline
+
+        result = run_pipeline(analysis_settings, skip_charts=False)
+
+        successful = [a for a in result.analyses if a.error is None]
+        logger.info(
+            "Analyses: %d/%d  Charts: %d",
+            len(successful),
+            len(result.analyses),
+            len(result.chart_pngs),
+        )
+
+        from ics_toolkit.analysis.exports.pptx import write_chart_catalog
+
+        path = write_chart_catalog(
+            analysis_settings,
+            result.analyses,
+            result.chart_pngs,
+        )
+        logger.info("")
+        logger.info("Chart catalog: %s", path)
 
     except ICSToolkitError as e:
         logger.error(str(e))

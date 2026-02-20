@@ -66,3 +66,56 @@ def chart_revenue_impact(df, config: ChartConfig) -> go.Figure:
         **LAYOUT_DEFAULTS,
     )
     return fig
+
+
+def chart_revenue_by_branch(df, config: ChartConfig) -> go.Figure:
+    """ax65: Horizontal bar chart of interchange by branch."""
+    data = df[df["Branch"] != "Total"].copy() if "Branch" in df.columns else df
+    colors = config.colors
+
+    data = data.sort_values("Est. Interchange", ascending=True)
+
+    fig = go.Figure(
+        go.Bar(
+            y=data["Branch"].astype(str),
+            x=data["Est. Interchange"],
+            orientation="h",
+            marker_color=colors[0],
+            text=data["Est. Interchange"].apply(lambda v: f"${v:,.0f}"),
+            textposition="outside",
+        )
+    )
+
+    fig.update_layout(
+        template=config.theme,
+        xaxis_title="Estimated Interchange ($)",
+        xaxis=dict(tickprefix="$", tickformat=",.0f"),
+        yaxis_title="Branch",
+        **LAYOUT_DEFAULTS,
+    )
+    return fig
+
+
+def chart_revenue_by_source(df, config: ChartConfig) -> go.Figure:
+    """ax66: Bar chart of interchange by source channel."""
+    data = df[df["Source"] != "Total"].copy() if "Source" in df.columns else df
+    colors = config.colors
+
+    fig = go.Figure(
+        go.Bar(
+            x=data["Source"],
+            y=data["Est. Interchange"],
+            marker_color=colors[: len(data)],
+            text=data["Est. Interchange"].apply(lambda v: f"${v:,.0f}"),
+            textposition="outside",
+        )
+    )
+
+    fig.update_layout(
+        template=config.theme,
+        xaxis_title="Source",
+        yaxis_title="Estimated Interchange ($)",
+        yaxis=dict(tickprefix="$", tickformat=",.0f"),
+        **LAYOUT_DEFAULTS,
+    )
+    return fig

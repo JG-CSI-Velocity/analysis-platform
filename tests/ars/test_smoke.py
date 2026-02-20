@@ -1,11 +1,11 @@
 """Smoke tests -- verify package imports and basic wiring."""
 
+from ars_analysis import __version__
 from ars_analysis.exceptions import ARSError, ConfigError, DataError, OutputError
 
 
-def test_import():
-    import ars_analysis
-    assert hasattr(ars_analysis, "run_ars")
+def test_version():
+    assert __version__ == "2.0.0"
 
 
 def test_exception_hierarchy():

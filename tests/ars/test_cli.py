@@ -1,6 +1,5 @@
 """Tests for the CLI commands."""
 
-
 import pandas as pd
 import pytest
 from typer.testing import CliRunner

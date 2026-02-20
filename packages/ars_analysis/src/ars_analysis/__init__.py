@@ -1,9 +1,3 @@
-"""ARS (Account Revenue Solution) v2 modular analysis pipeline.
+"""ARS Pipeline -- Automated Reporting System."""
 
-20 analytics modules across 7 sections: Overview, DCTR, Reg E,
-Attrition, Value, Mailer, and Insights. Batch processing for 300+ clients.
-"""
-
-from ars_analysis.runner import run_ars
-
-__all__ = ["run_ars"]
+__version__ = "2.0.0"

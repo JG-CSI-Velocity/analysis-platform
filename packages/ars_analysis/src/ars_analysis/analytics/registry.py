@@ -12,8 +12,7 @@ from ars_analysis.exceptions import ConfigError
 _REGISTRY: dict[str, type[AnalysisModule]] = {}
 
 # Explicit execution order -- deterministic, no import side effects.
-# Each entry maps to a subpackage under ars_analysis.analytics.
-# Transaction and ICS run as separate top-level pipelines via the orchestrator.
+# Each entry maps to a subpackage under ars.analytics.
 MODULE_ORDER: list[str] = [
     "overview.stat_codes",
     "overview.product_codes",
@@ -33,6 +32,8 @@ MODULE_ORDER: list[str] = [
     "mailer.insights",
     "mailer.response",
     "mailer.impact",
+    "transaction.runner",
+    "ics.runner",
     "insights.synthesis",
     "insights.conclusions",
 ]
@@ -82,7 +83,7 @@ def load_all_modules() -> None:
 
     def _load(module_id: str) -> None:
         try:
-            importlib.import_module(f"ars_analysis.analytics.{module_id}")
+            importlib.import_module(f"ars.analytics.{module_id}")
         except Exception as exc:
             logger.error("Failed to load module {id}: {err}", id=module_id, err=exc)
             with lock:

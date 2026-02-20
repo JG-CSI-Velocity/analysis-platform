@@ -9,11 +9,11 @@ analysis_platform/
   packages/
     shared/           Shared types, context, and config (PipelineContext, AnalysisResult)
     ars_analysis/     ARS pipeline (70+ analyses, PPTX deck, Excel reports)
-    txn_analysis/     Transaction pipeline (M1-M10 base + V4 S1-S9 storylines)
+    txn_analysis/     Transaction pipeline (35 analyses: M1-M14 + scorecard)
     ics_toolkit/      ICS pipeline (37 analyses + append + referral intelligence)
     platform_app/     Orchestrator, CLI, and Streamlit UI
   tests/
-    ars/              ARS unit tests (141 tests)
+    ars/              ARS unit tests (545 tests)
     txn/              Transaction unit tests
     ics/              ICS unit tests
     shared/           Shared package unit tests (50 tests)
@@ -51,7 +51,7 @@ uv sync --all-packages
 uv run pytest tests/ -v
 ```
 
-Should see 2301 tests pass (~94s on macOS, ~180s on Windows with 100 kaleido tests auto-skipped).
+Should see ~2,305 tests pass (~2 min on macOS). Windows auto-skips ~100 kaleido-dependent tests.
 
 ---
 
@@ -216,7 +216,7 @@ from txn_analysis import run_client
 run_client("data/transactions.csv")
 ```
 
-Base analysis: M1-M10 (31 analyses, 19 charts). V4 storylines: S1-S9 (99+ analyses).
+35 analyses (M1-M14 + scorecard), 19+ charts. M11-M14 (Demographics, Campaigns, Payroll, Lifecycle) require optional ODD file.
 
 ---
 
@@ -252,8 +252,7 @@ run_referral("data/referral_file.xlsx")
 | Pipeline | Input File | Output |
 |----------|------------|--------|
 | ARS | `{ClientID}-{year}-{month}-{name}-ODD.xlsx` | Excel + PPTX + charts |
-| Transaction (Base) | CSV: `merchant_name`, `amount`, `primary_account_num`, `transaction_date`, `mcc_code` | Excel + PNG charts |
-| Transaction (V4) | Tab-delimited + ODD Excel + YAML config | Excel + HTML + PNG charts |
+| Transaction | CSV: `merchant_name`, `amount`, `primary_account_num`, `transaction_date`, `mcc_code` + optional ODD Excel | Excel + PNG charts |
 | ICS Analysis | ICS Excel/CSV | Excel + Plotly charts + PPTX |
 | ICS Append | Directory of ICS source files | Merged/organized output |
 | ICS Referral | Referral Excel/CSV | Excel + Plotly charts + PPTX |
@@ -269,7 +268,7 @@ uv run pytest tests/ -v
 Run by package:
 
 ```
-uv run pytest tests/ars/ -v              # 141 ARS tests
+uv run pytest tests/ars/ -v              # 545 ARS tests
 uv run pytest tests/txn/ -v              # Transaction tests
 uv run pytest tests/ics/ -v              # ICS tests (incl. 212 referral)
 uv run pytest tests/ics/referral/ -v     # Referral tests only
@@ -285,7 +284,7 @@ make lint    # ruff check + format check
 make fmt     # auto-fix lint + format
 ```
 
-**2301 tests, ~94s runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
+**~2,305 tests, ~2 min runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
 
 ## Lint
 
@@ -308,7 +307,7 @@ GitHub Actions workflow runs on push/PR to main:
 - openpyxl -- Excel read/write
 - python-pptx -- PowerPoint generation
 - pydantic + pyyaml -- config validation
-- streamlit -- web UI (landing page; pipeline pages not yet wired)
+- streamlit -- web UI (UAP V2.0 unified dashboard with module registry)
 
 ## Windows Notes
 

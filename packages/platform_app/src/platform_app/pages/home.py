@@ -40,11 +40,10 @@ st.divider()
 # ---------------------------------------------------------------------------
 st.markdown('<p class="uap-label">PRODUCT COVERAGE</p>', unsafe_allow_html=True)
 
-cols = st.columns(4)
+cols = st.columns(3)
 product_info = [
     (Product.ARS, "ARS", "OD/NSF portfolio analysis", "#3B82F6"),
-    (Product.TXN, "Transaction", "Debit card M1-M10", "#10B981"),
-    (Product.TXN_V4, "Transaction V4", "Storyline analytics S0-S9", "#8B5CF6"),
+    (Product.TXN, "Transaction", "Debit card M1-M14 + scorecard", "#10B981"),
     (Product.ICS, "ICS", "Instant Card Services", "#F59E0B"),
 ]
 

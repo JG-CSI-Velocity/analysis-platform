@@ -38,12 +38,15 @@ for key in selected_modules:
 file_status: dict[str, tuple[bool, str]] = {}
 oddd_path = st.session_state.get("uap_file_oddd", "")
 tran_path = st.session_state.get("uap_file_tran", "")
+odd_path = st.session_state.get("uap_file_odd", "")
 ics_path = st.session_state.get("uap_file_ics", "")
 
 if Product.ARS in needed_products:
     file_status["ARS"] = (bool(oddd_path and Path(oddd_path).exists()), oddd_path)
-if Product.TXN in needed_products or Product.TXN_V4 in needed_products:
+if Product.TXN in needed_products:
     file_status["TXN"] = (bool(tran_path and Path(tran_path).exists()), tran_path)
+    if odd_path:
+        file_status["TXN ODD"] = (bool(Path(odd_path).exists()), odd_path)
 if Product.ICS in needed_products:
     file_status["ICS"] = (bool(ics_path and Path(ics_path).exists()), ics_path)
 
@@ -145,8 +148,10 @@ for product in sorted(needed_products, key=lambda p: p.value):
             if not output_base.strip()
             else Path(output_base.strip()) / "ars"
         )
-    elif product in (Product.TXN, Product.TXN_V4):
+    elif product == Product.TXN:
         input_files["tran"] = Path(tran_path)
+        if odd_path and Path(odd_path).exists():
+            input_files["odd"] = Path(odd_path)
         out = (
             Path(tran_path).parent / "output_txn"
             if not output_base.strip()

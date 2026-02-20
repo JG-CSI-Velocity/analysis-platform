@@ -153,6 +153,35 @@ with tab_tran:
             else:
                 st.warning(f"No `.{file_ext}` files found in `{d.name}` or subdirectories")
 
+    # ODD file (optional -- enables M11-M14: demographics, campaigns, payroll, lifecycle)
+    st.divider()
+    st.caption(
+        "Optional: ODD file enables Demographics, Campaigns, Payroll, "
+        "and Lifecycle analyses (M11-M14)."
+    )
+    odd_mode = st.radio("ODD Input", ["Upload", "Server path"], key="txn_odd_mode", horizontal=True)
+    if odd_mode == "Upload":
+        odd_upload = st.file_uploader("ODD Excel file", type=["xlsx", "xls"], key="txn_odd_upload")
+        if odd_upload:
+            tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False, prefix="txn_odd_")
+            tmp.write(odd_upload.getvalue())
+            tmp.flush()
+            st.session_state["uap_file_odd"] = tmp.name
+            st.success(f"Uploaded: {odd_upload.name}")
+    else:
+        odd_path = st.text_input(
+            "ODD file path",
+            value=st.session_state.get("uap_file_odd", ""),
+            key="txn_odd_path_input",
+            placeholder="/path/to/ODD.xlsx (optional)",
+        )
+        if odd_path.strip():
+            if Path(odd_path.strip()).exists():
+                st.session_state["uap_file_odd"] = odd_path.strip()
+                st.success(f"Found: `{Path(odd_path.strip()).name}`")
+            else:
+                st.error(f"Not found: `{odd_path.strip()}`")
+
 with tab_ics:
     ics_mode = st.radio("Input", ["Upload", "Server path"], key="ics_mode", horizontal=True)
     if ics_mode == "Upload":
@@ -236,7 +265,8 @@ def _profile_file(path_str: str, label: str) -> None:
 
 _profile_file(st.session_state.get("uap_file_oddd", ""), "ODDD")
 _profile_file(st.session_state.get("uap_file_tran", ""), "Transaction")
+_profile_file(st.session_state.get("uap_file_odd", ""), "ODD (TXN)")
 _profile_file(st.session_state.get("uap_file_ics", ""), "ICS")
 
-if not any(st.session_state.get(f"uap_file_{k}") for k in ["oddd", "tran", "ics"]):
+if not any(st.session_state.get(f"uap_file_{k}") for k in ["oddd", "tran", "odd", "ics"]):
     st.info("Upload or select data files above to see profiling results.")

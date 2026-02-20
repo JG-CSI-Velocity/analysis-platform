@@ -84,7 +84,6 @@ if search.strip():
 _COLORS = {
     Product.ARS: "#3B82F6",
     Product.TXN: "#10B981",
-    Product.TXN_V4: "#8B5CF6",
     Product.ICS: "#F59E0B",
 }
 

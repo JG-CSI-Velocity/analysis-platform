@@ -40,7 +40,7 @@ p1, p2, p3 = st.columns(3)
 with p1:
     run_ars = st.checkbox("ARS Analysis", key="batch_ars")
 with p2:
-    run_txn = st.checkbox("Transaction Base", key="batch_txn")
+    run_txn = st.checkbox("Transaction Analysis", key="batch_txn")
 with p3:
     run_ics = st.checkbox("ICS Analysis", key="batch_ics")
 
@@ -59,6 +59,7 @@ st.markdown('<p class="uap-label">DATA FILES</p>', unsafe_allow_html=True)
 
 oddd_path = ""
 tran_path = ""
+odd_path = ""
 ics_path = ""
 
 if not selected:
@@ -77,6 +78,12 @@ else:
             value=st.session_state.get("uap_file_tran", ""),
             key="batch_tran",
             placeholder="/path/to/transactions.csv (use Data Ingestion to merge multi-file)",
+        )
+        odd_path = st.text_input(
+            "ODD file (optional -- enables M11-M14)",
+            value=st.session_state.get("uap_file_odd", ""),
+            key="batch_odd",
+            placeholder="/path/to/ODD.xlsx (optional)",
         )
     if run_ics:
         ics_path = st.text_input(
@@ -105,7 +112,7 @@ if not selected and "batch_results" not in st.session_state:
 
 pipeline_info = {
     "ars": ("ARS Analysis", "#3B82F6"),
-    "txn": ("Transaction Base", "#10B981"),
+    "txn": ("Transaction Analysis", "#10B981"),
     "ics": ("ICS Analysis", "#F59E0B"),
 }
 
@@ -176,6 +183,9 @@ if run_btn:
                 errors[key] = f"Transaction file not found: {p}"
                 continue
             input_files["tran"] = Path(p)
+            o = odd_path.strip() if run_txn else ""
+            if o and Path(o).exists():
+                input_files["odd"] = Path(o)
             out = (
                 Path(p).parent / "output_txn"
                 if not output_base.strip()

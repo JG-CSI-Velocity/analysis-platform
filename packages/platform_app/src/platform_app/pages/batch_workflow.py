@@ -19,81 +19,106 @@ st.title("Batch Run")
 st.caption("Queue multiple pipelines and execute sequentially.")
 
 # ---------------------------------------------------------------------------
-# Sidebar config
+# Config -- main area, not sidebar
 # ---------------------------------------------------------------------------
-with st.sidebar:
-    st.markdown('<p class="uap-label">BATCH CONFIG</p>', unsafe_allow_html=True)
-
-    # Client info
+st.markdown('<p class="uap-label">CLIENT</p>', unsafe_allow_html=True)
+c1, c2 = st.columns(2)
+with c1:
     client_id = st.text_input(
         "Client ID", value=st.session_state.get("uap_client_id", ""), key="batch_cid"
     )
+with c2:
     client_name = st.text_input(
         "Client Name", value=st.session_state.get("uap_client_name", ""), key="batch_cname"
     )
 
-    st.divider()
+st.divider()
 
-    # Pipeline selection
-    st.markdown('<p class="uap-label">PIPELINES</p>', unsafe_allow_html=True)
+# Pipeline selection
+st.markdown('<p class="uap-label">PIPELINES</p>', unsafe_allow_html=True)
+p1, p2, p3 = st.columns(3)
+with p1:
     run_ars = st.checkbox("ARS Analysis", key="batch_ars")
+with p2:
     run_txn = st.checkbox("Transaction Base", key="batch_txn")
+with p3:
     run_ics = st.checkbox("ICS Analysis", key="batch_ics")
 
-    selected: list[str] = []
-    if run_ars:
-        selected.append("ars")
-    if run_txn:
-        selected.append("txn")
-    if run_ics:
-        selected.append("ics")
+selected: list[str] = []
+if run_ars:
+    selected.append("ars")
+if run_txn:
+    selected.append("txn")
+if run_ics:
+    selected.append("ics")
 
-    st.divider()
+st.divider()
 
-    # File paths
-    st.markdown('<p class="uap-label">DATA FILES</p>', unsafe_allow_html=True)
+# File paths -- only show fields for selected pipelines
+st.markdown('<p class="uap-label">DATA FILES</p>', unsafe_allow_html=True)
+
+oddd_path = ""
+tran_path = ""
+ics_path = ""
+
+if not selected:
+    st.info("Select at least one pipeline above to configure data files.")
+else:
     if run_ars:
         oddd_path = st.text_input(
-            "ODDD file", value=st.session_state.get("uap_file_oddd", ""), key="batch_oddd"
+            "ODDD file",
+            value=st.session_state.get("uap_file_oddd", ""),
+            key="batch_oddd",
+            placeholder="/path/to/9999-ODD.xlsx",
         )
     if run_txn:
         tran_path = st.text_input(
-            "Transaction file", value=st.session_state.get("uap_file_tran", ""), key="batch_tran"
+            "Transaction file",
+            value=st.session_state.get("uap_file_tran", ""),
+            key="batch_tran",
+            placeholder="/path/to/transactions.csv (use Data Ingestion to merge multi-file)",
         )
     if run_ics:
         ics_path = st.text_input(
-            "ICS data file", value=st.session_state.get("uap_file_ics", ""), key="batch_ics_file"
+            "ICS data file",
+            value=st.session_state.get("uap_file_ics", ""),
+            key="batch_ics_file",
+            placeholder="/path/to/ics_data.xlsx",
         )
 
-    st.divider()
-    output_base = st.text_input(
-        "Output directory", key="batch_output", placeholder="Auto from input file"
-    )
+st.divider()
 
-    st.divider()
-    run_btn = st.button(
-        f"Run {len(selected)} Pipeline(s)" if selected else "Select pipelines",
-        type="primary",
-        disabled=not selected,
-        key="batch_run",
-        use_container_width=True,
-    )
+output_base = st.text_input(
+    "Output directory",
+    key="batch_output",
+    placeholder="Leave empty to auto-generate from input file location",
+)
+
+st.divider()
 
 # ---------------------------------------------------------------------------
 # Queue display
 # ---------------------------------------------------------------------------
 if not selected and "batch_results" not in st.session_state:
-    st.info("Select pipelines in the sidebar to build your execution queue.")
+    st.info("Select pipelines above to build your execution queue.")
     st.stop()
+
+pipeline_info = {
+    "ars": ("ARS Analysis", "#3B82F6"),
+    "txn": ("Transaction Base", "#10B981"),
+    "ics": ("ICS Analysis", "#F59E0B"),
+}
+
+run_btn = st.button(
+    f"Execute {len(selected)} Pipeline(s)" if selected else "Select pipelines",
+    type="primary",
+    disabled=not selected,
+    key="batch_run",
+    use_container_width=True,
+)
 
 if selected and not run_btn and "batch_results" not in st.session_state:
     st.markdown('<p class="uap-label">EXECUTION QUEUE</p>', unsafe_allow_html=True)
-
-    pipeline_info = {
-        "ars": ("ARS Analysis", "#3B82F6"),
-        "txn": ("Transaction Base", "#10B981"),
-        "ics": ("ICS Analysis", "#F59E0B"),
-    }
 
     for i, key in enumerate(selected, 1):
         label, color = pipeline_info.get(key, (key, "#94A3B8"))

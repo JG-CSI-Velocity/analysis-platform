@@ -6,7 +6,9 @@ import streamlit as st
 
 from platform_app.core.module_registry import (
     ModuleInfo,
+    ModuleStatus,
     Product,
+    get_categories,
     get_registry,
 )
 from platform_app.core.templates import load_templates
@@ -21,7 +23,7 @@ st.caption("Browse all available analysis modules. Select modules or load a temp
 # ---------------------------------------------------------------------------
 # Search + filter bar
 # ---------------------------------------------------------------------------
-f1, f2, f3 = st.columns([2, 1, 1])
+f1, f2, f3, f4 = st.columns([3, 1, 1, 1])
 with f1:
     search = st.text_input(
         "Search modules",
@@ -36,6 +38,18 @@ with f2:
         key="mod_product",
     )
 with f3:
+    # Build category list based on product filter
+    if product_filter != "All":
+        _prod = Product(product_filter.lower())
+        _cats = get_categories(_prod)
+    else:
+        _cats = get_categories()
+    category_filter = st.selectbox(
+        "Category",
+        options=["All"] + _cats,
+        key="mod_category",
+    )
+with f4:
     status_filter = st.selectbox(
         "Status",
         options=["All", "stable", "beta", "draft"],
@@ -50,6 +64,8 @@ registry = get_registry()
 filtered = registry
 if product_filter != "All":
     filtered = [m for m in filtered if m.product.value == product_filter.lower()]
+if category_filter != "All":
+    filtered = [m for m in filtered if m.category == category_filter]
 if status_filter != "All":
     filtered = [m for m in filtered if m.status.value == status_filter]
 if search.strip():
@@ -60,15 +76,35 @@ if search.strip():
         if q in m.name.lower()
         or q in m.description.lower()
         or q in m.category.lower()
+        or q in m.key.lower()
         or any(q in t for t in m.tags)
     ]
 
-# Stats
-st.markdown(
-    f'<p style="font-family: var(--uap-mono); font-size: 0.72rem; color: #94A3B8;">'
-    f"Showing {len(filtered)} of {len(registry)} modules</p>",
-    unsafe_allow_html=True,
-)
+# Product color map
+_COLORS = {
+    Product.ARS: "#3B82F6",
+    Product.TXN: "#10B981",
+    Product.TXN_V4: "#8B5CF6",
+    Product.ICS: "#F59E0B",
+}
+
+# Status config
+_STATUS_STYLE = {
+    ModuleStatus.STABLE: ("BUILT", "#166534", "#DCFCE7"),
+    ModuleStatus.BETA: ("BETA", "#1E40AF", "#DBEAFE"),
+    ModuleStatus.DRAFT: ("PLANNED", "#991B1B", "#FEE2E2"),
+}
+
+# Filter stats
+stable_count = sum(1 for m in filtered if m.status == ModuleStatus.STABLE)
+beta_count = sum(1 for m in filtered if m.status == ModuleStatus.BETA)
+draft_count = sum(1 for m in filtered if m.status == ModuleStatus.DRAFT)
+
+sc1, sc2, sc3, sc4 = st.columns(4)
+sc1.metric("Showing", f"{len(filtered)} / {len(registry)}")
+sc2.metric("Built", stable_count)
+sc3.metric("Beta", beta_count)
+sc4.metric("Planned", draft_count)
 
 st.divider()
 
@@ -100,86 +136,104 @@ if load_btn and selected_template != "-- Select --":
 st.divider()
 
 # ---------------------------------------------------------------------------
-# Module grid by category
+# Module grid -- visible cards, no hidden expanders
 # ---------------------------------------------------------------------------
-st.markdown('<p class="uap-label">ALL MODULES</p>', unsafe_allow_html=True)
-
-# Initialize selection
 if "uap_selected_modules" not in st.session_state:
     st.session_state["uap_selected_modules"] = set()
 
 selected: set[str] = st.session_state["uap_selected_modules"]
 
-# Group by category
-categories: dict[str, list[ModuleInfo]] = {}
+# Group by product then category
+groups: dict[str, list[ModuleInfo]] = {}
 for m in filtered:
     cat = f"{m.product.value.upper()} / {m.category}"
-    categories.setdefault(cat, []).append(m)
+    groups.setdefault(cat, []).append(m)
 
-# Product color map
-_COLORS = {
-    Product.ARS: "#3B82F6",
-    Product.TXN: "#10B981",
-    Product.TXN_V4: "#8B5CF6",
-    Product.ICS: "#F59E0B",
-}
+if not filtered:
+    st.warning("No modules match your filters. Try broadening your search.")
+    st.stop()
 
-for cat_name, modules in sorted(categories.items()):
+
+def _render_module_row(m: ModuleInfo, sel: set[str]) -> None:
+    """Render one module as a visible row with checkbox + info."""
+    status_label, status_fg, status_bg = _STATUS_STYLE.get(m.status, ("?", "#64748B", "#F1F5F9"))
+    color = _COLORS.get(m.product, "#94A3B8")
+
+    c_check, c_info = st.columns([0.4, 5])
+    with c_check:
+        checked = st.checkbox(
+            m.name,
+            value=m.key in sel,
+            key=f"mod_{m.key}",
+            label_visibility="collapsed",
+        )
+        if checked:
+            sel.add(m.key)
+        else:
+            sel.discard(m.key)
+    with c_info:
+        desc_html = (
+            f' <span style="font-size:0.78rem;color:#64748B;"> -- {m.description}</span>'
+            if m.description
+            else ""
+        )
+        output_badges = " ".join(
+            f'<span style="font-family:var(--uap-mono);font-size:0.6rem;'
+            f"background:#F1F5F9;color:#64748B;padding:1px 5px;border-radius:2px;"
+            f'margin-left:4px;">{o}</span>'
+            for o in m.output_types
+        )
+
+        st.markdown(
+            f'<div style="display:flex;align-items:center;padding:0.1rem 0;flex-wrap:wrap;">'
+            f'<span style="font-family:var(--uap-sans);font-weight:500;font-size:0.88rem;'
+            f'color:#0F172A;">{m.name}</span>'
+            f'<span style="display:inline-block;padding:1px 6px;border-radius:2px;'
+            f"font-family:var(--uap-mono);font-size:0.62rem;font-weight:600;"
+            f"background:{status_bg};color:{status_fg};"
+            f'margin-left:8px;letter-spacing:0.04em;">{status_label}</span>'
+            f"{output_badges}"
+            f"{desc_html}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+
+for cat_name, modules in sorted(groups.items()):
     product = modules[0].product
     color = _COLORS.get(product, "#94A3B8")
     count_selected = sum(1 for m in modules if m.key in selected)
+    total_in_cat = len(modules)
 
-    with st.expander(
-        f"{cat_name} ({len(modules)} modules"
-        + (f", {count_selected} selected" if count_selected else "")
-        + ")",
-        expanded=False,
-    ):
-        # Select all in category
-        cat_keys = [m.key for m in modules]
-        all_in_cat = all(k in selected for k in cat_keys)
+    # Category header with select-all
+    st.markdown(
+        f'<div style="display:flex;align-items:center;margin-top:1rem;margin-bottom:0.25rem;">'
+        f'<span style="display:inline-block;width:4px;height:16px;background:{color};'
+        f'border-radius:2px;margin-right:8px;"></span>'
+        f'<span style="font-family:var(--uap-mono);font-size:0.7rem;font-weight:600;'
+        f'letter-spacing:0.06em;color:#475569;">{cat_name}</span>'
+        f'<span style="font-family:var(--uap-mono);font-size:0.65rem;color:#94A3B8;'
+        f'margin-left:8px;">{count_selected}/{total_in_cat} selected</span>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
-        if st.checkbox(
-            f"Select all in {cat_name}",
-            value=all_in_cat,
-            key=f"cat_all_{cat_name}",
-        ):
-            selected.update(cat_keys)
-        elif all_in_cat:
-            selected.difference_update(cat_keys)
+    # Select all toggle
+    cat_keys = [m.key for m in modules]
+    all_in_cat = all(k in selected for k in cat_keys)
+    select_all = st.checkbox(
+        f"Select all {cat_name}",
+        value=all_in_cat,
+        key=f"cat_all_{cat_name}",
+    )
+    if select_all and not all_in_cat:
+        selected.update(cat_keys)
+    elif not select_all and all_in_cat:
+        selected.difference_update(cat_keys)
 
-        for m in modules:
-            c1, c2 = st.columns([1, 4])
-            with c1:
-                checked = st.checkbox(
-                    m.name,
-                    value=m.key in selected,
-                    key=f"mod_{m.key}",
-                    label_visibility="collapsed",
-                )
-                if checked:
-                    selected.add(m.key)
-                else:
-                    selected.discard(m.key)
-            with c2:
-                status_badge = {
-                    "stable": "uap-badge-ready",
-                    "beta": "uap-badge-active",
-                    "draft": "uap-badge-muted",
-                }.get(m.status.value, "uap-badge-muted")
-
-                st.markdown(
-                    f'<div style="padding: 0.15rem 0;">'
-                    f'<span style="font-family: var(--uap-sans); font-weight: 500; font-size: 0.88rem; color: #0F172A;">{m.name}</span>'
-                    f' <span class="uap-badge {status_badge}">{m.status.value}</span>'
-                    + (
-                        f' <span style="font-size: 0.78rem; color: #64748B;"> -- {m.description}</span>'
-                        if m.description
-                        else ""
-                    )
-                    + "</div>",
-                    unsafe_allow_html=True,
-                )
+    # Module rows
+    for m in modules:
+        _render_module_row(m, selected)
 
 st.session_state["uap_selected_modules"] = selected
 
@@ -201,6 +255,12 @@ if selected:
     cols[0].metric("Total Selected", len(selected))
     for i, (prod, count) in enumerate(sorted(by_product.items()), 1):
         cols[i].metric(prod, count)
+
+    # Note about pipeline execution
+    st.info(
+        "Pipelines run all modules for the selected product. "
+        "Individual module selection will be available in a future release."
+    )
 
     # Save as template
     with st.expander("Save selection as template", expanded=False):

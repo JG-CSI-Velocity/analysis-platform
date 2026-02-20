@@ -72,26 +72,71 @@ with tab_tran:
             else:
                 st.error(f"Not found: `{tran_path.strip()}`")
     else:
+        st.caption(
+            "Scan a directory for transaction files across year folders "
+            "(e.g. `2023/`, `2024/`, `2025/`). All matching files are merged into one."
+        )
         tran_dir = st.text_input(
-            "Transaction directory",
+            "Transaction root directory",
             value=st.session_state.get("uap_tran_dir", ""),
             key="tran_dir_input",
-            placeholder="/path/to/transaction-files/",
+            placeholder="/path/to/client/transactions/",
         )
         file_ext = st.selectbox("File type", ["csv", "txt"], key="tran_dir_ext")
         if tran_dir.strip() and Path(tran_dir.strip()).is_dir():
             d = Path(tran_dir.strip())
             files = sorted(d.rglob(f"*.{file_ext}"))
             if files:
-                st.info(f"Found **{len(files)}** `.{file_ext}` files")
-                if st.button("Merge files", key="tran_merge"):
+                # Group by parent folder for display
+                by_folder: dict[str, list[Path]] = {}
+                for f in files:
+                    rel = f.parent.relative_to(d) if f.parent != d else Path(".")
+                    by_folder.setdefault(str(rel), []).append(f)
+
+                total_size_mb = sum(f.stat().st_size for f in files) / (1024 * 1024)
+                fc1, fc2, fc3 = st.columns(3)
+                fc1.metric("Files Found", len(files))
+                fc2.metric("Folders", len(by_folder))
+                fc3.metric("Total Size", f"{total_size_mb:.1f} MB")
+
+                # Show folder breakdown
+                with st.expander(f"File breakdown ({len(by_folder)} folders)", expanded=False):
+                    for folder, folder_files in sorted(by_folder.items()):
+                        folder_label = folder if folder != "." else "(root)"
+                        st.markdown(
+                            f'<div style="padding:0.15rem 0;">'
+                            f'<span style="font-family:var(--uap-mono);font-size:0.75rem;'
+                            f'font-weight:600;color:#475569;">{folder_label}/</span>'
+                            f'<span style="font-family:var(--uap-mono);font-size:0.72rem;'
+                            f'color:#94A3B8;margin-left:8px;">'
+                            f"{len(folder_files)} file{'s' if len(folder_files) != 1 else ''}"
+                            f"</span></div>",
+                            unsafe_allow_html=True,
+                        )
+                        for ff in folder_files:
+                            sz = ff.stat().st_size / (1024 * 1024)
+                            st.markdown(
+                                f'<div style="padding-left:1.5rem;font-family:var(--uap-mono);'
+                                f'font-size:0.7rem;color:#64748B;">'
+                                f"{ff.name}"
+                                f'<span style="color:#94A3B8;margin-left:8px;">{sz:.1f} MB</span>'
+                                f"</div>",
+                                unsafe_allow_html=True,
+                            )
+
+                if st.button(
+                    f"Merge all {len(files)} files", key="tran_merge", use_container_width=True
+                ):
+                    merge_progress = st.progress(0, text="Merging...")
                     frames = []
-                    for f in files:
+                    for idx, f in enumerate(files):
+                        merge_progress.progress(idx / len(files), text=f"Reading {f.name}...")
                         try:
                             df = pd.read_csv(f) if file_ext == "csv" else pd.read_csv(f, sep="\t")
                             frames.append(df)
                         except Exception as e:
                             st.warning(f"Skipped `{f.name}`: {e}")
+                    merge_progress.progress(1.0, text="Writing merged file...")
                     if frames:
                         merged = pd.concat(frames, ignore_index=True)
                         tmp = tempfile.NamedTemporaryFile(
@@ -100,9 +145,13 @@ with tab_tran:
                         merged.to_csv(tmp.name, index=False)
                         st.session_state["uap_file_tran"] = tmp.name
                         st.session_state["uap_tran_dir"] = tran_dir.strip()
-                        st.success(f"Merged **{len(merged):,}** rows from **{len(frames)}** files")
+                        merge_progress.empty()
+                        st.success(
+                            f"Merged **{len(merged):,}** rows from **{len(frames)}** files "
+                            f"across **{len(by_folder)}** folders"
+                        )
             else:
-                st.warning(f"No `.{file_ext}` files found")
+                st.warning(f"No `.{file_ext}` files found in `{d.name}` or subdirectories")
 
 with tab_ics:
     ics_mode = st.radio("Input", ["Upload", "Server path"], key="ics_mode", horizontal=True)

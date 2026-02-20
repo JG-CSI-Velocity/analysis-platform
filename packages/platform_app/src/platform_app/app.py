@@ -84,7 +84,7 @@ header[data-testid="stHeader"] { background: transparent; }
 /* Main content */
 .main .block-container {
     padding-top: 2rem;
-    max-width: 1200px;
+    max-width: 1400px;
 }
 
 /* Typography */

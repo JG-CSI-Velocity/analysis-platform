@@ -184,6 +184,25 @@ def _render_module_row(m: ModuleInfo, sel: set[str]) -> None:
             for o in m.output_types
         )
 
+        # Dependency badge
+        dep_html = ""
+        if m.depends_on:
+            dep_count = len(m.depends_on)
+            dep_html = (
+                f'<span style="font-family:var(--uap-mono);font-size:0.6rem;'
+                f"background:#FEF3C7;color:#92400E;padding:1px 5px;border-radius:2px;"
+                f'margin-left:4px;">needs {dep_count}</span>'
+            )
+
+        # Run order badge
+        order_html = ""
+        if m.run_order == 99:
+            order_html = (
+                '<span style="font-family:var(--uap-mono);font-size:0.6rem;'
+                "background:#E0E7FF;color:#3730A3;padding:1px 5px;border-radius:2px;"
+                'margin-left:4px;">runs last</span>'
+            )
+
         st.markdown(
             f'<div style="display:flex;align-items:center;padding:0.1rem 0;flex-wrap:wrap;">'
             f'<span style="font-family:var(--uap-sans);font-weight:500;font-size:0.88rem;'
@@ -192,7 +211,7 @@ def _render_module_row(m: ModuleInfo, sel: set[str]) -> None:
             f"font-family:var(--uap-mono);font-size:0.62rem;font-weight:600;"
             f"background:{status_bg};color:{status_fg};"
             f'margin-left:8px;letter-spacing:0.04em;">{status_label}</span>'
-            f"{output_badges}"
+            f"{dep_html}{order_html}{output_badges}"
             f"{desc_html}"
             f"</div>",
             unsafe_allow_html=True,

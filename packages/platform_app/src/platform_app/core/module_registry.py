@@ -40,6 +40,8 @@ class ModuleInfo:
     status: ModuleStatus = ModuleStatus.STABLE
     version: str = "1.0.0"
     tags: tuple[str, ...] = ()
+    depends_on: tuple[str, ...] = ()  # keys of modules that must run first
+    run_order: int = 0  # execution order within pipeline (0 = any)
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +56,7 @@ _ARS_MODULES = [
         "OD/NSF attrition modeling",
         ("excel", "pptx"),
         tags=("od", "nsf", "attrition"),
+        run_order=1,
     ),
     ModuleInfo(
         "ars_reg_e",
@@ -63,6 +66,7 @@ _ARS_MODULES = [
         "Regulation E adoption and impact",
         ("excel", "pptx"),
         tags=("reg-e", "regulatory", "compliance"),
+        run_order=2,
     ),
     ModuleInfo(
         "ars_value",
@@ -72,6 +76,7 @@ _ARS_MODULES = [
         "Account value tier segmentation",
         ("excel", "pptx"),
         tags=("segmentation", "value"),
+        run_order=3,
     ),
     ModuleInfo(
         "ars_mailer_impact",
@@ -81,6 +86,7 @@ _ARS_MODULES = [
         "Direct mail campaign effectiveness",
         ("excel", "pptx"),
         tags=("mailer", "campaign"),
+        run_order=4,
     ),
     ModuleInfo(
         "ars_mailer_response",
@@ -90,6 +96,7 @@ _ARS_MODULES = [
         "Response rate analysis by segment",
         ("excel", "pptx"),
         tags=("mailer", "response"),
+        run_order=5,
     ),
     ModuleInfo(
         "ars_mailer_insights",
@@ -99,6 +106,7 @@ _ARS_MODULES = [
         "Campaign insight narrative generation",
         ("excel", "pptx"),
         tags=("mailer", "insights"),
+        run_order=6,
     ),
     ModuleInfo(
         "ars_dctr",
@@ -108,6 +116,7 @@ _ARS_MODULES = [
         "Delinquency & charge-off transaction reporting",
         ("excel", "pptx"),
         tags=("dctr", "delinquency", "risk"),
+        run_order=7,
     ),
     ModuleInfo(
         "ars_deck",
@@ -117,6 +126,16 @@ _ARS_MODULES = [
         "PowerPoint presentation generation",
         ("pptx",),
         tags=("output", "deck"),
+        depends_on=(
+            "ars_attrition",
+            "ars_reg_e",
+            "ars_value",
+            "ars_mailer_impact",
+            "ars_mailer_response",
+            "ars_mailer_insights",
+            "ars_dctr",
+        ),
+        run_order=99,
     ),
 ]
 
@@ -170,55 +189,125 @@ _ICS_CATEGORIES = {
 # ---------------------------------------------------------------------------
 # TXN modules (built from txn_analysis ANALYSIS_REGISTRY)
 # ---------------------------------------------------------------------------
-_TXN_CATEGORIES = {
-    "top_merchants_by_spend": ("Overall", "Top merchants by total spend"),
-    "top_merchants_by_transactions": ("Overall", "Top merchants by transaction count"),
-    "top_merchants_by_accounts": ("Overall", "Top merchants by unique accounts"),
-    "mcc_by_accounts": ("MCC", "MCC categories by account count"),
-    "mcc_by_transactions": ("MCC", "MCC categories by transactions"),
-    "mcc_by_spend": ("MCC", "MCC categories by spend volume"),
-    "business_top_by_spend": ("Business", "Business spending leaders"),
-    "business_top_by_transactions": ("Business", "Business transaction volume"),
-    "business_top_by_accounts": ("Business", "Business account reach"),
-    "personal_top_by_spend": ("Personal", "Personal spending leaders"),
-    "personal_top_by_transactions": ("Personal", "Personal transaction volume"),
-    "personal_top_by_accounts": ("Personal", "Personal account reach"),
-    "monthly_rank_tracking": ("Trends", "Month-over-month rank shifts"),
-    "growth_leaders_decliners": ("Trends", "Fastest growing and declining merchants"),
-    "spending_consistency": ("Trends", "Merchant spending consistency"),
-    "new_vs_declining_merchants": ("Trends", "New entrants vs declining merchants"),
-    "business_monthly_movers": ("Trends", "Business monthly movers"),
-    "personal_monthly_movers": ("Trends", "Personal monthly movers"),
-    "competitor_detection": ("Competitor", "Detect competitor transactions"),
-    "competitor_high_level": ("Competitor", "High-level competitor metrics"),
-    "top_20_competitors": ("Competitor", "Top 20 competitor merchants"),
-    "competitor_categories": ("Competitor", "Competitor category breakdown"),
-    "competitor_biz_personal": ("Competitor", "Business vs personal competitor split"),
-    "competitor_monthly_trends": ("Competitor", "Competitor trend analysis"),
-    "competitor_threat_assessment": ("Competitor", "Competitive threat scoring"),
-    "competitor_segmentation": ("Competitor", "Competitor member segmentation"),
-    "financial_services_detection": ("Financial", "Financial services detection"),
-    "financial_services_summary": ("Financial", "Financial services summary"),
-    "interchange_summary": ("Revenue", "Interchange revenue breakdown"),
-    "member_segments": ("Segmentation", "Member activity segmentation"),
-    "portfolio_scorecard": ("Scorecard", "Portfolio performance scorecard"),
-}
+# TXN modules: (category, description, depends_on, run_order)
+# Dependencies from analyses/__init__.py:
+#   M6A (competitor_detection) MUST precede M6B-G
+#   M7A (financial_services_detection) MUST precede M7B
+#   M8 (interchange) + M10 (member_segments) MUST precede M9 (scorecard)
+_TXN_MODULES: list[tuple[str, str, str, tuple[str, ...], int]] = [
+    # M1: Overall
+    ("top_merchants_by_spend", "Overall", "Top merchants by total spend", (), 1),
+    ("top_merchants_by_transactions", "Overall", "Top merchants by transaction count", (), 2),
+    ("top_merchants_by_accounts", "Overall", "Top merchants by unique accounts", (), 3),
+    # M2: MCC
+    ("mcc_by_accounts", "MCC", "MCC categories by account count", (), 4),
+    ("mcc_by_transactions", "MCC", "MCC categories by transactions", (), 5),
+    ("mcc_by_spend", "MCC", "MCC categories by spend volume", (), 6),
+    # M3: Business
+    ("business_top_by_spend", "Business", "Business spending leaders", (), 7),
+    ("business_top_by_transactions", "Business", "Business transaction volume", (), 8),
+    ("business_top_by_accounts", "Business", "Business account reach", (), 9),
+    # M4: Personal
+    ("personal_top_by_spend", "Personal", "Personal spending leaders", (), 10),
+    ("personal_top_by_transactions", "Personal", "Personal transaction volume", (), 11),
+    ("personal_top_by_accounts", "Personal", "Personal account reach", (), 12),
+    # M5: Trends
+    ("monthly_rank_tracking", "Trends", "Month-over-month rank shifts", (), 13),
+    ("growth_leaders_decliners", "Trends", "Fastest growing and declining merchants", (), 14),
+    ("spending_consistency", "Trends", "Merchant spending consistency", (), 15),
+    ("new_vs_declining_merchants", "Trends", "New entrants vs declining merchants", (), 16),
+    ("business_monthly_movers", "Trends", "Business monthly movers", (), 17),
+    ("personal_monthly_movers", "Trends", "Personal monthly movers", (), 18),
+    # M6: Competitor (detection populates context for metrics)
+    ("competitor_detection", "Competitor", "Detect competitor transactions", (), 19),
+    (
+        "competitor_high_level",
+        "Competitor",
+        "High-level competitor metrics",
+        ("txn_competitor_detection",),
+        20,
+    ),
+    (
+        "top_20_competitors",
+        "Competitor",
+        "Top 20 competitor merchants",
+        ("txn_competitor_detection",),
+        21,
+    ),
+    (
+        "competitor_categories",
+        "Competitor",
+        "Competitor category breakdown",
+        ("txn_competitor_detection",),
+        22,
+    ),
+    (
+        "competitor_biz_personal",
+        "Competitor",
+        "Business vs personal competitor split",
+        ("txn_competitor_detection",),
+        23,
+    ),
+    (
+        "competitor_monthly_trends",
+        "Competitor",
+        "Competitor trend analysis",
+        ("txn_competitor_detection",),
+        24,
+    ),
+    (
+        "competitor_threat_assessment",
+        "Competitor",
+        "Competitive threat scoring",
+        ("txn_competitor_detection",),
+        25,
+    ),
+    (
+        "competitor_segmentation",
+        "Competitor",
+        "Competitor member segmentation",
+        ("txn_competitor_detection",),
+        26,
+    ),
+    # M7: Financial Services (detection before summary)
+    ("financial_services_detection", "Financial", "Financial services detection", (), 27),
+    (
+        "financial_services_summary",
+        "Financial",
+        "Financial services summary",
+        ("txn_financial_services_detection",),
+        28,
+    ),
+    # M8: Interchange Revenue
+    ("interchange_summary", "Revenue", "Interchange revenue breakdown", (), 29),
+    # M10: Member Segmentation
+    ("member_segments", "Segmentation", "Member activity segmentation", (), 30),
+    # M9: Scorecard (MUST be last -- reads all prior results)
+    (
+        "portfolio_scorecard",
+        "Scorecard",
+        "Portfolio performance scorecard",
+        ("txn_interchange_summary", "txn_member_segments"),
+        99,
+    ),
+]
 
-# V4 storylines
-_V4_STORYLINES = {
-    "s0": ("Executive", "Executive Summary"),
-    "s1": ("Health", "Portfolio Health"),
-    "s2": ("Merchant", "Merchant Intelligence"),
-    "s3": ("Competition", "Competitive Landscape"),
-    "s3b": ("Competition", "Threat Intelligence"),
-    "s3c": ("Segmentation", "Account Segmentation"),
-    "s4": ("Financial", "Financial Services"),
-    "s5": ("Demographics", "Demographics & Branches"),
-    "s6": ("Risk", "Risk & Balance"),
-    "s7": ("Campaigns", "Campaign Effectiveness"),
-    "s8": ("Payroll", "Payroll & Circular Economy"),
-    "s9": ("Lifecycle", "Lifecycle Management"),
-}
+# V4 storylines: (category, description, depends_on, run_order)
+# S3 sets ctx["s3_tagged_df"] + ctx["s3_competitor_df"] read by S3b/S3c
+_V4_STORYLINES: list[tuple[str, str, str, tuple[str, ...], int]] = [
+    ("s0", "Executive", "Executive Summary", (), 0),
+    ("s1", "Health", "Portfolio Health", (), 1),
+    ("s2", "Merchant", "Merchant Intelligence", (), 2),
+    ("s3", "Competition", "Competitive Landscape", (), 3),
+    ("s3b", "Competition", "Threat Intelligence", ("v4_s3",), 4),
+    ("s3c", "Segmentation", "Account Segmentation", ("v4_s3",), 5),
+    ("s4", "Financial", "Financial Services", (), 6),
+    ("s5", "Demographics", "Demographics & Branches", (), 7),
+    ("s6", "Risk", "Risk & Balance", (), 8),
+    ("s7", "Campaigns", "Campaign Effectiveness", (), 9),
+    ("s8", "Payroll", "Payroll & Circular Economy", (), 10),
+    ("s9", "Lifecycle", "Lifecycle Management", (), 11),
+]
 
 
 def build_registry() -> list[ModuleInfo]:
@@ -228,9 +317,18 @@ def build_registry() -> list[ModuleInfo]:
     # ARS
     modules.extend(_ARS_MODULES)
 
-    # ICS
-    for name, category in _ICS_CATEGORIES.items():
+    # ICS -- Executive Summary depends on all others
+    ics_non_exec = [
+        k
+        for k in (
+            f"ics_{name.lower().replace(' ', '_').replace('+', '_')}"
+            for name in _ICS_CATEGORIES
+            if name != "Executive Summary"
+        )
+    ]
+    for i, (name, category) in enumerate(_ICS_CATEGORIES.items(), 1):
         key = f"ics_{name.lower().replace(' ', '_').replace('+', '_')}"
+        is_exec = name == "Executive Summary"
         modules.append(
             ModuleInfo(
                 key=key,
@@ -239,11 +337,13 @@ def build_registry() -> list[ModuleInfo]:
                 category=category,
                 output_types=("excel", "pptx"),
                 tags=(category.lower(),),
+                depends_on=tuple(ics_non_exec) if is_exec else (),
+                run_order=99 if is_exec else i,
             )
         )
 
     # TXN Base
-    for key, (category, desc) in _TXN_CATEGORIES.items():
+    for key, category, desc, deps, order in _TXN_MODULES:
         modules.append(
             ModuleInfo(
                 key=f"txn_{key}",
@@ -253,11 +353,13 @@ def build_registry() -> list[ModuleInfo]:
                 description=desc,
                 output_types=("excel", "png"),
                 tags=(category.lower(),),
+                depends_on=deps,
+                run_order=order,
             )
         )
 
     # TXN V4
-    for key, (category, desc) in _V4_STORYLINES.items():
+    for key, category, desc, deps, order in _V4_STORYLINES:
         modules.append(
             ModuleInfo(
                 key=f"v4_{key}",
@@ -267,6 +369,8 @@ def build_registry() -> list[ModuleInfo]:
                 description=desc,
                 output_types=("excel", "html"),
                 tags=(category.lower(), "storyline"),
+                depends_on=deps,
+                run_order=order,
             )
         )
 

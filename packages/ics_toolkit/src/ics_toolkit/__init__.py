@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ics_toolkit.analysis.pipeline import AnalysisPipelineResult
     from ics_toolkit.append.pipeline import PipelineResult
+    from ics_toolkit.referral.pipeline import ReferralPipelineResult
 
 __version__ = "1.0.0"
 
@@ -60,4 +61,28 @@ def run_analysis(
     settings = Settings.for_analysis(data_file=Path(data_file), **kwargs)
     result = run_pipeline(settings.analysis, on_progress=on_progress)
     export_outputs(result)
+    return result
+
+
+def run_referral(
+    data_file: str | Path,
+    output_dir: str | Path = "output/referral/",
+    client_id: str | None = None,
+    client_name: str | None = None,
+    skip_charts: bool = False,
+    on_progress: Callable[[int, int, str], None] | None = None,
+) -> ReferralPipelineResult:
+    """Convenience function for referral intelligence pipeline (Jupyter/REPL)."""
+    from ics_toolkit.referral.pipeline import export_outputs, run_pipeline
+    from ics_toolkit.settings import Settings
+
+    kwargs: dict = {"output_dir": Path(output_dir)}
+    if client_id is not None:
+        kwargs["client_id"] = client_id
+    if client_name is not None:
+        kwargs["client_name"] = client_name
+
+    settings = Settings.for_referral(data_file=Path(data_file), **kwargs)
+    result = run_pipeline(settings.referral, on_progress=on_progress, skip_charts=skip_charts)
+    export_outputs(result, skip_charts=skip_charts)
     return result

@@ -216,6 +216,126 @@ class AnalysisSettings(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Referral sub-models
+# ---------------------------------------------------------------------------
+
+
+class ReferralScoringWeights(BaseModel):
+    """Influence score component weights. Must sum to 1.0."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    unique_accounts: float = 0.35
+    burst_count: float = 0.25
+    channels_used: float = 0.20
+    velocity: float = 0.10
+    longevity: float = 0.10
+
+    @model_validator(mode="after")
+    def check_weights_sum(self) -> "ReferralScoringWeights":
+        total = (
+            self.unique_accounts
+            + self.burst_count
+            + self.channels_used
+            + self.velocity
+            + self.longevity
+        )
+        if abs(total - 1.0) > 1e-6:
+            raise ValueError(f"Scoring weights must sum to 1.0, got {total:.4f}")
+        return self
+
+
+class ReferralStaffWeights(BaseModel):
+    """Staff multiplier score component weights. Must sum to 1.0."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    avg_referrer_score: float = 0.60
+    unique_referrers: float = 0.40
+
+    @model_validator(mode="after")
+    def check_weights_sum(self) -> "ReferralStaffWeights":
+        total = self.avg_referrer_score + self.unique_referrers
+        if abs(total - 1.0) > 1e-6:
+            raise ValueError(f"Staff weights must sum to 1.0, got {total:.4f}")
+        return self
+
+
+class ReferralSettings(BaseModel):
+    """Settings for the referral intelligence pipeline."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    data_file: Path | None = None
+    client_id: str | None = None
+    client_name: str | None = None
+    output_dir: Path = Path("output/referral/")
+    outputs: OutputConfig = OutputConfig()
+    charts: ChartConfig = ChartConfig()
+    pptx_template: Path | None = DEFAULT_PPTX_TEMPLATE
+
+    # Scoring
+    scoring_weights: ReferralScoringWeights = ReferralScoringWeights()
+    staff_weights: ReferralStaffWeights = ReferralStaffWeights()
+
+    # Thresholds
+    burst_window_days: int = 14
+    dormancy_days: int = 180
+    high_value_min_referrals: int = 5
+    emerging_min_burst_count: int = 2
+    emerging_lookback_days: int = 180
+    top_n_referrers: int = 25
+
+    # Entity normalization
+    name_aliases: dict[str, str] = Field(default_factory=dict)
+    branch_mapping: dict[str, str] | None = None
+
+    # Code decoding (prefix -> channel mapping)
+    code_prefix_map: dict[str, str] = Field(
+        default_factory=lambda: {
+            "150A": "BRANCH_STANDARD",
+            "120A": "BRANCH_STANDARD",
+            "080A": "BRANCH_STANDARD",
+            "100A": "BRANCH_STANDARD",
+            "030A": "BRANCH_STANDARD",
+            "020A": "BRANCH_STANDARD",
+            "PC": "DIGITAL_PROCESS",
+            "EMAIL": "EMAIL",
+        }
+    )
+
+    # Header row (for files with metadata rows above the actual header)
+    header_row: int = 0
+
+    @field_validator("data_file", mode="before")
+    @classmethod
+    def validate_data_file(cls, v: Path | str | None) -> Path | None:
+        if v is None:
+            return v
+        v = Path(v)
+        if not v.exists():
+            raise ValueError(f"Referral data file not found: {v}")
+        suffix = v.suffix.lower()
+        if suffix not in (".csv", ".xlsx", ".xls"):
+            raise ValueError(
+                f"Unsupported file type: {suffix}\nSupported formats: .csv, .xlsx, .xls"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def derive_client_fields(self) -> "ReferralSettings":
+        if self.data_file and self.client_id is None:
+            match = re.match(r"^(\d+)", self.data_file.stem)
+            if match:
+                self.client_id = match.group(1)
+            else:
+                self.client_id = "unknown"
+        if self.data_file and self.client_name is None:
+            self.client_name = f"Client {self.client_id}"
+        return self
+
+
+# ---------------------------------------------------------------------------
 # Unified Settings
 # ---------------------------------------------------------------------------
 
@@ -227,6 +347,7 @@ class Settings(BaseModel):
 
     append: AppendSettings = AppendSettings()
     analysis: AnalysisSettings = AnalysisSettings()
+    referral: ReferralSettings = ReferralSettings()
 
     @classmethod
     def from_yaml(cls, config_path: Path = DEFAULT_CONFIG_PATH, **cli_overrides) -> "Settings":
@@ -266,5 +387,13 @@ class Settings(BaseModel):
         """Create settings for analysis-only usage."""
         try:
             return cls(analysis=AnalysisSettings(data_file=data_file, **kwargs))
+        except Exception as e:
+            raise ConfigError(f"Configuration error: {e}") from e
+
+    @classmethod
+    def for_referral(cls, data_file: Path, **kwargs) -> "Settings":
+        """Create settings for referral-only usage."""
+        try:
+            return cls(referral=ReferralSettings(data_file=data_file, **kwargs))
         except Exception as e:
             raise ConfigError(f"Configuration error: {e}") from e

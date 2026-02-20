@@ -183,6 +183,7 @@ else
         -e 's/from ars import/from ars_analysis import/g' \
         -e 's/import ars\./import ars_analysis./g' \
         -e 's/import ars$/import ars_analysis/g' \
+        -e 's/"ars\./"ars_analysis./g' \
         {} +
 
     # Verify no stale "from ars." imports remain (should be zero)
@@ -228,6 +229,7 @@ else
         -e 's/from ars import/from ars_analysis import/g' \
         -e 's/import ars\./import ars_analysis./g' \
         -e 's/import ars$/import ars_analysis/g' \
+        -e 's/"ars\./"ars_analysis./g' \
         {} +
 
     # Verify

@@ -159,6 +159,7 @@ powershell -NoProfile -Command ^
             $content = $content -replace 'from ars import', 'from ars_analysis import'; ^
             $content = $content -replace 'import ars\.', 'import ars_analysis.'; ^
             $content = $content -replace 'import ars$', 'import ars_analysis'; ^
+            $content = $content -replace '\"ars\.', '\"ars_analysis.'; ^
             Set-Content $_.FullName $content -NoNewline; ^
         } ^
     }"
@@ -196,6 +197,7 @@ powershell -NoProfile -Command ^
             $content = $content -replace 'from ars import', 'from ars_analysis import'; ^
             $content = $content -replace 'import ars\.', 'import ars_analysis.'; ^
             $content = $content -replace 'import ars$', 'import ars_analysis'; ^
+            $content = $content -replace '\"ars\.', '\"ars_analysis.'; ^
             Set-Content $_.FullName $content -NoNewline; ^
         } ^
     }"

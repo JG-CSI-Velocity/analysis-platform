@@ -103,7 +103,6 @@ class DCTRTrends(AnalysisModule):
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
-                    ax.grid(True, axis="y", alpha=0.3, linestyle="--")
                     ax.set_axisbelow(True)
                 chart_path = save_to
             except Exception as exc:
@@ -175,7 +174,6 @@ class DCTRTrends(AnalysisModule):
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{int(x)}%"))
                     ax.tick_params(axis="y", labelsize=24)
                     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, fontsize=18)
-                    ax.grid(True, axis="y", alpha=0.3, linestyle="--")
                     ax.set_axisbelow(True)
                     ax.spines["top"].set_visible(False)
                     ax2.spines["top"].set_visible(False)
@@ -260,7 +258,6 @@ class DCTRTrends(AnalysisModule):
                     ax.tick_params(axis="y", labelsize=24)
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{int(x)}%"))
                     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, fontsize=18)
-                    ax.grid(True, axis="y", alpha=0.3, linestyle="--")
                     ax.set_axisbelow(True)
                     ax.spines["top"].set_visible(False)
                 chart_path = save_to
@@ -323,7 +320,6 @@ class DCTRTrends(AnalysisModule):
                     ax.tick_params(axis="y", labelsize=20)
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
                     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.08), ncol=2, fontsize=18)
-                    ax.grid(True, axis="y", alpha=0.3, linestyle="--")
                     ax.set_axisbelow(True)
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
@@ -386,7 +382,6 @@ class DCTRTrends(AnalysisModule):
                     ax.set_ylim(0, max(vals) * 1.15 if len(vals) > 0 else 100)
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
-                    ax.grid(True, axis="y", alpha=0.3, linestyle="--")
                     ax.set_axisbelow(True)
                 chart_path = save_to
             except Exception as exc:

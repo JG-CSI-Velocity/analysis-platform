@@ -32,8 +32,6 @@ MODULE_ORDER: list[str] = [
     "mailer.insights",
     "mailer.response",
     "mailer.impact",
-    "transaction.runner",
-    "ics.runner",
     "insights.synthesis",
     "insights.conclusions",
 ]
@@ -83,7 +81,7 @@ def load_all_modules() -> None:
 
     def _load(module_id: str) -> None:
         try:
-            importlib.import_module(f"ars.analytics.{module_id}")
+            importlib.import_module(f"ars_analysis.analytics.{module_id}")
         except Exception as exc:
             logger.error("Failed to load module {id}: {err}", id=module_id, err=exc)
             with lock:

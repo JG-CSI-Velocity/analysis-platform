@@ -175,7 +175,6 @@ class RegEBranches(AnalysisModule):
             ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
             ax.set_title("Branch Volume vs Opt-In Rate", fontweight="bold")
-            ax.grid(True, alpha=0.3, linestyle="--")
             ax.set_axisbelow(True)
         chart_path = save_to
 
@@ -253,7 +252,6 @@ class RegEBranches(AnalysisModule):
             ax2.invert_yaxis()
             ax2.legend(loc="lower right")
             ax2.spines["top"].set_visible(False)
-            ax2.grid(True, axis="x", alpha=0.3, linestyle="--")
             ax2.set_axisbelow(True)
 
             fig.suptitle("Reg E Opt-In by Branch (L12M Focus)", fontweight="bold",

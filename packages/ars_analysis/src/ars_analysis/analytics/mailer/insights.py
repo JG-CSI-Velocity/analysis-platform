@@ -132,7 +132,6 @@ def _draw_nu_chart(
     ax.legend(fontsize=14, loc="upper left", frameon=True, fancybox=True)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.grid(True, alpha=0.3, linestyle="--")
 
     latest_r = avg_r.iloc[-1] if len(avg_r) > 0 else 0
     latest_n = avg_n.iloc[-1] if len(avg_n) > 0 else 0
@@ -183,7 +182,6 @@ def _draw_th_chart(
     ax.legend(fontsize=14, loc="upper left", frameon=True, fancybox=True)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.grid(True, alpha=0.3, linestyle="--")
 
     latest_vals = {}
     for seg in TH_SEGMENTS:

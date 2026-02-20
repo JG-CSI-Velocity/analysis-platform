@@ -379,7 +379,6 @@ def _rate_trend(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.legend(fontsize=14)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
-        ax.grid(True, alpha=0.3, linestyle="--")
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
 
     ctx.results["rate_trend"] = trend

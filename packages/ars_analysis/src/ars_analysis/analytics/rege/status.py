@@ -109,7 +109,6 @@ class RegEStatus(AnalysisModule):
             ax.set_title(f"Reg E Opt-In Status -- {ctx.client.client_name}",
                          fontsize=20, fontweight="bold")
             ax.legend(fontsize=14)
-            ax.grid(True, axis="y", alpha=0.3, linestyle="--")
             ax.set_axisbelow(True)
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
@@ -338,7 +337,6 @@ class RegEStatus(AnalysisModule):
             rate_vals = last_24["Rate"].values * 100
             y_max = min(100, max(rate_vals) * 1.25) if len(rate_vals) > 0 else 100
             ax.set_ylim(0, y_max)
-            ax.grid(True, alpha=0.3, linestyle="--")
             fig.autofmt_xdate()
         chart_path = save_to
 

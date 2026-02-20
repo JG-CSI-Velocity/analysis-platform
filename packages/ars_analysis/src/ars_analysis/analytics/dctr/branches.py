@@ -85,7 +85,6 @@ class DCTRBranches(AnalysisModule):
                                 va="center", fontsize=18, fontweight="bold")
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
-                    ax.grid(True, axis="x", alpha=0.3, linestyle="--")
                     ax.set_axisbelow(True)
                 chart_path = save_to
             except Exception as exc:
@@ -258,7 +257,6 @@ class DCTRBranches(AnalysisModule):
                     ax.legend(loc="lower right", fontsize=18)
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
-                    ax.grid(True, axis="x", alpha=0.3, linestyle="--")
                     ax.set_axisbelow(True)
 
                     for i, (_, row) in enumerate(merged.iterrows()):
@@ -316,7 +314,6 @@ class DCTRBranches(AnalysisModule):
                     ax.tick_params(axis="y", labelsize=18)
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
-                    ax.grid(True, axis="y", alpha=0.3, linestyle="--")
                     ax.set_axisbelow(True)
                 chart_path = save_to
             except Exception as exc:

@@ -261,7 +261,6 @@ class DCTRPenetration(AnalysisModule):
                     ax.tick_params(axis="both", labelsize=18)
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
-                    ax.grid(True, axis="y", alpha=0.3, linestyle="--")
                     ax.set_axisbelow(True)
                     ax.text(0.02, 0.98, f"Overall: {overall:.1f}%", transform=ax.transAxes,
                             fontsize=18, va="top",

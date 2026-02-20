@@ -475,7 +475,7 @@ def run_dctr_combo_slide(ctx):
                 pad=20,
             )
             ax.set_axisbelow(True)
-            ax.grid(True, axis="y", alpha=0.2, linestyle="--")
+            ax.grid(False)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_overview.png")
         finally:
@@ -643,7 +643,7 @@ def run_dctr_segment_trends(ctx):
             ax.tick_params(axis="y", labelsize=20)
             ax.set_ylim(0, max(vals) * 1.2 if vals else 100)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-            ax.grid(True, axis="y", alpha=0.3, linestyle="--")
+            ax.grid(False)
             ax.set_axisbelow(True)
 
             # Divider between Personal and Business
@@ -871,7 +871,7 @@ def run_dctr_decade_trend(ctx):
                 frameon=True,
             )
 
-            ax.grid(True, axis="y", alpha=0.3, linestyle="--")
+            ax.grid(False)
             ax.set_axisbelow(True)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_decade_trend.png")
@@ -1087,7 +1087,7 @@ def run_dctr_l12m_trend(ctx):
             ax.legend(
                 loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, fontsize=18, frameon=True
             )
-            ax.grid(True, axis="y", alpha=0.3, linestyle="--")
+            ax.grid(False)
             ax.set_axisbelow(True)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_l12m_trend.png")
@@ -2037,7 +2037,7 @@ def run_dctr_seasonality(ctx):
             ax_yoy.set_title("Year-over-Year Monthly DCTR", fontweight="bold", fontsize=16)
             ax_yoy.legend(fontsize=12, loc="upper left")
             ax_yoy.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-            ax_yoy.grid(axis="y", alpha=0.2, ls="--")
+            ax_yoy.grid(False)
 
             # Hide unused subplot slots in row 2
             all_axes[1][1].set_visible(False)
@@ -2247,7 +2247,7 @@ def run_dctr_vintage(ctx):
                 ax1_twin.set_ylim(0, 110)
                 ax1.tick_params(axis="y", labelsize=14)
                 ax1_twin.tick_params(axis="y", labelsize=14)
-                ax1.grid(axis="y", alpha=0.2, ls="--")
+                ax1.grid(False)
 
             # Panel 2: Cohort trend
             ax2 = plt.subplot(nrows, 1, 2)
@@ -2281,7 +2281,7 @@ def run_dctr_vintage(ctx):
                     "DCTR by Account Opening Year (Cohort Analysis)", fontweight="bold", fontsize=18
                 )
                 ax2.tick_params(axis="y", labelsize=14)
-                ax2.grid(axis="y", alpha=0.2, ls="--")
+                ax2.grid(False)
 
                 slope = z[0]
                 trend = f"+{slope:.1f}pp/yr" if slope > 0 else f"{slope:.1f}pp/yr"
@@ -2341,7 +2341,7 @@ def run_dctr_vintage(ctx):
                     fontsize=18,
                 )
                 ax3.legend(fontsize=11, loc="upper left", ncol=3)
-                ax3.grid(axis="y", alpha=0.2, ls="--")
+                ax3.grid(False)
                 ax3.tick_params(axis="y", labelsize=14)
 
             plt.suptitle("Vintage Curves & Cohort Analysis", fontsize=22, fontweight="bold", y=1.01)
@@ -2504,7 +2504,7 @@ def run_dctr_decade_pb(ctx):
             ax.legend(
                 loc="upper center", bbox_to_anchor=(0.5, -0.08), ncol=2, fontsize=18, frameon=True
             )
-            ax.grid(True, axis="y", alpha=0.3, linestyle="--")
+            ax.grid(False)
             ax.set_axisbelow(True)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_decade_pb.png")

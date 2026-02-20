@@ -389,7 +389,7 @@ def run_dctr_4_5(ctx):
         ax.set_ylim(0, max(vals) * 1.15)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
         ax.tick_params(axis="both", labelsize=18)
-        ax.grid(True, axis="y", alpha=0.3, linestyle="--")
+        ax.grid(False)
         ax.set_axisbelow(True)
         ax.text(
             0.02,
@@ -732,7 +732,7 @@ def run_dctr_9(ctx):
                 fontsize=18,
                 fontweight="bold",
             )
-        ax.grid(True, axis="x", alpha=0.3, linestyle="--")
+        ax.grid(False)
         ax.set_axisbelow(True)
         plt.tight_layout()
         cp2 = _save_chart(fig, chart_dir / "dctr_branch_top10.png")
@@ -842,7 +842,7 @@ def run_dctr_10(ctx):
                 ax.tick_params(axis="y", labelsize=20, colors="#2E86AB")
                 ax.set_ylim(0, max(vals) * 1.2 if len(vals) else 100)
                 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-                ax.grid(True, axis="y", alpha=0.3, linestyle="--")
+                ax.grid(False)
                 ax.set_axisbelow(True)
                 plt.tight_layout()
                 cp = _save_chart(fig, chart_dir / "dctr_account_age.png")
@@ -971,7 +971,7 @@ def run_dctr_11(ctx):
             ax.tick_params(axis="y", labelsize=20)
             ax.set_ylim(0, max(vals) * 1.15 if len(vals) else 100)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-            ax.grid(True, axis="y", alpha=0.3, linestyle="--")
+            ax.grid(False)
             ax.set_axisbelow(True)
             plt.tight_layout()
             cp = _save_chart(fig, chart_dir / "dctr_holder_age.png")

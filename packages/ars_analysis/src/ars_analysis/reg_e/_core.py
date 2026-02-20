@@ -1906,7 +1906,7 @@ def run_reg_e_12(ctx):
         ax.legend(fontsize=16)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
         ax.tick_params(axis="both", labelsize=14)
-        ax.grid(True, alpha=0.3, linestyle="--")
+        ax.grid(False)
         fig.autofmt_xdate()
         fig.tight_layout()
         cp = _save_chart(fig, ctx["chart_dir"] / "a8_12_reg_e_trend.png")

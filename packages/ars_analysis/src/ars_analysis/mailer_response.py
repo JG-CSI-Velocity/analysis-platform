@@ -779,7 +779,7 @@ def run_rate_trend(ctx):
         ax.legend(fontsize=14)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
-        ax.grid(True, alpha=0.3, linestyle="--")
+        ax.grid(False)
 
         plt.tight_layout()
         cp = _save_chart(fig, chart_dir / "a13_6_rate_trend.png")

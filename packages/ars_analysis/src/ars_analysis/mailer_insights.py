@@ -204,7 +204,7 @@ def _draw_nu_chart(ax, dates, nu_metrics, metric_type, month):
     ax.legend(fontsize=14, loc="upper left", frameon=True, fancybox=True)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.grid(True, alpha=0.3, linestyle="--")
+    ax.grid(False)
 
     # Insight text
     latest_r = avg_r.iloc[-1] if len(avg_r) > 0 else 0
@@ -263,7 +263,7 @@ def _draw_th_chart(ax, dates, th_metrics, metric_type, month):
     ax.legend(fontsize=14, loc="upper left", frameon=True, fancybox=True)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.grid(True, alpha=0.3, linestyle="--")
+    ax.grid(False)
 
     # Insight text
     latest_vals = {}

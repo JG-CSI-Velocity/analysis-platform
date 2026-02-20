@@ -27,6 +27,7 @@ def load_data(settings: Settings) -> pd.DataFrame:
     df = resolve_columns(df)
     validate_columns(df)
     df = _normalize_strings(df)
+    df = _enrich_labels(df, settings)
     df = _parse_dates(df)
     df = _coerce_numerics(df)
 
@@ -44,6 +45,19 @@ def load_data(settings: Settings) -> pd.DataFrame:
         len(df.columns),
         len(month_tags),
     )
+
+    return df
+
+
+def _enrich_labels(df: pd.DataFrame, settings: Settings) -> pd.DataFrame:
+    """Replace coded Branch/Prod Code values with readable labels from config."""
+    if settings.branch_mapping and "Branch" in df.columns:
+        df["Branch"] = df["Branch"].replace(settings.branch_mapping)
+        logger.info("Applied branch mapping (%d entries)", len(settings.branch_mapping))
+
+    if settings.prod_code_mapping and "Prod Code" in df.columns:
+        df["Prod Code"] = df["Prod Code"].replace(settings.prod_code_mapping)
+        logger.info("Applied prod code mapping (%d entries)", len(settings.prod_code_mapping))
 
     return df
 

@@ -159,3 +159,47 @@ def analyze_source_by_year(
         df=result,
         sheet_name="13_Source_x_Year",
     )
+
+
+def analyze_source_acquisition_mix(
+    df: pd.DataFrame,
+    ics_all: pd.DataFrame,
+    ics_stat_o: pd.DataFrame,
+    ics_stat_o_debit: pd.DataFrame,
+    settings: Settings,
+) -> AnalysisResult:
+    """ax85: Monthly new account opens by source channel -- shows channel shift."""
+    data = ics_all.copy()
+
+    if "Date Opened" not in data.columns:
+        return AnalysisResult(
+            name="Source Acquisition Mix",
+            title="ICS Source Acquisition Mix Over Time",
+            df=pd.DataFrame(columns=["Month"]),
+            sheet_name="85_Source_Acq_Mix",
+        )
+
+    data["Open Month"] = pd.to_datetime(data["Date Opened"], errors="coerce").dt.to_period("M")
+    data = data.dropna(subset=["Open Month"])
+
+    if data.empty:
+        return AnalysisResult(
+            name="Source Acquisition Mix",
+            title="ICS Source Acquisition Mix Over Time",
+            df=pd.DataFrame(columns=["Month"]),
+            sheet_name="85_Source_Acq_Mix",
+        )
+
+    ct = pd.crosstab(data["Open Month"], data["Source"])
+    ct = ct.sort_index()
+    ct["Total"] = ct.sum(axis=1)
+    ct = ct.reset_index()
+    ct["Open Month"] = ct["Open Month"].astype(str)
+    ct = ct.rename(columns={"Open Month": "Month"})
+
+    return AnalysisResult(
+        name="Source Acquisition Mix",
+        title="ICS Source Acquisition Mix Over Time",
+        df=ct,
+        sheet_name="85_Source_Acq_Mix",
+    )

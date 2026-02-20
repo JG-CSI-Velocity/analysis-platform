@@ -82,10 +82,10 @@ def analyze_cohort_milestones(
                 row[f"{milestone} Avg Swipes"] = safe_ratio(total_swipes, size)
                 row[f"{milestone} Avg Spend"] = round(safe_ratio(total_spend, size), 2)
             else:
-                row[f"{milestone} Active"] = "N/A"
-                row[f"{milestone} Activation %"] = "N/A"
-                row[f"{milestone} Avg Swipes"] = "N/A"
-                row[f"{milestone} Avg Spend"] = "N/A"
+                row[f"{milestone} Active"] = None
+                row[f"{milestone} Activation %"] = None
+                row[f"{milestone} Avg Swipes"] = None
+                row[f"{milestone} Avg Spend"] = None
 
         rows.append(row)
 
@@ -116,10 +116,10 @@ def analyze_activation_summary(
 
     if data.empty:
         metrics = [
-            ("M1 Activation Rate", "N/A"),
-            ("M3 Activation Rate", "N/A"),
-            ("M6 Activation Rate", "N/A"),
-            ("M12 Activation Rate", "N/A"),
+            ("M1 Activation Rate", None),
+            ("M3 Activation Rate", None),
+            ("M6 Activation Rate", None),
+            ("M12 Activation Rate", None),
         ]
         return AnalysisResult(
             name="Activation Summary",
@@ -148,7 +148,7 @@ def analyze_activation_summary(
     for milestone in MILESTONE_OFFSETS:
         eligible = milestone_eligible[milestone]
         active = milestone_active[milestone]
-        rate = safe_percentage(active, eligible) if eligible > 0 else "N/A"
+        rate = safe_percentage(active, eligible) if eligible > 0 else None
         metrics.append((f"{milestone} Activation Rate", rate))
 
     result_df = kpi_summary(metrics)
@@ -216,9 +216,7 @@ def analyze_growth_patterns(
             else:
                 milestone_swipes[milestone] = None
 
-            row[f"{milestone} Swipes"] = (
-                milestone_swipes[milestone] if milestone_swipes[milestone] is not None else "N/A"
-            )
+            row[f"{milestone} Swipes"] = milestone_swipes[milestone]
 
         growth_pairs = [("M1", "M3"), ("M3", "M6"), ("M6", "M12")]
         for start, end in growth_pairs:
@@ -228,7 +226,7 @@ def analyze_growth_patterns(
                 growth = round((e_val - s_val) / s_val, 4)
                 row[f"{start}->{end} Growth"] = growth
             else:
-                row[f"{start}->{end} Growth"] = "N/A"
+                row[f"{start}->{end} Growth"] = None
 
         rows.append(row)
 

@@ -1,5 +1,7 @@
 """Tests for analyses/cohort.py and cohort_detail.py -- ax27, ax28, ax29, ax31, ax32, ax34, ax36."""
 
+import pandas as pd
+
 from ics_toolkit.analysis.analyses.base import AnalysisResult
 from ics_toolkit.analysis.analyses.cohort import (
     analyze_cohort_activation,
@@ -89,7 +91,7 @@ class TestAnalyzeCohortHeatmap:
             tag_cols = [c for c in result.df.columns if c != "Opening Month"]
             assert len(tag_cols) > 0
 
-    def test_values_are_non_negative(
+    def test_values_are_non_negative_where_present(
         self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
     ):
         result = analyze_cohort_heatmap(
@@ -98,7 +100,31 @@ class TestAnalyzeCohortHeatmap:
         if not result.df.empty:
             numeric_cols = [c for c in result.df.columns if c != "Opening Month"]
             for col in numeric_cols:
-                assert (result.df[col] >= 0).all()
+                vals = pd.to_numeric(result.df[col], errors="coerce").dropna()
+                if not vals.empty:
+                    assert (vals >= 0).all()
+
+    def test_months_before_cohort_are_blank(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        """Months before a cohort's opening month should be None/NaN, not 0."""
+        result = analyze_cohort_heatmap(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        if not result.df.empty:
+            from datetime import datetime
+
+            for _, row in result.df.iterrows():
+                cohort_date = datetime.strptime(row["Opening Month"], "%Y-%m")
+                for col in result.df.columns:
+                    if col == "Opening Month":
+                        continue
+                    tag_date = datetime.strptime(col, "%b%y")
+                    if tag_date < cohort_date:
+                        assert pd.isna(row[col]), (
+                            f"Cohort {row['Opening Month']}, month {col} "
+                            f"should be blank but got {row[col]}"
+                        )
 
 
 class TestAnalyzeCohortMilestones:

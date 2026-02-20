@@ -6,6 +6,7 @@ from ics_toolkit.analysis.analyses.base import AnalysisResult
 from ics_toolkit.analysis.analyses.performance import (
     analyze_branch_performance_index,
     analyze_days_to_first_use,
+    analyze_product_code_performance,
 )
 
 
@@ -111,4 +112,48 @@ class TestAnalyzeBranchPerformanceIndex:
         result = analyze_branch_performance_index(
             sample_df, ics_all, ics_stat_o, empty, sample_settings
         )
+        assert result.df.empty
+
+
+class TestAnalyzeProductCodePerformance:
+    """ax81: Product Code Performance."""
+
+    def test_returns_analysis_result(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_product_code_performance(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert isinstance(result, AnalysisResult)
+        assert result.name == "Product Code Performance"
+
+    def test_has_expected_columns(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_product_code_performance(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        expected = {"Prod Code", "Accounts", "Activation %", "Avg Swipes", "Avg Spend"}
+        assert expected.issubset(set(result.df.columns))
+
+    def test_has_grand_total_row(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_product_code_performance(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert "Total" in result.df["Prod Code"].values
+
+    def test_sheet_name(self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings):
+        result = analyze_product_code_performance(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert result.sheet_name == "81_Prod_Perf"
+
+    def test_empty_debit(self, sample_df, ics_all, ics_stat_o, sample_settings):
+        empty = pd.DataFrame(columns=sample_df.columns)
+        result = analyze_product_code_performance(
+            sample_df, ics_all, ics_stat_o, empty, sample_settings
+        )
+        assert isinstance(result, AnalysisResult)
         assert result.df.empty

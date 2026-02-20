@@ -4,7 +4,10 @@ from ics_toolkit.analysis.analyses.activity import (
     analyze_activity_by_balance,
     analyze_activity_by_branch,
     analyze_activity_by_debit_source,
+    analyze_activity_by_source_comparison,
     analyze_activity_summary,
+    analyze_business_vs_personal,
+    analyze_monthly_interchange,
     analyze_monthly_trends,
 )
 from ics_toolkit.analysis.analyses.base import AnalysisResult
@@ -197,3 +200,143 @@ class TestAnalyzeMonthlyTrends:
         )
         assert (result.df["Total Swipes"] >= 0).all()
         assert (result.df["Active Accounts"] >= 0).all()
+
+
+class TestAnalyzeActivityBySourceComparison:
+    """ax63: Activity KPIs -- DM vs Referral."""
+
+    def test_returns_analysis_result(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_activity_by_source_comparison(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert isinstance(result, AnalysisResult)
+        assert result.name == "Activity by Source Comparison"
+        assert result.error is None
+
+    def test_has_three_columns(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_activity_by_source_comparison(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert list(result.df.columns) == ["Metric", "DM", "Referral"]
+
+    def test_has_expected_metrics(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_activity_by_source_comparison(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        metrics = set(result.df["Metric"])
+        assert "Total Accounts" in metrics
+        assert "% Active" in metrics
+        assert "Total Swipes" in metrics
+
+    def test_twelve_metric_rows(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_activity_by_source_comparison(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert len(result.df) == 12
+
+
+class TestAnalyzeMonthlyInterchange:
+    """ax71: Monthly Interchange Trend."""
+
+    def test_returns_analysis_result(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_monthly_interchange(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert isinstance(result, AnalysisResult)
+        assert result.name == "Monthly Interchange Trend"
+        assert result.error is None
+
+    def test_has_expected_columns(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_monthly_interchange(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        expected = {"Month", "Total Spend", "Total Swipes", "Est. Interchange"}
+        assert set(result.df.columns) == expected
+
+    def test_has_12_months(self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings):
+        result = analyze_monthly_interchange(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert len(result.df) == 12
+
+    def test_interchange_equals_spend_times_rate(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_monthly_interchange(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        for _, row in result.df.iterrows():
+            expected = round(row["Total Spend"] * sample_settings.interchange_rate, 2)
+            assert row["Est. Interchange"] == expected
+
+    def test_spend_non_negative(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_monthly_interchange(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert (result.df["Total Spend"] >= 0).all()
+        assert (result.df["Est. Interchange"] >= 0).all()
+
+
+class TestAnalyzeBusinessVsPersonal:
+    """ax72: Business vs Personal Card Activity."""
+
+    def test_returns_analysis_result(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_business_vs_personal(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert isinstance(result, AnalysisResult)
+        assert result.name == "Business vs Personal"
+        assert result.error is None
+
+    def test_has_three_columns(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_business_vs_personal(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert list(result.df.columns) == ["Metric", "Business", "Personal"]
+
+    def test_has_expected_metrics(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_business_vs_personal(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        metrics = set(result.df["Metric"])
+        assert "Total Accounts" in metrics
+        assert "% Active" in metrics
+        assert "Total Swipes" in metrics
+
+    def test_twelve_metric_rows(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        result = analyze_business_vs_personal(
+            sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+        )
+        assert len(result.df) == 12
+
+    def test_missing_business_column(
+        self, sample_df, ics_all, ics_stat_o, ics_stat_o_debit, sample_settings
+    ):
+        no_biz = ics_stat_o_debit.drop(columns=["Business?"])
+        result = analyze_business_vs_personal(
+            sample_df, ics_all, ics_stat_o, no_biz, sample_settings
+        )
+        assert isinstance(result, AnalysisResult)
+        assert result.df["Metric"].iloc[0] == "Status"

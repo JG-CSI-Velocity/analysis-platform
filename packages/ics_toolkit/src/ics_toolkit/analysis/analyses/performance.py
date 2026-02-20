@@ -2,7 +2,8 @@
 
 import pandas as pd
 
-from ics_toolkit.analysis.analyses.base import AnalysisResult, safe_percentage
+from ics_toolkit.analysis.analyses.base import AnalysisResult, safe_percentage, safe_ratio
+from ics_toolkit.analysis.analyses.templates import append_grand_total_row
 from ics_toolkit.analysis.utils import add_l12m_activity
 from ics_toolkit.settings import AnalysisSettings as Settings
 
@@ -71,11 +72,11 @@ def analyze_days_to_first_use(
     data["Days to First Use"] = days_list
 
     buckets = [
-        ("0-30", 0, 30),
-        ("31-60", 31, 60),
-        ("61-90", 61, 90),
-        ("91-180", 91, 180),
-        ("180+", 181, 999999),
+        ("0-30 days", 0, 30),
+        ("31-60 days", 31, 60),
+        ("61-90 days", 61, 90),
+        ("91-180 days", 91, 180),
+        ("180+ days", 181, 999999),
     ]
 
     total = len(data)
@@ -202,4 +203,82 @@ def analyze_branch_performance_index(
         title="ICS Branch Performance Index",
         df=result_df,
         sheet_name="44_Branch_Perf",
+    )
+
+
+def analyze_product_code_performance(
+    df: pd.DataFrame,
+    ics_all: pd.DataFrame,
+    ics_stat_o: pd.DataFrame,
+    ics_stat_o_debit: pd.DataFrame,
+    settings: Settings,
+) -> AnalysisResult:
+    """ax81: Product code performance -- activation, swipes, spend by Prod Code."""
+    data = add_l12m_activity(ics_stat_o_debit.copy(), settings.last_12_months)
+
+    if data.empty or "Prod Code" not in data.columns:
+        return AnalysisResult(
+            name="Product Code Performance",
+            title="ICS Product Code Performance",
+            df=pd.DataFrame(
+                columns=[
+                    "Prod Code",
+                    "Accounts",
+                    "Active Count",
+                    "Activation %",
+                    "Avg Swipes",
+                    "Avg Spend",
+                    "Avg Balance",
+                ]
+            ),
+            sheet_name="81_Prod_Perf",
+        )
+
+    grouped = (
+        data.groupby("Prod Code", dropna=False)
+        .agg(
+            Accounts=("Prod Code", "size"),
+            Active_Count=("Active in L12M", "sum"),
+            Total_Swipes=("Total L12M Swipes", "sum"),
+            Total_Spend=("Total L12M Spend", "sum"),
+            Avg_Balance=("Curr Bal", "mean"),
+        )
+        .reset_index()
+    )
+
+    grouped["Active Count"] = grouped["Active_Count"].astype(int)
+    grouped["Activation %"] = grouped.apply(
+        lambda row: safe_percentage(row["Active_Count"], row["Accounts"]), axis=1
+    )
+    grouped["Avg Swipes"] = grouped.apply(
+        lambda row: safe_ratio(row["Total_Swipes"], row["Accounts"]), axis=1
+    )
+    grouped["Avg Spend"] = grouped.apply(
+        lambda row: round(safe_ratio(row["Total_Spend"], row["Accounts"]), 2), axis=1
+    )
+    grouped["Avg Balance"] = grouped["Avg_Balance"].round(2)
+
+    result_df = (
+        grouped[
+            [
+                "Prod Code",
+                "Accounts",
+                "Active Count",
+                "Activation %",
+                "Avg Swipes",
+                "Avg Spend",
+                "Avg Balance",
+            ]
+        ]
+        .sort_values("Accounts", ascending=False)
+        .reset_index(drop=True)
+    )
+
+    result_df = append_grand_total_row(result_df, label_col="Prod Code")
+
+    return AnalysisResult(
+        name="Product Code Performance",
+        title="ICS Product Code Performance",
+        df=result_df,
+        sheet_name="81_Prod_Perf",
     )

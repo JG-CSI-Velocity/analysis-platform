@@ -100,6 +100,67 @@ class TestAnalysisSettings:
         s.client_name = "New Name"
         assert s.client_name == "New Name"
 
+    def test_client_override_applies_stat_codes(self, tmp_path):
+        """Per-client config overrides open/closed stat codes."""
+        data_file = tmp_path / "1759-ref.csv"
+        data_file.write_text("col1,col2\n1,2\n")
+
+        s = AnalysisSettings(
+            data_file=data_file,
+            clients={"1759": {"open_stat_codes": ["A"]}},
+        )
+        assert s.client_id == "1759"
+        assert s.open_stat_codes == ["A"]
+        assert s.closed_stat_codes == ["C"]  # default kept
+
+    def test_client_override_both_codes(self, tmp_path):
+        data_file = tmp_path / "1759-ref.csv"
+        data_file.write_text("col1,col2\n1,2\n")
+
+        s = AnalysisSettings(
+            data_file=data_file,
+            clients={
+                "1759": {"open_stat_codes": ["A"], "closed_stat_codes": ["X"]},
+            },
+        )
+        assert s.open_stat_codes == ["A"]
+        assert s.closed_stat_codes == ["X"]
+
+    def test_unmatched_client_keeps_defaults(self, tmp_path):
+        """Client not in dict keeps default stat codes."""
+        data_file = tmp_path / "1776-ref.csv"
+        data_file.write_text("col1,col2\n1,2\n")
+
+        s = AnalysisSettings(
+            data_file=data_file,
+            clients={"1759": {"open_stat_codes": ["A"]}},
+        )
+        assert s.client_id == "1776"
+        assert s.open_stat_codes == ["O"]
+        assert s.closed_stat_codes == ["C"]
+
+    def test_client_from_yaml(self, tmp_path):
+        """Per-client config works via YAML."""
+        data_file = tmp_path / "1759-ref.csv"
+        data_file.write_text("col1,col2\n1,2\n")
+
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            yaml.dump(
+                {
+                    "analysis": {
+                        "data_file": str(data_file),
+                        "clients": {
+                            "1759": {"open_stat_codes": ["A"]},
+                        },
+                    },
+                }
+            )
+        )
+
+        unified = Settings.from_yaml(config_path=config_path)
+        assert unified.analysis.open_stat_codes == ["A"]
+
 
 class TestChartConfig:
     def test_defaults(self):

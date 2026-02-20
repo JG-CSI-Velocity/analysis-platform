@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from ics_toolkit.analysis.charts.source import (
+    chart_source_acquisition_mix,
     chart_source_by_branch,
     chart_source_by_prod,
     chart_source_by_stat,
@@ -114,3 +115,46 @@ class TestChartSourceByYear:
         )
         fig = chart_source_by_year(df, chart_config)
         assert fig.layout.barmode == "stack"
+
+
+class TestChartSourceAcquisitionMix:
+    """ax85: Stacked bar of monthly new account opens by source channel."""
+
+    def test_returns_figure(self, chart_config):
+        df = pd.DataFrame(
+            {
+                "Month": ["2023-01", "2023-02", "2023-03"],
+                "DM": [5, 8, 3],
+                "REF": [2, 4, 6],
+                "Total": [7, 12, 9],
+            }
+        )
+        fig = chart_source_acquisition_mix(df, chart_config)
+        assert isinstance(fig, go.Figure)
+
+    def test_stacked_layout(self, chart_config):
+        df = pd.DataFrame(
+            {
+                "Month": ["2023-01", "2023-02"],
+                "DM": [5, 8],
+                "REF": [2, 4],
+                "Total": [7, 12],
+            }
+        )
+        fig = chart_source_acquisition_mix(df, chart_config)
+        assert fig.layout.barmode == "stack"
+
+    def test_has_source_traces(self, chart_config):
+        df = pd.DataFrame(
+            {
+                "Month": ["2023-01", "2023-02"],
+                "DM": [5, 8],
+                "REF": [2, 4],
+                "Total": [7, 12],
+            }
+        )
+        fig = chart_source_acquisition_mix(df, chart_config)
+        trace_names = {t.name for t in fig.data}
+        assert "DM" in trace_names
+        assert "REF" in trace_names
+        assert "Total" not in trace_names

@@ -187,3 +187,153 @@ def chart_monthly_trends(df, config: ChartConfig) -> go.Figure:
         **LAYOUT_DEFAULTS,
     )
     return fig
+
+
+def chart_activity_source_comparison(df, config: ChartConfig) -> go.Figure:
+    """ax63: Grouped horizontal bars comparing DM vs Referral KPIs."""
+    # Select numeric metrics for chart (skip Total Accounts row)
+    chart_metrics = [
+        "% Active",
+        "Avg Swipes / Account",
+        "Avg Spend / Account",
+        "Avg Swipes / Active",
+        "Avg Spend / Active",
+    ]
+    data = df[df["Metric"].isin(chart_metrics)].copy()
+
+    if data.empty:
+        return go.Figure()
+
+    dm_navy = "#1B365D"
+    ref_teal = "#1ABC9C"
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Bar(
+            y=data["Metric"],
+            x=pd.to_numeric(data["DM"], errors="coerce"),
+            name="DM",
+            orientation="h",
+            marker_color=dm_navy,
+        )
+    )
+
+    fig.add_trace(
+        go.Bar(
+            y=data["Metric"],
+            x=pd.to_numeric(data["Referral"], errors="coerce"),
+            name="Referral",
+            orientation="h",
+            marker_color=ref_teal,
+        )
+    )
+
+    fig.update_layout(
+        template=config.theme,
+        barmode="group",
+        xaxis_title="Value",
+        yaxis=dict(
+            categoryorder="array",
+            categoryarray=list(reversed(chart_metrics)),
+        ),
+        **LAYOUT_DEFAULTS,
+    )
+    return fig
+
+
+def chart_monthly_interchange(df, config: ChartConfig) -> go.Figure:
+    """ax71: Line chart of monthly interchange revenue."""
+    colors = config.colors
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Bar(
+            x=df["Month"],
+            y=df["Total Spend"],
+            name="Total Spend",
+            marker_color=colors[1],
+            opacity=0.4,
+            yaxis="y",
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["Month"],
+            y=df["Est. Interchange"],
+            name="Est. Interchange",
+            mode="lines+markers",
+            marker=dict(color=colors[0], size=8),
+            line=dict(color=colors[0], width=3),
+            yaxis="y2",
+        )
+    )
+
+    fig.update_layout(
+        template=config.theme,
+        xaxis_title="Month",
+        yaxis=dict(title="Total Spend ($)", side="left", tickprefix="$", tickformat=",.0f"),
+        yaxis2=dict(
+            title="Est. Interchange ($)",
+            side="right",
+            overlaying="y",
+            tickprefix="$",
+            tickformat=",.0f",
+        ),
+        xaxis=dict(tickangle=-45),
+        **LAYOUT_DEFAULTS,
+    )
+    return fig
+
+
+def chart_business_vs_personal(df, config: ChartConfig) -> go.Figure:
+    """ax72: Grouped bars comparing Business vs Personal KPIs."""
+    chart_metrics = [
+        "% Active",
+        "Avg Swipes / Account",
+        "Avg Spend / Account",
+        "Avg Swipes / Active",
+        "Avg Spend / Active",
+    ]
+    data = df[df["Metric"].isin(chart_metrics)].copy()
+
+    if data.empty:
+        return go.Figure()
+
+    colors = config.colors
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Bar(
+            y=data["Metric"],
+            x=pd.to_numeric(data["Business"], errors="coerce"),
+            name="Business",
+            orientation="h",
+            marker_color=colors[0],
+        )
+    )
+
+    fig.add_trace(
+        go.Bar(
+            y=data["Metric"],
+            x=pd.to_numeric(data["Personal"], errors="coerce"),
+            name="Personal",
+            orientation="h",
+            marker_color=colors[2],
+        )
+    )
+
+    fig.update_layout(
+        template=config.theme,
+        barmode="group",
+        xaxis_title="Value",
+        yaxis=dict(
+            categoryorder="array",
+            categoryarray=list(reversed(chart_metrics)),
+        ),
+        **LAYOUT_DEFAULTS,
+    )
+    return fig

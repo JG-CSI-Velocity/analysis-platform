@@ -253,3 +253,39 @@ def chart_age_dist(df, config: ChartConfig) -> go.Figure:
         **LAYOUT_DEFAULTS,
     )
     return fig
+
+
+def chart_balance_trajectory(df, config: ChartConfig) -> go.Figure:
+    """ax83: Grouped bar of Avg Bal vs Curr Bal by Branch."""
+    data = df[df["Branch"] != "Total"].copy() if "Branch" in df.columns else df
+    colors = config.colors
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Bar(
+            x=data["Branch"].astype(str),
+            y=pd.to_numeric(data["Avg Bal"], errors="coerce"),
+            name="Avg Bal",
+            marker_color=colors[1],
+        )
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x=data["Branch"].astype(str),
+            y=pd.to_numeric(data["Curr Bal"], errors="coerce"),
+            name="Curr Bal",
+            marker_color=colors[0],
+        )
+    )
+
+    fig.update_layout(
+        template=config.theme,
+        barmode="group",
+        xaxis_title="Branch",
+        yaxis_title="Average Balance ($)",
+        yaxis=dict(tickprefix="$", tickformat=",.0f"),
+        **LAYOUT_DEFAULTS,
+    )
+    return fig

@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from ics_toolkit.analysis.data_loader import load_data
+from ics_toolkit.analysis.data_loader import _enrich_labels, load_data
 from ics_toolkit.exceptions import DataError
 from ics_toolkit.settings import AnalysisSettings as Settings
 
@@ -98,3 +98,86 @@ class TestLoadData:
     def test_parses_dates(self, sample_settings):
         df = load_data(sample_settings)
         assert pd.api.types.is_datetime64_any_dtype(df["Date Opened"])
+
+    def test_stat_codes_preserved(self, tmp_path):
+        """Stat codes are left as-is in the data (no remapping)."""
+        df = pd.DataFrame(
+            {
+                "ICS Account": ["Yes"] * 3,
+                "Stat Code": ["A", "A", "C"],
+                "Debit?": ["Yes"] * 3,
+                "Business?": ["No"] * 3,
+                "Date Opened": ["2025-01-01"] * 3,
+                "Prod Code": ["100"] * 3,
+                "Branch": ["Main"] * 3,
+                "Source": ["DM"] * 3,
+                "Curr Bal": [100] * 3,
+            }
+        )
+        data_file = tmp_path / "test.xlsx"
+        df.to_excel(data_file, index=False, engine="openpyxl")
+
+        settings = Settings(data_file=data_file, client_id="test")
+        result = load_data(settings)
+        assert list(result["Stat Code"]) == ["A", "A", "C"]
+
+
+class TestEnrichLabels:
+    def _make_df(self):
+        return pd.DataFrame(
+            {
+                "Branch": ["01", "02", "03"],
+                "Prod Code": ["100", "200", "300"],
+                "Curr Bal": [1000, 2000, 3000],
+            }
+        )
+
+    def _make_settings(self, **kwargs):
+        defaults = {
+            "data_file": None,
+            "client_id": "test",
+            "client_name": "Test",
+            "output_dir": "output/",
+            "branch_mapping": None,
+            "prod_code_mapping": None,
+        }
+        defaults.update(kwargs)
+        return Settings.model_construct(**defaults)
+
+    def test_branch_mapping_applied(self):
+        df = self._make_df()
+        settings = self._make_settings(
+            branch_mapping={"01": "Main Office", "02": "North Branch"},
+        )
+        result = _enrich_labels(df, settings)
+        assert result["Branch"].tolist() == ["Main Office", "North Branch", "03"]
+
+    def test_prod_code_mapping_applied(self):
+        df = self._make_df()
+        settings = self._make_settings(
+            prod_code_mapping={"100": "Regular Checking", "200": "Savings"},
+        )
+        result = _enrich_labels(df, settings)
+        assert result["Prod Code"].tolist() == ["Regular Checking", "Savings", "300"]
+
+    def test_no_mapping_passthrough(self):
+        df = self._make_df()
+        settings = self._make_settings()
+        result = _enrich_labels(df, settings)
+        assert result["Branch"].tolist() == ["01", "02", "03"]
+        assert result["Prod Code"].tolist() == ["100", "200", "300"]
+
+    def test_partial_mapping_keeps_unmapped(self):
+        df = self._make_df()
+        settings = self._make_settings(branch_mapping={"01": "Main Office"})
+        result = _enrich_labels(df, settings)
+        assert result["Branch"].tolist() == ["Main Office", "02", "03"]
+
+    def test_missing_column_ignored(self):
+        df = pd.DataFrame({"Other": [1, 2, 3]})
+        settings = self._make_settings(
+            branch_mapping={"01": "Main"},
+            prod_code_mapping={"100": "Checking"},
+        )
+        result = _enrich_labels(df, settings)
+        assert "Branch" not in result.columns

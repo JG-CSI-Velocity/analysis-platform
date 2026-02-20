@@ -204,7 +204,7 @@ def analyze(
         successful = [a for a in result.analyses if a.error is None]
         logger.info("Analyses completed: %d/%d", len(successful), len(result.analyses))
 
-        generated = export_outputs(result, skip_chart_pngs=no_charts)
+        generated = export_outputs(result, skip_charts=no_charts)
 
         if generated:
             logger.info("")

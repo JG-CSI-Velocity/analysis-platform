@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from ics_toolkit.analysis.charts.demographics import (
+    chart_balance_trajectory,
     chart_open_vs_close,
     chart_stat_open_close,
 )
@@ -68,3 +69,45 @@ class TestChartStatOpenClose:
         for trace in fig.data:
             x_vals = list(trace.x)
             assert "Grand Total" not in x_vals
+
+
+class TestChartBalanceTrajectory:
+    """ax83: Grouped bar of Avg Bal vs Curr Bal by Branch."""
+
+    def test_returns_figure(self, chart_config):
+        df = pd.DataFrame(
+            {
+                "Branch": ["Main", "North", "Total"],
+                "Avg Bal": [5000.0, 3000.0, 4000.0],
+                "Curr Bal": [5500.0, 2800.0, 4150.0],
+                "Change ($)": [500.0, -200.0, 150.0],
+                "Change (%)": [10.0, -6.7, 3.75],
+            }
+        )
+        fig = chart_balance_trajectory(df, chart_config)
+        assert isinstance(fig, go.Figure)
+
+    def test_has_two_bar_traces(self, chart_config):
+        df = pd.DataFrame(
+            {
+                "Branch": ["Main", "North", "Total"],
+                "Avg Bal": [5000.0, 3000.0, 4000.0],
+                "Curr Bal": [5500.0, 2800.0, 4150.0],
+            }
+        )
+        fig = chart_balance_trajectory(df, chart_config)
+        bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
+        assert len(bar_traces) == 2
+
+    def test_excludes_total(self, chart_config):
+        df = pd.DataFrame(
+            {
+                "Branch": ["Main", "North", "Total"],
+                "Avg Bal": [5000.0, 3000.0, 4000.0],
+                "Curr Bal": [5500.0, 2800.0, 4150.0],
+            }
+        )
+        fig = chart_balance_trajectory(df, chart_config)
+        for trace in fig.data:
+            if hasattr(trace, "x") and trace.x is not None:
+                assert "Total" not in list(trace.x)

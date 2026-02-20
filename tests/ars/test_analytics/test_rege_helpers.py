@@ -47,9 +47,13 @@ class TestDetectRegEColumn:
     """Auto-detect 'Reg E Code ...' column."""
 
     def test_finds_latest(self):
-        df = pd.DataFrame({
-            "Reg E Code 2023.01": [1], "Reg E Code 2024.02": [2], "Other": [3],
-        })
+        df = pd.DataFrame(
+            {
+                "Reg E Code 2023.01": [1],
+                "Reg E Code 2024.02": [2],
+                "Other": [3],
+            }
+        )
         assert detect_reg_e_column(df) == "Reg E Code 2024.02"
 
     def test_single_col(self):
@@ -88,12 +92,14 @@ class TestTotalRow:
     """total_row() appends a TOTAL row."""
 
     def test_adds_total(self):
-        df = pd.DataFrame({
-            "Label": ["A", "B"],
-            "Total Accounts": [10, 20],
-            "Opted In": [3, 8],
-            "Opt-In Rate": [0.3, 0.4],
-        })
+        df = pd.DataFrame(
+            {
+                "Label": ["A", "B"],
+                "Total Accounts": [10, 20],
+                "Opted In": [3, 8],
+                "Opt-In Rate": [0.3, 0.4],
+            }
+        )
         result = total_row(df, "Label")
         assert len(result) == 3
         tot = result[result["Label"] == "TOTAL"]
@@ -109,15 +115,18 @@ class TestTotalRow:
 class TestCategorizeAccountAge:
     """7-bucket account age categorization."""
 
-    @pytest.mark.parametrize("days, expected", [
-        (90, "0-6 months"),
-        (200, "6-12 months"),
-        (500, "1-2 years"),
-        (1000, "2-5 years"),
-        (3000, "5-10 years"),
-        (5000, "10-20 years"),
-        (8000, "20+ years"),
-    ])
+    @pytest.mark.parametrize(
+        "days, expected",
+        [
+            (90, "0-6 months"),
+            (200, "6-12 months"),
+            (500, "1-2 years"),
+            (1000, "2-5 years"),
+            (3000, "5-10 years"),
+            (5000, "10-20 years"),
+            (8000, "20+ years"),
+        ],
+    )
     def test_buckets(self, days, expected):
         assert categorize_account_age(days) == expected
 
@@ -131,15 +140,18 @@ class TestCategorizeAccountAge:
 class TestCategorizeHolderAge:
     """7-bucket holder age categorization."""
 
-    @pytest.mark.parametrize("age, expected", [
-        (20, "18-24"),
-        (30, "25-34"),
-        (40, "35-44"),
-        (50, "45-54"),
-        (60, "55-64"),
-        (70, "65-74"),
-        (80, "75+"),
-    ])
+    @pytest.mark.parametrize(
+        "age, expected",
+        [
+            (20, "18-24"),
+            (30, "25-34"),
+            (40, "35-44"),
+            (50, "45-54"),
+            (60, "55-64"),
+            (70, "65-74"),
+            (80, "75+"),
+        ],
+    )
     def test_buckets(self, age, expected):
         assert categorize_holder_age(age) == expected
 

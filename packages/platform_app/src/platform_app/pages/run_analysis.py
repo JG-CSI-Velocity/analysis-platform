@@ -41,7 +41,9 @@ def _render_inner() -> None:
     st.title("Run Analysis")
 
     # Wizard flow
-    st.markdown(step_indicator_html(st.session_state.wiz_step, WIZARD_STEPS), unsafe_allow_html=True)
+    st.markdown(
+        step_indicator_html(st.session_state.wiz_step, WIZARD_STEPS), unsafe_allow_html=True
+    )
     st.markdown("")
 
     step = st.session_state.wiz_step
@@ -91,6 +93,7 @@ def _go_back():
 
 # -- Step 0: Select Pipeline & Client --
 
+
 def _step_select_pipeline():
     st.markdown("### Select a pipeline and enter client info")
 
@@ -114,9 +117,13 @@ def _step_select_pipeline():
 
     col1, col2 = st.columns(2)
     with col1:
-        client_id = st.text_input("Client ID", value=st.session_state.wiz_client_id, placeholder="e.g. 9999")
+        client_id = st.text_input(
+            "Client ID", value=st.session_state.wiz_client_id, placeholder="e.g. 9999"
+        )
     with col2:
-        client_name = st.text_input("Client Name", value=st.session_state.wiz_client_name, placeholder="e.g. Test CU")
+        client_name = st.text_input(
+            "Client Name", value=st.session_state.wiz_client_name, placeholder="e.g. Test CU"
+        )
 
     st.session_state.wiz_client_id = client_id
     st.session_state.wiz_client_name = client_name
@@ -128,6 +135,7 @@ def _step_select_pipeline():
 
 
 # -- Step 1: Upload Data Files --
+
 
 def _step_upload_data():
     pipeline = st.session_state.wiz_pipeline
@@ -178,6 +186,7 @@ def _step_upload_data():
 
 
 # -- Step 2: Confirm & Run --
+
 
 def _step_confirm_and_run():
     pipeline = st.session_state.wiz_pipeline
@@ -248,16 +257,18 @@ def _execute_pipeline():
         st.session_state.wiz_elapsed = elapsed
 
         # Record in history
-        st.session_state.setdefault("run_history", []).append({
-            "pipeline": pipeline,
-            "client_id": client_id,
-            "client_name": client_name,
-            "success": True,
-            "elapsed": elapsed,
-            "output_dir": str(output_dir),
-            "timestamp": datetime.now().isoformat(),
-            "result_count": len(results),
-        })
+        st.session_state.setdefault("run_history", []).append(
+            {
+                "pipeline": pipeline,
+                "client_id": client_id,
+                "client_name": client_name,
+                "success": True,
+                "elapsed": elapsed,
+                "output_dir": str(output_dir),
+                "timestamp": datetime.now().isoformat(),
+                "result_count": len(results),
+            }
+        )
 
         st.session_state.wiz_step = 3
         st.rerun()
@@ -268,17 +279,20 @@ def _execute_pipeline():
         st.error("Pipeline error -- see traceback below.")
         st.code(traceback.format_exc())
 
-        st.session_state.setdefault("run_history", []).append({
-            "pipeline": pipeline,
-            "client_id": client_id,
-            "client_name": client_name,
-            "success": False,
-            "elapsed": elapsed,
-            "timestamp": datetime.now().isoformat(),
-        })
+        st.session_state.setdefault("run_history", []).append(
+            {
+                "pipeline": pipeline,
+                "client_id": client_id,
+                "client_name": client_name,
+                "success": False,
+                "elapsed": elapsed,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
 
 # -- Step 3: Results --
+
 
 def _step_results():
     pipeline = st.session_state.wiz_pipeline
@@ -297,17 +311,20 @@ def _step_results():
     )
 
     # KPI row
-    kpi_row([
-        {"label": "Analyses", "value": str(len(results))},
-        {"label": "Pipeline", "value": pipeline.upper()},
-        {"label": "Time", "value": f"{elapsed:.1f}s"},
-    ])
+    kpi_row(
+        [
+            {"label": "Analyses", "value": str(len(results))},
+            {"label": "Pipeline", "value": pipeline.upper()},
+            {"label": "Time", "value": f"{elapsed:.1f}s"},
+        ]
+    )
 
     # Download section
     if output_dir and Path(output_dir).exists():
         st.markdown("### Downloads")
         downloadable = sorted(
-            f for f in Path(output_dir).rglob("*")
+            f
+            for f in Path(output_dir).rglob("*")
             if f.is_file() and f.suffix in (".xlsx", ".pptx", ".png", ".csv")
         )
         if downloadable:
@@ -320,7 +337,13 @@ def _step_results():
                     ".csv": "text/csv",
                 }.get(f.suffix, "application/octet-stream")
                 with cols[i % len(cols)]:
-                    st.download_button(f.name, f.read_bytes(), file_name=f.name, mime=mime, use_container_width=True)
+                    st.download_button(
+                        f.name,
+                        f.read_bytes(),
+                        file_name=f.name,
+                        mime=mime,
+                        use_container_width=True,
+                    )
 
     # Results detail
     if results:
@@ -336,4 +359,6 @@ def _step_results():
                             st.image(str(chart_path), use_container_width=True)
 
     st.markdown("---")
-    st.button("Run Another Analysis", on_click=_reset_wizard, type="primary", use_container_width=True)
+    st.button(
+        "Run Another Analysis", on_click=_reset_wizard, type="primary", use_container_width=True
+    )

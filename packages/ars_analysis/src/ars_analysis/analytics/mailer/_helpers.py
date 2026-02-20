@@ -125,12 +125,8 @@ def discover_metric_cols(
         return [], []
 
     cols = list(ctx.data.columns)
-    spend_cols = sorted(
-        [c for c in cols if SPEND_PATTERN.match(c)], key=parse_month
-    )
-    swipe_cols = sorted(
-        [c for c in cols if SWIPE_PATTERN.match(c)], key=parse_month
-    )
+    spend_cols = sorted([c for c in cols if SPEND_PATTERN.match(c)], key=parse_month)
+    swipe_cols = sorted([c for c in cols if SWIPE_PATTERN.match(c)], key=parse_month)
 
     if ctx.client.client_id == "1200":
         cutoff = pd.to_datetime("Apr24", format="%b%y")
@@ -145,9 +141,7 @@ def discover_metric_cols(
 # ---------------------------------------------------------------------------
 
 
-def build_responder_mask(
-    data: pd.DataFrame, pairs: list[tuple[str, str, str]]
-) -> pd.Series:
+def build_responder_mask(data: pd.DataFrame, pairs: list[tuple[str, str, str]]) -> pd.Series:
     """Boolean Series: True for any account that responded in any month."""
     mask = pd.Series(False, index=data.index)
     for _, resp_col, _ in pairs:
@@ -155,9 +149,7 @@ def build_responder_mask(
     return mask
 
 
-def build_mailed_mask(
-    data: pd.DataFrame, pairs: list[tuple[str, str, str]]
-) -> pd.Series:
+def build_mailed_mask(data: pd.DataFrame, pairs: list[tuple[str, str, str]]) -> pd.Series:
     """Boolean Series: True for any account mailed in any month."""
     mask = pd.Series(False, index=data.index)
     for _, _, mail_col in pairs:
@@ -170,9 +162,7 @@ def build_mailed_mask(
 # ---------------------------------------------------------------------------
 
 
-def analyze_month(
-    data: pd.DataFrame, resp_col: str, mail_col: str
-) -> tuple[dict, int, int, float]:
+def analyze_month(data: pd.DataFrame, resp_col: str, mail_col: str) -> tuple[dict, int, int, float]:
     """Compute response stats for one mail month.
 
     Returns (seg_details, total_mailed, total_resp, overall_rate).
@@ -212,6 +202,11 @@ def _safe(fn, label: str, ctx: PipelineContext) -> list[AnalysisResult]:
         return fn(ctx)
     except Exception as exc:
         logger.warning("{label} failed: {err}", label=label, err=exc)
-        return [AnalysisResult(
-            slide_id=label, title=label, success=False, error=str(exc),
-        )]
+        return [
+            AnalysisResult(
+                slide_id=label,
+                title=label,
+                success=False,
+                error=str(exc),
+            )
+        ]

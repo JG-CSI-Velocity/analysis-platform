@@ -48,25 +48,31 @@ def _by_branch(ctx: PipelineContext) -> list[AnalysisResult]:
     """Attrition rates by branch."""
     all_data, _, closed = prepare_attrition_data(ctx)
     if closed.empty or "Branch" not in all_data.columns:
-        return [AnalysisResult(
-            slide_id="A9.4", title="Attrition by Branch",
-            success=False, error="No closed accounts or no Branch column",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A9.4",
+                title="Attrition by Branch",
+                success=False,
+                error="No closed accounts or no Branch column",
+            )
+        ]
 
     bmap = getattr(ctx.settings, "branch_mapping", None) or {}
     if bmap:
         all_data = all_data.copy()
-        all_data["Branch"] = all_data["Branch"].astype(str).map(
-            lambda b: bmap.get(b, b))
+        all_data["Branch"] = all_data["Branch"].astype(str).map(lambda b: bmap.get(b, b))
         closed = closed.copy()
-        closed["Branch"] = closed["Branch"].astype(str).map(
-            lambda b: bmap.get(b, b))
+        closed["Branch"] = closed["Branch"].astype(str).map(lambda b: bmap.get(b, b))
 
     total_by = all_data.groupby("Branch").size()
     closed_by = closed.groupby("Branch").size()
-    branch_df = pd.DataFrame(
-        {"Total": total_by, "Closed": closed_by},
-    ).fillna(0).astype(int)
+    branch_df = (
+        pd.DataFrame(
+            {"Total": total_by, "Closed": closed_by},
+        )
+        .fillna(0)
+        .astype(int)
+    )
     branch_df["Attrition Rate"] = branch_df["Closed"] / branch_df["Total"]
     branch_df = branch_df.sort_values("Attrition Rate").reset_index()
 
@@ -83,22 +89,32 @@ def _by_branch(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.barh(
             branch_plot["Branch"].astype(str),
             branch_plot["Attrition Rate"] * 100,
-            color=TEAL, edgecolor=BAR_EDGE, alpha=BAR_ALPHA,
+            color=TEAL,
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
         )
         ax.axvline(
-            overall_rate * 100, color=NEGATIVE, ls="--", lw=2,
+            overall_rate * 100,
+            color=NEGATIVE,
+            ls="--",
+            lw=2,
             label=f"Average: {overall_rate:.1%}",
         )
         for i, (rate, ct) in enumerate(
             zip(branch_plot["Attrition Rate"], branch_plot["Total"]),
         ):
             ax.text(
-                rate * 100 + 0.5, i, f"{rate:.1%} (n={ct:,})",
-                va="center", fontsize=DATA_LABEL_SIZE - 4,
+                rate * 100 + 0.5,
+                i,
+                f"{rate:.1%} (n={ct:,})",
+                va="center",
+                fontsize=DATA_LABEL_SIZE - 4,
             )
         ax.set_title(
-            "Attrition Rate by Branch", fontsize=24,
-            fontweight="bold", pad=15,
+            "Attrition Rate by Branch",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_xlabel("Attrition Rate (%)", fontsize=20)
         ax.xaxis.set_major_formatter(PCT_FORMATTER)
@@ -108,12 +124,14 @@ def _by_branch(ctx: PipelineContext) -> list[AnalysisResult]:
 
     ctx.results["attrition_4"] = {"n_branches": len(branch_df)}
 
-    return [AnalysisResult(
-        slide_id="A9.4",
-        title="Attrition by Branch",
-        chart_path=save_to,
-        notes=f"{len(branch_df)} branches, avg {overall_rate:.1%}",
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A9.4",
+            title="Attrition by Branch",
+            chart_path=save_to,
+            notes=f"{len(branch_df)} branches, avg {overall_rate:.1%}",
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -126,16 +144,24 @@ def _by_product(ctx: PipelineContext) -> list[AnalysisResult]:
     all_data, _, closed = prepare_attrition_data(ctx)
     pcol = product_col(all_data)
     if closed.empty or pcol is None:
-        return [AnalysisResult(
-            slide_id="A9.5", title="Attrition by Product",
-            success=False, error="No closed accounts or no product column",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A9.5",
+                title="Attrition by Product",
+                success=False,
+                error="No closed accounts or no product column",
+            )
+        ]
 
     total_by = all_data.groupby(pcol).size()
     closed_by = closed.groupby(pcol).size()
-    prod_df = pd.DataFrame(
-        {"Total": total_by, "Closed": closed_by},
-    ).fillna(0).astype(int)
+    prod_df = (
+        pd.DataFrame(
+            {"Total": total_by, "Closed": closed_by},
+        )
+        .fillna(0)
+        .astype(int)
+    )
     prod_df["Attrition Rate"] = prod_df["Closed"] / prod_df["Total"]
     prod_df = prod_df.sort_values("Total", ascending=False).head(10).reset_index()
 
@@ -145,16 +171,24 @@ def _by_product(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.bar(
             prod_df[pcol].astype(str),
             prod_df["Attrition Rate"] * 100,
-            color=TEAL, edgecolor=BAR_EDGE, alpha=BAR_ALPHA,
+            color=TEAL,
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
         )
         for i, rate in enumerate(prod_df["Attrition Rate"]):
             ax.text(
-                i, rate * 100 + 0.5, f"{rate:.1%}",
-                ha="center", fontsize=DATA_LABEL_SIZE, fontweight="bold",
+                i,
+                rate * 100 + 0.5,
+                f"{rate:.1%}",
+                ha="center",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
             )
         ax.set_title(
             f"Attrition Rate by Product Code (Top {len(prod_df)})",
-            fontsize=24, fontweight="bold", pad=15,
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_ylabel("Attrition Rate (%)", fontsize=20)
         ax.yaxis.set_major_formatter(PCT_FORMATTER)
@@ -164,12 +198,14 @@ def _by_product(ctx: PipelineContext) -> list[AnalysisResult]:
             lbl.set_ha("right")
         fig.tight_layout()
 
-    return [AnalysisResult(
-        slide_id="A9.5",
-        title="Attrition by Product Code",
-        chart_path=save_to,
-        notes=f"Top {len(prod_df)} products by volume",
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A9.5",
+            title="Attrition by Product Code",
+            chart_path=save_to,
+            notes=f"Top {len(prod_df)} products by volume",
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -181,20 +217,28 @@ def _personal_vs_business(ctx: PipelineContext) -> list[AnalysisResult]:
     """Attrition split by personal vs business accounts."""
     all_data, _, closed = prepare_attrition_data(ctx)
     if closed.empty or "Business?" not in all_data.columns:
-        return [AnalysisResult(
-            slide_id="A9.6", title="Personal vs Business",
-            success=False, error="No closed accounts or no Business? column",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A9.6",
+                title="Personal vs Business",
+                success=False,
+                error="No closed accounts or no Business? column",
+            )
+        ]
 
     rows = []
     for btype, label in [("No", "Personal"), ("Yes", "Business")]:
         total = len(all_data[all_data["Business?"] == btype])
         n_closed = len(closed[closed["Business?"] == btype])
         rate = n_closed / total if total > 0 else 0
-        rows.append({
-            "Type": label, "Total": total, "Closed": n_closed,
-            "Attrition Rate": rate,
-        })
+        rows.append(
+            {
+                "Type": label,
+                "Total": total,
+                "Closed": n_closed,
+                "Attrition Rate": rate,
+            }
+        )
     pb_df = pd.DataFrame(rows)
 
     save_to = ctx.paths.charts_dir / "a9_6_personal_business.png"
@@ -202,34 +246,45 @@ def _personal_vs_business(ctx: PipelineContext) -> list[AnalysisResult]:
     with chart_figure(figsize=(14, 7), save_path=save_to) as (fig, ax):
         colors = [PERSONAL, BUSINESS]
         bars = ax.bar(
-            pb_df["Type"], pb_df["Attrition Rate"] * 100,
-            color=colors, edgecolor=BAR_EDGE, alpha=BAR_ALPHA, width=0.5,
+            pb_df["Type"],
+            pb_df["Attrition Rate"] * 100,
+            color=colors,
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
+            width=0.5,
         )
         for bar, row in zip(bars, pb_df.itertuples()):
             h = bar.get_height()
             ax.text(
-                bar.get_x() + bar.get_width() / 2, h + 0.5,
+                bar.get_x() + bar.get_width() / 2,
+                h + 0.5,
                 f"{row._4:.1%}\n({row.Closed:,} / {row.Total:,})",
-                ha="center", fontsize=DATA_LABEL_SIZE, fontweight="bold",
+                ha="center",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
             )
         ax.set_title(
-            "Attrition: Personal vs Business", fontsize=24,
-            fontweight="bold", pad=15,
+            "Attrition: Personal vs Business",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_ylabel("Attrition Rate (%)", fontsize=20)
         ax.yaxis.set_major_formatter(PCT_FORMATTER)
         ax.tick_params(labelsize=TICK_SIZE)
         fig.tight_layout()
 
-    return [AnalysisResult(
-        slide_id="A9.6",
-        title="Personal vs Business Attrition",
-        chart_path=save_to,
-        notes=(
-            f"Personal: {pb_df.iloc[0]['Attrition Rate']:.1%} | "
-            f"Business: {pb_df.iloc[1]['Attrition Rate']:.1%}"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A9.6",
+            title="Personal vs Business Attrition",
+            chart_path=save_to,
+            notes=(
+                f"Personal: {pb_df.iloc[0]['Attrition Rate']:.1%} | "
+                f"Business: {pb_df.iloc[1]['Attrition Rate']:.1%}"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -241,10 +296,14 @@ def _by_tenure(ctx: PipelineContext) -> list[AnalysisResult]:
     """Attrition rates by account tenure bucket."""
     all_data, _, closed = prepare_attrition_data(ctx)
     if closed.empty:
-        return [AnalysisResult(
-            slide_id="A9.7", title="Attrition by Tenure",
-            success=False, error="No closed accounts",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A9.7",
+                title="Attrition by Tenure",
+                success=False,
+                error="No closed accounts",
+            )
+        ]
 
     now = pd.Timestamp.now()
     all_copy = all_data.copy()
@@ -252,21 +311,25 @@ def _by_tenure(ctx: PipelineContext) -> list[AnalysisResult]:
     all_copy["_tenure_cat"] = all_copy["_tenure_days"].apply(categorize_tenure)
 
     closed_copy = closed.copy()
-    closed_copy["_tenure_days"] = (
-        closed_copy["Date Closed"] - closed_copy["Date Opened"]
-    ).dt.days
+    closed_copy["_tenure_days"] = (closed_copy["Date Closed"] - closed_copy["Date Opened"]).dt.days
     closed_copy["_tenure_cat"] = closed_copy["_tenure_days"].apply(
         categorize_tenure,
     )
 
     total_by = all_copy.groupby("_tenure_cat").size()
     closed_by = closed_copy.groupby("_tenure_cat").size()
-    tenure_df = pd.DataFrame(
-        {"Total": total_by, "Closed": closed_by},
-    ).fillna(0).astype(int)
+    tenure_df = (
+        pd.DataFrame(
+            {"Total": total_by, "Closed": closed_by},
+        )
+        .fillna(0)
+        .astype(int)
+    )
     tenure_df["Attrition Rate"] = tenure_df["Closed"] / tenure_df["Total"]
     tenure_df.index = pd.CategoricalIndex(
-        tenure_df.index, categories=TENURE_ORDER, ordered=True,
+        tenure_df.index,
+        categories=TENURE_ORDER,
+        ordered=True,
     )
     tenure_df = tenure_df.sort_index().reset_index()
     tenure_df.columns = ["Tenure", "Total", "Closed", "Attrition Rate"]
@@ -277,16 +340,24 @@ def _by_tenure(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.bar(
             tenure_df["Tenure"].astype(str),
             tenure_df["Attrition Rate"] * 100,
-            color=TEAL, edgecolor=BAR_EDGE, alpha=BAR_ALPHA,
+            color=TEAL,
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
         )
         for i, rate in enumerate(tenure_df["Attrition Rate"]):
             ax.text(
-                i, rate * 100 + 0.5, f"{rate:.1%}",
-                ha="center", fontsize=DATA_LABEL_SIZE, fontweight="bold",
+                i,
+                rate * 100 + 0.5,
+                f"{rate:.1%}",
+                ha="center",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
             )
         ax.set_title(
-            "Attrition Rate by Account Tenure", fontsize=24,
-            fontweight="bold", pad=15,
+            "Attrition Rate by Account Tenure",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_ylabel("Attrition Rate (%)", fontsize=20)
         ax.yaxis.set_major_formatter(PCT_FORMATTER)
@@ -296,11 +367,13 @@ def _by_tenure(ctx: PipelineContext) -> list[AnalysisResult]:
             lbl.set_ha("right")
         fig.tight_layout()
 
-    return [AnalysisResult(
-        slide_id="A9.7",
-        title="Attrition by Account Tenure",
-        chart_path=save_to,
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A9.7",
+            title="Attrition by Account Tenure",
+            chart_path=save_to,
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -312,10 +385,14 @@ def _by_balance(ctx: PipelineContext) -> list[AnalysisResult]:
     """Attrition rates across balance tiers."""
     all_data, _, closed = prepare_attrition_data(ctx)
     if closed.empty or "Avg Bal" not in all_data.columns:
-        return [AnalysisResult(
-            slide_id="A9.8", title="Attrition by Balance",
-            success=False, error="No closed accounts or no Avg Bal column",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A9.8",
+                title="Attrition by Balance",
+                success=False,
+                error="No closed accounts or no Avg Bal column",
+            )
+        ]
 
     all_copy = all_data.copy()
     all_copy["_bal_cat"] = all_copy["Avg Bal"].apply(categorize_balance)
@@ -324,12 +401,18 @@ def _by_balance(ctx: PipelineContext) -> list[AnalysisResult]:
 
     total_by = all_copy.groupby("_bal_cat").size()
     closed_by = closed_copy.groupby("_bal_cat").size()
-    bal_df = pd.DataFrame(
-        {"Total": total_by, "Closed": closed_by},
-    ).fillna(0).astype(int)
+    bal_df = (
+        pd.DataFrame(
+            {"Total": total_by, "Closed": closed_by},
+        )
+        .fillna(0)
+        .astype(int)
+    )
     bal_df["Attrition Rate"] = bal_df["Closed"] / bal_df["Total"]
     bal_df.index = pd.CategoricalIndex(
-        bal_df.index, categories=BALANCE_ORDER, ordered=True,
+        bal_df.index,
+        categories=BALANCE_ORDER,
+        ordered=True,
     )
     bal_df = bal_df.sort_index().reset_index()
     bal_df.columns = ["Balance Tier", "Total", "Closed", "Attrition Rate"]
@@ -340,16 +423,24 @@ def _by_balance(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.bar(
             bal_df["Balance Tier"].astype(str),
             bal_df["Attrition Rate"] * 100,
-            color=TEAL, edgecolor=BAR_EDGE, alpha=BAR_ALPHA,
+            color=TEAL,
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
         )
         for i, rate in enumerate(bal_df["Attrition Rate"]):
             ax.text(
-                i, rate * 100 + 0.5, f"{rate:.1%}",
-                ha="center", fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
+                i,
+                rate * 100 + 0.5,
+                f"{rate:.1%}",
+                ha="center",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
             )
         ax.set_title(
-            "Attrition Rate by Balance Tier", fontsize=24,
-            fontweight="bold", pad=15,
+            "Attrition Rate by Balance Tier",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_ylabel("Attrition Rate (%)", fontsize=20)
         ax.yaxis.set_major_formatter(PCT_FORMATTER)
@@ -359,11 +450,13 @@ def _by_balance(ctx: PipelineContext) -> list[AnalysisResult]:
             lbl.set_ha("right")
         fig.tight_layout()
 
-    return [AnalysisResult(
-        slide_id="A9.8",
-        title="Attrition by Balance Tier",
-        chart_path=save_to,
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A9.8",
+            title="Attrition by Balance Tier",
+            chart_path=save_to,
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------

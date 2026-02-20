@@ -11,14 +11,18 @@ from ars_analysis.analytics.rege.status import RegEStatus
 # Module attributes
 # ---------------------------------------------------------------------------
 
+
 class TestModuleAttributes:
     """All 3 modules have correct class attributes."""
 
-    @pytest.mark.parametrize("cls, mid, section", [
-        (RegEStatus, "rege.status", "rege"),
-        (RegEBranches, "rege.branches", "rege"),
-        (RegEDimensions, "rege.dimensions", "rege"),
-    ])
+    @pytest.mark.parametrize(
+        "cls, mid, section",
+        [
+            (RegEStatus, "rege.status", "rege"),
+            (RegEBranches, "rege.branches", "rege"),
+            (RegEDimensions, "rege.dimensions", "rege"),
+        ],
+    )
     def test_module_id_and_section(self, cls, mid, section):
         m = cls()
         assert m.module_id == mid
@@ -40,6 +44,7 @@ class TestModuleAttributes:
 # Validation
 # ---------------------------------------------------------------------------
 
+
 class TestValidation:
     """validate() checks prerequisites."""
 
@@ -60,6 +65,7 @@ class TestValidation:
 # ---------------------------------------------------------------------------
 # RegEStatus
 # ---------------------------------------------------------------------------
+
 
 class TestRegEStatus:
     """RegEStatus.run() produces A8.1, A8.2, A8.3, A8.12."""
@@ -104,6 +110,7 @@ class TestRegEStatus:
 # RegEBranches
 # ---------------------------------------------------------------------------
 
+
 class TestRegEBranches:
     """RegEBranches.run() produces A8.4a, A8.4b, A8.4c, A8.13."""
 
@@ -138,6 +145,7 @@ class TestRegEBranches:
 # ---------------------------------------------------------------------------
 # RegEDimensions
 # ---------------------------------------------------------------------------
+
 
 class TestRegEDimensions:
     """RegEDimensions.run() produces A8.5, A8.6, A8.7, A8.10, A8.11."""

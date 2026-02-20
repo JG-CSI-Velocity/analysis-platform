@@ -113,11 +113,18 @@ def format_odd(df: pd.DataFrame) -> pd.DataFrame:
 
     # Reorder: base columns, then detail, then calculated
     calc_col_names = list(new_data.keys()) + [
-        c for c in [
-            "MonthlySwipes12", "MonthlySwipes3", "MonthlySpend12",
-            "MonthlySpend3", "MonthlyItems12", "MonthlyItems3",
-            "SwipeCat12", "SwipeCat3",
-        ] if c in df.columns
+        c
+        for c in [
+            "MonthlySwipes12",
+            "MonthlySwipes3",
+            "MonthlySpend12",
+            "MonthlySpend3",
+            "MonthlyItems12",
+            "MonthlyItems3",
+            "SwipeCat12",
+            "SwipeCat3",
+        ]
+        if c in df.columns
     ]
     detail_cols = pin_spend + sig_spend + pin_swipe + sig_swipe + mtd_cols
     other = [c for c in df.columns if c not in detail_cols + calc_col_names]
@@ -177,8 +184,7 @@ def format_odd(df: pd.DataFrame) -> pd.DataFrame:
     # Step 7: Control segmentation
     seg_updates: dict[str, pd.Series] = {}
     resp_col_names = [
-        c for c in df.columns
-        if "Resp" in c and c not in ("# of Responses", "Response Grouping")
+        c for c in df.columns if "Resp" in c and c not in ("# of Responses", "Response Grouping")
     ]
     for col in resp_col_names:
         mail_col = col.replace("Resp", "Mail")
@@ -186,10 +192,13 @@ def format_odd(df: pd.DataFrame) -> pd.DataFrame:
         if mail_col in df.columns:
             seg_updates[seg_col] = df.apply(
                 lambda x, m=mail_col, r=col: (
-                    "Control" if pd.isna(x[m]) else
-                    "Non-Responder" if pd.notna(x[m]) and (pd.isna(x[r]) or x[r] == "NU 1-4") else
-                    "Responder"
-                ), axis=1,
+                    "Control"
+                    if pd.isna(x[m])
+                    else "Non-Responder"
+                    if pd.notna(x[m]) and (pd.isna(x[r]) or x[r] == "NU 1-4")
+                    else "Responder"
+                ),
+                axis=1,
             )
     if seg_updates:
         df = pd.concat([df, pd.DataFrame(seg_updates)], axis=1)
@@ -248,7 +257,10 @@ def format_all(
 
     logger.info(
         "Formatting ODD files for %s (source: %s -> dest: %s, limit: %s)",
-        full_month, root, out_root, max_per_csm or "all",
+        full_month,
+        root,
+        out_root,
+        max_per_csm or "all",
     )
 
     csm_dirs = sorted(d for d in root.iterdir() if d.is_dir())
@@ -259,15 +271,13 @@ def format_all(
         month_dir = csm_dir / full_month
         if not month_dir.exists():
             console.print(
-                f"  [{i}/{total_csm}] [cyan]{csm_name}[/cyan] "
-                f"[dim]-- no {full_month} folder[/dim]",
+                f"  [{i}/{total_csm}] [cyan]{csm_name}[/cyan] [dim]-- no {full_month} folder[/dim]",
             )
             continue
 
         client_dirs = sorted(d for d in month_dir.iterdir() if d.is_dir())
         console.print(
-            f"  [{i}/{total_csm}] [cyan]{csm_name}[/cyan] "
-            f"-- {len(client_dirs)} client(s)",
+            f"  [{i}/{total_csm}] [cyan]{csm_name}[/cyan] -- {len(client_dirs)} client(s)",
         )
 
         count = 0
@@ -277,7 +287,8 @@ def format_all(
 
             # Find ODD file (skip formatted, skip lock files)
             odd_files = [
-                f for f in client_dir.iterdir()
+                f
+                for f in client_dir.iterdir()
                 if f.is_file()
                 and f.suffix.lower() in (".csv", ".xlsx")
                 and not f.name.startswith("~$")
@@ -334,6 +345,7 @@ def format_all(
     console.print()
     logger.info(
         "Format done: %d formatted, %d errors",
-        len(result.formatted), len(result.errors),
+        len(result.formatted),
+        len(result.errors),
     )
     return result

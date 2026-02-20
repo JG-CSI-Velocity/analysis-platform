@@ -17,14 +17,16 @@ from ars_analysis.pipeline.steps.subsets import step_subsets
 @pytest.fixture
 def odd_df():
     """DataFrame mimicking an ODD file with required columns."""
-    return pd.DataFrame({
-        "Stat Code": ["O"] * 6 + ["C"] * 4,
-        "Product Code": ["DDA"] * 5 + ["SAV"] * 5,
-        "Date Opened": pd.to_datetime(["2025-06-15"] * 10),
-        "Balance": [1000.0 + i * 100 for i in range(10)],
-        "Business?": ["No"] * 4 + ["Yes"] * 2 + ["No"] * 2 + ["Yes"] * 1 + ["No"] * 1,
-        "Branch": ["Main"] * 6 + ["North"] * 4,
-    })
+    return pd.DataFrame(
+        {
+            "Stat Code": ["O"] * 6 + ["C"] * 4,
+            "Product Code": ["DDA"] * 5 + ["SAV"] * 5,
+            "Date Opened": pd.to_datetime(["2025-06-15"] * 10),
+            "Balance": [1000.0 + i * 100 for i in range(10)],
+            "Business?": ["No"] * 4 + ["Yes"] * 2 + ["No"] * 2 + ["Yes"] * 1 + ["No"] * 1,
+            "Branch": ["Main"] * 6 + ["North"] * 4,
+        }
+    )
 
 
 @pytest.fixture
@@ -132,13 +134,15 @@ class TestLoadStep:
 
     def test_load_renames_alias_columns(self, tmp_path):
         """Files with 'Prod Code' or 'Current Balance' get renamed to canonical names."""
-        alias_df = pd.DataFrame({
-            "Stat Code": ["O"] * 10,
-            "Prod Code": ["DDA"] * 10,
-            "Date Opened": pd.to_datetime(["2025-06-15"] * 10),
-            "Current Balance": [1000.0 + i for i in range(10)],
-            "Business?": ["No"] * 10,
-        })
+        alias_df = pd.DataFrame(
+            {
+                "Stat Code": ["O"] * 10,
+                "Prod Code": ["DDA"] * 10,
+                "Date Opened": pd.to_datetime(["2025-06-15"] * 10),
+                "Current Balance": [1000.0 + i for i in range(10)],
+                "Business?": ["No"] * 10,
+            }
+        )
         csv_path = tmp_path / "alias_test.csv"
         alias_df.to_csv(csv_path, index=False)
 

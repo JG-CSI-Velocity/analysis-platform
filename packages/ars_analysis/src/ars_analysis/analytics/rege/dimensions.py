@@ -34,9 +34,14 @@ def _safe(fn, label: str, ctx: PipelineContext) -> list[AnalysisResult]:
         return fn(ctx)
     except Exception as exc:
         logger.warning("{label} failed: {err}", label=label, err=exc)
-        return [AnalysisResult(
-            slide_id=label, title=label, success=False, error=str(exc),
-        )]
+        return [
+            AnalysisResult(
+                slide_id=label,
+                title=label,
+                success=False,
+                error=str(exc),
+            )
+        ]
 
 
 # -- Funnel renderer (matches DCTR funnel style) ----------------------------
@@ -44,8 +49,9 @@ def _safe(fn, label: str, ctx: PipelineContext) -> list[AnalysisResult]:
 _FUNNEL_COLORS = ["#2c7fb8", "#ff7f0e", "#41b6c4", "#2ca02c", "#9467bd"]
 
 
-def _render_funnel(ax, stages: list[dict], title_text: str, subtitle_text: str,
-                   metrics_text: str) -> None:
+def _render_funnel(
+    ax, stages: list[dict], title_text: str, subtitle_text: str, metrics_text: str
+) -> None:
     """Render a proportional funnel chart.
 
     stages: list of dicts with keys: name, total, color.
@@ -58,51 +64,113 @@ def _render_funnel(ax, stages: list[dict], title_text: str, subtitle_text: str,
     current_y = y_start
 
     for i, stage in enumerate(stages):
-        width = (max_width * (stage["total"] / stages[0]["total"])
-                 if stages[0]["total"] > 0 else 0.1)
+        width = max_width * (stage["total"] / stages[0]["total"]) if stages[0]["total"] > 0 else 0.1
 
         rect = mpatches.FancyBboxPatch(
-            (0.5 - width / 2, current_y - stage_height), width, stage_height,
-            boxstyle="round,pad=0.01", facecolor=stage["color"],
-            edgecolor="white", linewidth=3, alpha=0.9,
+            (0.5 - width / 2, current_y - stage_height),
+            width,
+            stage_height,
+            boxstyle="round,pad=0.01",
+            facecolor=stage["color"],
+            edgecolor="white",
+            linewidth=3,
+            alpha=0.9,
         )
         ax.add_patch(rect)
 
-        ax.text(0.5, current_y - stage_height / 2, f"{stage['total']:,}",
-                ha="center", va="center", fontsize=20, fontweight="bold",
-                color="white", zorder=10)
+        ax.text(
+            0.5,
+            current_y - stage_height / 2,
+            f"{stage['total']:,}",
+            ha="center",
+            va="center",
+            fontsize=20,
+            fontweight="bold",
+            color="white",
+            zorder=10,
+        )
 
-        ax.text(0.5 - width / 2 - 0.05, current_y - stage_height / 2,
-                stage["name"], ha="right", va="center", fontsize=14, fontweight="600",
-                color="#2c3e50")
+        ax.text(
+            0.5 - width / 2 - 0.05,
+            current_y - stage_height / 2,
+            stage["name"],
+            ha="right",
+            va="center",
+            fontsize=14,
+            fontweight="600",
+            color="#2c3e50",
+        )
 
         if i > 0 and stages[i - 1]["total"] > 0:
             conv = stage["total"] / stages[i - 1]["total"] * 100
             arrow_y = current_y + stage_gap / 2
-            ax.annotate("", xy=(0.5, arrow_y - stage_gap + 0.01),
-                        xytext=(0.5, arrow_y - 0.01),
-                        arrowprops={"arrowstyle": "->", "lw": 2, "color": "#e74c3c"})
-            ax.text(0.45, arrow_y - stage_gap / 2, f"{conv:.1f}%",
-                    ha="center", va="center", fontsize=14, fontweight="bold",
-                    color="#e74c3c",
-                    bbox={"boxstyle": "round,pad=0.3", "facecolor": "white",
-                          "edgecolor": "#e74c3c", "alpha": 0.9})
+            ax.annotate(
+                "",
+                xy=(0.5, arrow_y - stage_gap + 0.01),
+                xytext=(0.5, arrow_y - 0.01),
+                arrowprops={"arrowstyle": "->", "lw": 2, "color": "#e74c3c"},
+            )
+            ax.text(
+                0.45,
+                arrow_y - stage_gap / 2,
+                f"{conv:.1f}%",
+                ha="center",
+                va="center",
+                fontsize=14,
+                fontweight="bold",
+                color="#e74c3c",
+                bbox={
+                    "boxstyle": "round,pad=0.3",
+                    "facecolor": "white",
+                    "edgecolor": "#e74c3c",
+                    "alpha": 0.9,
+                },
+            )
 
-        current_y -= (stage_height + stage_gap)
+        current_y -= stage_height + stage_gap
 
-    ax.text(0.5, 0.98, title_text, ha="center", va="top", fontsize=20,
-            fontweight="bold", color="#1e3d59", transform=ax.transAxes)
-    ax.text(0.5, 0.93, subtitle_text, ha="center", va="top", fontsize=14,
-            style="italic", color="#7f8c8d", transform=ax.transAxes)
+    ax.text(
+        0.5,
+        0.98,
+        title_text,
+        ha="center",
+        va="top",
+        fontsize=20,
+        fontweight="bold",
+        color="#1e3d59",
+        transform=ax.transAxes,
+    )
+    ax.text(
+        0.5,
+        0.93,
+        subtitle_text,
+        ha="center",
+        va="top",
+        fontsize=14,
+        style="italic",
+        color="#7f8c8d",
+        transform=ax.transAxes,
+    )
     # End-to-end drop-off annotation
     if len(stages) >= 2 and stages[0]["total"] > 0:
         end_to_end = stages[-1]["total"] / stages[0]["total"] * 100
         metrics_text += f"\nOverall Pass-Through: {end_to_end:.1f}%"
 
-    ax.text(0.02, 0.02, metrics_text, transform=ax.transAxes, fontsize=12,
-            ha="left", va="bottom",
-            bbox={"boxstyle": "round,pad=0.5", "facecolor": "#ecf0f1",
-                  "edgecolor": "#34495e", "linewidth": 1.5})
+    ax.text(
+        0.02,
+        0.02,
+        metrics_text,
+        transform=ax.transAxes,
+        fontsize=12,
+        ha="left",
+        va="bottom",
+        bbox={
+            "boxstyle": "round,pad=0.5",
+            "facecolor": "#ecf0f1",
+            "edgecolor": "#34495e",
+            "linewidth": 1.5,
+        },
+    )
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
@@ -143,8 +211,15 @@ class RegEDimensions(AnalysisModule):
             ad = df[df["Age Range"] == age]
             if len(ad) > 0:
                 t, oi, r = rege(ad, col, opts)
-                rows.append({"Account Age": age, "Total Accounts": t, "Opted In": oi,
-                             "Opted Out": t - oi, "Opt-In Rate": r})
+                rows.append(
+                    {
+                        "Account Age": age,
+                        "Total Accounts": t,
+                        "Opted In": oi,
+                        "Opted Out": t - oi,
+                        "Opt-In Rate": r,
+                    }
+                )
         result = pd.DataFrame(rows)
         result = total_row(result, "Account Age")
 
@@ -163,12 +238,24 @@ class RegEDimensions(AnalysisModule):
 
             bars = ax.bar(x, rates, color=colors, edgecolor="none")
             for bar, rate, vol in zip(bars, rates, chart["Total Accounts"]):
-                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
-                        f"{rate:.1f}%", ha="center", fontsize=10, fontweight="bold")
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.3,
+                    f"{rate:.1f}%",
+                    ha="center",
+                    fontsize=10,
+                    fontweight="bold",
+                )
 
             ax.axhline(y=overall, color="red", linestyle="--", linewidth=2, alpha=0.7)
-            ax.text(len(chart) - 0.5, overall + 0.3, f"Avg: {overall:.1f}%",
-                    ha="right", color="red", fontweight="bold")
+            ax.text(
+                len(chart) - 0.5,
+                overall + 0.3,
+                f"Avg: {overall:.1f}%",
+                ha="right",
+                color="red",
+                fontweight="bold",
+            )
             ax.set_xticks(list(x))
             ax.set_xticklabels(chart["Account Age"].tolist(), rotation=30, ha="right")
             ax.set_ylabel("Opt-In Rate (%)")
@@ -182,12 +269,15 @@ class RegEDimensions(AnalysisModule):
         notes = f"Rate {trend}s with age. Newest: {newest:.1%}, Oldest: {oldest:.1%}"
 
         ctx.results["reg_e_5"] = {"data": result}
-        return [AnalysisResult(
-            slide_id="A8.5", title="Reg E by Account Age",
-            chart_path=chart_path,
-            excel_data={"Account Age": result},
-            notes=notes,
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A8.5",
+                title="Reg E by Account Age",
+                chart_path=chart_path,
+                excel_data={"Account Age": result},
+                notes=notes,
+            )
+        ]
 
     # -- A8.6: By Account Holder Age -----------------------------------------
 
@@ -215,8 +305,15 @@ class RegEDimensions(AnalysisModule):
                 seg = d[d["Age Group"] == ag]
                 if len(seg) > 0:
                     t, oi, r = rege(seg, col, opts)
-                    age_rows.append({"Age Group": ag, "Total Accounts": t, "Opted In": oi,
-                                     "Opted Out": t - oi, "Opt-In Rate": r})
+                    age_rows.append(
+                        {
+                            "Age Group": ag,
+                            "Total Accounts": t,
+                            "Opted In": oi,
+                            "Opted Out": t - oi,
+                            "Opt-In Rate": r,
+                        }
+                    )
             res = pd.DataFrame(age_rows)
             return total_row(res, "Age Group") if not res.empty else res
 
@@ -224,10 +321,14 @@ class RegEDimensions(AnalysisModule):
         l12m_df = by_holder_age(base_l12m)
 
         if hist.empty:
-            return [AnalysisResult(
-                slide_id="A8.6", title="Reg E by Holder Age",
-                success=False, error="No holder age data (missing age column)",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A8.6",
+                    title="Reg E by Holder Age",
+                    success=False,
+                    error="No holder age data (missing age column)",
+                )
+            ]
 
         # Chart
         chart_path = None
@@ -235,37 +336,60 @@ class RegEDimensions(AnalysisModule):
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
         ch = hist[hist["Age Group"] != "TOTAL"].copy()
-        cl = l12m_df[l12m_df["Age Group"] != "TOTAL"].copy() if not l12m_df.empty else pd.DataFrame()
+        cl = (
+            l12m_df[l12m_df["Age Group"] != "TOTAL"].copy() if not l12m_df.empty else pd.DataFrame()
+        )
 
         with chart_figure(figsize=(14, 8), save_path=save_to) as (fig, ax):
             x = np.arange(len(ch))
             w = 0.35
             hist_rates = ch["Opt-In Rate"] * 100
-            bars_h = ax.bar(x - w / 2, hist_rates, w, label="Historical",
-                            color=HISTORICAL, edgecolor="none")
+            bars_h = ax.bar(
+                x - w / 2, hist_rates, w, label="Historical", color=HISTORICAL, edgecolor="none"
+            )
             for bar, rate in zip(bars_h, hist_rates):
-                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
-                        f"{rate:.1f}%", ha="center", fontsize=9, fontweight="bold")
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.3,
+                    f"{rate:.1f}%",
+                    ha="center",
+                    fontsize=9,
+                    fontweight="bold",
+                )
 
             if not cl.empty:
                 l12m_rates = []
                 for ag in ch["Age Group"]:
                     match = cl[cl["Age Group"] == ag]
                     l12m_rates.append(match["Opt-In Rate"].iloc[0] * 100 if not match.empty else 0)
-                bars_l = ax.bar(x + w / 2, l12m_rates, w, label="L12M",
-                                color=ELIGIBLE, edgecolor="none")
+                bars_l = ax.bar(
+                    x + w / 2, l12m_rates, w, label="L12M", color=ELIGIBLE, edgecolor="none"
+                )
                 for bar, rate in zip(bars_l, l12m_rates):
                     if rate > 0:
-                        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
-                                f"{rate:.1f}%", ha="center", fontsize=9, fontweight="bold")
+                        ax.text(
+                            bar.get_x() + bar.get_width() / 2,
+                            bar.get_height() + 0.3,
+                            f"{rate:.1f}%",
+                            ha="center",
+                            fontsize=9,
+                            fontweight="bold",
+                        )
 
             # Reference line for overall rate
             overall_row = ch if ch.empty else hist[hist["Age Group"] == "TOTAL"]
             if not overall_row.empty:
                 ov = overall_row["Opt-In Rate"].iloc[0] * 100
                 ax.axhline(y=ov, color="red", linestyle="--", linewidth=2, alpha=0.7)
-                ax.text(len(ch) - 0.5, ov + 0.3, f"Avg: {ov:.1f}%",
-                        ha="right", color="red", fontweight="bold", fontsize=9)
+                ax.text(
+                    len(ch) - 0.5,
+                    ov + 0.3,
+                    f"Avg: {ov:.1f}%",
+                    ha="right",
+                    color="red",
+                    fontweight="bold",
+                    fontsize=9,
+                )
 
             ax.set_xticks(x)
             ax.set_xticklabels(ch["Age Group"].tolist(), rotation=30, ha="right")
@@ -283,12 +407,15 @@ class RegEDimensions(AnalysisModule):
         )
 
         ctx.results["reg_e_6"] = {"historical": hist, "l12m": l12m_df}
-        return [AnalysisResult(
-            slide_id="A8.6", title="Reg E by Holder Age",
-            chart_path=chart_path,
-            excel_data={"Holder Age": hist},
-            notes=notes,
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A8.6",
+                title="Reg E by Holder Age",
+                chart_path=chart_path,
+                excel_data={"Holder Age": hist},
+                notes=notes,
+            )
+        ]
 
     # -- A8.7: By Product Code -----------------------------------------------
 
@@ -302,17 +429,28 @@ class RegEDimensions(AnalysisModule):
                 pc_col = candidate
                 break
         if pc_col is None:
-            return [AnalysisResult(
-                slide_id="A8.7", title="Reg E by Product Code",
-                success=False, error="No Product Code column found",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A8.7",
+                    title="Reg E by Product Code",
+                    success=False,
+                    error="No Product Code column found",
+                )
+            ]
 
         rows = []
         for pc in sorted(base[pc_col].dropna().unique()):
             seg = base[base[pc_col] == pc]
             t, oi, r = rege(seg, col, opts)
-            rows.append({"Product Code": pc, "Total Accounts": t, "Opted In": oi,
-                         "Opted Out": t - oi, "Opt-In Rate": r})
+            rows.append(
+                {
+                    "Product Code": pc,
+                    "Total Accounts": t,
+                    "Opted In": oi,
+                    "Opted Out": t - oi,
+                    "Opt-In Rate": r,
+                }
+            )
         result = pd.DataFrame(rows)
         if not result.empty:
             result = result.sort_values("Total Accounts", ascending=False)
@@ -328,8 +466,9 @@ class RegEDimensions(AnalysisModule):
         overall = result[result["Product Code"] == "TOTAL"]["Opt-In Rate"].iloc[0] * 100
 
         with chart_figure(figsize=(14, max(8, len(chart) * 0.6)), save_path=save_to) as (fig, ax):
-            ax.barh(range(len(chart)), chart["Opt-In Rate"] * 100,
-                   color=HISTORICAL, edgecolor="none")
+            ax.barh(
+                range(len(chart)), chart["Opt-In Rate"] * 100, color=HISTORICAL, edgecolor="none"
+            )
             for i, (rate, vol) in enumerate(zip(chart["Opt-In Rate"], chart["Total Accounts"])):
                 ax.text(rate * 100 + 0.3, i, f"{rate:.1%} (n={int(vol):,})", va="center")
             ax.axvline(x=overall, color="red", linestyle="--", linewidth=2, alpha=0.7)
@@ -337,19 +476,21 @@ class RegEDimensions(AnalysisModule):
             ax.set_yticklabels(chart["Product Code"].tolist())
             ax.set_xlabel("Opt-In Rate (%)")
             ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
-            ax.set_title("Reg E Opt-In by Product Code (Top 15 by Volume)",
-                         fontweight="bold")
+            ax.set_title("Reg E Opt-In by Product Code (Top 15 by Volume)", fontweight="bold")
         chart_path = save_to
 
         notes = f"{len(rows)} products. Overall: {overall:.1f}%"
         ctx.results["reg_e_7"] = {"data": result}
 
-        return [AnalysisResult(
-            slide_id="A8.7", title="Reg E by Product Code",
-            chart_path=chart_path,
-            excel_data={"Product Code": result},
-            notes=notes,
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A8.7",
+                title="Reg E by Product Code",
+                chart_path=chart_path,
+                excel_data={"Product Code": result},
+                notes=notes,
+            )
+        ]
 
     # -- A8.10: All-Time Account Funnel with Reg E ---------------------------
 
@@ -358,8 +499,14 @@ class RegEDimensions(AnalysisModule):
         base, _, col, opts = reg_e_base(ctx)
 
         total_open = len(ctx.subsets.open_accounts) if ctx.subsets.open_accounts is not None else 0
-        total_eligible = len(ctx.subsets.eligible_data) if ctx.subsets.eligible_data is not None else 0
-        total_with_debit = len(ctx.subsets.eligible_with_debit) if ctx.subsets.eligible_with_debit is not None else 0
+        total_eligible = (
+            len(ctx.subsets.eligible_data) if ctx.subsets.eligible_data is not None else 0
+        )
+        total_with_debit = (
+            len(ctx.subsets.eligible_with_debit)
+            if ctx.subsets.eligible_with_debit is not None
+            else 0
+        )
         personal_w_debit = len(base)
         personal_w_rege = len(base[base[col].isin(opts)])
 
@@ -383,7 +530,8 @@ class RegEDimensions(AnalysisModule):
 
         with chart_figure(figsize=(12, 10), save_path=save_to) as (fig, ax):
             _render_funnel(
-                ax, stages,
+                ax,
+                stages,
                 title_text="All-Time Account Eligibility & Reg E Funnel",
                 subtitle_text="All-Time Analysis",
                 metrics_text=f"Reg E Rate: {rege_rate:.1f}%\nEnd-to-End: {through_rate:.1f}%",
@@ -396,12 +544,15 @@ class RegEDimensions(AnalysisModule):
         )
 
         ctx.results["reg_e_10"] = {"funnel": funnel_df}
-        return [AnalysisResult(
-            slide_id="A8.10", title="All-Time Funnel with Reg E",
-            chart_path=chart_path,
-            excel_data={"Funnel": funnel_df},
-            notes=notes,
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A8.10",
+                title="All-Time Funnel with Reg E",
+                chart_path=chart_path,
+                excel_data={"Funnel": funnel_df},
+                notes=notes,
+            )
+        ]
 
     # -- A8.11: L12M Funnel with Reg E --------------------------------------
 
@@ -410,10 +561,14 @@ class RegEDimensions(AnalysisModule):
         _, base_l12m, col, opts = reg_e_base(ctx)
 
         if base_l12m is None or base_l12m.empty:
-            return [AnalysisResult(
-                slide_id="A8.11", title="L12M Funnel with Reg E",
-                success=False, error="No L12M data available",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A8.11",
+                    title="L12M Funnel with Reg E",
+                    success=False,
+                    error="No L12M data available",
+                )
+            ]
 
         # Compute L12M stages from subsets
         l12m_data = ctx.subsets.last_12_months
@@ -469,7 +624,8 @@ class RegEDimensions(AnalysisModule):
 
         with chart_figure(figsize=(12, 10), save_path=save_to) as (fig, ax):
             _render_funnel(
-                ax, stages,
+                ax,
+                stages,
                 title_text="L12M Account Eligibility & Reg E Funnel",
                 subtitle_text=subtitle,
                 metrics_text=f"Reg E Rate: {rege_rate:.1f}%\nEnd-to-End: {through_rate:.1f}%",
@@ -482,9 +638,12 @@ class RegEDimensions(AnalysisModule):
         )
 
         ctx.results["reg_e_11"] = {"funnel": funnel_df}
-        return [AnalysisResult(
-            slide_id="A8.11", title="L12M Funnel with Reg E",
-            chart_path=chart_path,
-            excel_data={"Funnel": funnel_df},
-            notes=notes,
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A8.11",
+                title="L12M Funnel with Reg E",
+                chart_path=chart_path,
+                excel_data={"Funnel": funnel_df},
+                notes=notes,
+            )
+        ]

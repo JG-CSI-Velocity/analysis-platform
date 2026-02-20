@@ -88,11 +88,13 @@ def _render_inner() -> None:
         mtime = CONFIG_PATH.stat().st_mtime
         last_modified = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d")
 
-    kpi_row([
-        {"label": "Total Clients", "value": str(len(client_ids))},
-        {"label": "CSMs", "value": str(len(csms))},
-        {"label": "Last Updated", "value": last_modified},
-    ])
+    kpi_row(
+        [
+            {"label": "Total Clients", "value": str(len(client_ids))},
+            {"label": "CSMs", "value": str(len(csms))},
+            {"label": "Last Updated", "value": last_modified},
+        ]
+    )
 
     tab_browse, tab_edit = st.tabs(["Browse Clients", "Edit Client"])
 
@@ -106,7 +108,9 @@ def _render_inner() -> None:
 def _render_browse_tab(clients: dict, client_ids: list, csms: set, data: dict) -> None:
     col_search, col_csm_filter = st.columns([3, 2])
     with col_search:
-        search = st.text_input("Search", placeholder="Client ID or name...", label_visibility="collapsed")
+        search = st.text_input(
+            "Search", placeholder="Client ID or name...", label_visibility="collapsed"
+        )
     with col_csm_filter:
         csm_list = ["All CSMs"] + sorted(csms)
         csm_filter = st.selectbox("Filter by CSM", csm_list, label_visibility="collapsed")
@@ -115,27 +119,36 @@ def _render_browse_tab(clients: dict, client_ids: list, csms: set, data: dict) -
     if search:
         search_lower = search.lower()
         filtered_ids = [
-            cid for cid in filtered_ids
+            cid
+            for cid in filtered_ids
             if search_lower in cid.lower()
             or search_lower in clients[cid].get("ClientName", "").lower()
         ]
     if csm_filter != "All CSMs":
-        filtered_ids = [cid for cid in filtered_ids if clients[cid].get("AssignedCSM", "") == csm_filter]
+        filtered_ids = [
+            cid for cid in filtered_ids if clients[cid].get("AssignedCSM", "") == csm_filter
+        ]
 
     if filtered_ids:
         table_data = []
         for cid in filtered_ids:
             c = clients[cid]
-            table_data.append({
-                "Client ID": cid,
-                "Name": c.get("ClientName", ""),
-                "CSM": c.get("AssignedCSM", ""),
-                "IC Rate": c.get("ICRate", ""),
-                "NSF/OD Fee": c.get("NSF_OD_Fee", ""),
-                "Eligible Stats": ", ".join(c.get("EligibleStatusCodes", [])),
-            })
-        st.dataframe(table_data, use_container_width=True, hide_index=True,
-                      height=min(400, 35 * len(table_data) + 38))
+            table_data.append(
+                {
+                    "Client ID": cid,
+                    "Name": c.get("ClientName", ""),
+                    "CSM": c.get("AssignedCSM", ""),
+                    "IC Rate": c.get("ICRate", ""),
+                    "NSF/OD Fee": c.get("NSF_OD_Fee", ""),
+                    "Eligible Stats": ", ".join(c.get("EligibleStatusCodes", [])),
+                }
+            )
+        st.dataframe(
+            table_data,
+            use_container_width=True,
+            hide_index=True,
+            height=min(400, 35 * len(table_data) + 38),
+        )
         st.caption(f"Showing {len(filtered_ids)} of {len(client_ids)} clients")
     else:
         st.info("No clients match your search.")
@@ -183,7 +196,8 @@ def _render_edit_tab(clients: dict, client_ids: list, data: dict) -> None:
                 csm = st.text_input("Assigned CSM", value=client.get("AssignedCSM", ""))
             with col3:
                 cadence = st.selectbox(
-                    "Cadence", _CADENCE_OPTIONS,
+                    "Cadence",
+                    _CADENCE_OPTIONS,
                     index=_CADENCE_OPTIONS.index(client.get("Cadence", "monthly")),
                 )
 
@@ -197,17 +211,34 @@ def _render_edit_tab(clients: dict, client_ids: list, data: dict) -> None:
         with st.expander("Eligibility", expanded=False):
             col6, col7 = st.columns(2)
             with col6:
-                elig_stats = st.text_input("Eligible Stat Codes", value=", ".join(client.get("EligibleStatusCodes", [])))
-                elig_prods = st.text_input("Eligible Product Codes", value=", ".join(client.get("EligibleProductCodes", [])))
+                elig_stats = st.text_input(
+                    "Eligible Stat Codes", value=", ".join(client.get("EligibleStatusCodes", []))
+                )
+                elig_prods = st.text_input(
+                    "Eligible Product Codes",
+                    value=", ".join(client.get("EligibleProductCodes", [])),
+                )
             with col7:
-                inelig_stats = st.text_input("Ineligible Stat Codes", value=", ".join(client.get("IneligibleStatusCodes", [])))
-                inelig_prods = st.text_input("Ineligible Product Codes", value=", ".join(client.get("IneligibleProductCodes", [])))
-            rege_codes = st.text_input("Reg E Opt-In Codes", value=", ".join(client.get("RegEOptInCode", [])))
+                inelig_stats = st.text_input(
+                    "Ineligible Stat Codes",
+                    value=", ".join(client.get("IneligibleStatusCodes", [])),
+                )
+                inelig_prods = st.text_input(
+                    "Ineligible Product Codes",
+                    value=", ".join(client.get("IneligibleProductCodes", [])),
+                )
+            rege_codes = st.text_input(
+                "Reg E Opt-In Codes", value=", ".join(client.get("RegEOptInCode", []))
+            )
 
         with st.expander("Branch Mapping", expanded=False):
             branch_map = client.get("BranchMapping", {})
-            branch_text = "\n".join(f"{k}: {v}" for k, v in branch_map.items()) if branch_map else ""
-            branches = st.text_area("Branches (one per line: code: name)", value=branch_text, height=100)
+            branch_text = (
+                "\n".join(f"{k}: {v}" for k, v in branch_map.items()) if branch_map else ""
+            )
+            branches = st.text_area(
+                "Branches (one per line: code: name)", value=branch_text, height=100
+            )
 
         col_save, col_delete = st.columns([3, 1])
         with col_save:
@@ -309,7 +340,9 @@ def _render_add_client(data: dict) -> None:
                 client["ICRate"] = new_ic
                 client["NSF_OD_Fee"] = new_fee
                 client["Cadence"] = new_cadence
-                client["EligibleStatusCodes"] = [s.strip() for s in new_stats.split(",") if s.strip()]
+                client["EligibleStatusCodes"] = [
+                    s.strip() for s in new_stats.split(",") if s.strip()
+                ]
                 data[new_id] = client
                 save_clients_config(data)
                 st.success(f"Added client {new_id} -- {new_name}")

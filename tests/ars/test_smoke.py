@@ -30,11 +30,13 @@ def test_exception_no_detail():
 
 def test_chart_figure_import():
     from ars_analysis.charts.guards import chart_figure
+
     assert callable(chart_figure)
 
 
 def test_chart_style_constants():
     from ars_analysis.charts.style import BUSINESS, PERSONAL, TITLE_SIZE
+
     assert PERSONAL == "#4472C4"
     assert BUSINESS == "#ED7D31"
     assert TITLE_SIZE == 24

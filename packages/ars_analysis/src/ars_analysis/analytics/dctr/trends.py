@@ -67,11 +67,23 @@ class DCTRTrends(AnalysisModule):
         b_l12m = b7_ins.get("dctr", 0) * 100
         b_trend = b_l12m - b_hist
 
-        rows = [{"Segment": "Personal", "Historical DCTR %": p_hist, "L12M DCTR %": p_l12m,
-                 "Change pp": p_trend}]
+        rows = [
+            {
+                "Segment": "Personal",
+                "Historical DCTR %": p_hist,
+                "L12M DCTR %": p_l12m,
+                "Change pp": p_trend,
+            }
+        ]
         if has_biz:
-            rows.append({"Segment": "Business", "Historical DCTR %": b_hist, "L12M DCTR %": b_l12m,
-                         "Change pp": b_trend})
+            rows.append(
+                {
+                    "Segment": "Business",
+                    "Historical DCTR %": b_hist,
+                    "L12M DCTR %": b_l12m,
+                    "Change pp": b_trend,
+                }
+            )
         df = pd.DataFrame(rows)
 
         chart_path = None
@@ -81,7 +93,12 @@ class DCTRTrends(AnalysisModule):
             save_to = charts_dir / "dctr_segment_trends.png"
             try:
                 if has_biz:
-                    cats = ["Personal\nHistorical", "Personal\nTTM", "Business\nHistorical", "Business\nTTM"]
+                    cats = [
+                        "Personal\nHistorical",
+                        "Personal\nTTM",
+                        "Business\nHistorical",
+                        "Business\nTTM",
+                    ]
                     vals = [p_hist, p_l12m, b_hist, b_l12m]
                     colors = [PERSONAL, HISTORICAL, BUSINESS, TTM]
                 else:
@@ -91,11 +108,24 @@ class DCTRTrends(AnalysisModule):
 
                 with chart_figure(save_path=save_to) as (fig, ax):
                     x_pos = np.arange(len(cats))
-                    ax.bar(x_pos, vals, color=colors, edgecolor="black", linewidth=2, alpha=0.9, width=0.6)
+                    ax.bar(
+                        x_pos,
+                        vals,
+                        color=colors,
+                        edgecolor="black",
+                        linewidth=2,
+                        alpha=0.9,
+                        width=0.6,
+                    )
                     for i, v in enumerate(vals):
                         ax.text(i, v + 1, f"{v:.1f}%", ha="center", fontweight="bold", fontsize=22)
                     ax.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")
-                    ax.set_title("DCTR Segment Trends: Historical vs TTM", fontsize=24, fontweight="bold", pad=20)
+                    ax.set_title(
+                        "DCTR Segment Trends: Historical vs TTM",
+                        fontsize=24,
+                        fontweight="bold",
+                        pad=20,
+                    )
                     ax.set_xticks(x_pos)
                     ax.set_xticklabels(cats, fontsize=20)
                     ax.tick_params(axis="y", labelsize=20)
@@ -109,15 +139,19 @@ class DCTRTrends(AnalysisModule):
                 logger.warning("A7.4 chart failed: {err}", err=exc)
 
         ctx.results["dctr_segment_trends"] = {
-            "personal_trend": p_trend, "business_trend": b_trend, "has_business": has_biz,
+            "personal_trend": p_trend,
+            "business_trend": b_trend,
+            "has_business": has_biz,
         }
-        return [AnalysisResult(
-            slide_id="A7.4",
-            title="DCTR Segment Trends",
-            chart_path=chart_path,
-            excel_data={"Segment Trends": df},
-            notes=f"Personal: {p_hist:.1f}% -> {p_l12m:.1f}% ({p_trend:+.1f}pp)",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A7.4",
+                title="DCTR Segment Trends",
+                chart_path=chart_path,
+                excel_data={"Segment Trends": df},
+                notes=f"Personal: {p_hist:.1f}% -> {p_l12m:.1f}% ({p_trend:+.1f}pp)",
+            )
+        ]
 
     # -- A7.5: Decade Trend ---------------------------------------------------
 
@@ -147,29 +181,56 @@ class DCTRTrends(AnalysisModule):
                     ax2.set_ylim(0, max_vol * 1.3)
                     ax2.tick_params(axis="y", colors="gray", labelsize=24)
 
-                    ax.plot(x, overall, color="black", linewidth=3, linestyle="--",
-                            marker="o", markersize=18, label="Overall", zorder=2)
+                    ax.plot(
+                        x,
+                        overall,
+                        color="black",
+                        linewidth=3,
+                        linestyle="--",
+                        marker="o",
+                        markersize=18,
+                        label="Overall",
+                        zorder=2,
+                    )
 
                     if not d4.empty:
                         p_merged = d4.set_index("Decade").reindex(decades)
                         p_vals = p_merged["DCTR %"].values * 100
                         valid_mask = ~np.isnan(p_vals)
                         if valid_mask.any():
-                            ax.plot(x[valid_mask], p_vals[valid_mask], color=PERSONAL, linewidth=4,
-                                    marker="o", markersize=12, label="Personal", zorder=3)
+                            ax.plot(
+                                x[valid_mask],
+                                p_vals[valid_mask],
+                                color=PERSONAL,
+                                linewidth=4,
+                                marker="o",
+                                markersize=12,
+                                label="Personal",
+                                zorder=3,
+                            )
 
                     if not d5.empty and d5["Total Accounts"].sum() > 0:
                         b_merged = d5.set_index("Decade").reindex(decades)
                         b_vals = b_merged["DCTR %"].values * 100
                         valid_mask = ~np.isnan(b_vals)
                         if valid_mask.any():
-                            ax.plot(x[valid_mask], b_vals[valid_mask], color=BUSINESS, linewidth=4,
-                                    marker="s", markersize=12, label="Business", zorder=3)
+                            ax.plot(
+                                x[valid_mask],
+                                b_vals[valid_mask],
+                                color=BUSINESS,
+                                linewidth=4,
+                                marker="s",
+                                markersize=12,
+                                label="Business",
+                                zorder=3,
+                            )
 
                     ax.set_xticks(x)
                     ax.set_xticklabels(decades, fontsize=24, rotation=45 if len(decades) > 8 else 0)
                     ax.set_ylabel("DCTR (%)", fontsize=24, fontweight="bold")
-                    ax.set_title("Historical DCTR Trend by Decade", fontsize=24, fontweight="bold", pad=20)
+                    ax.set_title(
+                        "Historical DCTR Trend by Decade", fontsize=24, fontweight="bold", pad=20
+                    )
                     ax.set_ylim(0, min(110, max(overall) * 1.15) if len(overall) > 0 else 100)
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{int(x)}%"))
                     ax.tick_params(axis="y", labelsize=24)
@@ -181,13 +242,15 @@ class DCTRTrends(AnalysisModule):
             except Exception as exc:
                 logger.warning("A7.5 chart failed: {err}", err=exc)
 
-        return [AnalysisResult(
-            slide_id="A7.5",
-            title="Historical DCTR Trend by Decade",
-            chart_path=chart_path,
-            excel_data={"Decade": d1},
-            notes=f"{len(d1)} decades plotted",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A7.5",
+                title="Historical DCTR Trend by Decade",
+                chart_path=chart_path,
+                excel_data={"Decade": d1},
+                notes=f"{len(d1)} decades plotted",
+            )
+        ]
 
     # -- A7.6a: L12M Monthly Trend -------------------------------------------
 
@@ -215,16 +278,28 @@ class DCTRTrends(AnalysisModule):
             return rates
 
         overall_rates = _monthly_rates(el12, months)
-        ep_l12 = filter_l12m(ep, ctx.start_date, ctx.end_date) if ep is not None and not ep.empty else pd.DataFrame()
-        personal_rates = _monthly_rates(ep_l12, months) if not ep_l12.empty else [np.nan] * len(months)
+        ep_l12 = (
+            filter_l12m(ep, ctx.start_date, ctx.end_date)
+            if ep is not None and not ep.empty
+            else pd.DataFrame()
+        )
+        personal_rates = (
+            _monthly_rates(ep_l12, months) if not ep_l12.empty else [np.nan] * len(months)
+        )
         has_biz = eb is not None and not eb.empty
         eb_l12 = filter_l12m(eb, ctx.start_date, ctx.end_date) if has_biz else pd.DataFrame()
-        business_rates = _monthly_rates(eb_l12, months) if not eb_l12.empty else [np.nan] * len(months)
+        business_rates = (
+            _monthly_rates(eb_l12, months) if not eb_l12.empty else [np.nan] * len(months)
+        )
 
-        trend_df = pd.DataFrame({
-            "Month": months, "Overall DCTR %": overall_rates,
-            "Personal DCTR %": personal_rates, "Business DCTR %": business_rates,
-        })
+        trend_df = pd.DataFrame(
+            {
+                "Month": months,
+                "Overall DCTR %": overall_rates,
+                "Personal DCTR %": personal_rates,
+                "Business DCTR %": business_rates,
+            }
+        )
 
         chart_path = None
         charts_dir = ctx.paths.charts_dir
@@ -237,24 +312,51 @@ class DCTRTrends(AnalysisModule):
                     ov = np.array(overall_rates)
                     mask = ~np.isnan(ov)
                     if mask.any():
-                        ax.plot(x[mask], ov[mask], color="black", linewidth=4, linestyle="--",
-                                marker="o", markersize=12, label="Overall", zorder=2)
+                        ax.plot(
+                            x[mask],
+                            ov[mask],
+                            color="black",
+                            linewidth=4,
+                            linestyle="--",
+                            marker="o",
+                            markersize=12,
+                            label="Overall",
+                            zorder=2,
+                        )
                     pr = np.array(personal_rates)
                     pmask = ~np.isnan(pr)
                     if pmask.any():
-                        ax.plot(x[pmask], pr[pmask], color=PERSONAL, linewidth=5,
-                                marker="o", markersize=14, label="Personal", zorder=3)
+                        ax.plot(
+                            x[pmask],
+                            pr[pmask],
+                            color=PERSONAL,
+                            linewidth=5,
+                            marker="o",
+                            markersize=14,
+                            label="Personal",
+                            zorder=3,
+                        )
                     if has_biz:
                         br = np.array(business_rates)
                         bmask = ~np.isnan(br)
                         if bmask.any():
-                            ax.plot(x[bmask], br[bmask], color=BUSINESS, linewidth=4,
-                                    marker="s", markersize=12, label="Business", zorder=3)
+                            ax.plot(
+                                x[bmask],
+                                br[bmask],
+                                color=BUSINESS,
+                                linewidth=4,
+                                marker="s",
+                                markersize=12,
+                                label="Business",
+                                zorder=3,
+                            )
 
                     ax.set_xticks(x)
                     ax.set_xticklabels(months, rotation=45, ha="right", fontsize=22)
                     ax.set_ylabel("DCTR (%)", fontsize=28, fontweight="bold")
-                    ax.set_title("Trailing Twelve Months DCTR Trend", fontsize=28, fontweight="bold", pad=25)
+                    ax.set_title(
+                        "Trailing Twelve Months DCTR Trend", fontsize=28, fontweight="bold", pad=25
+                    )
                     ax.tick_params(axis="y", labelsize=24)
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{int(x)}%"))
                     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, fontsize=18)
@@ -264,13 +366,15 @@ class DCTRTrends(AnalysisModule):
             except Exception as exc:
                 logger.warning("A7.6a chart failed: {err}", err=exc)
 
-        return [AnalysisResult(
-            slide_id="A7.6a",
-            title="Trailing Twelve Months DCTR Trend",
-            chart_path=chart_path,
-            excel_data={"L12M Trend": trend_df},
-            notes=f"{len(months)} months plotted",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A7.6a",
+                title="Trailing Twelve Months DCTR Trend",
+                chart_path=chart_path,
+                excel_data={"L12M Trend": trend_df},
+                notes=f"{len(months)} months plotted",
+            )
+        ]
 
     # -- A7.6b: Personal vs Business by Decade --------------------------------
 
@@ -291,7 +395,9 @@ class DCTRTrends(AnalysisModule):
             try:
                 if has_biz:
                     b_dec = d5[d5["Decade"] != "TOTAL"].copy()
-                    all_decades = sorted(set(p_dec["Decade"].tolist()) | set(b_dec["Decade"].tolist()))
+                    all_decades = sorted(
+                        set(p_dec["Decade"].tolist()) | set(b_dec["Decade"].tolist())
+                    )
                 else:
                     all_decades = p_dec["Decade"].tolist()
 
@@ -308,12 +414,44 @@ class DCTRTrends(AnalysisModule):
                         for d in all_decades:
                             match = b_dec[b_dec["Decade"] == d]
                             b_rates.append(match["DCTR %"].iloc[0] * 100 if not match.empty else 0)
-                        ax.bar(x - width / 2, p_rates, width, label="Personal", color=PERSONAL, alpha=0.9, edgecolor="black", linewidth=2)
-                        ax.bar(x + width / 2, b_rates, width, label="Business", color=BUSINESS, alpha=0.9, edgecolor="black", linewidth=2)
+                        ax.bar(
+                            x - width / 2,
+                            p_rates,
+                            width,
+                            label="Personal",
+                            color=PERSONAL,
+                            alpha=0.9,
+                            edgecolor="black",
+                            linewidth=2,
+                        )
+                        ax.bar(
+                            x + width / 2,
+                            b_rates,
+                            width,
+                            label="Business",
+                            color=BUSINESS,
+                            alpha=0.9,
+                            edgecolor="black",
+                            linewidth=2,
+                        )
                     else:
-                        ax.bar(x, p_rates, 0.6, label="Personal", color=PERSONAL, alpha=0.9, edgecolor="black", linewidth=2)
+                        ax.bar(
+                            x,
+                            p_rates,
+                            0.6,
+                            label="Personal",
+                            color=PERSONAL,
+                            alpha=0.9,
+                            edgecolor="black",
+                            linewidth=2,
+                        )
 
-                    ax.set_title("Personal vs Business DCTR by Decade", fontsize=24, fontweight="bold", pad=20)
+                    ax.set_title(
+                        "Personal vs Business DCTR by Decade",
+                        fontsize=24,
+                        fontweight="bold",
+                        pad=20,
+                    )
                     ax.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")
                     ax.set_xticks(x)
                     ax.set_xticklabels(all_decades, fontsize=20)
@@ -327,13 +465,15 @@ class DCTRTrends(AnalysisModule):
             except Exception as exc:
                 logger.warning("A7.6b chart failed: {err}", err=exc)
 
-        return [AnalysisResult(
-            slide_id="A7.6b",
-            title="Personal vs Business DCTR by Decade",
-            chart_path=chart_path,
-            excel_data={"Personal Decade": p_dec},
-            notes=f"{len(p_dec)} decades",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A7.6b",
+                title="Personal vs Business DCTR by Decade",
+                chart_path=chart_path,
+                excel_data={"Personal Decade": p_dec},
+                notes=f"{len(p_dec)} decades",
+            )
+        ]
 
     # -- A7.14: Seasonality ---------------------------------------------------
 
@@ -352,15 +492,29 @@ class DCTRTrends(AnalysisModule):
         valid["Quarter"] = "Q" + valid["Date Opened"].dt.quarter.astype(str)
         valid["Day of Week"] = valid["Date Opened"].dt.day_name()
 
-        month_order = ["January", "February", "March", "April", "May", "June",
-                       "July", "August", "September", "October", "November", "December"]
+        month_order = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
 
         m_rows = []
         for m in month_order:
             md = valid[valid["Month Name"] == m]
             if len(md) > 0:
                 t, w, d = dctr(md)
-                m_rows.append({"Month Name": m, "Total Accounts": t, "With Debit": w, "DCTR %": d * 100})
+                m_rows.append(
+                    {"Month Name": m, "Total Accounts": t, "With Debit": w, "DCTR %": d * 100}
+                )
         monthly = pd.DataFrame(m_rows)
 
         chart_path = None
@@ -373,9 +527,13 @@ class DCTRTrends(AnalysisModule):
                     vals = monthly["DCTR %"].values
                     ax.bar(range(len(monthly)), vals, color=TEAL, edgecolor="white")
                     ax.set_xticks(range(len(monthly)))
-                    ax.set_xticklabels([m[:3] for m in monthly["Month Name"]], rotation=45, fontsize=14)
+                    ax.set_xticklabels(
+                        [m[:3] for m in monthly["Month Name"]], rotation=45, fontsize=14
+                    )
                     for i, v in enumerate(vals):
-                        ax.text(i, v + 0.5, f"{v:.1f}%", ha="center", fontsize=12, fontweight="bold")
+                        ax.text(
+                            i, v + 0.5, f"{v:.1f}%", ha="center", fontsize=12, fontweight="bold"
+                        )
                     ax.set_ylabel("DCTR (%)", fontsize=16)
                     ax.set_title("DCTR Seasonality Analysis", fontsize=20, fontweight="bold")
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
@@ -388,14 +546,18 @@ class DCTRTrends(AnalysisModule):
                 logger.warning("A7.14 chart failed: {err}", err=exc)
 
         best = monthly.loc[monthly["DCTR %"].idxmax(), "Month Name"] if not monthly.empty else "N/A"
-        worst = monthly.loc[monthly["DCTR %"].idxmin(), "Month Name"] if not monthly.empty else "N/A"
-        return [AnalysisResult(
-            slide_id="A7.14",
-            title="DCTR Seasonality Analysis",
-            chart_path=chart_path,
-            excel_data={"Monthly": monthly},
-            notes=f"Best: {best} | Worst: {worst}",
-        )]
+        worst = (
+            monthly.loc[monthly["DCTR %"].idxmin(), "Month Name"] if not monthly.empty else "N/A"
+        )
+        return [
+            AnalysisResult(
+                slide_id="A7.14",
+                title="DCTR Seasonality Analysis",
+                chart_path=chart_path,
+                excel_data={"Monthly": monthly},
+                notes=f"Best: {best} | Worst: {worst}",
+            )
+        ]
 
     # -- A7.15: Vintage & Cohort ----------------------------------------------
 
@@ -414,9 +576,15 @@ class DCTRTrends(AnalysisModule):
         valid["Year"] = valid["Date Opened"].dt.year
 
         vintage_buckets = [
-            ("0-30 days", 0, 30), ("31-90 days", 31, 90), ("91-180 days", 91, 180),
-            ("181-365 days", 181, 365), ("1-2 years", 366, 730), ("2-3 years", 731, 1095),
-            ("3-5 years", 1096, 1825), ("5-10 years", 1826, 3650), ("10+ years", 3651, 999999),
+            ("0-30 days", 0, 30),
+            ("31-90 days", 31, 90),
+            ("91-180 days", 91, 180),
+            ("181-365 days", 181, 365),
+            ("1-2 years", 366, 730),
+            ("2-3 years", 731, 1095),
+            ("3-5 years", 1096, 1825),
+            ("5-10 years", 1826, 3650),
+            ("10+ years", 3651, 999999),
         ]
         v_rows = []
         cum_debit = 0
@@ -427,11 +595,15 @@ class DCTRTrends(AnalysisModule):
                 t, w, d = dctr(seg)
                 cum_total += t
                 cum_debit += w
-                v_rows.append({
-                    "Age Bucket": label, "Total Accounts": t, "With Debit": w,
-                    "DCTR %": d * 100,
-                    "Cumulative Capture %": cum_debit / cum_total * 100 if cum_total else 0,
-                })
+                v_rows.append(
+                    {
+                        "Age Bucket": label,
+                        "Total Accounts": t,
+                        "With Debit": w,
+                        "DCTR %": d * 100,
+                        "Cumulative Capture %": cum_debit / cum_total * 100 if cum_total else 0,
+                    }
+                )
         vintage_df = pd.DataFrame(v_rows)
 
         cohort_years = sorted(valid["Year"].dropna().unique())
@@ -440,7 +612,14 @@ class DCTRTrends(AnalysisModule):
             seg = valid[valid["Year"] == yr]
             if len(seg) > 10:
                 t, w, d = dctr(seg)
-                c_rows.append({"Cohort Year": int(yr), "Total Accounts": t, "With Debit": w, "DCTR %": d * 100})
+                c_rows.append(
+                    {
+                        "Cohort Year": int(yr),
+                        "Total Accounts": t,
+                        "With Debit": w,
+                        "DCTR %": d * 100,
+                    }
+                )
         cohort_df = pd.DataFrame(c_rows)
 
         chart_path = None
@@ -455,9 +634,13 @@ class DCTRTrends(AnalysisModule):
                     for i, v in enumerate(vintage_df["DCTR %"]):
                         ax.text(i, v + 1, f"{v:.1f}%", ha="center", fontsize=14, fontweight="bold")
                     ax.set_xticks(x_pos)
-                    ax.set_xticklabels(vintage_df["Age Bucket"], rotation=30, ha="right", fontsize=14)
+                    ax.set_xticklabels(
+                        vintage_df["Age Bucket"], rotation=30, ha="right", fontsize=14
+                    )
                     ax.set_ylabel("DCTR (%)", fontsize=16)
-                    ax.set_title("DCTR by Account Age (Vintage Curve)", fontweight="bold", fontsize=18)
+                    ax.set_title(
+                        "DCTR by Account Age (Vintage Curve)", fontweight="bold", fontsize=18
+                    )
                     dctr_vals = vintage_df["DCTR %"].values
                     ax.set_ylim(0, max(dctr_vals) * 1.15 if len(dctr_vals) > 0 else 100)
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
@@ -471,10 +654,12 @@ class DCTRTrends(AnalysisModule):
 
         new_dctr = vintage_df.iloc[0]["DCTR %"] if not vintage_df.empty else 0
         mature_dctr = vintage_df.iloc[-1]["DCTR %"] if not vintage_df.empty else 0
-        return [AnalysisResult(
-            slide_id="A7.15",
-            title="Vintage Curves & Cohort Analysis",
-            chart_path=chart_path,
-            excel_data={"Vintage": vintage_df, "Cohort": cohort_df},
-            notes=f"New: {new_dctr:.0f}% | Mature: {mature_dctr:.0f}% | {len(cohort_df)} cohort years",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A7.15",
+                title="Vintage Curves & Cohort Analysis",
+                chart_path=chart_path,
+                excel_data={"Vintage": vintage_df, "Cohort": cohort_df},
+                notes=f"New: {new_dctr:.0f}% | Mature: {mature_dctr:.0f}% | {len(cohort_df)} cohort years",
+            )
+        ]

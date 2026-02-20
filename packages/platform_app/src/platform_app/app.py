@@ -25,23 +25,34 @@ inject_theme()
 
 # Define pages
 dashboard_page = st.Page(
-    dashboard_render, title="Dashboard", icon=":material/dashboard:",
+    dashboard_render,
+    title="Dashboard",
+    icon=":material/dashboard:",
     url_path="dashboard",
 )
 run_page = st.Page(
-    run_render, title="Run Analysis", icon=":material/play_circle:",
-    url_path="run", default=True,
+    run_render,
+    title="Run Analysis",
+    icon=":material/play_circle:",
+    url_path="run",
+    default=True,
 )
 results_page = st.Page(
-    results_render, title="View Results", icon=":material/monitoring:",
+    results_render,
+    title="View Results",
+    icon=":material/monitoring:",
     url_path="results",
 )
 history_page = st.Page(
-    history_render, title="Run History", icon=":material/history:",
+    history_render,
+    title="Run History",
+    icon=":material/history:",
     url_path="history",
 )
 config_page = st.Page(
-    config_render, title="Client Config", icon=":material/settings:",
+    config_render,
+    title="Client Config",
+    icon=":material/settings:",
     url_path="config",
 )
 

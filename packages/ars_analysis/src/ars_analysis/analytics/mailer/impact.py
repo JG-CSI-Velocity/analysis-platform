@@ -30,8 +30,8 @@ from ars_analysis.pipeline.context import PipelineContext
 # Chart colors
 COLOR_OUTER = "#3498DB"  # blue - eligible w/ card
 COLOR_INNER = "#E74C3C"  # red - responders
-COLOR_RESP = "#2ECC71"   # green - responder bar
-COLOR_NON = "#95A5A6"    # gray - non-responder bar
+COLOR_RESP = "#2ECC71"  # green - responder bar
+COLOR_NON = "#95A5A6"  # gray - non-responder bar
 
 
 # ---------------------------------------------------------------------------
@@ -44,18 +44,26 @@ def _market_reach(ctx: PipelineContext) -> list[AnalysisResult]:
     logger.info("A15.1 Market Reach")
     pairs = discover_pairs(ctx)
     if not pairs:
-        return [AnalysisResult(
-            slide_id="A15.1", title="Market Reach",
-            success=False, error="No mailer data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.1",
+                title="Market Reach",
+                success=False,
+                error="No mailer data",
+            )
+        ]
 
     data = ctx.data
     eligible_debit = ctx.subsets.eligible_with_debit
     if eligible_debit is None or eligible_debit.empty:
-        return [AnalysisResult(
-            slide_id="A15.1", title="Market Reach",
-            success=False, error="No eligible-with-debit subset",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.1",
+                title="Market Reach",
+                success=False,
+                error="No eligible-with-debit subset",
+            )
+        ]
 
     n_eligible = len(eligible_debit)
     resp_mask = build_responder_mask(data, pairs)
@@ -64,10 +72,14 @@ def _market_reach(ctx: PipelineContext) -> list[AnalysisResult]:
     n_mailed = int(mailed_mask.sum())
 
     if n_eligible == 0:
-        return [AnalysisResult(
-            slide_id="A15.1", title="Market Reach",
-            success=False, error="No eligible accounts",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.1",
+                title="Market Reach",
+                success=False,
+                error="No eligible accounts",
+            )
+        ]
 
     resp_rate = n_responders / n_mailed * 100 if n_mailed > 0 else 0
     penetration = n_responders / n_eligible * 100
@@ -83,38 +95,74 @@ def _market_reach(ctx: PipelineContext) -> list[AnalysisResult]:
         cx, cy = 0.35, 0.0  # shifted left for KPI space
 
         outer = plt.Circle(
-            (cx, cy), r_outer, facecolor=COLOR_OUTER,
-            alpha=0.25, edgecolor=COLOR_OUTER, linewidth=2.5,
+            (cx, cy),
+            r_outer,
+            facecolor=COLOR_OUTER,
+            alpha=0.25,
+            edgecolor=COLOR_OUTER,
+            linewidth=2.5,
         )
         ax.add_patch(outer)
         inner = plt.Circle(
-            (cx, cy), r_inner, facecolor=COLOR_INNER,
-            alpha=0.35, edgecolor=COLOR_INNER, linewidth=2.5,
+            (cx, cy),
+            r_inner,
+            facecolor=COLOR_INNER,
+            alpha=0.35,
+            edgecolor=COLOR_INNER,
+            linewidth=2.5,
         )
         ax.add_patch(inner)
 
         # Labels inside circles
         ax.text(
-            cx, cy + r_outer * 0.65, "Eligible with a Card",
-            ha="center", va="center", fontsize=16, fontweight="bold",
+            cx,
+            cy + r_outer * 0.65,
+            "Eligible with a Card",
+            ha="center",
+            va="center",
+            fontsize=16,
+            fontweight="bold",
             color=COLOR_OUTER,
         )
         ax.text(
-            cx, cy + r_outer * 0.45, f"{n_eligible:,}",
-            ha="center", va="center", fontsize=22, fontweight="bold",
+            cx,
+            cy + r_outer * 0.45,
+            f"{n_eligible:,}",
+            ha="center",
+            va="center",
+            fontsize=22,
+            fontweight="bold",
             color=COLOR_OUTER,
         )
         ax.text(
-            cx, cy - 0.15, "Unique", ha="center", va="center",
-            fontsize=14, fontweight="bold", color="white",
+            cx,
+            cy - 0.15,
+            "Unique",
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold",
+            color="white",
         )
         ax.text(
-            cx, cy - 0.50, "Responders", ha="center", va="center",
-            fontsize=14, fontweight="bold", color="white",
+            cx,
+            cy - 0.50,
+            "Responders",
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold",
+            color="white",
         )
         ax.text(
-            cx, cy - 0.90, f"{n_responders:,}", ha="center", va="center",
-            fontsize=20, fontweight="bold", color="white",
+            cx,
+            cy - 0.90,
+            f"{n_responders:,}",
+            ha="center",
+            va="center",
+            fontsize=20,
+            fontweight="bold",
+            color="white",
         )
 
         # KPI callouts
@@ -128,12 +176,23 @@ def _market_reach(ctx: PipelineContext) -> list[AnalysisResult]:
         for i, (val, label) in enumerate(kpis):
             y = 1.8 - i * 1.3
             ax.text(
-                kpi_x, y, val, ha="left", va="center",
-                fontsize=24, fontweight="bold", color="#1E3D59",
+                kpi_x,
+                y,
+                val,
+                ha="left",
+                va="center",
+                fontsize=24,
+                fontweight="bold",
+                color="#1E3D59",
             )
             ax.text(
-                kpi_x, y - 0.4, label, ha="left", va="center",
-                fontsize=14, color="#555",
+                kpi_x,
+                y - 0.4,
+                label,
+                ha="left",
+                va="center",
+                fontsize=14,
+                color="#555",
             )
 
         ax.set_xlim(-3.0, 7.5)
@@ -148,15 +207,17 @@ def _market_reach(ctx: PipelineContext) -> list[AnalysisResult]:
         "penetration": penetration,
     }
 
-    return [AnalysisResult(
-        slide_id="A15.1",
-        title="Market Reach",
-        chart_path=save_to,
-        notes=(
-            f"Eligible: {n_eligible:,} | Responders: {n_responders:,} | "
-            f"Penetration: {penetration:.1f}%"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A15.1",
+            title="Market Reach",
+            chart_path=save_to,
+            notes=(
+                f"Eligible: {n_eligible:,} | Responders: {n_responders:,} | "
+                f"Penetration: {penetration:.1f}%"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -169,36 +230,52 @@ def _spend_share(ctx: PipelineContext) -> list[AnalysisResult]:
     logger.info("A15.2 Spend Share")
     pairs = discover_pairs(ctx)
     if not pairs:
-        return [AnalysisResult(
-            slide_id="A15.2", title="Spend Share",
-            success=False, error="No mailer data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.2",
+                title="Spend Share",
+                success=False,
+                error="No mailer data",
+            )
+        ]
 
     data = ctx.data
     open_accounts = ctx.subsets.open_accounts
     eligible_data = ctx.subsets.eligible_data
     if open_accounts is None or eligible_data is None:
-        return [AnalysisResult(
-            slide_id="A15.2", title="Spend Share",
-            success=False, error="Missing open/eligible subsets",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.2",
+                title="Spend Share",
+                success=False,
+                error="Missing open/eligible subsets",
+            )
+        ]
 
     # Find latest spend column
     spend_cols, _ = discover_metric_cols(ctx)
     if not spend_cols:
-        return [AnalysisResult(
-            slide_id="A15.2", title="Spend Share",
-            success=False, error="No spend columns found",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.2",
+                title="Spend Share",
+                success=False,
+                error="No spend columns found",
+            )
+        ]
 
     latest_spend_col = spend_cols[-1]
     latest_month = latest_spend_col.replace(" Spend", "")
 
     if latest_spend_col not in open_accounts.columns:
-        return [AnalysisResult(
-            slide_id="A15.2", title="Spend Share",
-            success=False, error=f"{latest_spend_col} not in open accounts",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.2",
+                title="Spend Share",
+                success=False,
+                error=f"{latest_spend_col} not in open accounts",
+            )
+        ]
 
     # Unique responders across all mail months
     resp_mask = build_responder_mask(data, pairs)
@@ -214,10 +291,14 @@ def _spend_share(ctx: PipelineContext) -> list[AnalysisResult]:
     n_resp = len(open_resp)
 
     if spend_all_open == 0:
-        return [AnalysisResult(
-            slide_id="A15.2", title="Spend Share",
-            success=False, error="Zero spend across open accounts",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.2",
+                title="Spend Share",
+                success=False,
+                error="Zero spend across open accounts",
+            )
+        ]
 
     elig_pct = spend_eligible / spend_all_open * 100
     resp_pct_elig = spend_responders / spend_eligible * 100 if spend_eligible > 0 else 0
@@ -243,14 +324,24 @@ def _spend_share(ctx: PipelineContext) -> list[AnalysisResult]:
         for bar, val, count in zip(bars, values, acct_counts):
             bar_cy = bar.get_y() + bar.get_height() / 2
             ax1.text(
-                val + max_val * 0.02, bar_cy, f"${val:,.0f}",
-                ha="left", va="center", fontsize=15, fontweight="bold",
+                val + max_val * 0.02,
+                bar_cy,
+                f"${val:,.0f}",
+                ha="left",
+                va="center",
+                fontsize=15,
+                fontweight="bold",
             )
             if bar.get_width() > max_val * 0.10:
                 ax1.text(
-                    bar.get_width() * 0.5, bar_cy, f"{count:,} accounts",
-                    ha="center", va="center", fontsize=12,
-                    fontweight="bold", color="white",
+                    bar.get_width() * 0.5,
+                    bar_cy,
+                    f"{count:,} accounts",
+                    ha="center",
+                    va="center",
+                    fontsize=12,
+                    fontweight="bold",
+                    color="white",
                 )
 
         ax1.set_yticks(y_pos)
@@ -272,12 +363,23 @@ def _spend_share(ctx: PipelineContext) -> list[AnalysisResult]:
         ]
         for label, val, color, y in kpi_items:
             ax2.text(
-                0.1, y + 0.15, label, ha="left", va="center",
-                fontsize=12, color="#555",
+                0.1,
+                y + 0.15,
+                label,
+                ha="left",
+                va="center",
+                fontsize=12,
+                color="#555",
             )
             ax2.text(
-                0.1, y - 0.15, val, ha="left", va="center",
-                fontsize=26, fontweight="bold", color=color,
+                0.1,
+                y - 0.15,
+                val,
+                ha="left",
+                va="center",
+                fontsize=26,
+                fontweight="bold",
+                color=color,
             )
 
         fig.tight_layout()
@@ -288,16 +390,18 @@ def _spend_share(ctx: PipelineContext) -> list[AnalysisResult]:
         "spend_responders": spend_responders,
     }
 
-    return [AnalysisResult(
-        slide_id="A15.2",
-        title="Spend Composition",
-        chart_path=save_to,
-        notes=(
-            f"Open: ${spend_all_open:,.0f} | Eligible: ${spend_eligible:,.0f} "
-            f"({elig_pct:.1f}%) | Responders: ${spend_responders:,.0f} "
-            f"({resp_pct_elig:.1f}% of eligible)"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A15.2",
+            title="Spend Composition",
+            chart_path=save_to,
+            notes=(
+                f"Open: ${spend_all_open:,.0f} | Eligible: ${spend_eligible:,.0f} "
+                f"({elig_pct:.1f}%) | Responders: ${spend_responders:,.0f} "
+                f"({resp_pct_elig:.1f}% of eligible)"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -310,18 +414,26 @@ def _revenue_attribution(ctx: PipelineContext) -> list[AnalysisResult]:
     logger.info("A15.3 Revenue Attribution")
     pairs = discover_pairs(ctx)
     if not pairs:
-        return [AnalysisResult(
-            slide_id="A15.3", title="Revenue Attribution",
-            success=False, error="No mailer data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.3",
+                title="Revenue Attribution",
+                success=False,
+                error="No mailer data",
+            )
+        ]
 
     data = ctx.data
     ic_rate = ctx.client.ic_rate
     if ic_rate <= 0:
-        return [AnalysisResult(
-            slide_id="A15.3", title="Revenue Attribution",
-            success=False, error="No IC rate configured",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.3",
+                title="Revenue Attribution",
+                success=False,
+                error="No IC rate configured",
+            )
+        ]
 
     # Find latest month with spend data
     cols = list(data.columns)
@@ -338,27 +450,39 @@ def _revenue_attribution(ctx: PipelineContext) -> list[AnalysisResult]:
             break
 
     if not latest_spend_col:
-        return [AnalysisResult(
-            slide_id="A15.3", title="Revenue Attribution",
-            success=False, error="No spend data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.3",
+                title="Revenue Attribution",
+                success=False,
+                error="No spend data",
+            )
+        ]
 
     mailed = data[data[latest_mail_col].isin(MAILED_SEGMENTS)].copy()
     if mailed.empty:
-        return [AnalysisResult(
-            slide_id="A15.3", title="Revenue Attribution",
-            success=False, error="No mailed accounts",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.3",
+                title="Revenue Attribution",
+                success=False,
+                error="No mailed accounts",
+            )
+        ]
 
     resp_mask = mailed[latest_resp_col].isin(RESPONSE_SEGMENTS)
     n_resp = int(resp_mask.sum())
     n_non = int((~resp_mask).sum())
 
     if n_resp == 0 or n_non == 0:
-        return [AnalysisResult(
-            slide_id="A15.3", title="Revenue Attribution",
-            success=False, error="Need both responders and non-responders",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.3",
+                title="Revenue Attribution",
+                success=False,
+                error="Need both responders and non-responders",
+            )
+        ]
 
     resp_spend = mailed.loc[resp_mask, latest_spend_col].fillna(0).sum()
     non_spend = mailed.loc[~resp_mask, latest_spend_col].fillna(0).sum()
@@ -385,12 +509,19 @@ def _revenue_attribution(ctx: PipelineContext) -> list[AnalysisResult]:
         for bar, val in zip(bars, values):
             bar_cy = bar.get_y() + bar.get_height() / 2
             ax1.text(
-                val + max(values) * 0.03, bar_cy, f"${val:,.2f}",
-                ha="left", va="center", fontsize=16, fontweight="bold",
+                val + max(values) * 0.03,
+                bar_cy,
+                f"${val:,.2f}",
+                ha="left",
+                va="center",
+                fontsize=16,
+                fontweight="bold",
             )
         ax1.set_yticks([0, 1])
         ax1.set_yticklabels(
-            ["Non-Responders", "Responders"], fontsize=14, fontweight="bold",
+            ["Non-Responders", "Responders"],
+            fontsize=14,
+            fontweight="bold",
         )
         ax1.set_xlabel("IC Revenue per Account", fontsize=14, fontweight="bold")
         ax1.set_xlim(0, max(values) * 1.4)
@@ -414,19 +545,35 @@ def _revenue_attribution(ctx: PipelineContext) -> list[AnalysisResult]:
         ]
         for label, val, y in kpi_data:
             ax2.text(
-                0.1, y + 0.05, label, ha="left", va="center",
-                fontsize=13, color="#555",
+                0.1,
+                y + 0.05,
+                label,
+                ha="left",
+                va="center",
+                fontsize=13,
+                color="#555",
             )
             color = "#1E3D59" if "Incremental" not in label else COLOR_RESP
             ax2.text(
-                0.1, y - 0.05, val, ha="left", va="center",
-                fontsize=20, fontweight="bold", color=color,
+                0.1,
+                y - 0.05,
+                val,
+                ha="left",
+                va="center",
+                fontsize=20,
+                fontweight="bold",
+                color=color,
             )
 
         rect = mpatches.FancyBboxPatch(
-            (0.03, 0.10), 0.94, 0.22,
+            (0.03, 0.10),
+            0.94,
+            0.22,
             boxstyle="round,pad=0.02",
-            facecolor=COLOR_RESP, alpha=0.08, edgecolor=COLOR_RESP, linewidth=2,
+            facecolor=COLOR_RESP,
+            alpha=0.08,
+            edgecolor=COLOR_RESP,
+            linewidth=2,
         )
         ax2.add_patch(rect)
         fig.tight_layout()
@@ -437,15 +584,17 @@ def _revenue_attribution(ctx: PipelineContext) -> list[AnalysisResult]:
         "incremental_total": incremental_total,
     }
 
-    return [AnalysisResult(
-        slide_id="A15.3",
-        title="Revenue Attribution",
-        chart_path=save_to,
-        notes=(
-            f"Resp IC: ${resp_ic:,.0f} | Non-resp IC: ${non_ic:,.0f} | "
-            f"Incremental: {total_sign}${incremental_total:,.0f}"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A15.3",
+            title="Revenue Attribution",
+            chart_path=save_to,
+            notes=(
+                f"Resp IC: ${resp_ic:,.0f} | Non-resp IC: ${non_ic:,.0f} | "
+                f"Incremental: {total_sign}${incremental_total:,.0f}"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -458,19 +607,27 @@ def _pre_post_delta(ctx: PipelineContext) -> list[AnalysisResult]:
     logger.info("A15.4 Pre/Post Spend Delta")
     pairs = discover_pairs(ctx)
     if not pairs:
-        return [AnalysisResult(
-            slide_id="A15.4", title="Pre/Post Spend Delta",
-            success=False, error="No mailer data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.4",
+                title="Pre/Post Spend Delta",
+                success=False,
+                error="No mailer data",
+            )
+        ]
 
     data = ctx.data
     spend_cols, _ = discover_metric_cols(ctx)
 
     if len(spend_cols) < 4:
-        return [AnalysisResult(
-            slide_id="A15.4", title="Pre/Post Spend Delta",
-            success=False, error="Need 4+ spend months for pre/post analysis",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.4",
+                title="Pre/Post Spend Delta",
+                success=False,
+                error="Need 4+ spend months for pre/post analysis",
+            )
+        ]
 
     first_mail_month = pairs[0][0]
     first_resp_col = pairs[0][1]
@@ -481,30 +638,42 @@ def _pre_post_delta(ctx: PipelineContext) -> list[AnalysisResult]:
     post_cols = [c for c in spend_cols if parse_month(c) >= mail_date]
 
     if len(pre_cols) < 2 or len(post_cols) < 2:
-        return [AnalysisResult(
-            slide_id="A15.4", title="Pre/Post Spend Delta",
-            success=False, error="Need 2+ months before and after mailer",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.4",
+                title="Pre/Post Spend Delta",
+                success=False,
+                error="Need 2+ months before and after mailer",
+            )
+        ]
 
     pre_cols = pre_cols[-3:]
     post_cols = post_cols[:3]
 
     mailed = data[data[first_mail_col].isin(MAILED_SEGMENTS)].copy()
     if mailed.empty:
-        return [AnalysisResult(
-            slide_id="A15.4", title="Pre/Post Spend Delta",
-            success=False, error="No mailed accounts",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.4",
+                title="Pre/Post Spend Delta",
+                success=False,
+                error="No mailed accounts",
+            )
+        ]
 
     resp_mask = mailed[first_resp_col].isin(RESPONSE_SEGMENTS)
     n_resp = int(resp_mask.sum())
     n_non = int((~resp_mask).sum())
 
     if n_resp == 0 or n_non == 0:
-        return [AnalysisResult(
-            slide_id="A15.4", title="Pre/Post Spend Delta",
-            success=False, error="Need both responders and non-responders",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A15.4",
+                title="Pre/Post Spend Delta",
+                success=False,
+                error="Need both responders and non-responders",
+            )
+        ]
 
     resp_pre = mailed.loc[resp_mask, pre_cols].fillna(0).mean(axis=1).mean()
     resp_post = mailed.loc[resp_mask, post_cols].fillna(0).mean(axis=1).mean()
@@ -526,12 +695,20 @@ def _pre_post_delta(ctx: PipelineContext) -> list[AnalysisResult]:
         post_vals = [resp_post, non_post]
 
         bars_pre = ax.bar(
-            x - bar_w / 2, pre_vals, bar_w,
-            color="#BDC3C7", edgecolor="none", label="Before Mailer",
+            x - bar_w / 2,
+            pre_vals,
+            bar_w,
+            color="#BDC3C7",
+            edgecolor="none",
+            label="Before Mailer",
         )
         bars_post = ax.bar(
-            x + bar_w / 2, post_vals, bar_w,
-            color=[COLOR_RESP, COLOR_NON], edgecolor="none", label="After Mailer",
+            x + bar_w / 2,
+            post_vals,
+            bar_w,
+            color=[COLOR_RESP, COLOR_NON],
+            edgecolor="none",
+            label="After Mailer",
         )
 
         all_vals = pre_vals + post_vals
@@ -540,8 +717,11 @@ def _pre_post_delta(ctx: PipelineContext) -> list[AnalysisResult]:
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
                 h + max(all_vals) * 0.02,
-                f"${h:,.0f}", ha="center", va="bottom",
-                fontsize=13, fontweight="bold",
+                f"${h:,.0f}",
+                ha="center",
+                va="bottom",
+                fontsize=13,
+                fontweight="bold",
             )
 
         deltas = [(resp_delta, resp_pct, 0), (non_delta, non_pct, 1)]
@@ -549,15 +729,21 @@ def _pre_post_delta(ctx: PipelineContext) -> list[AnalysisResult]:
             sign = "+" if delta >= 0 else ""
             color = COLOR_RESP if delta > 0 else "#E74C3C"
             ax.text(
-                i, max(all_vals) * 1.15,
+                i,
+                max(all_vals) * 1.15,
                 f"{sign}${delta:,.0f}/acct ({sign}{pct:.0f}%)",
-                ha="center", va="center", fontsize=14,
-                fontweight="bold", color=color,
+                ha="center",
+                va="center",
+                fontsize=14,
+                fontweight="bold",
+                color=color,
             )
 
         ax.set_xticks(x)
         ax.set_xticklabels(
-            ["Responders", "Non-Responders"], fontsize=18, fontweight="bold",
+            ["Responders", "Non-Responders"],
+            fontsize=18,
+            fontweight="bold",
         )
         ax.set_ylabel("Avg Monthly Spend per Account", fontsize=14, fontweight="bold")
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"${v:,.0f}"))
@@ -576,15 +762,17 @@ def _pre_post_delta(ctx: PipelineContext) -> list[AnalysisResult]:
     }
 
     sign = "+" if resp_delta > 0 else ""
-    return [AnalysisResult(
-        slide_id="A15.4",
-        title="Before vs After Mailer",
-        chart_path=save_to,
-        notes=(
-            f"Resp: ${resp_pre:,.0f} -> ${resp_post:,.0f} ({resp_pct:+.0f}%) | "
-            f"Non: ${non_pre:,.0f} -> ${non_post:,.0f} ({non_pct:+.0f}%)"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A15.4",
+            title="Before vs After Mailer",
+            chart_path=save_to,
+            notes=(
+                f"Resp: ${resp_pre:,.0f} -> ${resp_post:,.0f} ({resp_pct:+.0f}%) | "
+                f"Non: ${non_pre:,.0f} -> ${non_post:,.0f} ({non_pct:+.0f}%)"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------

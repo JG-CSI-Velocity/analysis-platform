@@ -44,10 +44,14 @@ def _overall(ctx: PipelineContext) -> list[AnalysisResult]:
     total = len(all_data)
     n_closed = len(closed)
     if total == 0:
-        return [AnalysisResult(
-            slide_id="A9.1", title="Overall Attrition Rate",
-            success=False, error="No data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A9.1",
+                title="Overall Attrition Rate",
+                success=False,
+                error="No data",
+            )
+        ]
 
     overall_rate = n_closed / total
 
@@ -56,11 +60,7 @@ def _overall(ctx: PipelineContext) -> list[AnalysisResult]:
     if n_closed > 0:
         closed_yr = closed.dropna(subset=["Date Closed"]).copy()
         closed_yr["_close_year"] = closed_yr["Date Closed"].dt.year
-        yearly = (
-            closed_yr.groupby("_close_year")
-            .size()
-            .reset_index(name="Closures")
-        )
+        yearly = closed_yr.groupby("_close_year").size().reset_index(name="Closures")
         yearly.columns = ["Year", "Closures"]
         yearly = yearly.sort_values("Year")
 
@@ -69,12 +69,10 @@ def _overall(ctx: PipelineContext) -> list[AnalysisResult]:
     if ctx.start_date and ctx.end_date and n_closed > 0:
         sd = pd.Timestamp(ctx.start_date)
         ed = pd.Timestamp(ctx.end_date)
-        l12m_closed = closed[
-            (closed["Date Closed"] >= sd) & (closed["Date Closed"] <= ed)
-        ]
-        l12m_open_start = len(all_data[
-            (all_data["Date Closed"].isna()) | (all_data["Date Closed"] >= sd)
-        ])
+        l12m_closed = closed[(closed["Date Closed"] >= sd) & (closed["Date Closed"] <= ed)]
+        l12m_open_start = len(
+            all_data[(all_data["Date Closed"].isna()) | (all_data["Date Closed"] >= sd)]
+        )
         if l12m_open_start > 0:
             l12m_rate = len(l12m_closed) / l12m_open_start
 
@@ -85,18 +83,26 @@ def _overall(ctx: PipelineContext) -> list[AnalysisResult]:
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
         with chart_figure(figsize=(14, 7), save_path=save_to) as (fig, ax):
             ax.bar(
-                yearly["Year"].astype(str), yearly["Closures"],
-                color=NEGATIVE, edgecolor=BAR_EDGE, alpha=BAR_ALPHA,
+                yearly["Year"].astype(str),
+                yearly["Closures"],
+                color=NEGATIVE,
+                edgecolor=BAR_EDGE,
+                alpha=BAR_ALPHA,
             )
             for i, (_, row) in enumerate(yearly.iterrows()):
                 ax.text(
-                    i, row["Closures"] + yearly["Closures"].max() * 0.02,
-                    f'{row["Closures"]:,.0f}', ha="center",
-                    fontsize=DATA_LABEL_SIZE, fontweight="bold",
+                    i,
+                    row["Closures"] + yearly["Closures"].max() * 0.02,
+                    f"{row['Closures']:,.0f}",
+                    ha="center",
+                    fontsize=DATA_LABEL_SIZE,
+                    fontweight="bold",
                 )
             ax.set_title(
-                "Account Closures by Year", fontsize=24,
-                fontweight="bold", pad=15,
+                "Account Closures by Year",
+                fontsize=24,
+                fontweight="bold",
+                pad=15,
             )
             ax.set_ylabel("Closures", fontsize=20)
             ax.tick_params(labelsize=TICK_SIZE)
@@ -110,15 +116,14 @@ def _overall(ctx: PipelineContext) -> list[AnalysisResult]:
         "closed": n_closed,
     }
 
-    return [AnalysisResult(
-        slide_id="A9.1",
-        title="Overall Attrition Rate",
-        chart_path=chart_path,
-        notes=(
-            f"{overall_rate:.1%} overall ({n_closed:,}/{total:,}), "
-            f"L12M: {l12m_rate:.1%}"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A9.1",
+            title="Overall Attrition Rate",
+            chart_path=chart_path,
+            notes=(f"{overall_rate:.1%} overall ({n_closed:,}/{total:,}), L12M: {l12m_rate:.1%}"),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -130,22 +135,32 @@ def _duration(ctx: PipelineContext) -> list[AnalysisResult]:
     """How long closed accounts remained open before closing."""
     _, _, closed = prepare_attrition_data(ctx)
     if closed.empty:
-        return [AnalysisResult(
-            slide_id="A9.2", title="Closure Duration",
-            success=False, error="No closed accounts",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A9.2",
+                title="Closure Duration",
+                success=False,
+                error="No closed accounts",
+            )
+        ]
 
     valid = closed.dropna(subset=["_duration_cat"])
     if valid.empty:
-        return [AnalysisResult(
-            slide_id="A9.2", title="Closure Duration",
-            success=False, error="No duration data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A9.2",
+                title="Closure Duration",
+                success=False,
+                error="No duration data",
+            )
+        ]
 
     dur = valid.groupby("_duration_cat").size().reset_index(name="Count")
     dur.columns = ["Duration", "Count"]
     dur["Duration"] = pd.Categorical(
-        dur["Duration"], categories=DURATION_ORDER, ordered=True,
+        dur["Duration"],
+        categories=DURATION_ORDER,
+        ordered=True,
     )
     dur = dur.sort_values("Duration").dropna(subset=["Duration"])
     dur["Pct"] = dur["Count"] / dur["Count"].sum()
@@ -157,20 +172,27 @@ def _duration(ctx: PipelineContext) -> list[AnalysisResult]:
     ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
     with chart_figure(figsize=(14, 7), save_path=save_to) as (fig, ax):
         bars = ax.barh(
-            dur["Duration"].astype(str), dur["Count"],
-            color=TEAL, edgecolor=BAR_EDGE, alpha=BAR_ALPHA,
+            dur["Duration"].astype(str),
+            dur["Count"],
+            color=TEAL,
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
         )
         for bar, pct in zip(bars, dur["Pct"]):
             w = bar.get_width()
             ax.text(
                 w + dur["Count"].max() * 0.02,
                 bar.get_y() + bar.get_height() / 2,
-                f"{int(w):,} ({pct:.0%})", va="center",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold",
+                f"{int(w):,} ({pct:.0%})",
+                va="center",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
             )
         ax.set_title(
-            "Account Lifespan Before Closure", fontsize=24,
-            fontweight="bold", pad=15,
+            "Account Lifespan Before Closure",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_xlabel("Closed Accounts", fontsize=20)
         ax.tick_params(labelsize=TICK_SIZE)
@@ -179,12 +201,14 @@ def _duration(ctx: PipelineContext) -> list[AnalysisResult]:
 
     ctx.results["attrition_2"] = {"first_year_pct": first_year_pct}
 
-    return [AnalysisResult(
-        slide_id="A9.2",
-        title="Closure Duration Analysis",
-        chart_path=save_to,
-        notes=f"{first_year_pct:.0%} of closures within first year",
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A9.2",
+            title="Closure Duration Analysis",
+            chart_path=save_to,
+            notes=f"{first_year_pct:.0%} of closures within first year",
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -196,10 +220,14 @@ def _open_vs_closed(ctx: PipelineContext) -> list[AnalysisResult]:
     """Side-by-side comparison of open vs closed accounts."""
     all_data, open_accts, closed = prepare_attrition_data(ctx)
     if closed.empty:
-        return [AnalysisResult(
-            slide_id="A9.3", title="Open vs Closed",
-            success=False, error="No closed accounts",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A9.3",
+                title="Open vs Closed",
+                success=False,
+                error="No closed accounts",
+            )
+        ]
 
     metrics: dict[str, dict] = {}
     for label, df in [("Open", open_accts), ("Closed", closed)]:
@@ -220,39 +248,55 @@ def _open_vs_closed(ctx: PipelineContext) -> list[AnalysisResult]:
         x = np.arange(len(plot_metrics))
         w = 0.35
         b1 = ax.bar(
-            x - w / 2, open_vals, w, label="Open",
-            color=POSITIVE, edgecolor=BAR_EDGE, alpha=BAR_ALPHA,
+            x - w / 2,
+            open_vals,
+            w,
+            label="Open",
+            color=POSITIVE,
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
         )
         b2 = ax.bar(
-            x + w / 2, closed_vals, w, label="Closed",
-            color=NEGATIVE, edgecolor=BAR_EDGE, alpha=BAR_ALPHA,
+            x + w / 2,
+            closed_vals,
+            w,
+            label="Closed",
+            color=NEGATIVE,
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
         )
         for bars in [b1, b2]:
             for bar in bars:
                 h = bar.get_height()
                 ax.text(
-                    bar.get_x() + bar.get_width() / 2, h,
-                    f"${h:,.0f}", ha="center", va="bottom",
-                    fontsize=DATA_LABEL_SIZE, fontweight="bold",
+                    bar.get_x() + bar.get_width() / 2,
+                    h,
+                    f"${h:,.0f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=DATA_LABEL_SIZE,
+                    fontweight="bold",
                 )
         ax.set_xticks(x)
         ax.set_xticklabels(plot_metrics, fontsize=TICK_SIZE)
         ax.set_title(
-            "Open vs Closed Account Comparison", fontsize=24,
-            fontweight="bold", pad=15,
+            "Open vs Closed Account Comparison",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.legend(fontsize=16)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"${v:,.0f}"))
         fig.tight_layout()
 
-    return [AnalysisResult(
-        slide_id="A9.3",
-        title="Open vs Closed Comparison",
-        chart_path=save_to,
-        notes=(
-            f"Open: {len(open_accts):,} | Closed: {len(closed):,}"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A9.3",
+            title="Open vs Closed Comparison",
+            chart_path=save_to,
+            notes=(f"Open: {len(open_accts):,} | Closed: {len(closed):,}"),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------

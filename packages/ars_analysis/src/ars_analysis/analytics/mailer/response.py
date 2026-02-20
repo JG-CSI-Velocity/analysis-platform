@@ -65,24 +65,39 @@ def _render_summary_chart(
         # -- Left: Donut --
         if total > 0:
             wedges, texts, autotexts = ax1.pie(
-                resp_counts, labels=active, autopct="%1.0f%%",
-                colors=colors, startangle=90, pctdistance=0.78,
+                resp_counts,
+                labels=active,
+                autopct="%1.0f%%",
+                colors=colors,
+                startangle=90,
+                pctdistance=0.78,
                 textprops={"fontsize": 14, "fontweight": "bold"},
             )
             for at in autotexts:
                 at.set_fontsize(13)
                 at.set_fontweight("bold")
             import matplotlib.pyplot as plt
+
             centre = plt.Circle((0, 0), 0.50, fc="white")
             ax1.add_artist(centre)
             ax1.text(
-                0, 0, f"{total:,}\nTotal", ha="center", va="center",
-                fontsize=16, fontweight="bold",
+                0,
+                0,
+                f"{total:,}\nTotal",
+                ha="center",
+                va="center",
+                fontsize=16,
+                fontweight="bold",
             )
         else:
             ax1.text(
-                0.5, 0.5, "No Responders", ha="center", va="center",
-                fontsize=16, transform=ax1.transAxes,
+                0.5,
+                0.5,
+                "No Responders",
+                ha="center",
+                va="center",
+                fontsize=16,
+                transform=ax1.transAxes,
             )
             ax1.axis("off")
         ax1.set_title("Response Share", fontsize=18, fontweight="bold", pad=15)
@@ -90,26 +105,46 @@ def _render_summary_chart(
         # -- Right: Horizontal bar (response rates) --
         y = np.arange(len(active))
         bars = ax2.barh(
-            y, rates, color=colors, edgecolor="none", height=0.65, alpha=0.90,
+            y,
+            rates,
+            color=colors,
+            edgecolor="none",
+            height=0.65,
+            alpha=0.90,
         )
         max_rate = max(rates) if rates else 1
         for bar, rate, resp, mailed in zip(bars, rates, resp_counts, mailed_counts):
             bar_cy = bar.get_y() + bar.get_height() / 2
             if bar.get_width() > max_rate * 0.25:
                 ax2.text(
-                    bar.get_width() * 0.5, bar_cy, f"{resp}/{mailed}",
-                    ha="center", va="center", fontsize=14, fontweight="bold",
+                    bar.get_width() * 0.5,
+                    bar_cy,
+                    f"{resp}/{mailed}",
+                    ha="center",
+                    va="center",
+                    fontsize=14,
+                    fontweight="bold",
                     color="white",
                 )
                 ax2.text(
-                    bar.get_width() + max_rate * 0.02, bar_cy, f"{rate:.1f}%",
-                    ha="left", va="center", fontsize=14, fontweight="bold",
+                    bar.get_width() + max_rate * 0.02,
+                    bar_cy,
+                    f"{rate:.1f}%",
+                    ha="left",
+                    va="center",
+                    fontsize=14,
+                    fontweight="bold",
                 )
             else:
                 x_off = bar.get_width() + max_rate * 0.02
                 ax2.text(
-                    x_off, bar_cy, f"{resp}/{mailed} ({rate:.1f}%)",
-                    ha="left", va="center", fontsize=12, fontweight="bold",
+                    x_off,
+                    bar_cy,
+                    f"{resp}/{mailed} ({rate:.1f}%)",
+                    ha="left",
+                    va="center",
+                    fontsize=12,
+                    fontweight="bold",
                 )
         ax2.set_yticks(y)
         ax2.set_yticklabels(active, fontsize=14, fontweight="bold")
@@ -135,10 +170,14 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
     logger.info("A13 monthly summaries for {client}", client=ctx.client.client_id)
     pairs = discover_pairs(ctx)
     if not pairs:
-        return [AnalysisResult(
-            slide_id="A13", title="Mailer Summaries",
-            success=False, error="No mailer data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A13",
+                title="Mailer Summaries",
+                success=False,
+                error="No mailer data",
+            )
+        ]
 
     data = ctx.data
     results: list[AnalysisResult] = []
@@ -146,13 +185,19 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
 
     for month, resp_col, mail_col in pairs:
         seg_details, total_mailed, total_resp, overall_rate = analyze_month(
-            data, resp_col, mail_col,
+            data,
+            resp_col,
+            mail_col,
         )
         if not seg_details:
-            results.append(AnalysisResult(
-                slide_id=f"A13.{month}", title=f"A13 {month}",
-                success=False, error=f"No data for {month}",
-            ))
+            results.append(
+                AnalysisResult(
+                    slide_id=f"A13.{month}",
+                    title=f"A13 {month}",
+                    success=False,
+                    error=f"No data for {month}",
+                )
+            )
             continue
 
         month_title = f"ARS Response -- {format_title(month)} Mailer Summary"
@@ -163,21 +208,27 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
 
         # Build Excel data
         rows = [
-            {"Segment": s, "Mailed": d["mailed"], "Responders": d["responders"],
-             "Rate %": round(d["rate"], 2)}
+            {
+                "Segment": s,
+                "Mailed": d["mailed"],
+                "Responders": d["responders"],
+                "Rate %": round(d["rate"], 2),
+            }
             for s, d in seg_details.items()
         ]
 
-        results.append(AnalysisResult(
-            slide_id=f"A13.{month}",
-            title=month_title,
-            chart_path=save_to if ok else None,
-            excel_data={"Response": pd.DataFrame(rows)},
-            notes=(
-                f"Mailed: {total_mailed:,} | Responded: {total_resp:,} | "
-                f"Rate: {overall_rate:.1f}%"
-            ),
-        ))
+        results.append(
+            AnalysisResult(
+                slide_id=f"A13.{month}",
+                title=month_title,
+                chart_path=save_to if ok else None,
+                excel_data={"Response": pd.DataFrame(rows)},
+                notes=(
+                    f"Mailed: {total_mailed:,} | Responded: {total_resp:,} | "
+                    f"Rate: {overall_rate:.1f}%"
+                ),
+            )
+        )
 
         all_monthly[month] = {
             "seg_details": seg_details,
@@ -200,10 +251,14 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
     logger.info("A13 aggregate summary")
     pairs = discover_pairs(ctx)
     if not pairs:
-        return [AnalysisResult(
-            slide_id="A13.Agg", title="All-Time Summary",
-            success=False, error="No mailer data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A13.Agg",
+                title="All-Time Summary",
+                success=False,
+                error="No mailer data",
+            )
+        ]
 
     data = ctx.data
     combined: dict = {}
@@ -230,8 +285,12 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
     ok = _render_summary_chart(combined, save_to, title)
 
     rows = [
-        {"Segment": s, "Total Mailed": d["mailed"],
-         "Total Responders": d["responders"], "Rate %": round(d["rate"], 2)}
+        {
+            "Segment": s,
+            "Total Mailed": d["mailed"],
+            "Total Responders": d["responders"],
+            "Rate %": round(d["rate"], 2),
+        }
         for s, d in combined.items()
     ]
 
@@ -242,16 +301,18 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
         "overall_rate": overall,
     }
 
-    return [AnalysisResult(
-        slide_id="A13.Agg",
-        title=title,
-        chart_path=save_to if ok else None,
-        excel_data={"AllTime": pd.DataFrame(rows)},
-        notes=(
-            f"{len(pairs)} campaigns | Mailed: {total_m:,} | "
-            f"Responded: {total_r:,} | Rate: {overall:.1f}%"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A13.Agg",
+            title=title,
+            chart_path=save_to if ok else None,
+            excel_data={"AllTime": pd.DataFrame(rows)},
+            notes=(
+                f"{len(pairs)} campaigns | Mailed: {total_m:,} | "
+                f"Responded: {total_r:,} | Rate: {overall:.1f}%"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -264,10 +325,14 @@ def _count_trend(ctx: PipelineContext) -> list[AnalysisResult]:
     logger.info("A13.5 count trend")
     pairs = discover_pairs(ctx)
     if len(pairs) < 2:
-        return [AnalysisResult(
-            slide_id="A13.5", title="Responder Count Trend",
-            success=False, error="Need 2+ months for trend",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A13.5",
+                title="Responder Count Trend",
+                success=False,
+                error="Need 2+ months for trend",
+            )
+        ]
 
     data = ctx.data
     months: list[str] = []
@@ -298,15 +363,26 @@ def _count_trend(ctx: PipelineContext) -> list[AnalysisResult]:
                 label = "NU 5+" if seg == "NU" else seg
                 color = SEGMENT_COLORS.get(seg, "#888")
                 ax.bar(
-                    x, counts[seg], bar_width, bottom=bottom,
-                    color=color, edgecolor="white", linewidth=0.5, label=label,
+                    x,
+                    counts[seg],
+                    bar_width,
+                    bottom=bottom,
+                    color=color,
+                    edgecolor="white",
+                    linewidth=0.5,
+                    label=label,
                 )
                 bottom += np.array(counts[seg])
 
         for i, total in enumerate(totals):
             ax.text(
-                i, total + max(totals) * 0.01, f"Total: {total:,}",
-                ha="center", va="bottom", fontsize=10, fontweight="bold",
+                i,
+                total + max(totals) * 0.01,
+                f"Total: {total:,}",
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                fontweight="bold",
             )
 
         ax.set_xticks(x)
@@ -320,12 +396,14 @@ def _count_trend(ctx: PipelineContext) -> list[AnalysisResult]:
     latest = totals[-1]
     notes = f"{len(months)} months | Latest: {latest:,} responders"
 
-    return [AnalysisResult(
-        slide_id="A13.5",
-        title="Responder Count Trend",
-        chart_path=save_to,
-        notes=notes,
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A13.5",
+            title="Responder Count Trend",
+            chart_path=save_to,
+            notes=notes,
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -338,10 +416,14 @@ def _rate_trend(ctx: PipelineContext) -> list[AnalysisResult]:
     logger.info("A13.6 rate trend")
     pairs = discover_pairs(ctx)
     if len(pairs) < 2:
-        return [AnalysisResult(
-            slide_id="A13.6", title="Response Rate Trend",
-            success=False, error="Need 2+ months for trend",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A13.6",
+                title="Response Rate Trend",
+                success=False,
+                error="Need 2+ months for trend",
+            )
+        ]
 
     data = ctx.data
     months: list[str] = []
@@ -366,13 +448,22 @@ def _rate_trend(ctx: PipelineContext) -> list[AnalysisResult]:
                 color = SEGMENT_COLORS.get(seg, "#888")
                 label = "NU 5+" if seg == "NU" else seg
                 ax.plot(
-                    x, trend[seg], marker="o", color=color,
-                    linewidth=2.5, markersize=8, label=label,
+                    x,
+                    trend[seg],
+                    marker="o",
+                    color=color,
+                    linewidth=2.5,
+                    markersize=8,
+                    label=label,
                 )
 
         ax.set_xticks(x)
         ax.set_xticklabels(
-            months, fontsize=16, fontweight="bold", rotation=45, ha="right",
+            months,
+            fontsize=16,
+            fontweight="bold",
+            rotation=45,
+            ha="right",
         )
         ax.set_ylabel("Response Rate (%)", fontsize=16, fontweight="bold")
         ax.set_title("Response Rate Trend by Campaign", fontsize=20, fontweight="bold")
@@ -384,16 +475,19 @@ def _rate_trend(ctx: PipelineContext) -> list[AnalysisResult]:
     ctx.results["rate_trend"] = trend
     latest_notes = ", ".join(
         f"{'NU 5+' if s == 'NU' else s}: {trend[s][-1]:.1f}%"
-        for s in MAILED_SEGMENTS if trend.get(s)
+        for s in MAILED_SEGMENTS
+        if trend.get(s)
     )
     notes = f"{len(months)} months | Latest: {latest_notes}"
 
-    return [AnalysisResult(
-        slide_id="A13.6",
-        title="Response Rate Trend",
-        chart_path=save_to,
-        notes=notes,
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A13.6",
+            title="Response Rate Trend",
+            chart_path=save_to,
+            notes=notes,
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -406,17 +500,25 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
     logger.info("A14.2 account age")
     pairs = discover_pairs(ctx)
     if not pairs:
-        return [AnalysisResult(
-            slide_id="A14.2", title="Responder Account Age",
-            success=False, error="No mailer data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A14.2",
+                title="Responder Account Age",
+                success=False,
+                error="No mailer data",
+            )
+        ]
 
     data = ctx.data.copy()
     if "Date Opened" not in data.columns:
-        return [AnalysisResult(
-            slide_id="A14.2", title="Responder Account Age",
-            success=False, error="Missing Date Opened column",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A14.2",
+                title="Responder Account Age",
+                success=False,
+                error="Missing Date Opened column",
+            )
+        ]
 
     data["Date Opened"] = pd.to_datetime(data["Date Opened"], errors="coerce")
     data["_age"] = (pd.Timestamp.now() - data["Date Opened"]).dt.days / 365.25
@@ -432,10 +534,14 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
         all_rows.append(row_data)
 
     if not all_rows:
-        return [AnalysisResult(
-            slide_id="A14.2", title="Responder Account Age",
-            success=False, error="No responders with valid dates",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A14.2",
+                title="Responder Account Age",
+                success=False,
+                error="No responders with valid dates",
+            )
+        ]
 
     age_df = pd.DataFrame(all_rows)
     labels = [s[0] for s in AGE_SEGMENTS]
@@ -454,22 +560,33 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
         x = np.arange(len(lbl_list))
 
         bars = ax.bar(
-            x, cts, color=BAR_COLORS[: len(lbl_list)],
-            edgecolor="black", linewidth=2, alpha=0.8,
+            x,
+            cts,
+            color=BAR_COLORS[: len(lbl_list)],
+            edgecolor="black",
+            linewidth=2,
+            alpha=0.8,
         )
         for bar, ct, pct in zip(bars, cts, ps):
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
                 bar.get_height() + max(cts) * 0.02,
-                f"{pct:.1f}%", ha="center", va="bottom",
-                fontsize=16, fontweight="bold",
+                f"{pct:.1f}%",
+                ha="center",
+                va="bottom",
+                fontsize=16,
+                fontweight="bold",
             )
             if ct > 0:
                 ax.text(
                     bar.get_x() + bar.get_width() / 2,
                     bar.get_height() / 2,
-                    f"{ct:,}", ha="center", va="center",
-                    fontsize=14, color="white", fontweight="bold",
+                    f"{ct:,}",
+                    ha="center",
+                    va="center",
+                    fontsize=14,
+                    color="white",
+                    fontweight="bold",
                 )
 
         ax.set_xticks(x)
@@ -477,23 +594,26 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.set_ylabel("Number of Responders", fontsize=16, fontweight="bold")
         ax.set_title(
             "Responder Distribution by Account Age",
-            fontsize=20, fontweight="bold",
+            fontsize=20,
+            fontweight="bold",
         )
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
     ctx.results["account_age"] = {"totals": totals, "grand": grand}
 
-    return [AnalysisResult(
-        slide_id="A14.2",
-        title="Responder Account Age Distribution",
-        chart_path=save_to,
-        excel_data={"AccountAge": age_df},
-        notes=(
-            f"{grand:,} responders across {len(all_rows)} months | "
-            f"Dominant: {largest} ({pcts.get(largest, 0):.0f}%)"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="A14.2",
+            title="Responder Account Age Distribution",
+            chart_path=save_to,
+            excel_data={"AccountAge": age_df},
+            notes=(
+                f"{grand:,} responders across {len(all_rows)} months | "
+                f"Dominant: {largest} ({pcts.get(largest, 0):.0f}%)"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------

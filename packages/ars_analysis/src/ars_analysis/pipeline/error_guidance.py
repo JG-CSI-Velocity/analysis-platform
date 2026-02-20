@@ -7,7 +7,11 @@ from ars_analysis.exceptions import ConfigError, DataError, OutputError, Retriev
 ERROR_GUIDANCE: list[tuple[type[Exception], str, str]] = [
     (FileNotFoundError, "File Not Found", "Check the file path and ensure M: drive is connected"),
     (PermissionError, "File Locked", "Close the file in Excel and try again"),
-    (RetrieveError, "Retrieve Error", "Check M: drive connection and CSM source folder paths in config"),
+    (
+        RetrieveError,
+        "Retrieve Error",
+        "Check M: drive connection and CSM source folder paths in config",
+    ),
     (DataError, "Data Problem", "The ODD file format may have changed -- check column names"),
     (ConfigError, "Setup Issue", "Run 'ars init' or check ars_config.json"),
     (OutputError, "Output Error", "Ensure Template12.25.pptx is in the templates/ folder"),

@@ -1,6 +1,5 @@
 """Tests for all three mailer analysis modules."""
 
-
 from ars_analysis.analytics.base import AnalysisResult
 from ars_analysis.analytics.mailer.impact import MailerImpact
 from ars_analysis.analytics.mailer.insights import MailerInsights

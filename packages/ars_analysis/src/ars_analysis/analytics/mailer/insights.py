@@ -37,23 +37,14 @@ def _calc_nu_metrics(
     """Calculate NU 5+ responder vs non-responder averages."""
     nu_resp = data[data[resp_col] == "NU 5+"]
     nu_non = data[
-        ((data[resp_col] == "NU 1-4") | (data[resp_col].isna()))
-        & (data[mail_col] == "NU")
+        ((data[resp_col] == "NU 1-4") | (data[resp_col].isna())) & (data[mail_col] == "NU")
     ]
 
     n_resp = len(nu_resp)
     n_non = len(nu_non)
 
-    avg_resp = (
-        nu_resp[metric_cols].mean()
-        if n_resp > 0
-        else pd.Series(0.0, index=metric_cols)
-    )
-    avg_non = (
-        nu_non[metric_cols].mean()
-        if n_non > 0
-        else pd.Series(0.0, index=metric_cols)
-    )
+    avg_resp = nu_resp[metric_cols].mean() if n_resp > 0 else pd.Series(0.0, index=metric_cols)
+    avg_non = nu_non[metric_cols].mean() if n_non > 0 else pd.Series(0.0, index=metric_cols)
 
     return {
         "num_resp": n_resp,
@@ -81,9 +72,7 @@ def _calc_th_metrics(
             }
 
     # TH Non-Responders
-    tnr = data[
-        (data[mail_col].isin(TH_SEGMENTS)) & (~data[resp_col].isin(TH_SEGMENTS))
-    ]
+    tnr = data[(data[mail_col].isin(TH_SEGMENTS)) & (~data[resp_col].isin(TH_SEGMENTS))]
     if not tnr.empty:
         result["TNR"] = {"count": len(tnr), "avg": tnr[metric_cols].mean()}
 
@@ -96,25 +85,41 @@ def _calc_th_metrics(
 
 
 def _draw_nu_chart(
-    ax, dates: list, nu_metrics: dict, metric_type: str, month: str,
+    ax,
+    dates: list,
+    nu_metrics: dict,
+    metric_type: str,
+    month: str,
 ) -> str:
     """Draw NU responder vs non-responder trend line chart. Returns insight."""
     avg_r = nu_metrics["avg_resp"]
     avg_n = nu_metrics["avg_non_resp"]
 
     ax.plot(
-        dates, avg_r.values, marker="o", color=SEGMENT_COLORS["NU 5+"],
-        linewidth=2.5, markersize=8, label="NU 5+ Responders",
+        dates,
+        avg_r.values,
+        marker="o",
+        color=SEGMENT_COLORS["NU 5+"],
+        linewidth=2.5,
+        markersize=8,
+        label="NU 5+ Responders",
     )
     ax.plot(
-        dates, avg_n.values, marker="s", color=SEGMENT_COLORS["Non-Responders"],
-        linestyle="--", linewidth=2, markersize=6, alpha=0.8,
+        dates,
+        avg_n.values,
+        marker="s",
+        color=SEGMENT_COLORS["Non-Responders"],
+        linestyle="--",
+        linewidth=2,
+        markersize=6,
+        alpha=0.8,
         label="NU Non-Responders",
     )
 
     ax.set_title(
         f"{month} -- Non-User {metric_type} per Account",
-        fontsize=18, fontweight="bold",
+        fontsize=18,
+        fontweight="bold",
     )
     ax.set_xlabel("Month", fontsize=14)
     ax.set_ylabel(f"Average {metric_type}", fontsize=14)
@@ -137,34 +142,51 @@ def _draw_nu_chart(
     latest_n = avg_n.iloc[-1] if len(avg_n) > 0 else 0
     delta = latest_r - latest_n
     if metric_type == "Spend":
-        return f"NU 5+: ${latest_r:,.0f}/acct | Non-Resp: ${latest_n:,.0f}/acct | delta ${delta:,.0f}"
+        return (
+            f"NU 5+: ${latest_r:,.0f}/acct | Non-Resp: ${latest_n:,.0f}/acct | delta ${delta:,.0f}"
+        )
     return f"NU 5+: {latest_r:,.0f}/acct | Non-Resp: {latest_n:,.0f}/acct | delta {delta:,.0f}"
 
 
 def _draw_th_chart(
-    ax, dates: list, th_metrics: dict, metric_type: str, month: str,
+    ax,
+    dates: list,
+    th_metrics: dict,
+    metric_type: str,
+    month: str,
 ) -> str:
     """Draw TH segment trend line chart. Returns insight."""
     for seg in TH_SEGMENTS:
         if seg in th_metrics:
             avg = th_metrics[seg]["avg"]
             ax.plot(
-                dates, avg.values, marker="o", color=SEGMENT_COLORS[seg],
-                linewidth=2.5, markersize=8, label=seg,
+                dates,
+                avg.values,
+                marker="o",
+                color=SEGMENT_COLORS[seg],
+                linewidth=2.5,
+                markersize=8,
+                label=seg,
             )
 
     if "TNR" in th_metrics:
         avg_tnr = th_metrics["TNR"]["avg"]
         ax.plot(
-            dates, avg_tnr.values, marker="s",
+            dates,
+            avg_tnr.values,
+            marker="s",
             color=SEGMENT_COLORS["Non-Responders"],
-            linestyle="--", linewidth=2, markersize=6, alpha=0.8,
+            linestyle="--",
+            linewidth=2,
+            markersize=6,
+            alpha=0.8,
             label="TH Non-Resp",
         )
 
     ax.set_title(
         f"{month} -- Threshold {metric_type} per Account",
-        fontsize=18, fontweight="bold",
+        fontsize=18,
+        fontweight="bold",
     )
     ax.set_xlabel("Month", fontsize=14)
     ax.set_ylabel(f"Average {metric_type}", fontsize=14)
@@ -230,9 +252,7 @@ def _month_analysis(
         "month": month,
         "nu_resp": nu_spend["num_resp"],
         "nu_non_resp": nu_spend["num_non_resp"],
-        "th_counts": {
-            k: v["count"] for k, v in th_spend.items() if k != "TNR"
-        },
+        "th_counts": {k: v["count"] for k, v in th_spend.items() if k != "TNR"},
     }
 
     # -- Swipes chart (side-by-side NU | TH) --
@@ -248,12 +268,14 @@ def _month_analysis(
             th_insight = _draw_th_chart(ax_th, swipe_dates, th_swipe, "Swipes", month)
             fig.tight_layout()
 
-        results.append(AnalysisResult(
-            slide_id=f"A12.{month}.Swipes",
-            title=f"Mail Campaign Swipes -- {month}",
-            chart_path=save_to,
-            notes=f"NU: {nu_insight} | TH: {th_insight}",
-        ))
+        results.append(
+            AnalysisResult(
+                slide_id=f"A12.{month}.Swipes",
+                title=f"Mail Campaign Swipes -- {month}",
+                chart_path=save_to,
+                notes=f"NU: {nu_insight} | TH: {th_insight}",
+            )
+        )
 
     # -- Spend chart (side-by-side NU | TH) --
     if spend_cols:
@@ -268,12 +290,14 @@ def _month_analysis(
             th_insight = _draw_th_chart(ax_th, spend_dates, th_spend, "Spend", month)
             fig.tight_layout()
 
-        results.append(AnalysisResult(
-            slide_id=f"A12.{month}.Spend",
-            title=f"Mail Campaign Spend -- {month}",
-            chart_path=save_to,
-            notes=f"NU: {nu_insight} | TH: {th_insight}",
-        ))
+        results.append(
+            AnalysisResult(
+                slide_id=f"A12.{month}.Spend",
+                title=f"Mail Campaign Spend -- {month}",
+                chart_path=save_to,
+                notes=f"NU: {nu_insight} | TH: {th_insight}",
+            )
+        )
 
     return results
 
@@ -296,29 +320,46 @@ class MailerInsights(AnalysisModule):
         logger.info("Mailer Insights for {client}", client=ctx.client.client_id)
         pairs = discover_pairs(ctx)
         if not pairs:
-            return [AnalysisResult(
-                slide_id="A12", title="Mail Campaign Insights",
-                success=False, error="No mail/response column pairs found",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A12",
+                    title="Mail Campaign Insights",
+                    success=False,
+                    error="No mail/response column pairs found",
+                )
+            ]
 
         spend_cols, swipe_cols = discover_metric_cols(ctx)
         if not spend_cols and not swipe_cols:
-            return [AnalysisResult(
-                slide_id="A12", title="Mail Campaign Insights",
-                success=False, error="No Spend or Swipes columns found",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A12",
+                    title="Mail Campaign Insights",
+                    success=False,
+                    error="No Spend or Swipes columns found",
+                )
+            ]
 
         results: list[AnalysisResult] = []
         for month, resp_col, mail_col in pairs:
             try:
                 results += _month_analysis(
-                    ctx, month, resp_col, mail_col, spend_cols, swipe_cols,
+                    ctx,
+                    month,
+                    resp_col,
+                    mail_col,
+                    spend_cols,
+                    swipe_cols,
                 )
             except Exception as exc:
                 logger.warning("A12.{month} failed: {err}", month=month, err=exc)
-                results.append(AnalysisResult(
-                    slide_id=f"A12.{month}", title=f"A12 {month}",
-                    success=False, error=str(exc),
-                ))
+                results.append(
+                    AnalysisResult(
+                        slide_id=f"A12.{month}",
+                        title=f"A12 {month}",
+                        success=False,
+                        error=str(exc),
+                    )
+                )
 
         return results

@@ -11,12 +11,14 @@ from ars_analysis.pipeline.steps.scan import ScannedFile
 def _make_scanned(tmp_path, client_id="1234"):
     """Create a ScannedFile with a real formatted xlsx."""
     file_path = tmp_path / f"{client_id}_formatted.xlsx"
-    df = pd.DataFrame({
-        "Account Number": [f"A{i}" for i in range(20)],
-        "Date Opened": pd.date_range("2020-01-01", periods=20, freq="M"),
-        "Status Code": ["A"] * 15 + ["C"] * 5,
-        "Current Balance": [1000 + i * 100 for i in range(20)],
-    })
+    df = pd.DataFrame(
+        {
+            "Account Number": [f"A{i}" for i in range(20)],
+            "Date Opened": pd.date_range("2020-01-01", periods=20, freq="M"),
+            "Status Code": ["A"] * 15 + ["C"] * 5,
+            "Current Balance": [1000 + i * 100 for i in range(20)],
+        }
+    )
     df.to_excel(file_path, index=False)
 
     return ScannedFile(
@@ -33,6 +35,7 @@ def _make_scanned(tmp_path, client_id="1234"):
 
 class _MockSettings:
     """Minimal mock for ARSSettings used by batch tests."""
+
     clients = {}
 
 
@@ -41,8 +44,11 @@ class TestBatchResult:
 
     def test_fields(self):
         r = BatchResult(
-            client_id="1234", client_name="Test",
-            success=True, elapsed=5.0, slide_count=10,
+            client_id="1234",
+            client_name="Test",
+            success=True,
+            elapsed=5.0,
+            slide_count=10,
         )
         assert r.success
         assert r.slide_count == 10
@@ -123,8 +129,10 @@ class TestRunBatch:
             _make_scanned(tmp_path, "5002"),
         ]
         results = run_batch(
-            files, settings=_MockSettings(),
-            max_workers=2, use_local_temp=True,
+            files,
+            settings=_MockSettings(),
+            max_workers=2,
+            use_local_temp=True,
         )
         assert len(results) == 2
         ids = {r.client_id for r in results}

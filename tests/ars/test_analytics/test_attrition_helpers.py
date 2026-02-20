@@ -40,16 +40,19 @@ class TestConstants:
 class TestCategorizeDuration:
     """categorize_duration buckets days correctly."""
 
-    @pytest.mark.parametrize("days, expected", [
-        (15, "0-1 Month"),
-        (60, "1-3 Months"),
-        (120, "3-6 Months"),
-        (300, "6-12 Months"),
-        (500, "1-2 Years"),
-        (1200, "2-5 Years"),
-        (2800, "5-10 Years"),
-        (5000, "10+ Years"),
-    ])
+    @pytest.mark.parametrize(
+        "days, expected",
+        [
+            (15, "0-1 Month"),
+            (60, "1-3 Months"),
+            (120, "3-6 Months"),
+            (300, "6-12 Months"),
+            (500, "1-2 Years"),
+            (1200, "2-5 Years"),
+            (2800, "5-10 Years"),
+            (5000, "10+ Years"),
+        ],
+    )
     def test_buckets(self, days, expected):
         assert categorize_duration(days) == expected
 
@@ -68,14 +71,17 @@ class TestCategorizeDuration:
 class TestCategorizeTenure:
     """categorize_tenure buckets days correctly."""
 
-    @pytest.mark.parametrize("days, expected", [
-        (90, "0-6 Months"),
-        (270, "6-12 Months"),
-        (500, "1-2 Years"),
-        (1200, "2-5 Years"),
-        (2800, "5-10 Years"),
-        (5000, "10+ Years"),
-    ])
+    @pytest.mark.parametrize(
+        "days, expected",
+        [
+            (90, "0-6 Months"),
+            (270, "6-12 Months"),
+            (500, "1-2 Years"),
+            (1200, "2-5 Years"),
+            (2800, "5-10 Years"),
+            (5000, "10+ Years"),
+        ],
+    )
     def test_buckets(self, days, expected):
         assert categorize_tenure(days) == expected
 
@@ -91,16 +97,19 @@ class TestCategorizeTenure:
 class TestCategorizeBalance:
     """categorize_balance buckets amounts correctly."""
 
-    @pytest.mark.parametrize("bal, expected", [
-        (-100, "Negative"),
-        (0, "$0"),
-        (250, "$1-$499"),
-        (750, "$500-$999"),
-        (1500, "$1K-$2.5K"),
-        (3000, "$2.5K-$5K"),
-        (7000, "$5K-$10K"),
-        (15000, "$10K+"),
-    ])
+    @pytest.mark.parametrize(
+        "bal, expected",
+        [
+            (-100, "Negative"),
+            (0, "$0"),
+            (250, "$1-$499"),
+            (750, "$500-$999"),
+            (1500, "$1K-$2.5K"),
+            (3000, "$2.5K-$5K"),
+            (7000, "$5K-$10K"),
+            (15000, "$10K+"),
+        ],
+    )
     def test_buckets(self, bal, expected):
         assert categorize_balance(bal) == expected
 

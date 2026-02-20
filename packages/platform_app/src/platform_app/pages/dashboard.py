@@ -64,27 +64,34 @@ def _render_inner() -> None:
         p = r.get("pipeline", "unknown")
         pipeline_counts[p] = pipeline_counts.get(p, 0) + 1
 
-    kpi_row([
-        {"label": "Runs This Session", "value": str(total_runs)},
-        {"label": "Successful", "value": str(success_runs)},
-        {"label": "ARS Runs", "value": str(pipeline_counts.get("ars", 0))},
-        {"label": "TXN/ICS Runs", "value": str(
-            pipeline_counts.get("txn", 0)
-            + pipeline_counts.get("txn_v4", 0)
-            + pipeline_counts.get("ics", 0)
-        )},
-    ])
+    kpi_row(
+        [
+            {"label": "Runs This Session", "value": str(total_runs)},
+            {"label": "Successful", "value": str(success_runs)},
+            {"label": "ARS Runs", "value": str(pipeline_counts.get("ars", 0))},
+            {
+                "label": "TXN/ICS Runs",
+                "value": str(
+                    pipeline_counts.get("txn", 0)
+                    + pipeline_counts.get("txn_v4", 0)
+                    + pipeline_counts.get("ics", 0)
+                ),
+            },
+        ]
+    )
 
     # Recent runs table
     if history:
         st.markdown("### Recent Runs")
         display_data = []
         for r in reversed(history[-10:]):
-            display_data.append({
-                "Pipeline": r.get("pipeline", "").upper(),
-                "Client": f"{r.get('client_id', '')} -- {r.get('client_name', '')}",
-                "Status": "Success" if r.get("success") else "Failed",
-                "Time (s)": f"{r.get('elapsed', 0):.1f}",
-                "Timestamp": r.get("timestamp", "")[:16],
-            })
+            display_data.append(
+                {
+                    "Pipeline": r.get("pipeline", "").upper(),
+                    "Client": f"{r.get('client_id', '')} -- {r.get('client_name', '')}",
+                    "Status": "Success" if r.get("success") else "Failed",
+                    "Time (s)": f"{r.get('elapsed', 0):.1f}",
+                    "Timestamp": r.get("timestamp", "")[:16],
+                }
+            )
         st.dataframe(display_data, use_container_width=True, hide_index=True)

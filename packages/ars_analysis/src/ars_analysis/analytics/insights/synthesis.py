@@ -63,10 +63,14 @@ def _revenue_gap(ctx: PipelineContext) -> list[AnalysisResult]:
     realistic = total_gap * CAPTURE_RATE
 
     if total_gap == 0:
-        return [AnalysisResult(
-            slide_id="S1", title="The Revenue Gap",
-            success=False, error="No gap data from value module",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="S1",
+                title="The Revenue Gap",
+                success=False,
+                error="No gap data from value module",
+            )
+        ]
 
     save_to = ctx.paths.charts_dir / "s1_revenue_gap.png"
     ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
@@ -83,21 +87,31 @@ def _revenue_gap(ctx: PipelineContext) -> list[AnalysisResult]:
         colors = [NEGATIVE, NEGATIVE, "#1E3D59", POSITIVE]
 
         bars = ax.barh(
-            categories[::-1], [v for v in values[::-1]],
-            color=colors[::-1], edgecolor=BAR_EDGE, alpha=BAR_ALPHA, height=0.5,
+            categories[::-1],
+            [v for v in values[::-1]],
+            color=colors[::-1],
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
+            height=0.5,
         )
         for bar, val in zip(bars, values[::-1]):
             cx = bar.get_width()
             cy = bar.get_y() + bar.get_height() / 2
             ax.text(
-                cx + total_gap * 0.02, cy, f"${val:,.0f}",
-                ha="left", va="center", fontsize=DATA_LABEL_SIZE,
+                cx + total_gap * 0.02,
+                cy,
+                f"${val:,.0f}",
+                ha="left",
+                va="center",
+                fontsize=DATA_LABEL_SIZE,
                 fontweight="bold",
             )
 
         ax.set_title(
-            "The Revenue Gap: Untapped Opportunity", fontsize=24,
-            fontweight="bold", pad=15,
+            "The Revenue Gap: Untapped Opportunity",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_xlabel("Annual Revenue ($)", fontsize=20)
         ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f"${x:,.0f}"))
@@ -107,28 +121,35 @@ def _revenue_gap(ctx: PipelineContext) -> list[AnalysisResult]:
 
         # Annotation
         ax.text(
-            total_gap * 0.5, -0.8,
+            total_gap * 0.5,
+            -0.8,
             f"{v1['accts_without']:,} accounts without debit "
             f"+ {v2['accts_without']:,} without Reg E",
-            ha="center", fontsize=14, color="#666",
+            ha="center",
+            fontsize=14,
+            color="#666",
             transform=ax.get_xaxis_transform(),
         )
         fig.tight_layout()
 
     ctx.results["impact_s1"] = {
-        "debit_gap": debit_gap, "rege_gap": rege_gap,
-        "total_gap": total_gap, "realistic_capture": realistic,
+        "debit_gap": debit_gap,
+        "rege_gap": rege_gap,
+        "total_gap": total_gap,
+        "realistic_capture": realistic,
     }
 
-    return [AnalysisResult(
-        slide_id="S1",
-        title="The Revenue Gap",
-        chart_path=save_to,
-        notes=(
-            f"Debit gap: ${debit_gap:,.0f} | Reg E gap: ${rege_gap:,.0f} | "
-            f"Total: ${total_gap:,.0f} | Realistic: ${realistic:,.0f}"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="S1",
+            title="The Revenue Gap",
+            chart_path=save_to,
+            notes=(
+                f"Debit gap: ${debit_gap:,.0f} | Reg E gap: ${rege_gap:,.0f} | "
+                f"Total: ${total_gap:,.0f} | Realistic: ${realistic:,.0f}"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -148,10 +169,14 @@ def _cost_of_attrition(ctx: PipelineContext) -> list[AnalysisResult]:
     retention_lift = a9["retention_lift"]
 
     if total_lost == 0 and closed == 0:
-        return [AnalysisResult(
-            slide_id="S2", title="The Cost of Walking Away",
-            success=False, error="No attrition data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="S2",
+                title="The Cost of Walking Away",
+                success=False,
+                error="No attrition data",
+            )
+        ]
 
     preventable_closures = round(closed * retention_lift) if retention_lift > 0 else 0
     preventable_revenue = preventable_closures * avg_lost if avg_lost > 0 else 0
@@ -169,18 +194,32 @@ def _cost_of_attrition(ctx: PipelineContext) -> list[AnalysisResult]:
         ax_left.axis("off")
 
         rect_l = FancyBboxPatch(
-            (0.5, 1), 9, 8, boxstyle="round,pad=0.3",
-            facecolor=NEGATIVE, alpha=0.08, edgecolor=NEGATIVE, linewidth=2,
+            (0.5, 1),
+            9,
+            8,
+            boxstyle="round,pad=0.3",
+            facecolor=NEGATIVE,
+            alpha=0.08,
+            edgecolor=NEGATIVE,
+            linewidth=2,
         )
         ax_left.add_patch(rect_l)
-        ax_left.text(5, 8.5, "Revenue Destroyed", fontsize=20,
-                     fontweight="bold", color=NEGATIVE, ha="center")
-        ax_left.text(5, 6.5, f"${total_lost:,.0f}", fontsize=36,
-                     fontweight="bold", color=NEGATIVE, ha="center")
-        ax_left.text(5, 5.2, f"{closed:,} accounts closed", fontsize=16,
-                     color="#666", ha="center")
-        ax_left.text(5, 4.2, f"${avg_lost:,.0f} avg lost per account",
-                     fontsize=14, color="#666", ha="center")
+        ax_left.text(
+            5, 8.5, "Revenue Destroyed", fontsize=20, fontweight="bold", color=NEGATIVE, ha="center"
+        )
+        ax_left.text(
+            5,
+            6.5,
+            f"${total_lost:,.0f}",
+            fontsize=36,
+            fontweight="bold",
+            color=NEGATIVE,
+            ha="center",
+        )
+        ax_left.text(5, 5.2, f"{closed:,} accounts closed", fontsize=16, color="#666", ha="center")
+        ax_left.text(
+            5, 4.2, f"${avg_lost:,.0f} avg lost per account", fontsize=14, color="#666", ha="center"
+        )
 
         # Right panel: Preventable Opportunity
         ax_right = fig.add_axes([0.52, 0.05, 0.45, 0.90])
@@ -189,18 +228,50 @@ def _cost_of_attrition(ctx: PipelineContext) -> list[AnalysisResult]:
         ax_right.axis("off")
 
         rect_r = FancyBboxPatch(
-            (0.5, 1), 9, 8, boxstyle="round,pad=0.3",
-            facecolor=POSITIVE, alpha=0.08, edgecolor=POSITIVE, linewidth=2,
+            (0.5, 1),
+            9,
+            8,
+            boxstyle="round,pad=0.3",
+            facecolor=POSITIVE,
+            alpha=0.08,
+            edgecolor=POSITIVE,
+            linewidth=2,
         )
         ax_right.add_patch(rect_r)
-        ax_right.text(5, 8.5, "Preventable via Debit", fontsize=20,
-                      fontweight="bold", color=POSITIVE, ha="center")
-        ax_right.text(5, 6.5, f"${preventable_revenue:,.0f}", fontsize=36,
-                      fontweight="bold", color=POSITIVE, ha="center")
-        ax_right.text(5, 5.2, f"{preventable_closures:,} accounts saved",
-                      fontsize=16, color="#666", ha="center")
-        ax_right.text(5, 4.2, f"{retention_lift:.1%} retention lift from debit",
-                      fontsize=14, color="#666", ha="center")
+        ax_right.text(
+            5,
+            8.5,
+            "Preventable via Debit",
+            fontsize=20,
+            fontweight="bold",
+            color=POSITIVE,
+            ha="center",
+        )
+        ax_right.text(
+            5,
+            6.5,
+            f"${preventable_revenue:,.0f}",
+            fontsize=36,
+            fontweight="bold",
+            color=POSITIVE,
+            ha="center",
+        )
+        ax_right.text(
+            5,
+            5.2,
+            f"{preventable_closures:,} accounts saved",
+            fontsize=16,
+            color="#666",
+            ha="center",
+        )
+        ax_right.text(
+            5,
+            4.2,
+            f"{retention_lift:.1%} retention lift from debit",
+            fontsize=14,
+            color="#666",
+            ha="center",
+        )
 
     ctx.results["impact_s2"] = {
         "revenue_destroyed": total_lost,
@@ -208,15 +279,17 @@ def _cost_of_attrition(ctx: PipelineContext) -> list[AnalysisResult]:
         "preventable_revenue": preventable_revenue,
     }
 
-    return [AnalysisResult(
-        slide_id="S2",
-        title="The Cost of Walking Away",
-        chart_path=save_to,
-        notes=(
-            f"${total_lost:,.0f} destroyed | "
-            f"${preventable_revenue:,.0f} preventable ({preventable_closures:,} accounts)"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="S2",
+            title="The Cost of Walking Away",
+            chart_path=save_to,
+            notes=(
+                f"${total_lost:,.0f} destroyed | "
+                f"${preventable_revenue:,.0f} preventable ({preventable_closures:,} accounts)"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -245,10 +318,14 @@ def _mailer_roi(ctx: PipelineContext) -> list[AnalysisResult]:
     total_roi = annual_program + retention_value
 
     if incremental == 0 and n_responders == 0:
-        return [AnalysisResult(
-            slide_id="S3", title="The Mailer Program Works",
-            success=False, error="No mailer data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="S3",
+                title="The Mailer Program Works",
+                success=False,
+                error="No mailer data",
+            )
+        ]
 
     save_to = ctx.paths.charts_dir / "s3_mailer_roi.png"
     ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
@@ -261,8 +338,15 @@ def _mailer_roi(ctx: PipelineContext) -> list[AnalysisResult]:
         ax_main.set_ylim(0, 10)
         ax_main.axis("off")
 
-        ax_main.text(5, 9.5, "Mailer Program: Cause and Effect",
-                     fontsize=24, fontweight="bold", color="#1E3D59", ha="center")
+        ax_main.text(
+            5,
+            9.5,
+            "Mailer Program: Cause and Effect",
+            fontsize=24,
+            fontweight="bold",
+            color="#1E3D59",
+            ha="center",
+        )
 
         # Flow: Mailer -> Activation -> Spend Lift -> Revenue + Retention
         boxes = [
@@ -272,19 +356,34 @@ def _mailer_roi(ctx: PipelineContext) -> list[AnalysisResult]:
         ]
         for bx, by, title, detail, color in boxes:
             rect = FancyBboxPatch(
-                (bx - 0.8, by - 0.8), 1.6, 1.6, boxstyle="round,pad=0.15",
-                facecolor=color, alpha=0.15, edgecolor=color, linewidth=2,
+                (bx - 0.8, by - 0.8),
+                1.6,
+                1.6,
+                boxstyle="round,pad=0.15",
+                facecolor=color,
+                alpha=0.15,
+                edgecolor=color,
+                linewidth=2,
             )
             ax_main.add_patch(rect)
-            ax_main.text(bx, by + 0.3, title, ha="center", va="center",
-                         fontsize=13, fontweight="bold", color=color)
-            ax_main.text(bx, by - 0.3, detail, ha="center", va="center",
-                         fontsize=11, color="#444")
+            ax_main.text(
+                bx,
+                by + 0.3,
+                title,
+                ha="center",
+                va="center",
+                fontsize=13,
+                fontweight="bold",
+                color=color,
+            )
+            ax_main.text(bx, by - 0.3, detail, ha="center", va="center", fontsize=11, color="#444")
 
         # Arrows between boxes
         for x1, x2 in [(1.8, 2.7), (4.3, 5.2)]:
             ax_main.annotate(
-                "", xy=(x2, 6.5), xytext=(x1, 6.5),
+                "",
+                xy=(x2, 6.5),
+                xytext=(x1, 6.5),
                 arrowprops={"arrowstyle": "->", "color": "#999", "lw": 2},
             )
 
@@ -295,35 +394,54 @@ def _mailer_roi(ctx: PipelineContext) -> list[AnalysisResult]:
         ]
         for bx, by, title, val, color in results:
             rect = FancyBboxPatch(
-                (bx - 1.2, by - 0.8), 2.4, 1.6, boxstyle="round,pad=0.15",
-                facecolor=color, alpha=0.1, edgecolor=color, linewidth=2,
+                (bx - 1.2, by - 0.8),
+                2.4,
+                1.6,
+                boxstyle="round,pad=0.15",
+                facecolor=color,
+                alpha=0.1,
+                edgecolor=color,
+                linewidth=2,
             )
             ax_main.add_patch(rect)
-            ax_main.text(bx, by + 0.3, title, ha="center", fontsize=13,
-                         fontweight="bold", color=color)
-            ax_main.text(bx, by - 0.3, val, ha="center", fontsize=18,
-                         fontweight="bold", color=color)
+            ax_main.text(
+                bx, by + 0.3, title, ha="center", fontsize=13, fontweight="bold", color=color
+            )
+            ax_main.text(
+                bx, by - 0.3, val, ha="center", fontsize=18, fontweight="bold", color=color
+            )
 
         # Total ROI
-        ax_main.text(5, 1.0, f"Total Program Value: ${total_roi:,.0f}/year",
-                     fontsize=22, fontweight="bold", color="#1E3D59", ha="center")
+        ax_main.text(
+            5,
+            1.0,
+            f"Total Program Value: ${total_roi:,.0f}/year",
+            fontsize=22,
+            fontweight="bold",
+            color="#1E3D59",
+            ha="center",
+        )
 
     ctx.results["impact_s3"] = {
-        "true_lift": true_lift, "annual_program_value": annual_program,
-        "retention_value": retention_value, "total_program_roi": total_roi,
+        "true_lift": true_lift,
+        "annual_program_value": annual_program,
+        "retention_value": retention_value,
+        "total_program_roi": total_roi,
     }
 
-    return [AnalysisResult(
-        slide_id="S3",
-        title="The Mailer Program Works",
-        chart_path=save_to,
-        notes=(
-            f"Spend lift: +${true_lift:,.0f}/acct | "
-            f"IC: ${annual_program:,.0f}/yr | "
-            f"Retention: ${retention_value:,.0f} | "
-            f"Total: ${total_roi:,.0f}"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="S3",
+            title="The Mailer Program Works",
+            chart_path=save_to,
+            notes=(
+                f"Spend lift: +${true_lift:,.0f}/acct | "
+                f"IC: ${annual_program:,.0f}/yr | "
+                f"Retention: ${retention_value:,.0f} | "
+                f"Total: ${total_roi:,.0f}"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -346,10 +464,14 @@ def _branch_gap(ctx: PipelineContext) -> list[AnalysisResult]:
     delta = v1["delta"]
 
     if best_dctr == 0 and worst_dctr == 0:
-        return [AnalysisResult(
-            slide_id="S4", title="Branch Performance Gap",
-            success=False, error="No branch DCTR data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="S4",
+                title="Branch Performance Gap",
+                success=False,
+                error="No branch DCTR data",
+            )
+        ]
 
     spread = best_dctr - worst_dctr
     median_dctr = (best_dctr + worst_dctr) / 2
@@ -368,18 +490,33 @@ def _branch_gap(ctx: PipelineContext) -> list[AnalysisResult]:
         values = [best_dctr * 100, median_dctr * 100, worst_dctr * 100]
         colors = [POSITIVE, TEAL, NEGATIVE]
 
-        bars = ax.barh(labels[::-1], values[::-1], color=colors[::-1],
-                       edgecolor=BAR_EDGE, alpha=BAR_ALPHA, height=0.5)
+        bars = ax.barh(
+            labels[::-1],
+            values[::-1],
+            color=colors[::-1],
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
+            height=0.5,
+        )
 
         for bar, val in zip(bars, values[::-1]):
             cx = bar.get_width()
             cy = bar.get_y() + bar.get_height() / 2
-            ax.text(cx + 1, cy, f"{val:.1f}%", ha="left", va="center",
-                    fontsize=DATA_LABEL_SIZE, fontweight="bold")
+            ax.text(
+                cx + 1,
+                cy,
+                f"{val:.1f}%",
+                ha="left",
+                va="center",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+            )
 
         ax.set_title(
-            "Branch DCTR Gap: $ per Percentage Point", fontsize=24,
-            fontweight="bold", pad=15,
+            "Branch DCTR Gap: $ per Percentage Point",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_xlabel("DCTR (%)", fontsize=20)
         ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
@@ -388,27 +525,34 @@ def _branch_gap(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.spines["right"].set_visible(False)
 
         ax.text(
-            max(values) * 0.5, -0.8,
+            max(values) * 0.5,
+            -0.8,
             f"If bottom branches matched median: "
             f"+{gap_accounts:,} debit accounts = +${gap_revenue:,.0f}/year",
-            ha="center", fontsize=14, fontweight="bold", color=TEAL,
+            ha="center",
+            fontsize=14,
+            fontweight="bold",
+            color=TEAL,
             transform=ax.get_xaxis_transform(),
         )
         fig.tight_layout()
 
     ctx.results["impact_s4"] = {
-        "branch_gap_revenue": gap_revenue, "spread": spread,
+        "branch_gap_revenue": gap_revenue,
+        "spread": spread,
     }
 
-    return [AnalysisResult(
-        slide_id="S4",
-        title="Branch Performance Gap",
-        chart_path=save_to,
-        notes=(
-            f"Spread: {spread:.1%} ({best_branch} vs {worst_branch}) | "
-            f"Gap revenue: ${gap_revenue:,.0f}"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="S4",
+            title="Branch Performance Gap",
+            chart_path=save_to,
+            notes=(
+                f"Spread: {spread:.1%} ({best_branch} vs {worst_branch}) | "
+                f"Gap revenue: ${gap_revenue:,.0f}"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -433,10 +577,14 @@ def _debit_cascade(ctx: PipelineContext) -> list[AnalysisResult]:
     total_cascade = stream_1 + stream_2 + stream_3
 
     if total_cascade == 0:
-        return [AnalysisResult(
-            slide_id="S5", title="The Debit Card Cascade",
-            success=False, error="No cascade data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="S5",
+                title="The Debit Card Cascade",
+                success=False,
+                error="No cascade data",
+            )
+        ]
 
     save_to = ctx.paths.charts_dir / "s5_debit_cascade.png"
     ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
@@ -452,26 +600,49 @@ def _debit_cascade(ctx: PipelineContext) -> list[AnalysisResult]:
         x = np.arange(len(streams) + 1)
         bottom = 0
         for i, (label, val, color) in enumerate(streams):
-            ax.bar(i, val, bottom=bottom, color=color, edgecolor=BAR_EDGE,
-                   alpha=BAR_ALPHA, width=0.5)
-            ax.text(i, bottom + val / 2, f"${val:,.2f}", ha="center",
-                    va="center", fontsize=DATA_LABEL_SIZE - 2,
-                    fontweight="bold", color="white")
+            ax.bar(
+                i, val, bottom=bottom, color=color, edgecolor=BAR_EDGE, alpha=BAR_ALPHA, width=0.5
+            )
+            ax.text(
+                i,
+                bottom + val / 2,
+                f"${val:,.2f}",
+                ha="center",
+                va="center",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color="white",
+            )
             bottom += val
 
         # Total bar
-        ax.bar(len(streams), total_cascade, color="#D4A574",
-               edgecolor=BAR_EDGE, alpha=BAR_ALPHA, width=0.5)
-        ax.text(len(streams), total_cascade / 2, f"${total_cascade:,.2f}",
-                ha="center", va="center", fontsize=DATA_LABEL_SIZE,
-                fontweight="bold", color="white")
+        ax.bar(
+            len(streams),
+            total_cascade,
+            color="#D4A574",
+            edgecolor=BAR_EDGE,
+            alpha=BAR_ALPHA,
+            width=0.5,
+        )
+        ax.text(
+            len(streams),
+            total_cascade / 2,
+            f"${total_cascade:,.2f}",
+            ha="center",
+            va="center",
+            fontsize=DATA_LABEL_SIZE,
+            fontweight="bold",
+            color="white",
+        )
 
         labels = [s[0] for s in streams] + ["Total\nper Activation"]
         ax.set_xticks(x)
         ax.set_xticklabels(labels, fontsize=TICK_SIZE - 2)
         ax.set_title(
-            "One Debit Card = Three Revenue Streams", fontsize=24,
-            fontweight="bold", pad=15,
+            "One Debit Card = Three Revenue Streams",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_ylabel("Annual Value per Account ($)", fontsize=20)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"${x:,.2f}"))
@@ -480,19 +651,23 @@ def _debit_cascade(ctx: PipelineContext) -> list[AnalysisResult]:
         fig.tight_layout()
 
     ctx.results["impact_s5"] = {
-        "stream_1": stream_1, "stream_2": stream_2,
-        "stream_3": stream_3, "total_cascade": total_cascade,
+        "stream_1": stream_1,
+        "stream_2": stream_2,
+        "stream_3": stream_3,
+        "total_cascade": total_cascade,
     }
 
-    return [AnalysisResult(
-        slide_id="S5",
-        title="The Debit Card Cascade",
-        chart_path=save_to,
-        notes=(
-            f"IC: ${stream_1:,.2f} + Reg E: ${stream_2:,.2f} "
-            f"+ Retention: ${stream_3:,.2f} = ${total_cascade:,.2f}/activation"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="S5",
+            title="The Debit Card Cascade",
+            chart_path=save_to,
+            notes=(
+                f"IC: ${stream_1:,.2f} + Reg E: ${stream_2:,.2f} "
+                f"+ Retention: ${stream_3:,.2f} = ${total_cascade:,.2f}/activation"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------

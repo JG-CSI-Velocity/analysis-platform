@@ -15,29 +15,46 @@ from ars_analysis.analytics.dctr.trends import DCTRTrends
 class TestDCTRModuleAttributes:
     """All 5 DCTR modules have correct attributes and registration."""
 
-    @pytest.mark.parametrize("cls, mod_id, section", [
-        (DCTRPenetration, "dctr.penetration", "dctr"),
-        (DCTRTrends, "dctr.trends", "dctr"),
-        (DCTRBranches, "dctr.branches", "dctr"),
-        (DCTRFunnel, "dctr.funnel", "dctr"),
-        (DCTROverlays, "dctr.overlays", "dctr"),
-    ])
+    @pytest.mark.parametrize(
+        "cls, mod_id, section",
+        [
+            (DCTRPenetration, "dctr.penetration", "dctr"),
+            (DCTRTrends, "dctr.trends", "dctr"),
+            (DCTRBranches, "dctr.branches", "dctr"),
+            (DCTRFunnel, "dctr.funnel", "dctr"),
+            (DCTROverlays, "dctr.overlays", "dctr"),
+        ],
+    )
     def test_module_id_and_section(self, cls, mod_id, section):
         mod = cls()
         assert mod.module_id == mod_id
         assert mod.section == section
 
-    @pytest.mark.parametrize("cls", [
-        DCTRPenetration, DCTRTrends, DCTRBranches, DCTRFunnel, DCTROverlays,
-    ])
+    @pytest.mark.parametrize(
+        "cls",
+        [
+            DCTRPenetration,
+            DCTRTrends,
+            DCTRBranches,
+            DCTRFunnel,
+            DCTROverlays,
+        ],
+    )
     def test_has_required_columns(self, cls):
         mod = cls()
         assert "Date Opened" in mod.required_columns
         assert "Debit?" in mod.required_columns
 
-    @pytest.mark.parametrize("cls", [
-        DCTRPenetration, DCTRTrends, DCTRBranches, DCTRFunnel, DCTROverlays,
-    ])
+    @pytest.mark.parametrize(
+        "cls",
+        [
+            DCTRPenetration,
+            DCTRTrends,
+            DCTRBranches,
+            DCTRFunnel,
+            DCTROverlays,
+        ],
+    )
     def test_has_display_name(self, cls):
         mod = cls()
         assert mod.display_name != ""

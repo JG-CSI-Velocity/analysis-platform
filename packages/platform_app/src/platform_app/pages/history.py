@@ -49,12 +49,14 @@ def _render_inner() -> None:
     avg_time = sum(r.get("elapsed", 0) for r in history) / total if total else 0
 
     if total >= 3:
-        kpi_row([
-            {"label": "Total Runs", "value": str(total)},
-            {"label": "Successful", "value": str(successes)},
-            {"label": "Failed", "value": str(total - successes)},
-            {"label": "Avg Time", "value": f"{avg_time:.1f}s"},
-        ])
+        kpi_row(
+            [
+                {"label": "Total Runs", "value": str(total)},
+                {"label": "Successful", "value": str(successes)},
+                {"label": "Failed", "value": str(total - successes)},
+                {"label": "Avg Time", "value": f"{avg_time:.1f}s"},
+            ]
+        )
 
     # Filters
     all_pipelines = sorted(set(r.get("pipeline", "") for r in history) - {""})
@@ -83,14 +85,16 @@ def _render_inner() -> None:
     if filtered:
         display_data = []
         for r in reversed(filtered):
-            display_data.append({
-                "Pipeline": r.get("pipeline", "").upper(),
-                "Client": f"{r.get('client_id', '')} -- {r.get('client_name', '')}",
-                "Status": "Success" if r.get("success") else "Failed",
-                "Results": r.get("result_count", 0),
-                "Time (s)": f"{r.get('elapsed', 0):.1f}",
-                "Timestamp": r.get("timestamp", "")[:19],
-            })
+            display_data.append(
+                {
+                    "Pipeline": r.get("pipeline", "").upper(),
+                    "Client": f"{r.get('client_id', '')} -- {r.get('client_name', '')}",
+                    "Status": "Success" if r.get("success") else "Failed",
+                    "Results": r.get("result_count", 0),
+                    "Time (s)": f"{r.get('elapsed', 0):.1f}",
+                    "Timestamp": r.get("timestamp", "")[:19],
+                }
+            )
         st.dataframe(display_data, use_container_width=True, hide_index=True)
         st.caption(f"Showing {len(filtered)} of {len(history)} runs")
     else:

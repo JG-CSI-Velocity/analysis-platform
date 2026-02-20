@@ -49,12 +49,14 @@ class TestDctrCalculation:
 
 class TestTotalRow:
     def test_appends_total(self):
-        df = pd.DataFrame({
-            "Branch": ["A", "B"],
-            "Total Accounts": [10, 20],
-            "With Debit": [5, 8],
-            "DCTR %": [0.5, 0.4],
-        })
+        df = pd.DataFrame(
+            {
+                "Branch": ["A", "B"],
+                "Total Accounts": [10, 20],
+                "With Debit": [5, 8],
+                "DCTR %": [0.5, 0.4],
+            }
+        )
         result = total_row(df, "Branch")
         assert len(result) == 3
         assert result.iloc[-1]["Branch"] == "TOTAL"
@@ -68,14 +70,17 @@ class TestTotalRow:
 
 
 class TestCategorizeAccountAge:
-    @pytest.mark.parametrize("days, expected", [
-        (30, "0-6 months"),
-        (200, "6-12 months"),
-        (500, "1-2 years"),
-        (1000, "2-5 years"),
-        (2000, "5-10 years"),
-        (5000, "10+ years"),
-    ])
+    @pytest.mark.parametrize(
+        "days, expected",
+        [
+            (30, "0-6 months"),
+            (200, "6-12 months"),
+            (500, "1-2 years"),
+            (1000, "2-5 years"),
+            (2000, "5-10 years"),
+            (5000, "10+ years"),
+        ],
+    )
     def test_buckets(self, days, expected):
         assert categorize_account_age(days) == expected
 
@@ -84,14 +89,17 @@ class TestCategorizeAccountAge:
 
 
 class TestCategorizeHolderAge:
-    @pytest.mark.parametrize("age, expected", [
-        (20, "18-24"),
-        (30, "25-34"),
-        (40, "35-44"),
-        (50, "45-54"),
-        (60, "55-64"),
-        (70, "65+"),
-    ])
+    @pytest.mark.parametrize(
+        "age, expected",
+        [
+            (20, "18-24"),
+            (30, "25-34"),
+            (40, "35-44"),
+            (50, "45-54"),
+            (60, "55-64"),
+            (70, "65+"),
+        ],
+    )
     def test_buckets(self, age, expected):
         assert categorize_holder_age(age) == expected
 
@@ -100,18 +108,21 @@ class TestCategorizeHolderAge:
 
 
 class TestCategorizeBalance:
-    @pytest.mark.parametrize("bal, expected", [
-        (-100, "Negative"),
-        (250, "$0-$499"),
-        (750, "$500-$999"),
-        (1500, "$1K-$2.5K"),
-        (3000, "$2.5K-$5K"),
-        (7500, "$5K-$10K"),
-        (15000, "$10K-$25K"),
-        (30000, "$25K-$50K"),
-        (75000, "$50K-$100K"),
-        (200000, "$100K+"),
-    ])
+    @pytest.mark.parametrize(
+        "bal, expected",
+        [
+            (-100, "Negative"),
+            (250, "$0-$499"),
+            (750, "$500-$999"),
+            (1500, "$1K-$2.5K"),
+            (3000, "$2.5K-$5K"),
+            (7500, "$5K-$10K"),
+            (15000, "$10K-$25K"),
+            (30000, "$25K-$50K"),
+            (75000, "$50K-$100K"),
+            (200000, "$100K+"),
+        ],
+    )
     def test_buckets(self, bal, expected):
         assert categorize_balance(bal) == expected
 
@@ -154,9 +165,11 @@ class TestL12mMonthLabels:
 
 class TestFilterL12m:
     def test_filters_to_date_range(self):
-        df = pd.DataFrame({
-            "Date Opened": pd.to_datetime(["2023-06-15", "2024-01-15", "2024-06-15"]),
-        })
+        df = pd.DataFrame(
+            {
+                "Date Opened": pd.to_datetime(["2023-06-15", "2024-01-15", "2024-06-15"]),
+            }
+        )
         result = filter_l12m(df, date(2023, 3, 1), date(2024, 2, 28))
         assert len(result) == 2
 

@@ -66,7 +66,9 @@ class TestScanReadyFiles:
     def test_client_filter(self, mock_settings, populated_watch_root):
         mock_settings.paths.watch_root = populated_watch_root
         result = scan_ready_files(
-            mock_settings, target_month="2026.02", client_filter="1453",
+            mock_settings,
+            target_month="2026.02",
+            client_filter="1453",
         )
         assert len(result) == 1
         assert result[0].client_id == "1453"
@@ -74,7 +76,9 @@ class TestScanReadyFiles:
     def test_csm_filter(self, mock_settings, populated_watch_root):
         mock_settings.paths.watch_root = populated_watch_root
         result = scan_ready_files(
-            mock_settings, target_month="2026.02", csm_filter="JamesG",
+            mock_settings,
+            target_month="2026.02",
+            csm_filter="JamesG",
         )
         assert len(result) == 2
 
@@ -110,11 +114,16 @@ class TestScannedFile:
     def test_frozen(self):
         from datetime import datetime
         from pathlib import Path
+
         sf = ScannedFile(
-            client_id="1453", csm_name="JamesG",
-            filename="test.xlsx", file_path=Path("/tmp/test.xlsx"),
-            month="2026.02", file_size_mb=1.5,
-            is_formatted=True, modified_time=datetime.now(),
+            client_id="1453",
+            csm_name="JamesG",
+            filename="test.xlsx",
+            file_path=Path("/tmp/test.xlsx"),
+            month="2026.02",
+            file_size_mb=1.5,
+            is_formatted=True,
+            modified_time=datetime.now(),
         )
         with pytest.raises(AttributeError):
             sf.client_id = "9999"

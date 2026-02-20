@@ -88,8 +88,13 @@ def _scan_one_csm(
         return csm_name, "OFFLINE", per_csm
 
     _retrieve_csm(
-        source_dir, csm_name, dest_root,
-        target_year, target_mm, per_csm, max_per_csm,
+        source_dir,
+        csm_name,
+        dest_root,
+        target_year,
+        target_mm,
+        per_csm,
+        max_per_csm,
     )
     return csm_name, "OK", per_csm
 
@@ -130,7 +135,8 @@ def retrieve_all(
     except PermissionError:
         logger.error(
             "Permission denied creating %s -- check folder permissions on %s",
-            dest_root, base,
+            dest_root,
+            base,
         )
         return result
 
@@ -147,8 +153,13 @@ def retrieve_all(
     with ThreadPoolExecutor(max_workers=total_csm) as pool:
         futures = {
             pool.submit(
-                _scan_one_csm, csm_name, source_dir,
-                dest_root, target_year, target_mm, max_per_csm,
+                _scan_one_csm,
+                csm_name,
+                source_dir,
+                dest_root,
+                target_year,
+                target_mm,
+                max_per_csm,
             ): csm_name
             for csm_name, source_dir in sources.items()
         }
@@ -183,14 +194,15 @@ def retrieve_all(
                 if per_csm.errors:
                     parts.append(f"[red]{len(per_csm.errors)} errors[/red]")
                 console.print(
-                    f"  [cyan]{csm_name}[/cyan] [green]OK[/green] -- "
-                    + ", ".join(parts),
+                    f"  [cyan]{csm_name}[/cyan] [green]OK[/green] -- " + ", ".join(parts),
                 )
 
     console.print()
     logger.info(
         "Retrieve done: %d copied, %d skipped, %d errors",
-        len(result.copied), len(result.skipped), len(result.errors),
+        len(result.copied),
+        len(result.skipped),
+        len(result.errors),
     )
     return result
 
@@ -220,8 +232,14 @@ def _retrieve_csm(
                 break
             console.print(f"      scanning [bold]{month_dir.name}[/bold]/ ...")
             _scan_dir_for_odds(
-                month_dir, csm_name, dest_root,
-                target_year, target_mm, result, max_files, count_before,
+                month_dir,
+                csm_name,
+                dest_root,
+                target_year,
+                target_mm,
+                result,
+                max_files,
+                count_before,
             )
 
             try:
@@ -230,16 +248,28 @@ def _retrieve_csm(
                         break
                     if child.is_dir():
                         _scan_dir_for_odds(
-                            child, csm_name, dest_root,
-                            target_year, target_mm, result, max_files, count_before,
+                            child,
+                            csm_name,
+                            dest_root,
+                            target_year,
+                            target_mm,
+                            result,
+                            max_files,
+                            count_before,
                         )
             except (PermissionError, OSError) as exc:
                 logger.warning("%s: error scanning %s: %s", csm_name, month_dir.name, exc)
     else:
         console.print("      [dim]no month folder, checking root...[/dim]")
         _scan_dir_for_odds(
-            source_dir, csm_name, dest_root,
-            target_year, target_mm, result, max_files, count_before,
+            source_dir,
+            csm_name,
+            dest_root,
+            target_year,
+            target_mm,
+            result,
+            max_files,
+            count_before,
         )
 
 
@@ -389,9 +419,15 @@ def _process_zip(
 
         try:
             _extract_zip(
-                local_zip, zf_path.name, csm_name,
-                client_id_from_zip, month_info,
-                target_year, target_mm, dest_root, result,
+                local_zip,
+                zf_path.name,
+                csm_name,
+                client_id_from_zip,
+                month_info,
+                target_year,
+                target_mm,
+                dest_root,
+                result,
             )
         finally:
             local_zip.unlink(missing_ok=True)
@@ -416,8 +452,7 @@ def _extract_zip(
     try:
         with zipfile.ZipFile(local_zip, "r") as zf:
             entries = [
-                n for n in zf.namelist()
-                if Path(n).name and not Path(n).name.startswith("~$")
+                n for n in zf.namelist() if Path(n).name and not Path(n).name.startswith("~$")
             ]
 
             for name in entries:
@@ -444,7 +479,11 @@ def _extract_zip(
 
                 data = zf.read(name)
                 _place_odd(
-                    data, parsed, csm_name, dest_root, result,
+                    data,
+                    parsed,
+                    csm_name,
+                    dest_root,
+                    result,
                     source_label=f"{original_name}/{basename}",
                 )
 

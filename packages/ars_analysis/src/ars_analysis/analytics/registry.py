@@ -70,6 +70,7 @@ def load_all_modules() -> None:
     """Import all analytics subpackages to trigger @register decorators."""
     # Pre-import heavy shared libs so individual modules load fast
     import concurrent.futures
+
     for lib in ("pandas", "matplotlib", "matplotlib.pyplot", "numpy", "openpyxl"):
         try:
             importlib.import_module(lib)

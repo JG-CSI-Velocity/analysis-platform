@@ -42,9 +42,15 @@ class PathsConfig(BaseModel):
         """Resolve relative paths against ars_base."""
         base = self.ars_base
         for field_name in (
-            "watch_root", "incoming_dir", "retrieve_dir",
-            "presentations_dir", "archive_dir", "config_dir",
-            "log_dir", "template_path", "tracker_path",
+            "watch_root",
+            "incoming_dir",
+            "retrieve_dir",
+            "presentations_dir",
+            "archive_dir",
+            "config_dir",
+            "log_dir",
+            "template_path",
+            "tracker_path",
         ):
             val = getattr(self, field_name)
             if not val.is_absolute():
@@ -80,7 +86,9 @@ class LoggingConfig(BaseModel):
 class ReviewScheduleConfig(BaseModel):
     """Review scheduling defaults."""
 
-    default_cadence: Literal["monthly", "bimonthly", "quarterly", "semiannual", "annual", "ad-hoc"] = "monthly"
+    default_cadence: Literal[
+        "monthly", "bimonthly", "quarterly", "semiannual", "annual", "ad-hoc"
+    ] = "monthly"
     review_day: int = Field(default=15, ge=1, le=28)
 
 
@@ -118,6 +126,7 @@ class ARSSettings(BaseSettings):
 # ---------------------------------------------------------------------------
 # Config migration -- merge old clients_config.json into the new location
 # ---------------------------------------------------------------------------
+
 
 def migrate_config(old_path: str | Path, target_path: str | Path | None = None) -> dict:
     """Merge an old clients_config.json into the canonical location.

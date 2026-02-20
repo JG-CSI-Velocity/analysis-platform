@@ -189,7 +189,9 @@ class TestAnalyzeMonth:
         pairs = discover_pairs(mailer_ctx)
         month, resp_col, mail_col = pairs[0]
         seg, total_m, total_r, rate = analyze_month(
-            mailer_ctx.data, resp_col, mail_col,
+            mailer_ctx.data,
+            resp_col,
+            mail_col,
         )
         assert isinstance(seg, dict)
         assert total_m > 0
@@ -207,7 +209,9 @@ class TestAnalyzeMonth:
         pairs = discover_pairs(mailer_ctx)
         _, resp_col, mail_col = pairs[0]  # Apr24
         seg, total_m, total_r, _ = analyze_month(
-            mailer_ctx.data, resp_col, mail_col,
+            mailer_ctx.data,
+            resp_col,
+            mail_col,
         )
         # Apr24: NU 8, TH-10 5, TH-15 3 = 16 responders out of 40 mailed
         assert total_r == 16

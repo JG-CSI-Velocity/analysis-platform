@@ -18,13 +18,15 @@ def _ars_base_env(tmp_path, monkeypatch):
 @pytest.fixture
 def odd_csv(tmp_path):
     """Create a minimal ODD CSV file for CLI testing."""
-    df = pd.DataFrame({
-        "Stat Code": ["O"] * 5,
-        "Product Code": ["DDA"] * 5,
-        "Date Opened": ["2025-06-15"] * 5,
-        "Balance": [1000.0] * 5,
-        "Business?": ["No"] * 5,
-    })
+    df = pd.DataFrame(
+        {
+            "Stat Code": ["O"] * 5,
+            "Product Code": ["DDA"] * 5,
+            "Date Opened": ["2025-06-15"] * 5,
+            "Balance": [1000.0] * 5,
+            "Business?": ["No"] * 5,
+        }
+    )
     path = tmp_path / "1200_TestCU_2026.02.csv"
     df.to_csv(path, index=False)
     return path

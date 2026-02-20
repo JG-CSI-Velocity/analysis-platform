@@ -91,16 +91,18 @@ def scan_ready_files(
 
             file_path, is_formatted = best
             stat = file_path.stat()
-            found.append(ScannedFile(
-                client_id=client_dir.name,
-                csm_name=csm_name,
-                filename=file_path.name,
-                file_path=file_path,
-                month=full_month,
-                file_size_mb=round(stat.st_size / (1024 * 1024), 2),
-                is_formatted=is_formatted,
-                modified_time=datetime.fromtimestamp(stat.st_mtime),
-            ))
+            found.append(
+                ScannedFile(
+                    client_id=client_dir.name,
+                    csm_name=csm_name,
+                    filename=file_path.name,
+                    file_path=file_path,
+                    month=full_month,
+                    file_size_mb=round(stat.st_size / (1024 * 1024), 2),
+                    is_formatted=is_formatted,
+                    modified_time=datetime.fromtimestamp(stat.st_mtime),
+                )
+            )
 
     return found
 

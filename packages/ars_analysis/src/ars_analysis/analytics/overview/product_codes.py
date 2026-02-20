@@ -37,11 +37,7 @@ class ProductCodeDistribution(AnalysisModule):
         data["Product Code"] = data["Product Code"].fillna("Unknown")
         data["Business?"] = data["Business?"].fillna("Unknown")
 
-        grouped = (
-            data.groupby(["Product Code", "Business?"])
-            .size()
-            .reset_index(name="Total Count")
-        )
+        grouped = data.groupby(["Product Code", "Business?"]).size().reset_index(name="Total Count")
         total = grouped["Total Count"].sum()
 
         output_rows: list[dict] = []
@@ -50,12 +46,14 @@ class ProductCodeDistribution(AnalysisModule):
         for pc in grouped["Product Code"].unique():
             rows = grouped[grouped["Product Code"] == pc]
             prod_total = rows["Total Count"].sum()
-            output_rows.append({
-                "Product Code": pc,
-                "Account Type": "All",
-                "Total Count": prod_total,
-                "Percent of Product": prod_total / total if total else 0,
-            })
+            output_rows.append(
+                {
+                    "Product Code": pc,
+                    "Account Type": "All",
+                    "Total Count": prod_total,
+                    "Percent of Product": prod_total / total if total else 0,
+                }
+            )
 
             biz, pers = 0, 0
             for _, r in rows.iterrows():
@@ -65,20 +63,24 @@ class ProductCodeDistribution(AnalysisModule):
                     biz = cnt
                 elif label == "Personal":
                     pers = cnt
-                output_rows.append({
-                    "Product Code": pc,
-                    "Account Type": f"  -> {label}",
-                    "Total Count": cnt,
-                    "Percent of Product": cnt / prod_total if prod_total else 0,
-                })
+                output_rows.append(
+                    {
+                        "Product Code": pc,
+                        "Account Type": f"  -> {label}",
+                        "Total Count": cnt,
+                        "Percent of Product": cnt / prod_total if prod_total else 0,
+                    }
+                )
 
-            summary_rows.append({
-                "Product Code": pc,
-                "Total Count": prod_total,
-                "Percent of Total": prod_total / total if total else 0,
-                "Business Count": biz,
-                "Personal Count": pers,
-            })
+            summary_rows.append(
+                {
+                    "Product Code": pc,
+                    "Total Count": prod_total,
+                    "Percent of Total": prod_total / total if total else 0,
+                    "Business Count": biz,
+                    "Personal Count": pers,
+                }
+            )
 
         distribution = pd.DataFrame(output_rows).sort_values(["Product Code", "Account Type"])
         summary = (

@@ -15,13 +15,25 @@ from dateutil.relativedelta import relativedelta
 # -- Category orders (used by by_dimension / crosstab) -----------------------
 
 AGE_ORDER = [
-    "0-6 months", "6-12 months", "1-2 years",
-    "2-5 years", "5-10 years", "10+ years",
+    "0-6 months",
+    "6-12 months",
+    "1-2 years",
+    "2-5 years",
+    "5-10 years",
+    "10+ years",
 ]
 HOLDER_AGE_ORDER = ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"]
 BALANCE_ORDER = [
-    "Negative", "$0-$499", "$500-$999", "$1K-$2.5K", "$2.5K-$5K",
-    "$5K-$10K", "$10K-$25K", "$25K-$50K", "$50K-$100K", "$100K+",
+    "Negative",
+    "$0-$499",
+    "$500-$999",
+    "$1K-$2.5K",
+    "$2.5K-$5K",
+    "$5K-$10K",
+    "$10K-$25K",
+    "$25K-$50K",
+    "$50K-$100K",
+    "$100K+",
 ]
 
 # -- Core DCTR calculation ---------------------------------------------------
@@ -143,7 +155,9 @@ def l12m_month_labels(end_date: date) -> list[str]:
 
 
 def filter_l12m(
-    df: pd.DataFrame, start_date: date, end_date: date,
+    df: pd.DataFrame,
+    start_date: date,
+    end_date: date,
 ) -> pd.DataFrame:
     """Filter DataFrame to L12M window using Date Opened."""
     if df is None or df.empty:
@@ -158,12 +172,16 @@ def filter_l12m(
 
 
 def analyze_historical_dctr(
-    dataset: pd.DataFrame, name: str = "Eligible",
+    dataset: pd.DataFrame,
+    name: str = "Eligible",
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """Yearly + decade DCTR breakdown. Returns (yearly_df, decade_df, insights)."""
     empty_ins = {
-        "total_accounts": 0, "with_debit_count": 0,
-        "overall_dctr": 0, "recent_dctr": 0, "years_covered": 0,
+        "total_accounts": 0,
+        "with_debit_count": 0,
+        "overall_dctr": 0,
+        "recent_dctr": 0,
+        "years_covered": 0,
     }
     if dataset.empty:
         return pd.DataFrame(), pd.DataFrame(), empty_ins
@@ -185,12 +203,17 @@ def analyze_historical_dctr(
         t, w, d = dctr(yd)
         p = yd[yd["Business?"] == "No"]
         b = yd[yd["Business?"] == "Yes"]
-        rows.append({
-            "Year": int(yr), "Total Accounts": t, "With Debit": w,
-            "Without Debit": t - w, "DCTR %": d,
-            "Personal w/Debit": len(p[p["Debit?"] == "Yes"]),
-            "Business w/Debit": len(b[b["Debit?"] == "Yes"]),
-        })
+        rows.append(
+            {
+                "Year": int(yr),
+                "Total Accounts": t,
+                "With Debit": w,
+                "Without Debit": t - w,
+                "DCTR %": d,
+                "Personal w/Debit": len(p[p["Debit?"] == "Yes"]),
+                "Business w/Debit": len(b[b["Debit?"] == "Yes"]),
+            }
+        )
     yearly = pd.DataFrame(rows)
     if not yearly.empty:
         yearly = total_row(yearly, "Year")
@@ -199,30 +222,44 @@ def analyze_historical_dctr(
     drows = []
     decade_keys = sorted(
         valid["Decade"].dropna().unique(),
-        key=lambda x: int(x) if x.isdigit() else (0 if "Before" in str(x) else int(str(x).replace("s", ""))),
+        key=lambda x: (
+            int(x) if x.isdigit() else (0 if "Before" in str(x) else int(str(x).replace("s", "")))
+        ),
     )
     for dec in decade_keys:
         dd = valid[valid["Decade"] == dec]
         t, w, d = dctr(dd)
-        drows.append({
-            "Decade": dec, "Total Accounts": t, "With Debit": w,
-            "Without Debit": t - w, "DCTR %": d,
-        })
+        drows.append(
+            {
+                "Decade": dec,
+                "Total Accounts": t,
+                "With Debit": w,
+                "Without Debit": t - w,
+                "DCTR %": d,
+            }
+        )
     decade = pd.DataFrame(drows)
 
     t_all, w_all, o_dctr = dctr(valid)
     recent = valid[valid["Year"].isin([2023, 2024, 2025, 2026])]
     _, _, r_dctr = dctr(recent) if len(recent) else (0, 0, 0)
 
-    return yearly, decade, {
-        "total_accounts": t_all, "with_debit_count": w_all,
-        "overall_dctr": o_dctr, "recent_dctr": r_dctr,
-        "years_covered": len(rows),
-    }
+    return (
+        yearly,
+        decade,
+        {
+            "total_accounts": t_all,
+            "with_debit_count": w_all,
+            "overall_dctr": o_dctr,
+            "recent_dctr": r_dctr,
+            "years_covered": len(rows),
+        },
+    )
 
 
 def l12m_monthly(
-    dataset: pd.DataFrame, months: list[str],
+    dataset: pd.DataFrame,
+    months: list[str],
 ) -> tuple[pd.DataFrame, dict]:
     """Monthly DCTR table for L12M accounts."""
     empty_ins = {"total_accounts": 0, "with_debit": 0, "dctr": 0, "months_active": 0}
@@ -237,10 +274,15 @@ def l12m_monthly(
     for my in months:
         ma = dc[dc["Month_Year"] == my]
         t, w, d = dctr(ma)
-        rows.append({
-            "Month": my, "Total Accounts": t, "With Debit": w,
-            "Without Debit": t - w, "DCTR %": d,
-        })
+        rows.append(
+            {
+                "Month": my,
+                "Total Accounts": t,
+                "With Debit": w,
+                "Without Debit": t - w,
+                "DCTR %": d,
+            }
+        )
     monthly = pd.DataFrame(rows)
     if not monthly.empty:
         monthly = total_row(monthly, "Month")
@@ -249,13 +291,16 @@ def l12m_monthly(
     ta = monthly[monthly["Month"] == "TOTAL"]["Total Accounts"].iloc[0] if not monthly.empty else 0
     tw = monthly[monthly["Month"] == "TOTAL"]["With Debit"].iloc[0] if not monthly.empty else 0
     return monthly, {
-        "total_accounts": int(ta), "with_debit": int(tw),
-        "dctr": tw / ta if ta else 0, "months_active": active,
+        "total_accounts": int(ta),
+        "with_debit": int(tw),
+        "dctr": tw / ta if ta else 0,
+        "months_active": active,
     }
 
 
 def branch_dctr(
-    dataset: pd.DataFrame, branch_mapping: dict | None = None,
+    dataset: pd.DataFrame,
+    branch_mapping: dict | None = None,
 ) -> tuple[pd.DataFrame, dict]:
     """Per-branch DCTR breakdown. Returns (branch_df, insights)."""
     if dataset.empty:
@@ -270,10 +315,15 @@ def branch_dctr(
     for bn in sorted(dc["Branch Name"].unique()):
         ba = dc[dc["Branch Name"] == bn]
         t, w, d = dctr(ba)
-        rows.append({
-            "Branch": bn, "Total Accounts": t, "With Debit": w,
-            "Without Debit": t - w, "DCTR %": d,
-        })
+        rows.append(
+            {
+                "Branch": bn,
+                "Total Accounts": t,
+                "With Debit": w,
+                "Without Debit": t - w,
+                "DCTR %": d,
+            }
+        )
     bdf = pd.DataFrame(rows).sort_values("DCTR %", ascending=False)
     if not bdf.empty:
         bdf = total_row(bdf, "Branch")
@@ -285,14 +335,20 @@ def branch_dctr(
         worst = dr.loc[dr["DCTR %"].idxmin()]
         ins = {
             "total_branches": len(dr),
-            "best_branch": best["Branch"], "best_dctr": best["DCTR %"],
-            "worst_branch": worst["Branch"], "worst_dctr": worst["DCTR %"],
+            "best_branch": best["Branch"],
+            "best_dctr": best["DCTR %"],
+            "worst_branch": worst["Branch"],
+            "worst_dctr": worst["DCTR %"],
         }
     return bdf, ins
 
 
 def by_dimension(
-    dataset: pd.DataFrame, col: str, cat_fn, order: list[str], label: str,
+    dataset: pd.DataFrame,
+    col: str,
+    cat_fn,
+    order: list[str],
+    label: str,
 ) -> tuple[pd.DataFrame, dict]:
     """Generic dimensional DCTR breakdown with P/B split."""
     if dataset.empty:
@@ -309,12 +365,17 @@ def by_dimension(
         t, w, d = dctr(seg)
         p = seg[seg["Business?"] == "No"]
         b = seg[seg["Business?"] == "Yes"]
-        rows.append({
-            label: cat, "Total Accounts": t, "With Debit": w,
-            "Without Debit": t - w, "DCTR %": d,
-            "Personal w/Debit": len(p[p["Debit?"] == "Yes"]),
-            "Business w/Debit": len(b[b["Debit?"] == "Yes"]),
-        })
+        rows.append(
+            {
+                label: cat,
+                "Total Accounts": t,
+                "With Debit": w,
+                "Without Debit": t - w,
+                "DCTR %": d,
+                "Personal w/Debit": len(p[p["Debit?"] == "Yes"]),
+                "Business w/Debit": len(b[b["Debit?"] == "Yes"]),
+            }
+        )
     df = pd.DataFrame(rows)
     if not df.empty:
         df = total_row(df, label)
@@ -325,8 +386,10 @@ def by_dimension(
         hi = dr.loc[dr["DCTR %"].idxmax()]
         lo = dr.loc[dr["DCTR %"].idxmin()]
         ins = {
-            "highest": hi[label], "highest_dctr": hi["DCTR %"],
-            "lowest": lo[label], "lowest_dctr": lo["DCTR %"],
+            "highest": hi[label],
+            "highest_dctr": hi["DCTR %"],
+            "lowest": lo[label],
+            "lowest_dctr": lo["DCTR %"],
             "spread": hi["DCTR %"] - lo["DCTR %"],
             "total_with_data": len(valid),
             "coverage": len(valid) / len(dataset) if len(dataset) else 0,
@@ -336,8 +399,14 @@ def by_dimension(
 
 def crosstab_dctr(
     dataset: pd.DataFrame,
-    row_col: str, row_fn, row_order: list[str], row_label: str,
-    col_col: str, col_fn, col_order: list[str], col_label: str,
+    row_col: str,
+    row_fn,
+    row_order: list[str],
+    row_label: str,
+    col_col: str,
+    col_fn,
+    col_order: list[str],
+    col_label: str,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict]:
     """Cross-tab DCTR: detail, DCTR pivot, count pivot, insights."""
     if dataset.empty:
@@ -353,17 +422,23 @@ def crosstab_dctr(
             seg = valid[(valid[row_label] == r) & (valid[col_label] == c)]
             if len(seg) > 0:
                 t, w, d = dctr(seg)
-                rows.append({row_label: r, col_label: c, "Total Accounts": t, "With Debit": w, "DCTR %": d})
+                rows.append(
+                    {row_label: r, col_label: c, "Total Accounts": t, "With Debit": w, "DCTR %": d}
+                )
     detail = pd.DataFrame(rows)
     if detail.empty:
         return detail, pd.DataFrame(), pd.DataFrame(), {}
 
     dp = detail.pivot_table(index=row_label, columns=col_label, values="DCTR %")
     cp = detail.pivot_table(index=row_label, columns=col_label, values="Total Accounts")
-    dp = dp.reindex(index=[x for x in row_order if x in dp.index],
-                    columns=[x for x in col_order if x in dp.columns])
-    cp = cp.reindex(index=[x for x in row_order if x in cp.index],
-                    columns=[x for x in col_order if x in cp.columns])
+    dp = dp.reindex(
+        index=[x for x in row_order if x in dp.index],
+        columns=[x for x in col_order if x in dp.columns],
+    )
+    cp = cp.reindex(
+        index=[x for x in row_order if x in cp.index],
+        columns=[x for x in col_order if x in cp.columns],
+    )
 
     meaningful = detail[detail["Total Accounts"] > 10]
     ins: dict = {}

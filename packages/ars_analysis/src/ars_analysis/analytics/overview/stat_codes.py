@@ -37,11 +37,7 @@ class StatCodeDistribution(AnalysisModule):
         data["Stat Code"] = data["Stat Code"].fillna("Unknown")
         data["Business?"] = data["Business?"].fillna("Unknown")
 
-        grouped = (
-            data.groupby(["Stat Code", "Business?"])
-            .size()
-            .reset_index(name="Total Count")
-        )
+        grouped = data.groupby(["Stat Code", "Business?"]).size().reset_index(name="Total Count")
         total = grouped["Total Count"].sum()
 
         # Build distribution and summary tables
@@ -51,12 +47,14 @@ class StatCodeDistribution(AnalysisModule):
         for sc in grouped["Stat Code"].unique():
             rows = grouped[grouped["Stat Code"] == sc]
             stat_total = rows["Total Count"].sum()
-            output_rows.append({
-                "Stat Code": sc,
-                "Account Type": "All",
-                "Total Count": stat_total,
-                "Percent of Stat": stat_total / total if total else 0,
-            })
+            output_rows.append(
+                {
+                    "Stat Code": sc,
+                    "Account Type": "All",
+                    "Total Count": stat_total,
+                    "Percent of Stat": stat_total / total if total else 0,
+                }
+            )
 
             biz, pers = 0, 0
             for _, r in rows.iterrows():
@@ -66,20 +64,24 @@ class StatCodeDistribution(AnalysisModule):
                     biz = cnt
                 elif label == "Personal":
                     pers = cnt
-                output_rows.append({
-                    "Stat Code": sc,
-                    "Account Type": f"  -> {label}",
-                    "Total Count": cnt,
-                    "Percent of Stat": cnt / stat_total if stat_total else 0,
-                })
+                output_rows.append(
+                    {
+                        "Stat Code": sc,
+                        "Account Type": f"  -> {label}",
+                        "Total Count": cnt,
+                        "Percent of Stat": cnt / stat_total if stat_total else 0,
+                    }
+                )
 
-            summary_rows.append({
-                "Stat Code": sc,
-                "Total Count": stat_total,
-                "Percent of Total": stat_total / total if total else 0,
-                "Business Count": biz,
-                "Personal Count": pers,
-            })
+            summary_rows.append(
+                {
+                    "Stat Code": sc,
+                    "Total Count": stat_total,
+                    "Percent of Total": stat_total / total if total else 0,
+                    "Business Count": biz,
+                    "Personal Count": pers,
+                }
+            )
 
         distribution = pd.DataFrame(output_rows).sort_values(["Stat Code", "Account Type"])
         summary = (

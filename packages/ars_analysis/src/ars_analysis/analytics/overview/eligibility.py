@@ -25,10 +25,14 @@ class EligibilityFunnel(AnalysisModule):
         logger.info("A3: Eligibility Funnel for {client}", client=ctx.client.client_id)
         data = ctx.data
         if data is None or data.empty:
-            return [AnalysisResult(
-                slide_id="A3", title="Eligibility Funnel",
-                success=False, error="No data loaded",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A3",
+                    title="Eligibility Funnel",
+                    success=False,
+                    error="No data loaded",
+                )
+            ]
 
         ta = len(data)
 
@@ -100,24 +104,28 @@ class EligibilityFunnel(AnalysisModule):
         ]
 
         if include_mailable:
-            stages.append({
-                "Stage": "5. + Mailable",
-                "Count": mc,
-                "Pct of Total": mc / ta if ta else 0,
-                "Drop-off": pc - mc,
-                "Drop-off %": (pc - mc) / pc if pc else 0,
-            })
+            stages.append(
+                {
+                    "Stage": "5. + Mailable",
+                    "Count": mc,
+                    "Pct of Total": mc / ta if ta else 0,
+                    "Drop-off": pc - mc,
+                    "Drop-off %": (pc - mc) / pc if pc else 0,
+                }
+            )
 
         # Final eligible stage
         prev_count = mc if include_mailable else pc
         eligible_label = f"{'6' if include_mailable else '5'}. ELIGIBLE"
-        stages.append({
-            "Stage": eligible_label,
-            "Count": ec,
-            "Pct of Total": ec / ta if ta else 0,
-            "Drop-off": prev_count - ec,
-            "Drop-off %": (prev_count - ec) / prev_count if prev_count else 0,
-        })
+        stages.append(
+            {
+                "Stage": eligible_label,
+                "Count": ec,
+                "Pct of Total": ec / ta if ta else 0,
+                "Drop-off": prev_count - ec,
+                "Drop-off %": (prev_count - ec) / prev_count if prev_count else 0,
+            }
+        )
 
         funnel = pd.DataFrame(stages)
 
@@ -128,28 +136,28 @@ class EligibilityFunnel(AnalysisModule):
         eb_count = len(eb) if eb is not None else 0
 
         if ec > 0:
-            split_rows = pd.DataFrame([
-                {
-                    "Stage": "   -> Personal",
-                    "Count": ep_count,
-                    "Pct of Total": ep_count / ec,
-                    "Drop-off": float("nan"),
-                    "Drop-off %": float("nan"),
-                },
-                {
-                    "Stage": "   -> Business",
-                    "Count": eb_count,
-                    "Pct of Total": eb_count / ec,
-                    "Drop-off": float("nan"),
-                    "Drop-off %": float("nan"),
-                },
-            ])
+            split_rows = pd.DataFrame(
+                [
+                    {
+                        "Stage": "   -> Personal",
+                        "Count": ep_count,
+                        "Pct of Total": ep_count / ec,
+                        "Drop-off": float("nan"),
+                        "Drop-off %": float("nan"),
+                    },
+                    {
+                        "Stage": "   -> Business",
+                        "Count": eb_count,
+                        "Pct of Total": eb_count / ec,
+                        "Drop-off": float("nan"),
+                        "Drop-off %": float("nan"),
+                    },
+                ]
+            )
             funnel = pd.concat([funnel, split_rows], ignore_index=True)
 
         # Find biggest drop-off
-        drop_data = funnel[
-            (funnel["Drop-off %"].notna()) & (funnel["Drop-off %"] > 0)
-        ]
+        drop_data = funnel[(funnel["Drop-off %"].notna()) & (funnel["Drop-off %"] > 0)]
         if len(drop_data) > 0:
             biggest = funnel.loc[drop_data["Drop-off %"].idxmax(), "Stage"]
         else:
@@ -188,7 +196,10 @@ class EligibilityFunnel(AnalysisModule):
                     for j in range(len(tdf.columns)):
                         table[(0, j)].set_text_props(weight="bold", color="white")
                     ax.set_title(
-                        "Eligibility Funnel", fontsize=16, fontweight="bold", pad=20,
+                        "Eligibility Funnel",
+                        fontsize=16,
+                        fontweight="bold",
+                        pad=20,
                     )
                 chart_path = save_to
             except Exception as exc:

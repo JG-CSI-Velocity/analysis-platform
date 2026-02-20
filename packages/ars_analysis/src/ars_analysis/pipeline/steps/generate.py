@@ -102,6 +102,7 @@ def _build_deck(ctx: PipelineContext) -> None:
 
     try:
         from ars_analysis.output.deck_builder import build_deck
+
         build_deck(ctx)
     except ImportError:
         logger.info(

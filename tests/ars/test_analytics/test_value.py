@@ -1,12 +1,12 @@
 """Tests for the Value analysis module (A11.1 + A11.2)."""
 
-
 from ars_analysis.analytics.base import AnalysisResult
 from ars_analysis.analytics.value.analysis import ValueAnalysis, _find_col
 
 # ---------------------------------------------------------------------------
 # Column discovery helper
 # ---------------------------------------------------------------------------
+
 
 class TestFindCol:
     """_find_col() discovers spend/items columns by keyword."""
@@ -24,6 +24,7 @@ class TestFindCol:
 # ---------------------------------------------------------------------------
 # Module attributes
 # ---------------------------------------------------------------------------
+
 
 class TestModuleAttributes:
     """ValueAnalysis has correct class attributes."""
@@ -49,6 +50,7 @@ class TestModuleAttributes:
 # Validation
 # ---------------------------------------------------------------------------
 
+
 class TestValidation:
     """validate() checks prerequisites."""
 
@@ -65,6 +67,7 @@ class TestValidation:
 # ---------------------------------------------------------------------------
 # Full run
 # ---------------------------------------------------------------------------
+
 
 class TestValueAnalysis:
     """ValueAnalysis.run() produces A11.1 and A11.2."""
@@ -136,6 +139,7 @@ class TestValueAnalysis:
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestValueEdgeCases:
     """Edge case handling."""

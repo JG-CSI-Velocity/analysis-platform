@@ -171,7 +171,7 @@ def step_indicator_html(current: int, labels: list[str]) -> str:
             f'<div class="ars-step">'
             f'  <div class="ars-step-circle {state}">{icon}</div>'
             f'  <span class="ars-step-label {state}">{label}</span>'
-            f'</div>'
+            f"</div>"
         )
 
         if i < len(labels) - 1:

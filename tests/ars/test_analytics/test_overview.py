@@ -13,11 +13,13 @@ from ars_analysis.pipeline.context import ClientInfo, DataSubsets, OutputPaths, 
 @pytest.fixture
 def stat_code_df():
     """DataFrame with stat code + business flag columns."""
-    return pd.DataFrame({
-        "Stat Code": ["O"] * 6 + ["C"] * 3 + ["F"] * 1,
-        "Business?": ["No"] * 4 + ["Yes"] * 2 + ["No"] * 2 + ["Yes"] * 1 + ["No"] * 1,
-        "Balance": [1000.0] * 10,
-    })
+    return pd.DataFrame(
+        {
+            "Stat Code": ["O"] * 6 + ["C"] * 3 + ["F"] * 1,
+            "Business?": ["No"] * 4 + ["Yes"] * 2 + ["No"] * 2 + ["Yes"] * 1 + ["No"] * 1,
+            "Balance": [1000.0] * 10,
+        }
+    )
 
 
 @pytest.fixture

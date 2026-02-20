@@ -217,11 +217,20 @@ def run_batch(
 
     if max_workers > 1 and len(files) > 1:
         batch_results = _run_parallel(
-            files, settings, module_ids, output_base, max_workers, use_local_temp,
+            files,
+            settings,
+            module_ids,
+            output_base,
+            max_workers,
+            use_local_temp,
         )
     else:
         batch_results = _run_sequential(
-            files, settings, module_ids, output_base, use_local_temp,
+            files,
+            settings,
+            module_ids,
+            output_base,
+            use_local_temp,
         )
 
     # Summary
@@ -231,12 +240,16 @@ def run_batch(
 
     console.print()
     if failed:
-        console.print(f"  [bold]Done:[/bold] {ok}/{len(batch_results)} succeeded, [red]{failed} failed[/red] ({total_time:.1f}s)")
+        console.print(
+            f"  [bold]Done:[/bold] {ok}/{len(batch_results)} succeeded, [red]{failed} failed[/red] ({total_time:.1f}s)"
+        )
         for r in batch_results:
             if not r.success:
                 console.print(f"    [red]x[/red] {r.client_id}: {r.error}")
     else:
-        console.print(f"  [bold green]Done:[/bold green] {ok}/{len(batch_results)} succeeded ({total_time:.1f}s)")
+        console.print(
+            f"  [bold green]Done:[/bold green] {ok}/{len(batch_results)} succeeded ({total_time:.1f}s)"
+        )
     console.print()
 
     logger.info(
@@ -271,20 +284,28 @@ def _run_sequential(
         console.print(f"  [{i}/{len(files)}] {scanned.client_id} ({scanned.filename})...", end=" ")
         logger.info(
             "[{i}/{n}] Processing {cid} ({file})",
-            i=i, n=len(files), cid=scanned.client_id, file=scanned.filename,
+            i=i,
+            n=len(files),
+            cid=scanned.client_id,
+            file=scanned.filename,
         )
         result = _run_one_client(scanned, settings, module_ids, output_base, use_local_temp)
         results.append(result)
 
         if result.success:
-            console.print(f"[green]OK[/green] -- {result.slide_count} slides ({result.elapsed:.1f}s)")
+            console.print(
+                f"[green]OK[/green] -- {result.slide_count} slides ({result.elapsed:.1f}s)"
+            )
         else:
             console.print(f"[red]FAILED[/red] -- {result.error}")
         logger.info(
             "[{i}/{n}] {cid}: {status} -- {slides} slides in {t:.1f}s",
-            i=i, n=len(files), cid=result.client_id,
+            i=i,
+            n=len(files),
+            cid=result.client_id,
             status="OK" if result.success else "FAILED",
-            slides=result.slide_count, t=result.elapsed,
+            slides=result.slide_count,
+            t=result.elapsed,
         )
     return results
 
@@ -306,7 +327,12 @@ def _run_parallel(
     with ProcessPoolExecutor(max_workers=workers) as executor:
         future_to_client = {
             executor.submit(
-                _run_one_client, scanned, settings, module_ids, output_base, use_local_temp,
+                _run_one_client,
+                scanned,
+                settings,
+                module_ids,
+                output_base,
+                use_local_temp,
             ): scanned.client_id
             for scanned in files
         }
@@ -319,18 +345,22 @@ def _run_parallel(
                 status = "OK" if result.success else "FAILED"
                 logger.info(
                     "{cid}: {status} -- {slides} slides in {t:.1f}s",
-                    cid=result.client_id, status=status,
-                    slides=result.slide_count, t=result.elapsed,
+                    cid=result.client_id,
+                    status=status,
+                    slides=result.slide_count,
+                    t=result.elapsed,
                 )
             except Exception as exc:
-                results.append(BatchResult(
-                    client_id=client_id,
-                    client_name=client_id,
-                    success=False,
-                    elapsed=0,
-                    slide_count=0,
-                    error=f"Worker error: {type(exc).__name__}: {exc}",
-                ))
+                results.append(
+                    BatchResult(
+                        client_id=client_id,
+                        client_name=client_id,
+                        success=False,
+                        elapsed=0,
+                        slide_count=0,
+                        error=f"Worker error: {type(exc).__name__}: {exc}",
+                    )
+                )
                 logger.error("{cid}: Worker error: {err}", cid=client_id, err=exc)
 
     return results

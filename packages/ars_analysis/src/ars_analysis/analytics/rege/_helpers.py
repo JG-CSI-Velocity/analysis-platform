@@ -12,12 +12,23 @@ from ars_analysis.pipeline.context import PipelineContext
 # -- Reg E-specific age buckets (differ from DCTR) ---------------------------
 
 ACCT_AGE_ORDER = [
-    "0-6 months", "6-12 months", "1-2 years", "2-5 years",
-    "5-10 years", "10-20 years", "20+ years",
+    "0-6 months",
+    "6-12 months",
+    "1-2 years",
+    "2-5 years",
+    "5-10 years",
+    "10-20 years",
+    "20+ years",
 ]
 
 HOLDER_AGE_ORDER = [
-    "18-24", "25-34", "35-44", "45-54", "55-64", "65-74", "75+",
+    "18-24",
+    "25-34",
+    "35-44",
+    "45-54",
+    "55-64",
+    "65-74",
+    "75+",
 ]
 
 
@@ -124,7 +135,9 @@ def reg_e_base(ctx: PipelineContext) -> tuple[pd.DataFrame, pd.DataFrame | None,
 
     logger.debug(
         "Reg E base: {n:,} accounts, col={col}, {nl12m} L12M",
-        n=len(base), col=reg_e_col, nl12m=len(base_l12m) if base_l12m is not None else 0,
+        n=len(base),
+        col=reg_e_col,
+        nl12m=len(base_l12m) if base_l12m is not None else 0,
     )
     return base, base_l12m, reg_e_col, opt_list
 

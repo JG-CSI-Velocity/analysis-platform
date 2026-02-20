@@ -25,9 +25,14 @@ def _safe(fn, label: str, ctx: PipelineContext) -> list[AnalysisResult]:
         return fn(ctx)
     except Exception as exc:
         logger.warning("{label} failed: {err}", label=label, err=exc)
-        return [AnalysisResult(
-            slide_id=label, title=label, success=False, error=str(exc),
-        )]
+        return [
+            AnalysisResult(
+                slide_id=label,
+                title=label,
+                success=False,
+                error=str(exc),
+            )
+        ]
 
 
 @register
@@ -59,17 +64,32 @@ class RegEStatus(AnalysisModule):
         if base_l12m is not None and not base_l12m.empty:
             t_l12m, oi_l12m, r_l12m = rege(base_l12m, col, opts)
 
-        summary = pd.DataFrame([
-            {"Category": "All-Time", "Total Accounts": t_all, "Opted In": oi_all,
-             "Opted Out": t_all - oi_all, "Opt-In Rate %": r_all},
-            {"Category": "Last 12 Months", "Total Accounts": t_l12m, "Opted In": oi_l12m,
-             "Opted Out": t_l12m - oi_l12m, "Opt-In Rate %": r_l12m},
-        ])
+        summary = pd.DataFrame(
+            [
+                {
+                    "Category": "All-Time",
+                    "Total Accounts": t_all,
+                    "Opted In": oi_all,
+                    "Opted Out": t_all - oi_all,
+                    "Opt-In Rate %": r_all,
+                },
+                {
+                    "Category": "Last 12 Months",
+                    "Total Accounts": t_l12m,
+                    "Opted In": oi_l12m,
+                    "Opted Out": t_l12m - oi_l12m,
+                    "Opt-In Rate %": r_l12m,
+                },
+            ]
+        )
 
         # Store for downstream modules
         ctx.results["reg_e_1"] = {
-            "opt_in_rate": r_all, "l12m_rate": r_l12m,
-            "total_base": t_all, "opted_in": oi_all, "opted_out": t_all - oi_all,
+            "opt_in_rate": r_all,
+            "l12m_rate": r_l12m,
+            "total_base": t_all,
+            "opted_in": oi_all,
+            "opted_out": t_all - oi_all,
         }
 
         # Grouped bar chart (All-Time vs L12M)
@@ -85,29 +105,54 @@ class RegEStatus(AnalysisModule):
             alltime_vals = [oi_all, t_all - oi_all]
             l12m_vals = [oi_l12m, max(t_l12m - oi_l12m, 0)]
 
-            bars1 = ax.bar(x - w / 2, alltime_vals, w, label=f"All-Time ({r_all:.1%})",
-                           color=HISTORICAL, edgecolor="none")
-            bars2 = ax.bar(x + w / 2, l12m_vals, w, label=f"L12M ({r_l12m:.1%})",
-                           color=ELIGIBLE, edgecolor="none")
+            bars1 = ax.bar(
+                x - w / 2,
+                alltime_vals,
+                w,
+                label=f"All-Time ({r_all:.1%})",
+                color=HISTORICAL,
+                edgecolor="none",
+            )
+            bars2 = ax.bar(
+                x + w / 2,
+                l12m_vals,
+                w,
+                label=f"L12M ({r_l12m:.1%})",
+                color=ELIGIBLE,
+                edgecolor="none",
+            )
 
             for bar in bars1:
                 h = bar.get_height()
                 if h > 0:
-                    ax.text(bar.get_x() + bar.get_width() / 2, h,
-                            f"{int(h):,}", ha="center", va="bottom",
-                            fontsize=12, fontweight="bold")
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        h,
+                        f"{int(h):,}",
+                        ha="center",
+                        va="bottom",
+                        fontsize=12,
+                        fontweight="bold",
+                    )
             for bar in bars2:
                 h = bar.get_height()
                 if h > 0:
-                    ax.text(bar.get_x() + bar.get_width() / 2, h,
-                            f"{int(h):,}", ha="center", va="bottom",
-                            fontsize=12, fontweight="bold")
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        h,
+                        f"{int(h):,}",
+                        ha="center",
+                        va="bottom",
+                        fontsize=12,
+                        fontweight="bold",
+                    )
 
             ax.set_xticks(x)
             ax.set_xticklabels(categories, fontsize=16)
             ax.set_ylabel("Accounts", fontsize=16)
-            ax.set_title(f"Reg E Opt-In Status -- {ctx.client.client_name}",
-                         fontsize=20, fontweight="bold")
+            ax.set_title(
+                f"Reg E Opt-In Status -- {ctx.client.client_name}", fontsize=20, fontweight="bold"
+            )
             ax.legend(fontsize=14)
             ax.set_axisbelow(True)
             ax.spines["top"].set_visible(False)
@@ -115,20 +160,18 @@ class RegEStatus(AnalysisModule):
         chart_path = save_to
 
         change = r_l12m - r_all
-        trend = ("improving" if change > 0.01
-                 else "declining" if change < -0.01
-                 else "stable")
-        notes = (
-            f"All-time: {r_all:.1%} ({oi_all:,}/{t_all:,}). "
-            f"L12M: {r_l12m:.1%}. Trend: {trend}"
-        )
+        trend = "improving" if change > 0.01 else "declining" if change < -0.01 else "stable"
+        notes = f"All-time: {r_all:.1%} ({oi_all:,}/{t_all:,}). L12M: {r_l12m:.1%}. Trend: {trend}"
 
-        return [AnalysisResult(
-            slide_id="A8.1", title="Overall Reg E Status",
-            chart_path=chart_path,
-            excel_data={"Summary": summary},
-            notes=notes,
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A8.1",
+                title="Overall Reg E Status",
+                chart_path=chart_path,
+                excel_data={"Summary": summary},
+                notes=notes,
+            )
+        ]
 
     # -- A8.2: Historical by Year + Decade ----------------------------------
 
@@ -145,8 +188,15 @@ class RegEStatus(AnalysisModule):
         for yr in sorted(valid["Year"].dropna().unique()):
             yd = valid[valid["Year"] == yr]
             t, oi, r = rege(yd, col, opts)
-            rows.append({"Year": int(yr), "Total Accounts": t, "Opted In": oi,
-                         "Opted Out": t - oi, "Opt-In Rate": r})
+            rows.append(
+                {
+                    "Year": int(yr),
+                    "Total Accounts": t,
+                    "Opted In": oi,
+                    "Opted Out": t - oi,
+                    "Opt-In Rate": r,
+                }
+            )
         yearly = pd.DataFrame(rows)
         if not yearly.empty:
             yearly = total_row(yearly, "Year")
@@ -157,8 +207,15 @@ class RegEStatus(AnalysisModule):
         for dec in sorted(valid["Decade"].unique()):
             dd = valid[valid["Decade"] == dec]
             t, oi, r = rege(dd, col, opts)
-            drows.append({"Decade": dec, "Total Accounts": t, "Opted In": oi,
-                          "Opted Out": t - oi, "Opt-In Rate": r})
+            drows.append(
+                {
+                    "Decade": dec,
+                    "Total Accounts": t,
+                    "Opted In": oi,
+                    "Opted Out": t - oi,
+                    "Opt-In Rate": r,
+                }
+            )
         decade = pd.DataFrame(drows)
         if not decade.empty:
             decade = total_row(decade, "Decade")
@@ -168,7 +225,9 @@ class RegEStatus(AnalysisModule):
         save_to = ctx.paths.charts_dir / "a8_2_reg_e_historical.png"
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
-        chart_yearly = yearly[yearly["Year"] != "TOTAL"].copy() if not yearly.empty else pd.DataFrame()
+        chart_yearly = (
+            yearly[yearly["Year"] != "TOTAL"].copy() if not yearly.empty else pd.DataFrame()
+        )
 
         with chart_figure(figsize=(18, 7), save_path=save_to) as (fig, _):
             ax1 = fig.add_subplot(1, 2, 1)
@@ -177,29 +236,56 @@ class RegEStatus(AnalysisModule):
             if not chart_yearly.empty:
                 x = range(len(chart_yearly))
                 total_rows = yearly[yearly["Year"] == "TOTAL"]["Opt-In Rate"]
-                overall = total_rows.values[0] if len(total_rows) > 0 else chart_yearly["Opt-In Rate"].mean()
-                bars = ax1.bar(x, chart_yearly["Opt-In Rate"] * 100, color=HISTORICAL,
-                               edgecolor="none")
+                overall = (
+                    total_rows.values[0]
+                    if len(total_rows) > 0
+                    else chart_yearly["Opt-In Rate"].mean()
+                )
+                bars = ax1.bar(
+                    x, chart_yearly["Opt-In Rate"] * 100, color=HISTORICAL, edgecolor="none"
+                )
                 for bar, rate in zip(bars, chart_yearly["Opt-In Rate"]):
-                    ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
-                             f"{rate:.1%}", ha="center", fontsize=10, fontweight="bold")
+                    ax1.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        bar.get_height() + 0.5,
+                        f"{rate:.1%}",
+                        ha="center",
+                        fontsize=10,
+                        fontweight="bold",
+                    )
                 ax1.axhline(y=overall * 100, color="red", linestyle="--", linewidth=2, alpha=0.7)
                 ax1.set_xticks(list(x))
-                ax1.set_xticklabels([str(int(y)) for y in chart_yearly["Year"]], rotation=45, ha="right")
+                ax1.set_xticklabels(
+                    [str(int(y)) for y in chart_yearly["Year"]], rotation=45, ha="right"
+                )
                 ax1.set_ylabel("Opt-In Rate (%)")
                 ax1.set_title("Reg E Opt-In by Year", fontweight="bold")
                 ax1.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
 
-            chart_decade = decade[decade["Decade"] != "TOTAL"].copy() if not decade.empty else pd.DataFrame()
+            chart_decade = (
+                decade[decade["Decade"] != "TOTAL"].copy() if not decade.empty else pd.DataFrame()
+            )
             if not chart_decade.empty:
                 x2 = range(len(chart_decade))
                 dec_total = decade[decade["Decade"] == "TOTAL"]["Opt-In Rate"]
-                dec_overall = dec_total.values[0] if len(dec_total) > 0 else chart_decade["Opt-In Rate"].mean()
+                dec_overall = (
+                    dec_total.values[0]
+                    if len(dec_total) > 0
+                    else chart_decade["Opt-In Rate"].mean()
+                )
                 bars2 = ax2.bar(x2, chart_decade["Opt-In Rate"] * 100, color=TEAL, edgecolor="none")
                 for bar, rate in zip(bars2, chart_decade["Opt-In Rate"]):
-                    ax2.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
-                             f"{rate:.1%}", ha="center", fontsize=10, fontweight="bold")
-                ax2.axhline(y=dec_overall * 100, color="red", linestyle="--", linewidth=2, alpha=0.7)
+                    ax2.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        bar.get_height() + 0.5,
+                        f"{rate:.1%}",
+                        ha="center",
+                        fontsize=10,
+                        fontweight="bold",
+                    )
+                ax2.axhline(
+                    y=dec_overall * 100, color="red", linestyle="--", linewidth=2, alpha=0.7
+                )
                 ax2.set_xticks(list(x2))
                 ax2.set_xticklabels(chart_decade["Decade"].tolist(), rotation=45, ha="right")
                 ax2.set_ylabel("Opt-In Rate (%)")
@@ -219,12 +305,15 @@ class RegEStatus(AnalysisModule):
             )
 
         ctx.results["reg_e_2"] = {"yearly": yearly, "decade": decade}
-        return [AnalysisResult(
-            slide_id="A8.2", title="Reg E Historical (Year/Decade)",
-            chart_path=chart_path,
-            excel_data={"Yearly": yearly, "Decade": decade},
-            notes=notes,
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A8.2",
+                title="Reg E Historical (Year/Decade)",
+                chart_path=chart_path,
+                excel_data={"Yearly": yearly, "Decade": decade},
+                notes=notes,
+            )
+        ]
 
     # -- A8.3: L12M Monthly Reg E -------------------------------------------
 
@@ -233,10 +322,14 @@ class RegEStatus(AnalysisModule):
         base, base_l12m, col, opts = reg_e_base(ctx)
 
         if base_l12m is None or base_l12m.empty:
-            return [AnalysisResult(
-                slide_id="A8.3", title="L12M Monthly Reg E",
-                success=False, error="No L12M Reg E data",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A8.3",
+                    title="L12M Monthly Reg E",
+                    success=False,
+                    error="No L12M Reg E data",
+                )
+            ]
 
         l12m_labels = l12m_month_labels(ctx.end_date)
         df = base_l12m.copy()
@@ -246,8 +339,15 @@ class RegEStatus(AnalysisModule):
         for my in l12m_labels:
             ma = df[df["Month_Year"] == my]
             t, oi, r = rege(ma, col, opts) if len(ma) > 0 else (0, 0, 0.0)
-            rows.append({"Month": my, "Total Accounts": t, "Opted In": oi,
-                         "Opted Out": t - oi, "Opt-In Rate": r})
+            rows.append(
+                {
+                    "Month": my,
+                    "Total Accounts": t,
+                    "Opted In": oi,
+                    "Opted Out": t - oi,
+                    "Opt-In Rate": r,
+                }
+            )
         monthly = pd.DataFrame(rows)
         monthly = total_row(monthly, "Month")
 
@@ -264,32 +364,50 @@ class RegEStatus(AnalysisModule):
             bars = ax.bar(x, rates, color=ELIGIBLE, edgecolor="none", alpha=0.8)
             for bar, rate, vol in zip(bars, rates, chart["Total Accounts"]):
                 if vol > 0:
-                    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
-                            f"{rate:.1f}%", ha="center", fontsize=10, fontweight="bold")
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        bar.get_height() + 0.3,
+                        f"{rate:.1f}%",
+                        ha="center",
+                        fontsize=10,
+                        fontweight="bold",
+                    )
 
             overall_rate = monthly[monthly["Month"] == "TOTAL"]["Opt-In Rate"].iloc[0] * 100
             ax.axhline(y=overall_rate, color="red", linestyle="--", linewidth=2, alpha=0.7)
-            ax.text(len(chart) - 0.5, overall_rate + 0.3, f"Overall: {overall_rate:.1f}%",
-                    ha="right", color="red", fontweight="bold")
+            ax.text(
+                len(chart) - 0.5,
+                overall_rate + 0.3,
+                f"Overall: {overall_rate:.1f}%",
+                ha="right",
+                color="red",
+                fontweight="bold",
+            )
             ax.set_xticks(list(x))
             ax.set_xticklabels(chart["Month"].tolist(), rotation=45, ha="right")
             ax.set_ylabel("Opt-In Rate (%)")
-            ax.set_title(f"L12M Reg E Opt-In by Month -- {ctx.client.client_name}",
-                         fontweight="bold")
+            ax.set_title(
+                f"L12M Reg E Opt-In by Month -- {ctx.client.client_name}", fontweight="bold"
+            )
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
         chart_path = save_to
 
         active = chart[chart["Total Accounts"] > 0]
-        best_month = active.loc[active["Opt-In Rate"].idxmax(), "Month"] if not active.empty else "N/A"
+        best_month = (
+            active.loc[active["Opt-In Rate"].idxmax(), "Month"] if not active.empty else "N/A"
+        )
         notes = f"Overall L12M: {overall_rate:.1f}%. Best: {best_month}"
 
         ctx.results["reg_e_3"] = {"monthly": monthly}
-        return [AnalysisResult(
-            slide_id="A8.3", title="L12M Monthly Reg E",
-            chart_path=chart_path,
-            excel_data={"Monthly": monthly},
-            notes=notes,
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A8.3",
+                title="L12M Monthly Reg E",
+                chart_path=chart_path,
+                excel_data={"Monthly": monthly},
+                notes=notes,
+            )
+        ]
 
     # -- A8.12: 24-Month Trend ----------------------------------------------
 
@@ -302,10 +420,14 @@ class RegEStatus(AnalysisModule):
         df["Year_Month"] = df["Date Opened"].dt.to_period("M")
         df["Has_RegE"] = df[col].isin(opts).astype(int)
 
-        monthly = df.groupby("Year_Month").agg(
-            Total=("Has_RegE", "count"),
-            With_RegE=("Has_RegE", "sum"),
-        ).reset_index()
+        monthly = (
+            df.groupby("Year_Month")
+            .agg(
+                Total=("Has_RegE", "count"),
+                With_RegE=("Has_RegE", "sum"),
+            )
+            .reset_index()
+        )
         monthly["Rate"] = (monthly["With_RegE"] / monthly["Total"]).round(4)
         monthly["Date"] = monthly["Year_Month"].dt.to_timestamp()
         monthly["Year_Month"] = monthly["Year_Month"].astype(str)
@@ -318,20 +440,35 @@ class RegEStatus(AnalysisModule):
 
         slope = 0.0
         with chart_figure(figsize=(16, 7), save_path=save_to) as (fig, ax):
-            ax.plot(last_24["Date"], last_24["Rate"] * 100, "o-",
-                    color=ELIGIBLE, linewidth=2.5, markersize=6, label="Reg E Rate")
+            ax.plot(
+                last_24["Date"],
+                last_24["Rate"] * 100,
+                "o-",
+                color=ELIGIBLE,
+                linewidth=2.5,
+                markersize=6,
+                label="Reg E Rate",
+            )
 
             if len(last_24) >= 4:
                 x_num = np.arange(len(last_24))
                 z = np.polyfit(x_num, last_24["Rate"].values * 100, 1)
                 p = np.poly1d(z)
-                ax.plot(last_24["Date"], p(x_num), "--", color="navy", linewidth=2,
-                        alpha=0.6, label=f"Trend ({z[0]:+.2f}pp/mo)")
+                ax.plot(
+                    last_24["Date"],
+                    p(x_num),
+                    "--",
+                    color="navy",
+                    linewidth=2,
+                    alpha=0.6,
+                    label=f"Trend ({z[0]:+.2f}pp/mo)",
+                )
                 slope = z[0]
 
             ax.set_ylabel("Opt-In Rate (%)")
-            ax.set_title(f"Reg E Opt-In Trend (24 Months) -- {ctx.client.client_name}",
-                         fontweight="bold")
+            ax.set_title(
+                f"Reg E Opt-In Trend (24 Months) -- {ctx.client.client_name}", fontweight="bold"
+            )
             ax.legend()
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
             rate_vals = last_24["Rate"].values * 100
@@ -343,18 +480,19 @@ class RegEStatus(AnalysisModule):
         start_r = last_24.iloc[0]["Rate"] * 100
         end_r = last_24.iloc[-1]["Rate"] * 100
         change = end_r - start_r
-        direction = ("improving" if slope > 0.1
-                     else "declining" if slope < -0.1
-                     else "stable")
+        direction = "improving" if slope > 0.1 else "declining" if slope < -0.1 else "stable"
         notes = (
             f"{len(last_24)} months. {start_r:.1f}% -> {end_r:.1f}% "
             f"({change:+.1f}pp). Trend: {direction}"
         )
 
         ctx.results["reg_e_12"] = {"monthly": last_24}
-        return [AnalysisResult(
-            slide_id="A8.12", title="Reg E 24-Month Trend",
-            chart_path=chart_path,
-            excel_data={"Trend": last_24[["Year_Month", "Total", "With_RegE", "Rate"]]},
-            notes=notes,
-        )]
+        return [
+            AnalysisResult(
+                slide_id="A8.12",
+                title="Reg E 24-Month Trend",
+                chart_path=chart_path,
+                excel_data={"Trend": last_24[["Year_Month", "Total", "With_RegE", "Rate"]]},
+                notes=notes,
+            )
+        ]

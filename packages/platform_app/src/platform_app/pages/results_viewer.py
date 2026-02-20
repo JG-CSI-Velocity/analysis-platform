@@ -69,16 +69,19 @@ def _render_inner() -> None:
     elapsed = selected_run.get("elapsed", 0)
     pipeline = selected_run.get("pipeline", "")
 
-    kpi_row([
-        {"label": "Pipeline", "value": pipeline.upper()},
-        {"label": "Analyses", "value": str(result_count)},
-        {"label": "Time", "value": f"{elapsed:.1f}s"},
-    ])
+    kpi_row(
+        [
+            {"label": "Pipeline", "value": pipeline.upper()},
+            {"label": "Analyses", "value": str(result_count)},
+            {"label": "Time", "value": f"{elapsed:.1f}s"},
+        ]
+    )
 
     # File downloads
     st.markdown("### Downloads")
     downloadable = sorted(
-        f for f in output_dir.rglob("*")
+        f
+        for f in output_dir.rglob("*")
         if f.is_file() and f.suffix in (".xlsx", ".pptx", ".png", ".csv")
     )
 

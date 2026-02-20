@@ -29,14 +29,12 @@ def sanitize_path(path: str | Path, base: Path | None = None) -> str:
     if base:
         base_str = str(base)
         if path_str.startswith(base_str):
-            return path_str[len(base_str):].lstrip("/\\") or "."
+            return path_str[len(base_str) :].lstrip("/\\") or "."
     # Fallback: just return the filename
     return Path(path_str).name
 
 
-def setup_logging(
-    log_dir: Path, verbose: bool = False, debug: bool = False
-) -> None:
+def setup_logging(log_dir: Path, verbose: bool = False, debug: bool = False) -> None:
     """Configure Loguru sinks for the ARS pipeline."""
     logger.remove()
 
@@ -45,9 +43,7 @@ def setup_logging(
         sys.stderr,
         level="DEBUG" if verbose else "INFO",
         format=(
-            "<green>{time:HH:mm:ss}</green> | "
-            "<level>{level:<8}</level> | "
-            "<level>{message}</level>"
+            "<green>{time:HH:mm:ss}</green> | <level>{level:<8}</level> | <level>{message}</level>"
         ),
         colorize=True,
     )

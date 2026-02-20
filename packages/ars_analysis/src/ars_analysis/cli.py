@@ -37,6 +37,7 @@ def _setup(verbose: bool = False) -> None:
 def _load_settings():
     """Load ARSSettings from config files."""
     from ars_analysis.config import ARSSettings
+
     return ARSSettings()
 
 
@@ -96,18 +97,25 @@ def _parse_modules(modules_str: str | None) -> list[str] | None:
 def _display_error(exc: Exception) -> None:
     """Show user-friendly error with guidance."""
     title, guidance = get_error_guidance(exc)
-    console.print(Panel(
-        f"[bold red]{title}[/bold red]\n\n{exc}\n\n[dim]{guidance}[/dim]",
-        title="Error",
-        border_style="red",
-    ))
+    console.print(
+        Panel(
+            f"[bold red]{title}[/bold red]\n\n{exc}\n\n[dim]{guidance}[/dim]",
+            title="Error",
+            border_style="red",
+        )
+    )
 
 
 def _display_results(results: list[StepResult], json_output: bool = False) -> None:
     """Show pipeline results as table or JSON."""
     if json_output:
         data = [
-            {"name": r.name, "success": r.success, "elapsed": round(r.elapsed_seconds, 2), "error": r.error}
+            {
+                "name": r.name,
+                "success": r.success,
+                "elapsed": round(r.elapsed_seconds, 2),
+                "error": r.error,
+            }
             for r in results
         ]
         console.print_json(json.dumps({"steps": data}))
@@ -129,6 +137,7 @@ def _display_results(results: list[StepResult], json_output: bool = False) -> No
 # ---------------------------------------------------------------------------
 # retrieve
 # ---------------------------------------------------------------------------
+
 
 @app.command()
 def retrieve(
@@ -156,16 +165,20 @@ def retrieve(
     result = retrieve_all(settings, target_month=month, max_per_csm=limit)
 
     if json_output:
-        console.print_json(json.dumps({
-            "copied": len(result.copied),
-            "skipped": len(result.skipped),
-            "errors": len(result.errors),
-            "details": {
-                "copied": result.copied,
-                "skipped": result.skipped,
-                "errors": result.errors,
-            },
-        }))
+        console.print_json(
+            json.dumps(
+                {
+                    "copied": len(result.copied),
+                    "skipped": len(result.skipped),
+                    "errors": len(result.errors),
+                    "details": {
+                        "copied": result.copied,
+                        "skipped": result.skipped,
+                        "errors": result.errors,
+                    },
+                }
+            )
+        )
         return
 
     table = Table(title="Retrieve Results")
@@ -190,6 +203,7 @@ def retrieve(
 # ---------------------------------------------------------------------------
 # format
 # ---------------------------------------------------------------------------
+
 
 @app.command()
 def format(
@@ -218,14 +232,18 @@ def format(
     result = format_all(settings, target_month=month, max_per_csm=limit)
 
     if json_output:
-        console.print_json(json.dumps({
-            "formatted": len(result.formatted),
-            "errors": len(result.errors),
-            "details": {
-                "formatted": result.formatted,
-                "errors": result.errors,
-            },
-        }))
+        console.print_json(
+            json.dumps(
+                {
+                    "formatted": len(result.formatted),
+                    "errors": len(result.errors),
+                    "details": {
+                        "formatted": result.formatted,
+                        "errors": result.errors,
+                    },
+                }
+            )
+        )
         return
 
     table = Table(title="Format Results")
@@ -249,6 +267,7 @@ def format(
 # ---------------------------------------------------------------------------
 # scan
 # ---------------------------------------------------------------------------
+
 
 @app.command()
 def scan(
@@ -302,8 +321,11 @@ def scan(
     for f in files:
         fmt = "[green]Yes[/green]" if f.is_formatted else "[yellow]No[/yellow]"
         table.add_row(
-            f.client_id, f.csm_name, f.filename,
-            f"{f.file_size_mb:.1f}", fmt,
+            f.client_id,
+            f.csm_name,
+            f.filename,
+            f"{f.file_size_mb:.1f}",
+            fmt,
             f.modified_time.strftime("%Y-%m-%d %H:%M"),
         )
     console.print(table)
@@ -312,6 +334,7 @@ def scan(
 # ---------------------------------------------------------------------------
 # run (single client)
 # ---------------------------------------------------------------------------
+
 
 @app.command()
 def run(
@@ -335,6 +358,7 @@ def run(
 
     # Load analytics modules
     from ars_analysis.analytics.registry import load_all_modules
+
     try:
         load_all_modules()
     except ConfigError as exc:
@@ -383,6 +407,7 @@ def run(
 # batch
 # ---------------------------------------------------------------------------
 
+
 @app.command()
 def batch(
     month: str | None = typer.Option(None, help="Month to process (YYYY.MM)"),
@@ -391,7 +416,11 @@ def batch(
         None, help="Comma-separated module IDs (default: all registered)"
     ),
     workers: int = typer.Option(1, "--workers", "-w", help="Parallel workers (1=sequential)"),
-    local_temp: bool = typer.Option(False, "--local-temp", help="Copy to local temp before processing (faster on network drives)"),
+    local_temp: bool = typer.Option(
+        False,
+        "--local-temp",
+        help="Copy to local temp before processing (faster on network drives)",
+    ),
     config: str | None = typer.Option(None, help="Path to config override"),
     json_output: bool = typer.Option(False, "--json", help="Output structured JSON"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging"),
@@ -457,8 +486,11 @@ def batch(
     # Run batch
     try:
         results = run_batch(
-            files, settings, module_ids=module_ids,
-            max_workers=max_w, use_local_temp=use_temp,
+            files,
+            settings,
+            module_ids=module_ids,
+            max_workers=max_w,
+            use_local_temp=use_temp,
         )
     except Exception as exc:
         _display_error(exc)
@@ -491,8 +523,11 @@ def batch(
         for r in results:
             status = "[green]OK[/green]" if r.success else "[red]FAILED[/red]"
             table.add_row(
-                r.client_id, r.client_name, status,
-                str(r.slide_count), f"{r.elapsed:.1f}s",
+                r.client_id,
+                r.client_name,
+                status,
+                str(r.slide_count),
+                f"{r.elapsed:.1f}s",
                 r.error[:50] if r.error else "",
             )
         console.print(table)
@@ -513,6 +548,7 @@ def batch(
 # check
 # ---------------------------------------------------------------------------
 
+
 @app.command()
 def check() -> None:
     """Validate config and verify all paths are accessible."""
@@ -528,8 +564,10 @@ def check() -> None:
 
     # Check registered analytics modules
     from ars_analysis.analytics.registry import REGISTRY
+
     try:
         from ars_analysis.analytics.registry import load_all_modules
+
         load_all_modules()
     except Exception:
         pass
@@ -554,12 +592,14 @@ def check() -> None:
             issues.append(f"{label}: {path} (network error)")
 
     if issues:
-        console.print(Panel(
-            "\n".join(f"[red]MISSING[/red] {p}" for p in issues)
-            + "\n\n[dim]Run setup_folders.bat to create directories, or fix ars_config.json[/dim]",
-            title="Issues Found",
-            border_style="red",
-        ))
+        console.print(
+            Panel(
+                "\n".join(f"[red]MISSING[/red] {p}" for p in issues)
+                + "\n\n[dim]Run setup_folders.bat to create directories, or fix ars_config.json[/dim]",
+                title="Issues Found",
+                border_style="red",
+            )
+        )
         raise typer.Exit(1)
     else:
         console.print("[green]All paths accessible. Config looks good.[/green]")
@@ -568,6 +608,7 @@ def check() -> None:
 # ---------------------------------------------------------------------------
 # validate
 # ---------------------------------------------------------------------------
+
 
 @app.command()
 def validate(
@@ -598,6 +639,7 @@ def validate(
 # init
 # ---------------------------------------------------------------------------
 
+
 @app.command()
 def init(
     directory: str | None = typer.Option(None, "--dir", help="Target directory"),
@@ -622,10 +664,13 @@ def init(
 # migrate
 # ---------------------------------------------------------------------------
 
+
 @app.command()
 def migrate(
     old_config: str = typer.Argument(..., help="Path to old clients_config.json"),
-    target: str | None = typer.Option(None, "--target", help="Target config path (default: configs/clients_config.json)"),
+    target: str | None = typer.Option(
+        None, "--target", help="Target config path (default: configs/clients_config.json)"
+    ),
 ) -> None:
     """Merge an old clients_config.json into the new config location.
 
@@ -656,6 +701,7 @@ def migrate(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_client_info(config_path: str | None, file_path: Path) -> ClientInfo:
     """Load client info from config JSON or infer from filename."""

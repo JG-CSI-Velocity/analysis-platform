@@ -154,9 +154,7 @@ def prepare_attrition_data(
         closed_accts["_duration_days"] = (
             closed_accts["Date Closed"] - closed_accts["Date Opened"]
         ).dt.days
-        closed_accts["_duration_cat"] = closed_accts["_duration_days"].apply(
-            categorize_duration
-        )
+        closed_accts["_duration_cat"] = closed_accts["_duration_days"].apply(categorize_duration)
 
     result = (data, open_accts, closed_accts)
     ctx.results["_attrition_data"] = result
@@ -174,6 +172,11 @@ def _safe(fn, label: str, ctx: PipelineContext) -> list[AnalysisResult]:
         return fn(ctx)
     except Exception as exc:
         logger.warning("{label} failed: {err}", label=label, err=exc)
-        return [AnalysisResult(
-            slide_id=label, title=label, success=False, error=str(exc),
-        )]
+        return [
+            AnalysisResult(
+                slide_id=label,
+                title=label,
+                success=False,
+                error=str(exc),
+            )
+        ]

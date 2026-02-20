@@ -10,8 +10,15 @@ import pandas as pd
 from ars_analysis.pipeline.context import PipelineContext
 
 SectionName = Literal[
-    "overview", "dctr", "rege", "attrition", "value", "mailer",
-    "transaction", "ics", "insights",
+    "overview",
+    "dctr",
+    "rege",
+    "attrition",
+    "value",
+    "mailer",
+    "transaction",
+    "ics",
+    "insights",
 ]
 
 

@@ -25,8 +25,10 @@ def _empty_ctx(tmp_path):
     return PipelineContext(
         client=ClientInfo(client_id="0", client_name="Empty", month="2024.01"),
         paths=OutputPaths(
-            base_dir=tmp_path, charts_dir=tmp_path,
-            excel_dir=tmp_path, pptx_dir=tmp_path,
+            base_dir=tmp_path,
+            charts_dir=tmp_path,
+            excel_dir=tmp_path,
+            pptx_dir=tmp_path,
         ),
     )
 

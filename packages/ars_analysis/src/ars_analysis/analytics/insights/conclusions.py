@@ -70,10 +70,14 @@ def _opportunity_map(ctx: PipelineContext) -> list[AnalysisResult]:
     total_realistic = debit_real + rege_real + retention_real + mailer_real
 
     if total_addressable == 0:
-        return [AnalysisResult(
-            slide_id="S6", title="Combined Opportunity Map",
-            success=False, error="No opportunity data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="S6",
+                title="Combined Opportunity Map",
+                success=False,
+                error="No opportunity data",
+            )
+        ]
 
     save_to = ctx.paths.charts_dir / "s6_opportunity_map.png"
     ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
@@ -95,25 +99,47 @@ def _opportunity_map(ctx: PipelineContext) -> list[AnalysisResult]:
         for i, ((label, color), a_val, r_val) in enumerate(
             zip(buckets, addressable_vals, realistic_vals),
         ):
-            ax.barh(1, a_val, left=left_a, height=0.4, color=color,
-                    edgecolor=BAR_EDGE, alpha=BAR_ALPHA, label=label if i < 4 else "")
-            ax.barh(0, r_val, left=left_r, height=0.4, color=color,
-                    edgecolor=BAR_EDGE, alpha=0.65)
+            ax.barh(
+                1,
+                a_val,
+                left=left_a,
+                height=0.4,
+                color=color,
+                edgecolor=BAR_EDGE,
+                alpha=BAR_ALPHA,
+                label=label if i < 4 else "",
+            )
+            ax.barh(0, r_val, left=left_r, height=0.4, color=color, edgecolor=BAR_EDGE, alpha=0.65)
             left_a += a_val
             left_r += r_val
 
         # Total labels
-        ax.text(total_addressable + total_addressable * 0.02, 1,
-                f"${total_addressable:,.0f}", va="center", fontsize=DATA_LABEL_SIZE,
-                fontweight="bold", color="#1E3D59")
-        ax.text(total_realistic + total_addressable * 0.02, 0,
-                f"${total_realistic:,.0f}", va="center", fontsize=DATA_LABEL_SIZE,
-                fontweight="bold", color=POSITIVE)
+        ax.text(
+            total_addressable + total_addressable * 0.02,
+            1,
+            f"${total_addressable:,.0f}",
+            va="center",
+            fontsize=DATA_LABEL_SIZE,
+            fontweight="bold",
+            color="#1E3D59",
+        )
+        ax.text(
+            total_realistic + total_addressable * 0.02,
+            0,
+            f"${total_realistic:,.0f}",
+            va="center",
+            fontsize=DATA_LABEL_SIZE,
+            fontweight="bold",
+            color=POSITIVE,
+        )
 
         ax.set_yticks(y)
         ax.set_yticklabels(categories[::-1], fontsize=TICK_SIZE)
         ax.set_title(
-            "Combined Opportunity Map", fontsize=24, fontweight="bold", pad=15,
+            "Combined Opportunity Map",
+            fontsize=24,
+            fontweight="bold",
+            pad=15,
         )
         ax.set_xlabel("Annual Revenue ($)", fontsize=20)
         ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f"${x:,.0f}"))
@@ -128,15 +154,14 @@ def _opportunity_map(ctx: PipelineContext) -> list[AnalysisResult]:
         "total_realistic": total_realistic,
     }
 
-    return [AnalysisResult(
-        slide_id="S6",
-        title="Combined Opportunity Map",
-        chart_path=save_to,
-        notes=(
-            f"Addressable: ${total_addressable:,.0f} | "
-            f"Realistic: ${total_realistic:,.0f}"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="S6",
+            title="Combined Opportunity Map",
+            chart_path=save_to,
+            notes=(f"Addressable: ${total_addressable:,.0f} | Realistic: ${total_realistic:,.0f}"),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -164,10 +189,14 @@ def _what_if_dctr(ctx: PipelineContext) -> list[AnalysisResult]:
     avg_lost = a11["avg_lost"]
 
     if total_accounts == 0:
-        return [AnalysisResult(
-            slide_id="S7", title="What If: +5 Points of DCTR",
-            success=False, error="No DCTR data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="S7",
+                title="What If: +5 Points of DCTR",
+                success=False,
+                error="No DCTR data",
+            )
+        ]
 
     target_dctr = current_dctr + 0.05
     new_accounts = round(total_accounts * 0.05)
@@ -187,8 +216,15 @@ def _what_if_dctr(ctx: PipelineContext) -> list[AnalysisResult]:
         ax_main.set_ylim(0, 10)
         ax_main.axis("off")
 
-        ax_main.text(5, 9.5, "What If: +5 Percentage Points of DCTR",
-                     fontsize=24, fontweight="bold", color="#1E3D59", ha="center")
+        ax_main.text(
+            5,
+            9.5,
+            "What If: +5 Percentage Points of DCTR",
+            fontsize=24,
+            fontweight="bold",
+            color="#1E3D59",
+            ha="center",
+        )
 
         # Before/After columns
         col_x = [2.5, 7.5]
@@ -196,8 +232,7 @@ def _what_if_dctr(ctx: PipelineContext) -> list[AnalysisResult]:
         header_colors = [NEGATIVE, POSITIVE]
 
         for x, header, color in zip(col_x, headers, header_colors):
-            ax_main.text(x, 8.5, header, fontsize=18, fontweight="bold",
-                         color=color, ha="center")
+            ax_main.text(x, 8.5, header, fontsize=18, fontweight="bold", color=color, ha="center")
 
         rows = [
             ("DCTR", f"{current_dctr:.1%}", f"{target_dctr:.1%}"),
@@ -210,24 +245,59 @@ def _what_if_dctr(ctx: PipelineContext) -> list[AnalysisResult]:
         for i, (label, before, after) in enumerate(rows):
             y = 7.2 - i * 1.2
             ax_main.text(0.3, y, label, fontsize=14, color="#666", va="center")
-            ax_main.text(2.5, y, before, fontsize=16, fontweight="bold",
-                         color="#666", ha="center", va="center")
-            ax_main.text(7.5, y, after, fontsize=16, fontweight="bold",
-                         color=POSITIVE, ha="center", va="center")
+            ax_main.text(
+                2.5,
+                y,
+                before,
+                fontsize=16,
+                fontweight="bold",
+                color="#666",
+                ha="center",
+                va="center",
+            )
+            ax_main.text(
+                7.5,
+                y,
+                after,
+                fontsize=16,
+                fontweight="bold",
+                color=POSITIVE,
+                ha="center",
+                va="center",
+            )
 
         # Total row
         ax_main.plot([0.3, 9.7], [1.5, 1.5], color="#999", linewidth=1.5)
-        ax_main.text(0.3, 1.0, "Total Annual Gain", fontsize=16,
-                     fontweight="bold", color="#1E3D59", va="center")
-        ax_main.text(7.5, 1.0, f"+${total_gain:,.0f}", fontsize=22,
-                     fontweight="bold", color=POSITIVE, ha="center", va="center")
+        ax_main.text(
+            0.3,
+            1.0,
+            "Total Annual Gain",
+            fontsize=16,
+            fontweight="bold",
+            color="#1E3D59",
+            va="center",
+        )
+        ax_main.text(
+            7.5,
+            1.0,
+            f"+${total_gain:,.0f}",
+            fontsize=22,
+            fontweight="bold",
+            color=POSITIVE,
+            ha="center",
+            va="center",
+        )
 
         if best_dctr > target_dctr:
             ax_main.text(
-                5, 0.0,
+                5,
+                0.0,
                 f"Your best branch ({d9.get('best_branch', '')}) "
                 f"already exceeds this target at {best_dctr:.1%}",
-                fontsize=12, color=TEAL, ha="center", style="italic",
+                fontsize=12,
+                color=TEAL,
+                ha="center",
+                style="italic",
             )
 
     ctx.results["impact_s7"] = {
@@ -235,16 +305,18 @@ def _what_if_dctr(ctx: PipelineContext) -> list[AnalysisResult]:
         "total_annual_gain": total_gain,
     }
 
-    return [AnalysisResult(
-        slide_id="S7",
-        title="What If: +5 Points of DCTR",
-        chart_path=save_to,
-        notes=(
-            f"+{new_accounts:,} accounts = "
-            f"${ic_gain:,.0f} IC + ${rege_gain:,.0f} Reg E "
-            f"+ ${retention_gain:,.0f} retention = ${total_gain:,.0f}/year"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="S7",
+            title="What If: +5 Points of DCTR",
+            chart_path=save_to,
+            notes=(
+                f"+{new_accounts:,} accounts = "
+                f"${ic_gain:,.0f} IC + ${rege_gain:,.0f} Reg E "
+                f"+ ${retention_gain:,.0f} retention = ${total_gain:,.0f}/year"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -264,10 +336,14 @@ def _executive_summary(ctx: PipelineContext) -> list[AnalysisResult]:
     combined = action_1 + action_2 + action_3
 
     if combined == 0:
-        return [AnalysisResult(
-            slide_id="S8", title="Executive Summary",
-            success=False, error="No opportunity data",
-        )]
+        return [
+            AnalysisResult(
+                slide_id="S8",
+                title="Executive Summary",
+                success=False,
+                error="No opportunity data",
+            )
+        ]
 
     save_to = ctx.paths.charts_dir / "s8_executive_summary.png"
     ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
@@ -280,8 +356,15 @@ def _executive_summary(ctx: PipelineContext) -> list[AnalysisResult]:
         ax_main.set_ylim(0, 10)
         ax_main.axis("off")
 
-        ax_main.text(5, 9.5, "Three Actions. Three Payoffs. One Goal.",
-                     fontsize=24, fontweight="bold", color="#1E3D59", ha="center")
+        ax_main.text(
+            5,
+            9.5,
+            "Three Actions. Three Payoffs. One Goal.",
+            fontsize=24,
+            fontweight="bold",
+            color="#1E3D59",
+            ha="center",
+        )
 
         d1 = get_dctr_1(ctx)
         re1 = get_reg_e_1(ctx)
@@ -310,42 +393,64 @@ def _executive_summary(ctx: PipelineContext) -> list[AnalysisResult]:
         for i, (action, metric, payoff, color) in enumerate(actions):
             y = 7.5 - i * 2.2
             rect = FancyBboxPatch(
-                (0.5, y - 0.7), 9, 1.6, boxstyle="round,pad=0.15",
-                facecolor=color, alpha=0.08, edgecolor=color, linewidth=2,
+                (0.5, y - 0.7),
+                9,
+                1.6,
+                boxstyle="round,pad=0.15",
+                facecolor=color,
+                alpha=0.08,
+                edgecolor=color,
+                linewidth=2,
             )
             ax_main.add_patch(rect)
 
-            ax_main.text(0.8, y + 0.3, f"{i + 1}.", fontsize=20,
-                         fontweight="bold", color=color)
-            ax_main.text(1.5, y + 0.3, action, fontsize=16,
-                         fontweight="bold", color=color)
+            ax_main.text(0.8, y + 0.3, f"{i + 1}.", fontsize=20, fontweight="bold", color=color)
+            ax_main.text(1.5, y + 0.3, action, fontsize=16, fontweight="bold", color=color)
             ax_main.text(1.5, y - 0.2, metric, fontsize=13, color="#666")
-            ax_main.text(9.2, y, payoff, fontsize=20, fontweight="bold",
-                         color=color, ha="right", va="center")
+            ax_main.text(
+                9.2, y, payoff, fontsize=20, fontweight="bold", color=color, ha="right", va="center"
+            )
 
         # Combined total
         rect_total = FancyBboxPatch(
-            (2.0, 0.2), 6, 1.2, boxstyle="round,pad=0.15",
-            facecolor="#D4A574", alpha=0.15, edgecolor="#D4A574", linewidth=3,
+            (2.0, 0.2),
+            6,
+            1.2,
+            boxstyle="round,pad=0.15",
+            facecolor="#D4A574",
+            alpha=0.15,
+            edgecolor="#D4A574",
+            linewidth=3,
         )
         ax_main.add_patch(rect_total)
-        ax_main.text(5, 0.8, f"Combined Opportunity: ${combined:,.0f}/year",
-                     fontsize=22, fontweight="bold", color="#1E3D59", ha="center")
+        ax_main.text(
+            5,
+            0.8,
+            f"Combined Opportunity: ${combined:,.0f}/year",
+            fontsize=22,
+            fontweight="bold",
+            color="#1E3D59",
+            ha="center",
+        )
 
     ctx.results["impact_s8"] = {
-        "action_1": action_1, "action_2": action_2,
-        "action_3": action_3, "combined": combined,
+        "action_1": action_1,
+        "action_2": action_2,
+        "action_3": action_3,
+        "combined": combined,
     }
 
-    return [AnalysisResult(
-        slide_id="S8",
-        title="Executive Summary",
-        chart_path=save_to,
-        notes=(
-            f"Debit: ${action_1:,.0f} + Reg E: ${action_2:,.0f} "
-            f"+ Mailer: ${action_3:,.0f} = ${combined:,.0f}/year"
-        ),
-    )]
+    return [
+        AnalysisResult(
+            slide_id="S8",
+            title="Executive Summary",
+            chart_path=save_to,
+            notes=(
+                f"Debit: ${action_1:,.0f} + Reg E: ${action_2:,.0f} "
+                f"+ Mailer: ${action_3:,.0f} = ${combined:,.0f}/year"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -368,7 +473,8 @@ class InsightsConclusions(AnalysisModule):
 
     def run(self, ctx: PipelineContext) -> list[AnalysisResult]:
         logger.info(
-            "Impact Conclusions for {client}", client=ctx.client.client_id,
+            "Impact Conclusions for {client}",
+            client=ctx.client.client_id,
         )
         results: list[AnalysisResult] = []
         results += _safe(_opportunity_map, "S6", ctx)

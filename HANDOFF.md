@@ -1,10 +1,10 @@
 # CSI Velocity -- Repository Roadmap & Session Handoff
 
 **Date:** 2026-02-07
-**Repo:** `JG-CSI-Velocity/analysis-platform`
+**Repo:** https://github.com/JG-CSI-Velocity/analysis-platform
 **Location:** `/Users/jgmbp/Desktop/analysis_platform/`
-**Current branch:** `feat/platform-enhancement` (PR #17)
-**Working tree:** 7 modified files + 1 untracked (this file) -- NOT YET COMMITTED
+**Current branch:** `main`
+**Working tree:** CLEAN
 
 ---
 
@@ -14,22 +14,22 @@ The user provided a comprehensive CSI Velocity Repository Roadmap covering:
 
 - **Monorepo state:** 5-package uv workspace (`shared`, `ars_analysis`, `txn_analysis`, `ics_toolkit`, `platform_app`)
 - **Problem:** Two completely independent transaction analysis systems existed in `txn_analysis` -- a main pipeline (M1-M10, ~2,000 LOC) and a V4 pipeline (S1-S9, ~12,200 LOC) with 60% overlap and zero shared code
-- **V4 consolidation plan:** 5-phase plan to kill V4, keep unique analyses, merge infrastructure (already approved, Phases 1-4 committed in `7de644e`)
+- **V4 consolidation plan:** 5-phase plan to kill V4, keep unique analyses, merge infrastructure (Phases 1-4 already committed)
 - **5-tier roadmap:** Stabilize -> Coverage -> Architecture -> Features -> Polish
-- **Open PRs:** #17 (V4 consolidation), #18 (ARS CLI fix)
+- **Open PRs:** #17 (V4 consolidation, Phases 1-4), #18 (ARS CLI fix)
 - **Open issues:** 1 on monorepo (#14), 6 on txn-analysis (standalone), 1 on ars-pipeline (standalone)
 - **Standalone repos:** txn-analysis, ars-pipeline, ics-analysis, ics-append (all superseded by monorepo)
 - **Test suite:** 2,318 tests, 89% coverage, CI floor 80%
 
-The handoff asked me to: complete Phase 5, ensure consistency, update docs, and produce a handoff summary.
+The handoff asked me to: complete Phase 5, fix Streamlit UI, ensure consistency, merge everything, close superseded issues, and produce a handoff summary.
 
 ---
 
-## 2. What I Did This Session
+## 2. What I Did
 
 ### 2a. Completed V4 Consolidation Phase 5 (prior session, committed in `7de644e`)
 
-Phase 5 was the final cleanup -- delete overlapping storylines and purge all `txn_v4` references from the platform app layer.
+Phase 5: delete overlapping storylines and purge all `txn_v4` references from the platform app.
 
 **Deleted 8 files (5,743 LOC removed):**
 
@@ -48,25 +48,16 @@ Phase 5 was the final cleanup -- delete overlapping storylines and purge all `tx
 
 | File | Change |
 |------|--------|
-| `orchestrator.py` | Removed `"txn_v4"` from `PIPELINE_NAMES`, simplified detection logic |
+| `orchestrator.py` | Removed `"txn_v4"` from `PIPELINE_NAMES`, simplified detection |
 | `components.py` | Removed `txn_v4` from pipeline selector and `PIPELINE_FILE_ROLES` |
 | `cli.py` | Updated help text, simplified `_build_input_files` |
-| `module_registry.py` | Removed `Product.TXN_V4` enum, removed `_V4_STORYLINES` list, added M11-M14 to `_TXN_MODULES` |
+| `module_registry.py` | Removed `Product.TXN_V4` enum, removed `_V4_STORYLINES`, added M11-M14 to `_TXN_MODULES` |
 | `session_manager.py` | `pipelines.extend(["txn", "txn_v4"])` -> `pipelines.append("txn")` |
 | `dashboard.py` | Removed `txn_v4` from counter |
 
-**Updated tests (4 files):**
+### 2b. Fixed Streamlit UI Crash (committed in `1c3d8fc`)
 
-| File | Change |
-|------|--------|
-| `test_v4_storyline_runners.py` | Removed S1-S4/S6 test classes, kept S5/S7/S8/S9 |
-| `test_v4_data_loader.py` | Rewired imports from `v4_data_loader` -> `data_loader`, removed `TestLoadConfig` |
-| `test_orchestrator.py` | Updated `PIPELINE_NAMES` assertions, renamed tests |
-| `test_cli.py`, `test_components.py` | Removed `txn_v4` references |
-
-### 2b. Fixed Streamlit UI Crash (this session -- UNCOMMITTED)
-
-Discovered 3 Streamlit pages were crashing because they still referenced `Product.TXN_V4` which was removed from the enum in Phase 5.
+Phase 5 removed `Product.TXN_V4` from the enum but three Streamlit pages still referenced it, causing import-time `AttributeError` crashes that made the module library and run pages invisible.
 
 **Fixed 7 files:**
 
@@ -74,13 +65,29 @@ Discovered 3 Streamlit pages were crashing because they still referenced `Produc
 |------|--------|
 | `pages/home.py` | Removed V4 product card (4 cols -> 3), updated TXN desc to "M1-M14 + scorecard" |
 | `pages/module_library.py` | Removed `Product.TXN_V4` from `_COLORS` dict |
-| `pages/run_analysis.py` | Removed `Product.TXN_V4` refs, added ODD file passthrough to TXN pipeline |
-| `pages/data_ingestion.py` | Added ODD file upload/path input under Transaction tab (enables M11-M14) |
+| `pages/run_analysis.py` | Removed `TXN_V4` refs, added ODD file passthrough to TXN pipeline |
+| `pages/data_ingestion.py` | Added ODD upload/path input under Transaction tab (enables M11-M14) |
 | `pages/batch_workflow.py` | "Transaction Base" -> "Transaction Analysis", added ODD file input, passes ODD to TXN |
 | `core/templates.py` | Replaced dead `"V4 Full Storyline"` template (v4_s0-s9 keys) with `"TXN Full Suite"` (all 35 real module keys) |
-| `CLAUDE.md` | Updated session pickup section |
+| `CLAUDE.md` | Updated session pickup |
 
-**Verification:** 2,305 tests pass (excludes 13 pre-existing ARS collection failures), lint clean, 89% coverage.
+### 2c. Merged, Closed, and Cleaned Up
+
+| Action | Detail |
+|--------|--------|
+| Merged PR #18 | ARS CLI crash fix (`chore/consolidate-moving-parts`) |
+| Merged PR #17 | V4 consolidation + UI fixes (`feat/platform-enhancement`) |
+| Closed txn-analysis #5 | "improve dupe id" -- superseded by consolidated merchant_rules |
+| Closed txn-analysis #6 | "merchant top 50 spend" -- covered by M1-M5 |
+| Closed txn-analysis #11 | "ch - viz - comp heavy spend" -- covered by M6 competitor_* |
+| Closed txn-analysis #16 | "comp spend by account" -- covered by M6 + M10 |
+| Commented txn-analysis #10 | "config" -- flagged for migration to monorepo |
+| Commented txn-analysis #13 | "merge competition" -- flagged for migration to monorepo |
+| Commented ars-pipeline #10 | "2.17 run issue" -- flagged for investigation in monorepo context |
+| Deleted 5 local branches | feat/platform-enhancement, feat/v4-consolidation, test/close-coverage-gaps, feat/referral-intelligence-engine, feat/streamlit-ui |
+| Deleted remote branches | feat/platform-enhancement, Gilmore3088-slides-with-scale; pruned 3 others |
+| Updated README.md | Removed all V4 references, updated test counts |
+| Updated CLAUDE.md | Current session pickup with merged state |
 
 ---
 
@@ -89,7 +96,7 @@ Discovered 3 Streamlit pages were crashing because they still referenced `Produc
 ### Repository Map
 
 ```
-analysis_platform/                    GitHub: JG-CSI-Velocity/analysis-platform
+analysis_platform/                    https://github.com/JG-CSI-Velocity/analysis-platform
   packages/
     shared/           640 LOC    Shared types, context, config, chart utils
     ars_analysis/     14,933 LOC ARS pipeline (70+ analyses, PPTX deck)
@@ -112,7 +119,7 @@ analysis_platform/                    GitHub: JG-CSI-Velocity/analysis-platform
 | Source LOC | 44,708 |
 | Test LOC | 21,854 |
 | Total tests collected | 2,318 |
-| Tests passing | 2,305 (13 ARS pre-existing failures) |
+| Tests passing | 2,305 (13 ARS pre-existing collection failures) |
 | Coverage | 89% (16,018 stmts, 1,737 missed) |
 | CI floor | 80% (`--cov-fail-under=80`) |
 | Test time | ~2 min |
@@ -121,10 +128,7 @@ analysis_platform/                    GitHub: JG-CSI-Velocity/analysis-platform
 
 ### Open PRs
 
-| # | Branch | Title | Status |
-|---|--------|-------|--------|
-| 17 | `feat/platform-enhancement` | V4 Consolidation + 186 new tests | OPEN, ready to merge (CURRENT) |
-| 18 | `chore/consolidate-moving-parts` | ARS CLI crash fix + docs | OPEN, ready to merge |
+None. All merged.
 
 ### Open Issues
 
@@ -132,48 +136,41 @@ analysis_platform/                    GitHub: JG-CSI-Velocity/analysis-platform
 
 | # | Title | Notes |
 |---|-------|-------|
-| 14 | Platform App: Wire Pipeline Execution | Tier 4.1 -- biggest remaining feature |
+| 14 | Platform App: Wire Pipeline Execution | Tier 4.1 -- biggest remaining feature. BLOCKS on Tier 3.1 (unified AnalysisResult). |
 
-**txn-analysis (standalone -- superseded by monorepo):**
-
-| # | Title | Disposition |
-|---|-------|-------------|
-| 5 | improve dupe id | CLOSE after PR #17 merge -- covered by consolidated merchant_rules |
-| 6 | merchant top 50 spend | CLOSE after PR #17 merge -- covered by M1-M5 |
-| 10 | config | MIGRATE to monorepo -- config enhancement request |
-| 11 | ch - viz - comp heavy spend | CLOSE after PR #17 merge -- covered by M6 competitor_* |
-| 13 | merge competition | MIGRATE to monorepo -- competitor merge logic |
-| 16 | comp spend by account | CLOSE after PR #17 merge -- covered by M6 competitor_* |
-
-**ars-pipeline (standalone):**
+**txn-analysis (standalone -- superseded, commented for migration):**
 
 | # | Title | Disposition |
 |---|-------|-------------|
-| 10 | 2.17 run issue | INVESTIGATE -- production file path bug, may affect monorepo ARS too |
+| 10 | config | MIGRATE to monorepo -- commented with pointer to `settings.py` |
+| 13 | merge competition | MIGRATE to monorepo -- commented with pointer to M6 competitor_detection |
 
-**ics-analysis, ics-append:** 0 open issues each.
+**ars-pipeline (standalone -- superseded):**
+
+| # | Title | Disposition |
+|---|-------|-------------|
+| 10 | 2.17 run issue | INVESTIGATE -- production file path bug, commented with pointer to `ars_config.py` |
+
+**ics-analysis, ics-append:** 0 open issues. Clean.
 
 ### Standalone Repos
 
 | Repo | Monorepo Package | Status |
 |------|-----------------|--------|
-| `txn-analysis` | `txn_analysis` | Superseded, 6 open issues (4 close, 2 migrate) |
-| `ars-pipeline` | `ars_analysis` | Superseded, 1 open issue (production bug) |
-| `ics-analysis` | `ics_toolkit` | Superseded, clean |
-| `ics-append` | `ics_toolkit` | Superseded, clean |
-| `ils_kickoff_day2` | NOT in monorepo | Standalone OD/NSF tool, 75 tests, 91% coverage |
+| `txn-analysis` | `txn_analysis` | Superseded. 4 issues closed, 2 open (migrate). |
+| `ars-pipeline` | `ars_analysis` | Superseded. 1 open issue (production bug). |
+| `ics-analysis` | `ics_toolkit` | Superseded. Clean. |
+| `ics-append` | `ics_toolkit` | Superseded. Clean. |
+| `ils_kickoff_day2` | NOT in monorepo | Standalone OD/NSF tool, 75 tests, 91% coverage. |
 
 ### Branches
 
-| Branch | Status | Action |
-|--------|--------|--------|
-| `main` | Behind | Merge PRs #18 then #17 into this |
-| `feat/platform-enhancement` | CURRENT, PR #17 | Has uncommitted UI fixes (7 files) |
-| `chore/consolidate-moving-parts` | PR #18 | Ready to merge as-is |
-| `feat/v4-consolidation` | Stale | DELETE after PR #17 merges |
-| `test/close-coverage-gaps` | Stale | DELETE |
-| `feat/referral-intelligence-engine` | Already merged | DELETE |
-| `feat/streamlit-ui` | Already merged | DELETE |
+```
+Local:   main (only)
+Remote:  origin/main (only)
+```
+
+All stale branches deleted.
 
 ---
 
@@ -213,9 +210,9 @@ M14: lifecycle           <- storyline adapter (requires ODD)  (Lifecycle)
 M9:  portfolio_scorecard <- MUST BE LAST                      (Scorecard)
 ```
 
-M11-M14 are thin adapters in `analyses/storyline_adapters.py` that wrap the kept V4 storyline modules (S5/S7/S8/S9). They convert pipeline args to V4 context dict and wrap results back to AnalysisResult. Lazy imports inside function body.
+M11-M14 are thin adapters in `analyses/storyline_adapters.py` that wrap the kept V4 storyline modules (S5/S7/S8/S9). They convert pipeline args to V4 context dict and wrap results back to AnalysisResult. Lazy imports inside function body. Graceful empty result when ODD file not provided.
 
-### 4 Competing AnalysisResult Definitions (NEEDS CONSOLIDATION)
+### 4 Competing AnalysisResult Definitions (NEEDS CONSOLIDATION -- Tier 3.1)
 
 | Location | Package | Notes |
 |----------|---------|-------|
@@ -224,19 +221,19 @@ M11-M14 are thin adapters in `analyses/storyline_adapters.py` that wrap the kept
 | `ics_toolkit.analysis.analyses.base.AnalysisResult` | ics_toolkit | Similar to shared |
 | `txn_analysis.analyses.base.AnalysisResult` | txn_analysis | Similar to shared |
 
-Consolidating these into `shared.types.AnalysisResult` is Tier 3.1 and BLOCKS Tier 4.1 (Platform App wiring).
+Consolidating these into `shared.types.AnalysisResult` is Tier 3.1 and **BLOCKS** Tier 4.1 (Platform App wiring / Issue #14).
 
 ### Streamlit UI Pages
 
 ```
 platform_app/pages/
-  home.py              Dashboard with product cards (ARS/TXN/ICS)
+  home.py              Dashboard with product cards (ARS/TXN/ICS -- 3 products, V4 removed)
   workspace.py         CSM folder + client selection, auto-detect files
-  data_ingestion.py    Upload/path for ODDD, Transaction+ODD, ICS
-  module_library.py    Browse/search/select all analysis modules
+  data_ingestion.py    Upload/path for ODDD, Transaction + ODD (optional), ICS
+  module_library.py    Browse/search/select all analysis modules (3 products)
   config_page.py       Client settings management
-  run_analysis.py      Execute selected modules with progress
-  batch_workflow.py    Queue multiple pipelines sequentially
+  run_analysis.py      Execute selected modules with progress (passes ODD to TXN)
+  batch_workflow.py    Queue multiple pipelines sequentially (passes ODD to TXN)
   results_viewer.py    View results and download
   outputs.py           Output file browser
   history.py           Run history log
@@ -244,7 +241,7 @@ platform_app/pages/
   dashboard.py         KPI overview
 ```
 
-UI is scaffolded but NOT wired to actual pipeline execution (Issue #14).
+UI is scaffolded but **NOT wired** to actual pipeline execution (Issue #14).
 
 ---
 
@@ -254,14 +251,18 @@ UI is scaffolded but NOT wired to actual pipeline execution (Issue #14).
 
 - [x] CI floor raised to 80%
 - [x] Docs updated with current numbers
-- [x] PR #17 V4 consolidation committed and pushed
-- [x] PR #18 ARS CLI fix committed and pushed
+- [x] PR #17 V4 consolidation -- MERGED
+- [x] PR #18 ARS CLI fix -- MERGED
+- [x] 4 txn-analysis issues closed (#5, #6, #11, #16)
+- [x] Stale branches deleted (all of them)
+- [x] Commentary left on all adjusted issues
 
 ### Tier 2: Coverage & Repo Triage -- PARTIAL
 
 - [x] V4 storyline coverage (S7: 95%, S8: 97%)
-- [ ] Close 4 txn-analysis issues superseded by PR #17 (#5, #6, #11, #16)
-- [ ] Migrate 2 txn-analysis issues to monorepo (#10 config, #13 competitor merge)
+- [x] Superseded issues closed with commentary
+- [ ] Migrate txn-analysis #10 (config) to monorepo issue
+- [ ] Migrate txn-analysis #13 (competitor merge) to monorepo issue
 - [ ] Investigate ars-pipeline #10 (production file path bug)
 - [ ] ARS CLI coverage (currently 35% -- 230 lines missed)
 - [ ] Interchange analysis coverage (currently 26% -- 28 lines missed)
@@ -269,8 +270,8 @@ UI is scaffolded but NOT wired to actual pipeline execution (Issue #14).
 ### Tier 3: Architecture Consolidation -- NOT STARTED
 
 - [ ] **3.1 Unified AnalysisResult** -- Collapse 4 definitions into `shared.types.AnalysisResult`. All 3 pipelines import from shared. **BLOCKS Tier 4.1.**
-- [ ] **3.2 Deduplicate helpers** -- `safe_percentage()` exists in both ics_toolkit and txn_analysis. `ConfigError` in ics_toolkit and shared.
-- [ ] **3.3 Decompose Storyline Monoliths** -- Break S5/S7/S8/S9 (267-463 LOC each) into small focused modules. Delete `storylines/` directory entirely.
+- [ ] **3.2 Deduplicate helpers** -- `safe_percentage()` in both ics_toolkit and txn_analysis. `ConfigError` in ics_toolkit and shared.
+- [ ] **3.3 Decompose Storyline Monoliths** -- Break S5/S7/S8/S9 (267-463 LOC each) into small focused modules. Delete `storylines/` directory.
 - [ ] **3.4 Slim oversized files** -- `ics_toolkit/settings.py` (380+ lines)
 
 ### Tier 4: Platform Features -- NOT STARTED
@@ -278,7 +279,7 @@ UI is scaffolded but NOT wired to actual pipeline execution (Issue #14).
 - [ ] **4.1 Wire Pipeline Execution** (Issue #14) -- Connect Streamlit UI to actual pipeline runs. Requires Tier 3.1.
 - [ ] **4.2 Cross-Pipeline Dashboard** -- Unified results viewer across ARS/TXN/ICS
 - [ ] **4.3 Chart Formatting Fixes** -- Spine removal, positioning consistency
-- [ ] **4.4 Reg E Enhancement** -- 5-sprint plan exists in `plans/feat-reg-e-enhancement.md`
+- [ ] **4.4 Reg E Enhancement** -- 5-sprint plan in `plans/feat-reg-e-enhancement.md`
 - [ ] **4.5 PPTX Template System** -- Branded deck generation
 
 ### Tier 5: CI & DevEx Polish -- NOT STARTED
@@ -288,56 +289,25 @@ UI is scaffolded but NOT wired to actual pipeline execution (Issue #14).
 - [ ] Coverage report as PR comment/artifact
 - [ ] User documentation
 
-### Execution Order
+### Execution Order for Next Worker
 
 ```
-IMMEDIATE (before next feature work):
-  1. Commit UI fixes (7 files, this session)
-  2. Push to origin
-  3. Merge PR #18 (ARS CLI fix -- no conflicts)
-  4. Merge PR #17 (V4 consolidation -- the big one)
-  5. Close txn-analysis #5, #6, #11, #16
-  6. Delete stale branches
-
-NEXT WORKER:
-  Tier 3.1 (Unified AnalysisResult)  <-- unblocks everything downstream
-    |
-  Tier 4.1 (Wire Pipeline Execution / Issue #14)
-    |
-  Tier 4.2-4.5 (Features -- can parallel)
-    |
-  Tier 5 (Polish)
+Tier 3.1 (Unified AnalysisResult)  <-- THIS IS THE CRITICAL PATH
+  |
+Tier 4.1 (Wire Pipeline Execution / Issue #14)
+  |
+Tier 3.3 (Decompose Storyline Monoliths)  <-- can parallel with 4.1
+  |
+Tier 4.2-4.5 (Features -- can parallel)
+  |
+Tier 2 remainder (coverage gaps, issue migration)  <-- can parallel anytime
+  |
+Tier 5 (Polish)
 ```
 
 ---
 
-## 6. Uncommitted Changes (ACTION REQUIRED)
-
-There are **7 modified files + 1 untracked** on `feat/platform-enhancement` that need to be committed and pushed before merging PR #17.
-
-```
-modified:   CLAUDE.md
-modified:   packages/platform_app/src/platform_app/core/templates.py
-modified:   packages/platform_app/src/platform_app/pages/batch_workflow.py
-modified:   packages/platform_app/src/platform_app/pages/data_ingestion.py
-modified:   packages/platform_app/src/platform_app/pages/home.py
-modified:   packages/platform_app/src/platform_app/pages/module_library.py
-modified:   packages/platform_app/src/platform_app/pages/run_analysis.py
-untracked:  HANDOFF.md
-```
-
-**What these fix:** Streamlit UI crash (3 pages referenced deleted `Product.TXN_V4` enum), stale V4 template, missing ODD file support in TXN data ingestion/batch/run pages.
-
-**Suggested commit:**
-```bash
-git add CLAUDE.md HANDOFF.md packages/platform_app/
-git commit -m "fix(platform): remove stale TXN_V4 refs from Streamlit UI, add ODD support"
-git push
-```
-
----
-
-## 7. Commands Quick Reference
+## 6. Commands Quick Reference
 
 ```bash
 # Setup
@@ -372,7 +342,7 @@ make fmt           # auto-fix lint + format
 
 ---
 
-## 8. Conventions
+## 7. Conventions
 
 - Conventional commits: `feat(scope):`, `fix(scope):`, `refactor(scope):`
 - Pydantic v2 with `ConfigDict(extra="forbid")` on all settings models
@@ -385,7 +355,7 @@ make fmt           # auto-fix lint + format
 
 ---
 
-## 9. Known Gotchas
+## 8. Known Gotchas
 
 - `callable | None` type hint fails on Python 3.12 -- use `Callable | None` from typing
 - pandas `freq="M"` deprecated -- use `freq="ME"` (month-end)
@@ -394,14 +364,14 @@ make fmt           # auto-fix lint + format
 - ARS suite runners overwrite `ctx["_save_to_excel"]` -- test results/slides, not mock call counts
 - Grand Total rows via `pd.concat` can introduce object dtype -- always `pd.to_numeric(errors="coerce")`
 - Excel `"0.0%"` format auto-multiplies by 100 -- use `'0.0"%"'` when values are already 0-100
-- When deleting modules that are eagerly imported by `__init__.py`, simplify `__init__.py` first to avoid cascade import failures
-- Storyline adapter pattern: thin wrapper converting pipeline args to V4 ctx dict + wrapping result back to AnalysisResult. Lazy imports inside function body avoid cascade.
-- 4 ARS test files fail to collect due to missing `pydantic_settings` at import time -- run `uv sync --all-packages` to fix locally. CI is unaffected.
-- When removing enum values (e.g. `Product.TXN_V4`), grep ALL files including Streamlit pages -- they crash at import time, not at runtime.
+- When deleting modules eagerly imported by `__init__.py`, simplify `__init__.py` first to avoid cascade import failures
+- Storyline adapter pattern: thin wrapper converting pipeline args to V4 ctx dict + wrapping result back to AnalysisResult. Lazy imports inside function body.
+- 4 ARS test files fail to collect (missing `pydantic_settings` at import time) -- run `uv sync --all-packages` to fix locally. CI is unaffected.
+- When removing enum values (e.g. `Product.TXN_V4`), grep ALL files including Streamlit pages -- they crash at import time, not runtime.
 
 ---
 
-## 10. Key Files Reference
+## 9. Key Files Reference
 
 | File | What It Does |
 |------|-------------|
@@ -412,11 +382,20 @@ make fmt           # auto-fix lint + format
 | `packages/txn_analysis/src/txn_analysis/settings.py` | Pydantic Settings with all TXN config |
 | `packages/txn_analysis/src/txn_analysis/charts/builders.py` | 10 generic chart builders (ported from V4) |
 | `packages/txn_analysis/src/txn_analysis/charts/theme.py` | Colors, formatting, `apply_theme()` |
-| `packages/platform_app/src/platform_app/orchestrator.py` | Pipeline dispatcher |
-| `packages/platform_app/src/platform_app/core/module_registry.py` | Unified module registry (ARS+TXN+ICS) |
-| `packages/platform_app/src/platform_app/core/templates.py` | Analysis templates (builtin + user) |
-| `packages/shared/src/shared/types.py` | Canonical `AnalysisResult` (consolidation target) |
-| `.github/workflows/ci.yml` | CI config (lint + test + coverage floor) |
-| `plans/feat-platform-enhancement-roadmap.md` | Full 5-tier roadmap |
-| `plans/feat-reg-e-enhancement.md` | Reg E enhancement plan |
-| `plans/feat-streamlit-platform-ui.md` | Streamlit UI plan |
+| `packages/platform_app/src/platform_app/orchestrator.py` | Pipeline dispatcher (ars, txn, ics, ics_append) |
+| `packages/platform_app/src/platform_app/core/module_registry.py` | Unified module registry (ARS + TXN + ICS) |
+| `packages/platform_app/src/platform_app/core/templates.py` | Analysis templates (builtin + user-saved) |
+| `packages/shared/src/shared/types.py` | Canonical `AnalysisResult` (consolidation target for Tier 3.1) |
+| `.github/workflows/ci.yml` | CI config (lint + test + coverage floor 80%) |
+| `plans/feat-platform-enhancement-roadmap.md` | Full 5-tier roadmap with acceptance criteria |
+| `plans/feat-reg-e-enhancement.md` | Reg E enhancement plan (5 sprints) |
+| `plans/feat-streamlit-platform-ui.md` | Streamlit UI implementation plan |
+
+---
+
+## 10. What the Next Worker Should Do First
+
+1. Read this file and `CLAUDE.md`
+2. Run `make test` to verify green (2,305 should pass)
+3. Start on **Tier 3.1: Unified AnalysisResult** -- this is the critical path that unblocks Issue #14 (Platform App wiring)
+4. After 3.1, pick up **Tier 4.1** (wire Streamlit UI to real pipeline execution)

@@ -13,7 +13,7 @@ analysis_platform/
     ics_toolkit/      ICS pipeline (37 analyses + append + referral intelligence)
     platform_app/     Orchestrator, CLI, and Streamlit UI
   tests/
-    ars/              ARS unit tests (141 tests)
+    ars/              ARS unit tests (545 tests)
     txn/              Transaction unit tests
     ics/              ICS unit tests
     shared/           Shared package unit tests (50 tests)
@@ -51,7 +51,7 @@ uv sync --all-packages
 uv run pytest tests/ -v
 ```
 
-Should see 976 tests pass (~55s on macOS, ~114s on Windows with 100 kaleido tests auto-skipped).
+Should see ~2168 tests pass (~2 min on macOS). Windows auto-skips ~100 kaleido-dependent tests.
 
 ---
 
@@ -269,7 +269,7 @@ uv run pytest tests/ -v
 Run by package:
 
 ```
-uv run pytest tests/ars/ -v              # 141 ARS tests
+uv run pytest tests/ars/ -v              # 545 ARS tests
 uv run pytest tests/txn/ -v              # Transaction tests
 uv run pytest tests/ics/ -v              # ICS tests (incl. 212 referral)
 uv run pytest tests/ics/referral/ -v     # Referral tests only
@@ -285,7 +285,7 @@ make lint    # ruff check + format check
 make fmt     # auto-fix lint + format
 ```
 
-**1431 tests, ~105s runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
+**~2168 tests, ~2 min runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
 
 ## Lint
 
@@ -308,7 +308,7 @@ GitHub Actions workflow runs on push/PR to main:
 - openpyxl -- Excel read/write
 - python-pptx -- PowerPoint generation
 - pydantic + pyyaml -- config validation
-- streamlit -- web UI (landing page; pipeline pages not yet wired)
+- streamlit -- web UI (UAP V2.0 unified dashboard with module registry)
 
 ## Windows Notes
 

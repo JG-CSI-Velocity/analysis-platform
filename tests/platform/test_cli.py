@@ -17,7 +17,7 @@ class TestBuildInputFiles:
         assert result == {"tran": Path("data.csv")}
 
     def test_txn_with_odd(self):
-        result = _build_input_files("txn_v4", Path("tran.csv"), Path("odd.xlsx"), None)
+        result = _build_input_files("txn", Path("tran.csv"), Path("odd.xlsx"), None)
         assert result == {"tran": Path("tran.csv"), "odd": Path("odd.xlsx")}
 
     def test_txn_uses_tran_override(self):

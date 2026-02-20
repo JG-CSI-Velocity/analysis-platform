@@ -11,16 +11,18 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from txn_analysis.v4_themes import (
-    COLORS,
-    apply_theme,
+from txn_analysis.charts.builders import (
     donut_chart,
-    format_currency,
     heatmap,
     insight_title,
     line_trend,
     lollipop_chart,
     waterfall_chart,
+)
+from txn_analysis.charts.theme import (
+    COLORS,
+    apply_theme,
+    format_currency,
 )
 
 

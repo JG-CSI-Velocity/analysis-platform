@@ -45,6 +45,12 @@ from txn_analysis.analyses.personal import (
     analyze_personal_top_by_transactions,
 )
 from txn_analysis.analyses.scorecard import analyze_portfolio_scorecard
+from txn_analysis.analyses.storyline_adapters import (
+    analyze_campaigns,
+    analyze_demographics,
+    analyze_lifecycle,
+    analyze_payroll,
+)
 from txn_analysis.analyses.trends_cohort import analyze_new_vs_declining
 from txn_analysis.analyses.trends_consistency import analyze_spending_consistency
 from txn_analysis.analyses.trends_growth import analyze_growth_leaders_decliners
@@ -104,6 +110,14 @@ ANALYSIS_REGISTRY: list[tuple[str, AnalysisFunc]] = [
     ("interchange_summary", analyze_interchange_summary),
     # M10: Member Segmentation (before M9 scorecard)
     ("member_segments", analyze_member_segments),
+    # M11: Demographics & Branch (requires ODD)
+    ("demographics", analyze_demographics),
+    # M12: Campaign Effectiveness (requires ODD campaign columns)
+    ("campaigns", analyze_campaigns),
+    # M13: Payroll & Circular Economy
+    ("payroll", analyze_payroll),
+    # M14: Lifecycle Management (requires ODD)
+    ("lifecycle", analyze_lifecycle),
     # M9: Scorecard (MUST be last -- reads completed_results from all prior analyses)
     ("portfolio_scorecard", analyze_portfolio_scorecard),
 ]
@@ -113,16 +127,22 @@ def run_all_analyses(
     df: pd.DataFrame,
     settings: Settings,
     on_progress: Callable[[str], None] | None = None,
+    odd_df: pd.DataFrame | None = None,
 ) -> list[AnalysisResult]:
     """Execute every registered analysis and return results.
 
     Failed analyses produce an AnalysisResult with error set (no crash).
     Populates context['completed_results'] so downstream analyses (M7B, M9)
     can read prior results without re-running expensive computations.
+
+    The optional *odd_df* (account-level demographics) is stored in
+    ``context["odd_df"]`` for analyses that require ODD enrichment.
     """
     business_df = df[df["business_flag"] == "Yes"]
     personal_df = df[df["business_flag"] == "No"]
     context: dict = {"completed_results": {}}
+    if odd_df is not None:
+        context["odd_df"] = odd_df
     results: list[AnalysisResult] = []
 
     for name, func in ANALYSIS_REGISTRY:

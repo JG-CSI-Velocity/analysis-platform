@@ -52,7 +52,7 @@ class TestConvertResults:
 class TestRunTxnMissingFile:
     def test_raises_without_input_file(self):
         ctx = PipelineContext(output_dir=Path("/tmp/test"))
-        with pytest.raises(FileNotFoundError, match="No 'tran' or 'odd' input file"):
+        with pytest.raises(FileNotFoundError, match="No 'tran' or 'txn_dir'"):
             from txn_analysis.runner import run_txn
 
             run_txn(ctx)

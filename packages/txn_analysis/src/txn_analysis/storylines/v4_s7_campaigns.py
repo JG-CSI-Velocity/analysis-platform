@@ -11,16 +11,18 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from txn_analysis.v4_themes import (
+from txn_analysis.charts.builders import (
+    donut_chart,
+    grouped_bar,
+    horizontal_bar,
+    insight_title,
+)
+from txn_analysis.charts.theme import (
     CATEGORY_PALETTE,
     COLORS,
     GENERATION_COLORS,
     apply_theme,
-    donut_chart,
     format_currency,
-    grouped_bar,
-    horizontal_bar,
-    insight_title,
 )
 
 _MAIL_RE = re.compile(r"^[A-Z][a-z]{2}\d{2} Mail$")

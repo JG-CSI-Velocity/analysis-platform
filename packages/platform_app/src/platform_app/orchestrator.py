@@ -11,7 +11,7 @@ from shared.types import AnalysisResult
 
 logger = logging.getLogger(__name__)
 
-PIPELINE_NAMES = ("ars", "txn", "txn_v4", "ics", "ics_append")
+PIPELINE_NAMES = ("ars", "txn", "ics", "ics_append")
 
 
 def run_pipeline(
@@ -29,7 +29,7 @@ def run_pipeline(
     Parameters
     ----------
     pipeline : str
-        One of 'ars', 'txn', 'txn_v4', 'ics', 'ics_append'.
+        One of 'ars', 'txn', 'ics', 'ics_append'.
     input_files : dict
         Mapping of file role to Path (e.g. {"oddd": Path("..."), "tran": Path("...")}).
     output_dir : Path
@@ -68,10 +68,6 @@ def run_pipeline(
         from txn_analysis.runner import run_txn
 
         return run_txn(ctx)
-    elif pipeline == "txn_v4":
-        from txn_analysis.runner import run_txn_v4
-
-        return run_txn_v4(ctx)
     elif pipeline == "ics":
         from ics_toolkit.runner import run_ics
 
@@ -138,10 +134,8 @@ def _detect_pipelines(input_files: dict[str, Path]) -> list[str]:
     pipelines = []
     if "oddd" in input_files:
         pipelines.append("ars")
-    if "tran" in input_files:
+    if "tran" in input_files or ("txn_dir" in input_files and "odd" in input_files):
         pipelines.append("txn")
-    if "txn_dir" in input_files and "odd" in input_files:
-        pipelines.append("txn_v4")
     if "ics" in input_files:
         pipelines.append("ics")
     return pipelines

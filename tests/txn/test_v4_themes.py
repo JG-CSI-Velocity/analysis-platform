@@ -6,19 +6,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from txn_analysis.v4_themes import (
-    CATEGORY_PALETTE,
-    COLORS,
-    COMPETITOR_COLORS,
-    FONT_FAMILY,
-    GENERATION_COLORS,
+from txn_analysis.charts.builders import (
     add_source_footer,
-    apply_theme,
     bullet_chart,
     donut_chart,
-    ensure_theme,
-    format_currency,
-    format_pct,
     grouped_bar,
     heatmap,
     horizontal_bar,
@@ -28,6 +19,17 @@ from txn_analysis.v4_themes import (
     scatter_plot,
     stacked_bar,
     waterfall_chart,
+)
+from txn_analysis.charts.theme import (
+    CATEGORY_PALETTE,
+    COLORS,
+    COMPETITOR_COLORS,
+    FONT_FAMILY,
+    GENERATION_COLORS,
+    apply_theme,
+    ensure_theme,
+    format_currency,
+    format_pct,
 )
 
 

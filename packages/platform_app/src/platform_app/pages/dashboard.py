@@ -71,11 +71,7 @@ def _render_inner() -> None:
             {"label": "ARS Runs", "value": str(pipeline_counts.get("ars", 0))},
             {
                 "label": "TXN/ICS Runs",
-                "value": str(
-                    pipeline_counts.get("txn", 0)
-                    + pipeline_counts.get("txn_v4", 0)
-                    + pipeline_counts.get("ics", 0)
-                ),
+                "value": str(pipeline_counts.get("txn", 0) + pipeline_counts.get("ics", 0)),
             },
         ]
     )

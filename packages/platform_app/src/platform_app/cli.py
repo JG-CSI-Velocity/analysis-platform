@@ -14,9 +14,9 @@ app = typer.Typer(
 
 @app.command()
 def run(
-    pipeline: str = typer.Argument(help="Pipeline to run: ars, txn, txn_v4, ics, ics_append"),
+    pipeline: str = typer.Argument(help="Pipeline to run: ars, txn, ics, ics_append"),
     data_file: Path = typer.Argument(help="Primary data file path"),
-    odd_file: Path | None = typer.Option(None, "--odd", help="ODD file (for txn_v4, ars)"),
+    odd_file: Path | None = typer.Option(None, "--odd", help="ODD file (for txn, ars)"),
     tran_file: Path | None = typer.Option(None, "--tran", help="Transaction file (for txn)"),
     output_dir: Path = typer.Option("output", "--output", "-o", help="Output directory"),
     client_id: str = typer.Option("", "--client-id", help="Client identifier"),
@@ -112,7 +112,7 @@ def _build_input_files(
     files: dict[str, Path] = {}
     if pipeline == "ars":
         files["oddd"] = data_file
-    elif pipeline in ("txn", "txn_v4"):
+    elif pipeline == "txn":
         files["tran"] = tran_file or data_file
         if odd_file:
             files["odd"] = odd_file

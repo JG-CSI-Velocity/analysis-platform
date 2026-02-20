@@ -1,4 +1,8 @@
-"""End-to-end integration test: V4 Transaction Storyline pipeline."""
+"""End-to-end integration test: Transaction pipeline with ODD enrichment.
+
+After V4 consolidation, the main txn pipeline handles both single-file
+and transaction-dir+ODD workflows via run_txn().
+"""
 
 from __future__ import annotations
 
@@ -7,90 +11,48 @@ from pathlib import Path
 from shared.types import AnalysisResult as SharedResult
 
 
-class TestTxnV4PipelineE2E:
-    """Run the V4 storyline pipeline with synthetic data."""
+class TestTxnWithOddE2E:
+    """Run the unified transaction pipeline with ODD data."""
 
-    def test_v4_runner_direct(
+    def test_run_txn_with_txn_dir(
         self,
-        v4_config_yaml: Path,
         v4_txn_dir: Path,
         v4_odd_xlsx: Path,
         integration_output_dir: Path,
     ):
-        """Run the V4 pipeline directly via txn_analysis.runner."""
+        """Run via run_txn() with txn_dir + odd inputs."""
         from shared.context import PipelineContext
-        from txn_analysis.runner import run_txn_v4
+        from txn_analysis.runner import run_txn
 
         ctx = PipelineContext(
             client_id="9999",
             client_name="Test CU",
             input_files={
-                "tran": v4_txn_dir,
+                "txn_dir": v4_txn_dir,
                 "odd": v4_odd_xlsx,
-                "v4_config": v4_config_yaml,
             },
             output_dir=integration_output_dir,
         )
 
-        results = run_txn_v4(ctx)
+        results = run_txn(ctx)
         assert isinstance(results, dict)
-        assert len(results) > 0, "V4 pipeline should produce storyline results"
+        assert len(results) > 0, "Pipeline should produce analysis results"
 
         for name, ar in results.items():
             assert isinstance(ar, SharedResult), f"{name} is not SharedResult"
 
-    def test_produces_excel_and_html(
+    def test_run_txn_missing_both_inputs(
         self,
-        v4_config_yaml: Path,
-        v4_txn_dir: Path,
-        v4_odd_xlsx: Path,
         integration_output_dir: Path,
     ):
-        """V4 pipeline should produce Excel and HTML reports."""
+        """Should raise when neither tran nor txn_dir provided."""
+        import pytest
+
         from shared.context import PipelineContext
-        from txn_analysis.runner import run_txn_v4
+        from txn_analysis.runner import run_txn
 
         ctx = PipelineContext(
-            client_id="9999",
-            client_name="Test CU",
-            input_files={
-                "tran": v4_txn_dir,
-                "odd": v4_odd_xlsx,
-                "v4_config": v4_config_yaml,
-            },
             output_dir=integration_output_dir,
         )
-
-        run_txn_v4(ctx)
-
-        xlsx_files = list(integration_output_dir.rglob("*.xlsx"))
-        html_files = list(integration_output_dir.rglob("*.html"))
-        assert len(xlsx_files) > 0, "Should produce Excel output"
-        assert len(html_files) > 0, "Should produce HTML dashboard"
-
-    def test_progress_callback(
-        self,
-        v4_config_yaml: Path,
-        v4_txn_dir: Path,
-        v4_odd_xlsx: Path,
-        integration_output_dir: Path,
-    ):
-        from shared.context import PipelineContext
-        from txn_analysis.runner import run_txn_v4
-
-        messages = []
-        ctx = PipelineContext(
-            client_id="9999",
-            client_name="Test CU",
-            input_files={
-                "tran": v4_txn_dir,
-                "odd": v4_odd_xlsx,
-                "v4_config": v4_config_yaml,
-            },
-            output_dir=integration_output_dir,
-            progress_callback=lambda msg: messages.append(msg),
-        )
-
-        run_txn_v4(ctx)
-        assert len(messages) > 0, "Progress callback should be called"
-        assert any("V4" in m for m in messages), "Messages should mention V4"
+        with pytest.raises(FileNotFoundError, match="No 'tran' or 'txn_dir'"):
+            run_txn(ctx)

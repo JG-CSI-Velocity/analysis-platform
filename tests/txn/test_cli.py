@@ -39,4 +39,4 @@ class TestCLI:
 
     def test_analyses_count_in_output(self, sample_csv_path, tmp_path):
         result = runner.invoke(app, [str(sample_csv_path), "--output-dir", str(tmp_path)])
-        assert "31" in result.output
+        assert "35" in result.output

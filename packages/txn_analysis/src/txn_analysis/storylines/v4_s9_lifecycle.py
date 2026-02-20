@@ -14,7 +14,6 @@ import plotly.graph_objects as go
 from txn_analysis.v4_themes import (
     COLORS,
     apply_theme,
-    bullet_chart,
     donut_chart,
     format_currency,
     heatmap,
@@ -490,15 +489,31 @@ def _stage5_daily_banking(odd, df, sections, sheets):
         ]
     )
 
-    bench_fig = apply_theme(
-        bullet_chart(
-            benchmark,
-            "Metric",
-            "This CU",
-            "PULSE 2024",
-            "Performance vs PULSE 2024 Benchmark",
+    bench_fig = go.Figure()
+    for _, row in benchmark.iterrows():
+        bench_fig.add_trace(
+            go.Bar(
+                x=[row["Metric"]],
+                y=[row["This CU"]],
+                name="This CU",
+                marker_color=COLORS["primary"],
+                showlegend=False,
+            )
         )
+        bench_fig.add_trace(
+            go.Bar(
+                x=[row["Metric"]],
+                y=[row["PULSE 2024"]],
+                name="PULSE 2024",
+                marker_color=COLORS["neutral"],
+                showlegend=False,
+            )
+        )
+    bench_fig.update_layout(
+        title="Performance vs PULSE 2024 Benchmark",
+        barmode="group",
     )
+    bench_fig = apply_theme(bench_fig)
 
     primary_count = int(
         class_dist.loc[class_dist["Classification"] == "Primary (60+)", "Accounts"].sum()
@@ -778,14 +793,7 @@ def _stage8_attrition(odd, df, sections, sheets):
         values.append(int(row["Accounts"].iloc[0]) if not row.empty else 0)
 
     wf_df = pd.DataFrame({"Stage": labels, "Accounts": values})
-    wf_fig = apply_theme(
-        waterfall_chart(
-            wf_df,
-            "Stage",
-            "Accounts",
-            "Lifecycle Classification Waterfall",
-        )
-    )
+    wf_fig = apply_theme(waterfall_chart(labels, values, "Lifecycle Classification Waterfall"))
 
     # Attrition by generation heatmap
     hm_fig = None

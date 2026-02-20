@@ -429,7 +429,7 @@ def _tenure_analysis(odd, df):
     bucket_stats = (
         odd.groupby("Tenure Bucket", observed=True)
         .agg(
-            accounts=("primary_account_num", "nunique"),
+            accounts=("Acct Number", "nunique"),
         )
         .reset_index()
     )

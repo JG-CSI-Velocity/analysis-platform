@@ -488,7 +488,7 @@ def donut_chart(
 
     # Slight pull on the largest slice
     pull_values = [0.0] * len(values)
-    if values:
+    if len(values) > 0:
         max_idx = max(range(len(values)), key=lambda i: values[i])
         pull_values[max_idx] = 0.04
 

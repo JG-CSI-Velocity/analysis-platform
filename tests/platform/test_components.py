@@ -182,7 +182,6 @@ class TestModuleRegistry:
 
         assert Product.ARS == "ars"
         assert Product.TXN == "txn"
-        assert Product.TXN_V4 == "txn_v4"
         assert Product.ICS == "ics"
 
     def test_get_modules_by_product(self):

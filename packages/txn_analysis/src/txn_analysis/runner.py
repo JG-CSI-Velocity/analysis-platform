@@ -14,21 +14,35 @@ logger = logging.getLogger(__name__)
 def run_txn(ctx: PipelineContext) -> dict[str, SharedResult]:
     """Run all transaction analyses via PipelineContext bridge.
 
+    Supports two input modes:
+      - Single file: ctx.input_files["tran"] (CSV/Excel)
+      - Transaction dir + ODD: ctx.input_files["txn_dir"] + ctx.input_files["odd"]
+
     Converts PipelineContext -> Settings -> run_pipeline -> SharedResult dict.
     """
     from txn_analysis.pipeline import export_outputs, run_pipeline
     from txn_analysis.settings import Settings
 
-    data_file = ctx.input_files.get("tran") or ctx.input_files.get("odd")
-    if not data_file:
-        raise FileNotFoundError("No 'tran' or 'odd' input file in PipelineContext")
+    data_file = ctx.input_files.get("tran")
+    txn_dir = ctx.input_files.get("txn_dir")
+    odd_file = ctx.input_files.get("odd")
 
-    settings = Settings.from_args(
-        data_file=Path(data_file),
-        output_dir=ctx.output_dir,
-        client_id=ctx.client_id or None,
-        client_name=ctx.client_name or None,
-    )
+    if not data_file and not txn_dir:
+        raise FileNotFoundError("No 'tran' or 'txn_dir' input file in PipelineContext")
+
+    kwargs: dict = {
+        "output_dir": ctx.output_dir,
+        "client_id": ctx.client_id or None,
+        "client_name": ctx.client_name or None,
+    }
+    if data_file:
+        kwargs["data_file"] = Path(data_file)
+    if txn_dir:
+        kwargs["transaction_dir"] = Path(txn_dir)
+    if odd_file:
+        kwargs["odd_file"] = Path(odd_file)
+
+    settings = Settings(**kwargs)
 
     def _progress_bridge(step: int, total: int, msg: str) -> None:
         if ctx.progress_callback:
@@ -55,55 +69,6 @@ def run_txn_from_settings(
     return _convert_results(result.analyses)
 
 
-def run_txn_v4(ctx: PipelineContext) -> dict[str, SharedResult]:
-    """Run V4 storyline analyses via PipelineContext bridge.
-
-    This runs the txnv3 storyline pipeline (S1-S9, 99+ analyses) which
-    requires a transaction directory (txn_dir) and an ODD file (odd).
-    """
-    from txn_analysis.v4_data_loader import load_config
-    from txn_analysis.v4_run import run_pipeline as v4_run_pipeline
-
-    config_file = ctx.input_files.get("v4_config")
-    if config_file:
-        config = load_config(str(config_file))
-    else:
-        config = {}
-
-    # Override config with PipelineContext values
-    if ctx.output_dir:
-        config["output_dir"] = str(ctx.output_dir)
-    if ctx.client_id:
-        config["client_id"] = ctx.client_id
-    if ctx.client_name:
-        config["client_name"] = ctx.client_name
-
-    # Set data paths from PipelineContext input_files
-    # V4 expects a directory of CSV/TXT files, not a single file
-    txn_dir = ctx.input_files.get("txn_dir")
-    odd_file = ctx.input_files.get("odd")
-    file_ext = ctx.client_config.get("file_extension", "csv")
-    if txn_dir:
-        config["transaction_dir"] = str(txn_dir)
-    if odd_file:
-        config["odd_file"] = str(odd_file)
-    if file_ext:
-        config["file_extension"] = file_ext
-
-    if not config.get("transaction_dir"):
-        raise FileNotFoundError("No 'txn_dir' input in PipelineContext for V4 pipeline")
-
-    def _progress_bridge(step: int, total: int, msg: str) -> None:
-        if ctx.progress_callback:
-            ctx.progress_callback(f"[V4 {step}/{total}] {msg}")
-
-    results, excel_path, html_path = v4_run_pipeline(
-        config,
-        progress_cb=_progress_bridge,
-    )
-    return _convert_v4_results(results)
-
-
 def _convert_results(analyses: list) -> dict[str, SharedResult]:
     """Convert txn_analysis AnalysisResult list to shared AnalysisResult dict."""
     results: dict[str, SharedResult] = {}
@@ -119,35 +84,6 @@ def _convert_results(analyses: list) -> dict[str, SharedResult]:
             name=ar.name,
             data={"main": ar.df},
             summary=ar.title,
-            metadata=meta,
-        )
-    return results
-
-
-def _convert_v4_results(storyline_results: dict) -> dict[str, SharedResult]:
-    """Convert V4 storyline results to shared AnalysisResult dict.
-
-    V4 results are keyed by storyline ID (e.g. "s1_portfolio") and each
-    contains sections with figures and tables.
-    """
-    results: dict[str, SharedResult] = {}
-    for key, sr in storyline_results.items():
-        data = {}
-        for i, sheet in enumerate(sr.get("sheets", [])):
-            sheet_name = sheet.get("name", f"sheet_{i}")
-            data[sheet_name] = sheet["df"]
-
-        meta = {
-            "title": sr.get("title", key),
-            "description": sr.get("description", ""),
-            "section_count": len(sr.get("sections", [])),
-            "chart_count": sum(len(s.get("figures", [])) for s in sr.get("sections", [])),
-        }
-
-        results[key] = SharedResult(
-            name=key,
-            data=data,
-            summary=sr.get("title", key),
             metadata=meta,
         )
     return results

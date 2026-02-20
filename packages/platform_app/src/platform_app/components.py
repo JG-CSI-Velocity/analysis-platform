@@ -56,11 +56,10 @@ def pipeline_selector() -> str:
     """Pipeline selection radio button. Returns pipeline key."""
     return st.radio(
         "Pipeline",
-        ["ars", "txn", "txn_v4", "ics"],
+        ["ars", "txn", "ics"],
         format_func={
             "ars": "ARS Analysis",
-            "txn": "Transaction (Base)",
-            "txn_v4": "Transaction (V4)",
+            "txn": "Transaction Analysis",
             "ics": "ICS Analysis",
         }.get,
         horizontal=True,
@@ -69,10 +68,9 @@ def pipeline_selector() -> str:
 
 PIPELINE_FILE_ROLES: dict[str, list[dict]] = {
     "ars": [{"role": "oddd", "label": "ODD File (.xlsx)", "types": ["xlsx", "xls", "csv"]}],
-    "txn": [{"role": "tran", "label": "Transaction File (.csv)", "types": ["csv", "xlsx"]}],
-    "txn_v4": [
-        {"role": "txn_dir", "label": "Transaction Directory", "types": ["csv"]},
-        {"role": "odd", "label": "ODD File (.xlsx)", "types": ["xlsx", "xls"]},
+    "txn": [
+        {"role": "tran", "label": "Transaction File (.csv)", "types": ["csv", "xlsx"]},
+        {"role": "odd", "label": "ODD File (.xlsx, optional)", "types": ["xlsx", "xls"]},
     ],
     "ics": [{"role": "ics", "label": "ICS Data File (.xlsx)", "types": ["xlsx", "csv"]}],
 }

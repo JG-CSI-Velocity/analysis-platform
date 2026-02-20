@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 class Product(StrEnum):
     ARS = "ars"
     TXN = "txn"
-    TXN_V4 = "txn_v4"
     ICS = "ics"
 
 
@@ -282,6 +281,14 @@ _TXN_MODULES: list[tuple[str, str, str, tuple[str, ...], int]] = [
     ("interchange_summary", "Revenue", "Interchange revenue breakdown", (), 29),
     # M10: Member Segmentation
     ("member_segments", "Segmentation", "Member activity segmentation", (), 30),
+    # M11: Demographics & Branch Performance (requires ODD)
+    ("demographics", "Demographics", "Demographics & Branch Performance", (), 31),
+    # M12: Campaign Effectiveness (requires ODD campaign columns)
+    ("campaigns", "Campaigns", "Campaign Effectiveness", (), 32),
+    # M13: Payroll & Circular Economy
+    ("payroll", "Payroll", "Payroll & Circular Economy", (), 33),
+    # M14: Lifecycle Management (requires ODD)
+    ("lifecycle", "Lifecycle", "Lifecycle Management", (), 34),
     # M9: Scorecard (MUST be last -- reads all prior results)
     (
         "portfolio_scorecard",
@@ -290,23 +297,6 @@ _TXN_MODULES: list[tuple[str, str, str, tuple[str, ...], int]] = [
         ("txn_interchange_summary", "txn_member_segments"),
         99,
     ),
-]
-
-# V4 storylines: (category, description, depends_on, run_order)
-# S3 sets ctx["s3_tagged_df"] + ctx["s3_competitor_df"] read by S3b/S3c
-_V4_STORYLINES: list[tuple[str, str, str, tuple[str, ...], int]] = [
-    ("s0", "Executive", "Executive Summary", (), 0),
-    ("s1", "Health", "Portfolio Health", (), 1),
-    ("s2", "Merchant", "Merchant Intelligence", (), 2),
-    ("s3", "Competition", "Competitive Landscape", (), 3),
-    ("s3b", "Competition", "Threat Intelligence", ("v4_s3",), 4),
-    ("s3c", "Segmentation", "Account Segmentation", ("v4_s3",), 5),
-    ("s4", "Financial", "Financial Services", (), 6),
-    ("s5", "Demographics", "Demographics & Branches", (), 7),
-    ("s6", "Risk", "Risk & Balance", (), 8),
-    ("s7", "Campaigns", "Campaign Effectiveness", (), 9),
-    ("s8", "Payroll", "Payroll & Circular Economy", (), 10),
-    ("s9", "Lifecycle", "Lifecycle Management", (), 11),
 ]
 
 
@@ -353,22 +343,6 @@ def build_registry() -> list[ModuleInfo]:
                 description=desc,
                 output_types=("excel", "png"),
                 tags=(category.lower(),),
-                depends_on=deps,
-                run_order=order,
-            )
-        )
-
-    # TXN V4
-    for key, category, desc, deps, order in _V4_STORYLINES:
-        modules.append(
-            ModuleInfo(
-                key=f"v4_{key}",
-                name=f"{key.upper()}: {desc}",
-                product=Product.TXN_V4,
-                category=category,
-                description=desc,
-                output_types=("excel", "html"),
-                tags=(category.lower(), "storyline"),
                 depends_on=deps,
                 run_order=order,
             )

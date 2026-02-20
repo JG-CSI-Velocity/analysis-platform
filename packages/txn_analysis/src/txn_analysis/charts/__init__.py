@@ -9,6 +9,18 @@ from pathlib import Path
 import plotly.graph_objects as go
 
 from txn_analysis.analyses.base import AnalysisResult
+from txn_analysis.charts.builders import (  # noqa: F401 -- re-export
+    bullet_chart,
+    donut_chart,
+    grouped_bar,
+    heatmap,
+    horizontal_bar,
+    line_trend,
+    lollipop_chart,
+    scatter_plot,
+    stacked_bar,
+    waterfall_chart,
+)
 from txn_analysis.charts.business import (
     chart_business_top_by_accounts,
     chart_business_top_by_spend,

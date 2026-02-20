@@ -53,7 +53,7 @@ class ClientWorkspace:
         if self.has_ars_data:
             pipelines.append("ars")
         if self.has_txn_data:
-            pipelines.extend(["txn", "txn_v4"])
+            pipelines.append("txn")
         if self.has_ics_data:
             pipelines.append("ics")
         return pipelines

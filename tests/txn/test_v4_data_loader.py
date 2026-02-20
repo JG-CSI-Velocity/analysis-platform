@@ -1,4 +1,4 @@
-"""Tests for txn_analysis.v4_data_loader -- helper functions and constants."""
+"""Tests for data_loader helpers ported from V4 -- constants, ODD enrichment, dir scanning."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from txn_analysis.v4_data_loader import (
+from txn_analysis.data_loader import (
     BALANCE_TIERS,
     GENERATION_BINS,
     ODD_TIMESERIES_PATTERNS,
@@ -17,8 +17,7 @@ from txn_analysis.v4_data_loader import (
     _detect_timeseries_columns,
     _is_year_folder,
     _parse_file_date,
-    load_config,
-    merge_data,
+    merge_odd,
 )
 
 
@@ -172,20 +171,7 @@ class TestDetectTimeseriesColumns:
         assert "sig_dollar" in result
 
 
-class TestLoadConfig:
-    def test_valid_yaml(self, tmp_path):
-        cfg = tmp_path / "config.yaml"
-        cfg.write_text("client_id: '1234'\nclient_name: 'Test CU'\n")
-        result = load_config(str(cfg))
-        assert result["client_id"] == "1234"
-        assert result["client_name"] == "Test CU"
-
-    def test_missing_file(self, tmp_path):
-        with pytest.raises(FileNotFoundError):
-            load_config(str(tmp_path / "nope.yaml"))
-
-
-class TestMergeData:
+class TestMergeOdd:
     def test_basic_merge(self):
         txn = pd.DataFrame(
             {
@@ -201,7 +187,7 @@ class TestMergeData:
                 "Avg Bal": [5000, 200],
             }
         )
-        combined, biz, personal = merge_data(txn, odd)
+        combined, biz, personal = merge_odd(txn, odd)
         assert len(combined) == 3
         assert len(biz) == 2
         assert len(personal) == 1
@@ -214,6 +200,6 @@ class TestMergeData:
             }
         )
         odd = pd.DataFrame({"Acct Number": ["A001"]})
-        combined, biz, personal = merge_data(txn, odd)
+        combined, biz, personal = merge_odd(txn, odd)
         assert len(biz) == 0
         assert len(personal) == 1

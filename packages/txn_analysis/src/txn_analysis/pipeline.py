@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 
 from txn_analysis.analyses import run_all_analyses
 from txn_analysis.analyses.base import AnalysisResult
-from txn_analysis.data_loader import load_data
+from txn_analysis.data_loader import load_data, load_odd
 from txn_analysis.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -44,11 +44,12 @@ def run_pipeline(
     if on_progress:
         on_progress(0, 3, "Loading data...")
     df = load_data(settings)
+    odd_df = load_odd(settings)
 
     # Step 2: Run analyses
     if on_progress:
         on_progress(1, 3, "Running analyses...")
-    analyses = run_all_analyses(df, settings)
+    analyses = run_all_analyses(df, settings, odd_df=odd_df)
     successful = [a for a in analyses if a.error is None]
     failed = [a for a in analyses if a.error is not None]
     if failed:

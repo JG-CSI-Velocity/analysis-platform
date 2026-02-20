@@ -1,11 +1,11 @@
-"""Tests for txn_analysis.v4_merchant_rules -- merchant name consolidation."""
+"""Tests for txn_analysis.merchant_rules -- merchant name consolidation."""
 
 from __future__ import annotations
 
 import pandas as pd
 import pytest
 
-from txn_analysis.v4_merchant_rules import (
+from txn_analysis.merchant_rules import (
     apply_merchant_consolidation,
     standardize_merchant_name,
 )

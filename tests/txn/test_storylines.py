@@ -1,4 +1,4 @@
-"""Tests for txn_analysis storyline modules and V4 runner."""
+"""Tests for txn_analysis storyline adapters and module structure."""
 
 from __future__ import annotations
 
@@ -8,60 +8,66 @@ import pandas as pd
 import pytest
 
 
-class TestStorylineRegistry:
-    """Test the storyline registry and module structure."""
+class TestStorylineAdapters:
+    """Test the storyline adapter functions in ANALYSIS_REGISTRY."""
 
-    def test_registry_has_all_storylines(self):
-        from txn_analysis.storylines import STORYLINE_REGISTRY
+    def test_registry_has_storyline_adapters(self):
+        from txn_analysis.analyses import ANALYSIS_REGISTRY
 
-        keys = [k for k, _ in STORYLINE_REGISTRY]
-        assert len(keys) == 11
-        expected = [
-            "s1_portfolio",
-            "s2_merchant",
-            "s3_competition",
-            "s3b_threats",
-            "s3c_segmentation",
-            "s4_finserv",
-            "s5_demographics",
-            "s6_risk",
-            "s7_campaigns",
-            "s8_payroll",
-            "s9_lifecycle",
-        ]
-        assert keys == expected
+        names = [name for name, _ in ANALYSIS_REGISTRY]
+        assert "demographics" in names
+        assert "campaigns" in names
+        assert "payroll" in names
+        assert "lifecycle" in names
 
-    def test_all_storyline_modules_have_run(self):
-        from txn_analysis.storylines import STORYLINE_REGISTRY
+    def test_adapters_are_callable(self):
+        from txn_analysis.analyses.storyline_adapters import (
+            analyze_campaigns,
+            analyze_demographics,
+            analyze_lifecycle,
+            analyze_payroll,
+        )
 
-        for key, module in STORYLINE_REGISTRY:
-            assert hasattr(module, "run"), f"{key} module missing run()"
-            assert callable(module.run), f"{key}.run is not callable"
+        assert callable(analyze_demographics)
+        assert callable(analyze_campaigns)
+        assert callable(analyze_payroll)
+        assert callable(analyze_lifecycle)
 
-    def test_storyline_modules_importable(self):
-        modules = [
-            "txn_analysis.storylines.v4_s1_portfolio_health",
-            "txn_analysis.storylines.v4_s2_merchant_intel",
-            "txn_analysis.storylines.v4_s3_competition",
-            "txn_analysis.storylines.v4_s3_threat_analysis",
-            "txn_analysis.storylines.v4_s3_segmentation",
-            "txn_analysis.storylines.v4_s4_finserv",
+    def test_registry_count(self):
+        from txn_analysis.analyses import ANALYSIS_REGISTRY
+
+        assert len(ANALYSIS_REGISTRY) == 35
+
+    def test_scorecard_is_last(self):
+        from txn_analysis.analyses import ANALYSIS_REGISTRY
+
+        last_name, _ = ANALYSIS_REGISTRY[-1]
+        assert last_name == "portfolio_scorecard"
+
+
+class TestStorylineModulesImportable:
+    """Test that kept storyline modules are importable with run()."""
+
+    @pytest.mark.parametrize(
+        "mod_name",
+        [
             "txn_analysis.storylines.v4_s5_demographics",
-            "txn_analysis.storylines.v4_s6_risk",
             "txn_analysis.storylines.v4_s7_campaigns",
             "txn_analysis.storylines.v4_s8_payroll",
             "txn_analysis.storylines.v4_s9_lifecycle",
-        ]
-        for mod_name in modules:
-            mod = importlib.import_module(mod_name)
-            assert hasattr(mod, "run")
+        ],
+    )
+    def test_module_has_run(self, mod_name):
+        mod = importlib.import_module(mod_name)
+        assert hasattr(mod, "run")
+        assert callable(mod.run)
 
 
-class TestV4SupportModules:
-    """Test V4 support modules import and expose expected API."""
+class TestSupportModules:
+    """Test shared support modules import and expose expected API."""
 
-    def test_v4_themes_imports(self):
-        from txn_analysis.v4_themes import (
+    def test_chart_theme_imports(self):
+        from txn_analysis.charts.theme import (
             CATEGORY_PALETTE,
             COLORS,
             apply_theme,
@@ -73,112 +79,65 @@ class TestV4SupportModules:
         assert callable(apply_theme)
         assert callable(format_currency)
 
-    def test_v4_merchant_rules_imports(self):
-        from txn_analysis.v4_merchant_rules import standardize_merchant_name
+    def test_merchant_rules_imports(self):
+        from txn_analysis.merchant_rules import standardize_merchant_name
 
         assert callable(standardize_merchant_name)
 
-    def test_v4_data_loader_imports(self):
-        from txn_analysis.v4_data_loader import load_all, load_config
+    def test_data_loader_imports(self):
+        from txn_analysis.data_loader import load_data, load_odd
 
-        assert callable(load_config)
-        assert callable(load_all)
-
-    def test_v4_html_report_imports(self):
-        from txn_analysis.v4_html_report import build_kpi_html
-
-        assert callable(build_kpi_html)
-
-    def test_v4_excel_report_imports(self):
-        from txn_analysis.v4_excel_report import generate_excel_report
-
-        assert callable(generate_excel_report)
-
-    def test_v4_run_imports(self):
-        from txn_analysis.v4_run import (
-            ALL_STORYLINES,
-            STORYLINE_LABELS,
-            run_pipeline,
-        )
-
-        assert callable(run_pipeline)
-        assert len(ALL_STORYLINES) == 11
-        assert len(STORYLINE_LABELS) == 11
+        assert callable(load_data)
+        assert callable(load_odd)
 
 
-class TestV4RunnerBridge:
-    """Test the V4 result conversion in runner.py."""
+class TestRunnerBridge:
+    """Test the runner bridge functions."""
 
-    def test_convert_v4_results(self):
-        from shared.types import AnalysisResult as SharedResult
-        from txn_analysis.runner import _convert_v4_results
-
-        v4_results = {
-            "s1_portfolio": {
-                "title": "S1: Portfolio Health",
-                "description": "Monthly trends, activation, balances",
-                "sections": [
-                    {
-                        "heading": "Monthly Trends",
-                        "narrative": "...",
-                        "figures": ["fig1", "fig2"],
-                        "tables": [],
-                    },
-                    {
-                        "heading": "Activation",
-                        "narrative": "...",
-                        "figures": ["fig3"],
-                        "tables": [],
-                    },
-                ],
-                "sheets": [
-                    {
-                        "name": "Monthly Trends",
-                        "df": pd.DataFrame({"month": ["Jan"], "spend": [1000]}),
-                    },
-                    {
-                        "name": "Activation",
-                        "df": pd.DataFrame({"status": ["Active"], "count": [50]}),
-                    },
-                ],
-            },
-            "s6_risk": {
-                "title": "S6: Risk & Balance",
-                "description": "Balance tiers, correlation",
-                "sections": [],
-                "sheets": [],
-            },
-        }
-
-        results = _convert_v4_results(v4_results)
-
-        assert "s1_portfolio" in results
-        assert "s6_risk" in results
-
-        s1 = results["s1_portfolio"]
-        assert isinstance(s1, SharedResult)
-        assert s1.name == "s1_portfolio"
-        assert s1.summary == "S1: Portfolio Health"
-        assert "Monthly Trends" in s1.data
-        assert "Activation" in s1.data
-        assert s1.metadata["section_count"] == 2
-        assert s1.metadata["chart_count"] == 3
-
-        s6 = results["s6_risk"]
-        assert s6.data == {}
-        assert s6.metadata["section_count"] == 0
-
-    def test_convert_v4_results_empty(self):
-        from txn_analysis.runner import _convert_v4_results
-
-        assert _convert_v4_results({}) == {}
-
-    def test_run_txn_v4_missing_txn_dir(self):
+    def test_run_txn_missing_input(self):
         from pathlib import Path
 
         from shared.context import PipelineContext
-        from txn_analysis.runner import run_txn_v4
+        from txn_analysis.runner import run_txn
 
         ctx = PipelineContext(output_dir=Path("/tmp/test"))
-        with pytest.raises(FileNotFoundError, match="No 'txn_dir' input"):
-            run_txn_v4(ctx)
+        with pytest.raises(FileNotFoundError, match="No 'tran' or 'txn_dir'"):
+            run_txn(ctx)
+
+
+class TestWrapStorylineResult:
+    """Test the _wrap_storyline_result helper."""
+
+    def test_wraps_with_sheets(self):
+        from txn_analysis.analyses.storyline_adapters import _wrap_storyline_result
+
+        result_dict = {
+            "title": "Test Title",
+            "sections": [
+                {"heading": "A", "figures": ["fig1", "fig2"], "tables": []},
+                {"heading": "B", "figures": ["fig3"], "tables": []},
+            ],
+            "sheets": [
+                {"name": "Sheet1", "df": pd.DataFrame({"x": [1, 2]})},
+            ],
+        }
+        ar = _wrap_storyline_result("test", result_dict)
+        assert ar.name == "test"
+        assert ar.title == "Test Title"
+        assert len(ar.df) == 2
+        assert ar.metadata["section_count"] == 2
+        assert ar.metadata["chart_count"] == 3
+        assert ar.metadata["sheet_count"] == 1
+
+    def test_wraps_empty_result(self):
+        from txn_analysis.analyses.storyline_adapters import _wrap_storyline_result
+
+        result_dict = {
+            "title": "Empty",
+            "sections": [],
+            "sheets": [],
+        }
+        ar = _wrap_storyline_result("empty", result_dict)
+        assert ar.name == "empty"
+        assert ar.df.empty
+        assert ar.metadata["section_count"] == 0

@@ -11,7 +11,7 @@ from platform_app.orchestrator import PIPELINE_NAMES, _detect_pipelines, run_pip
 
 class TestPipelineNames:
     def test_all_names_known(self):
-        assert set(PIPELINE_NAMES) == {"ars", "txn", "txn_v4", "ics", "ics_append"}
+        assert set(PIPELINE_NAMES) == {"ars", "txn", "ics", "ics_append"}
 
 
 class TestDetectPipelines:
@@ -21,11 +21,11 @@ class TestDetectPipelines:
     def test_tran_detects_txn(self):
         assert _detect_pipelines({"tran": Path("x.csv")}) == ["txn"]
 
-    def test_txn_dir_and_odd_detects_v4(self):
+    def test_txn_dir_and_odd_detects_txn(self):
         result = _detect_pipelines({"txn_dir": Path("txns/"), "odd": Path("y.xlsx")})
-        assert result == ["txn_v4"]
+        assert result == ["txn"]
 
-    def test_tran_and_odd_without_txn_dir_no_v4(self):
+    def test_tran_and_odd_without_txn_dir(self):
         result = _detect_pipelines({"tran": Path("x.csv"), "odd": Path("y.xlsx")})
         assert result == ["txn"]
 
@@ -41,7 +41,7 @@ class TestDetectPipelines:
             "ics": Path("d.xlsx"),
         }
         result = _detect_pipelines(files)
-        assert result == ["ars", "txn", "txn_v4", "ics"]
+        assert result == ["ars", "txn", "ics"]
 
     def test_empty_returns_empty(self):
         assert _detect_pipelines({}) == []

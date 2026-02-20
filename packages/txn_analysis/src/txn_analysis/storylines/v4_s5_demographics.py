@@ -9,17 +9,19 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from txn_analysis.v4_themes import (
-    CATEGORY_PALETTE,
-    COLORS,
-    GENERATION_COLORS,
-    apply_theme,
+from txn_analysis.charts.builders import (
     donut_chart,
-    format_currency,
     grouped_bar,
     heatmap,
     horizontal_bar,
     scatter_plot,
+)
+from txn_analysis.charts.theme import (
+    CATEGORY_PALETTE,
+    COLORS,
+    GENERATION_COLORS,
+    apply_theme,
+    format_currency,
 )
 
 # Named constants for tenure bucket boundaries

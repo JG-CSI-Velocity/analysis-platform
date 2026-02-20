@@ -8,16 +8,18 @@ import re
 import pandas as pd
 import plotly.graph_objects as go
 
-from txn_analysis.v4_themes import (
-    COLORS,
-    GENERATION_COLORS,
-    apply_theme,
+from txn_analysis.charts.builders import (
     donut_chart,
-    format_currency,
     grouped_bar,
     horizontal_bar,
     insight_title,
     line_trend,
+)
+from txn_analysis.charts.theme import (
+    COLORS,
+    GENERATION_COLORS,
+    apply_theme,
+    format_currency,
 )
 
 _KNOWN_PROCESSORS = {

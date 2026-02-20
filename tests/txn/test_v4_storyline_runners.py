@@ -3,6 +3,9 @@
 Each storyline module's run(ctx) is called with a synthetic context dict
 containing the same shape of data the real pipeline produces. Tests verify
 the return structure (title, sections, sheets) without checking exact values.
+
+Only S5 (Demographics), S7 (Campaigns), S8 (Payroll), S9 (Lifecycle) remain
+after V4 consolidation; S1-S4 and S6 were replaced by M1-M10.
 """
 
 from __future__ import annotations
@@ -91,8 +94,6 @@ def v4_ctx():
         odd_df[f"{month} Sig #"] = np.random.randint(0, 30, size=n_accts)
 
     # Merge ODD into combined for enriched columns.
-    # Exclude Date Opened / Date Closed / Acct Number -- storylines that need
-    # these do their own merges from odd_df and would get suffixed duplicates.
     merge_cols = [
         c
         for c in [
@@ -175,128 +176,6 @@ def _assert_storyline_result(result: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# S1: Portfolio Health
-# ---------------------------------------------------------------------------
-
-
-class TestS1PortfolioHealth:
-    def test_run_returns_valid_structure(self, v4_ctx):
-        from txn_analysis.storylines.v4_s1_portfolio_health import run
-
-        result = run(v4_ctx)
-        _assert_storyline_result(result)
-        assert "Portfolio" in result["title"]
-
-    def test_has_sections(self, v4_ctx):
-        from txn_analysis.storylines.v4_s1_portfolio_health import run
-
-        result = run(v4_ctx)
-        assert len(result["sections"]) > 0
-
-    def test_has_sheets(self, v4_ctx):
-        from txn_analysis.storylines.v4_s1_portfolio_health import run
-
-        result = run(v4_ctx)
-        assert len(result["sheets"]) > 0
-
-
-# ---------------------------------------------------------------------------
-# S2: Merchant Intelligence
-# ---------------------------------------------------------------------------
-
-
-class TestS2MerchantIntel:
-    def test_run_returns_valid_structure(self, v4_ctx):
-        from txn_analysis.storylines.v4_s2_merchant_intel import run
-
-        result = run(v4_ctx)
-        _assert_storyline_result(result)
-        assert "Merchant" in result["title"]
-
-    def test_has_sections(self, v4_ctx):
-        from txn_analysis.storylines.v4_s2_merchant_intel import run
-
-        result = run(v4_ctx)
-        assert len(result["sections"]) > 0
-
-
-# ---------------------------------------------------------------------------
-# S3: Competitive Landscape
-# ---------------------------------------------------------------------------
-
-
-class TestS3Competition:
-    def test_run_returns_valid_structure(self, v4_ctx):
-        from txn_analysis.storylines.v4_s3_competition import run
-
-        result = run(v4_ctx)
-        _assert_storyline_result(result)
-
-    def test_populates_ctx_for_sub_modules(self, v4_ctx):
-        from txn_analysis.storylines.v4_s3_competition import run
-
-        run(v4_ctx)
-        assert "s3_tagged_df" in v4_ctx
-        assert "s3_competitor_df" in v4_ctx
-
-
-# ---------------------------------------------------------------------------
-# S3B: Threat Intelligence
-# ---------------------------------------------------------------------------
-
-
-class TestS3BThreatAnalysis:
-    def test_run_with_competitor_data(self, v4_ctx):
-        from txn_analysis.storylines.v4_s3_competition import run as run_s3
-        from txn_analysis.storylines.v4_s3_threat_analysis import run
-
-        run_s3(v4_ctx)  # populate s3_competitor_df / s3_tagged_df
-        result = run(v4_ctx)
-        _assert_storyline_result(result)
-
-    def test_run_without_competitor_data(self, v4_ctx):
-        from txn_analysis.storylines.v4_s3_threat_analysis import run
-
-        result = run(v4_ctx)  # s3_competitor_df not set
-        _assert_storyline_result(result)
-
-
-# ---------------------------------------------------------------------------
-# S3C: Account Segmentation
-# ---------------------------------------------------------------------------
-
-
-class TestS3CSegmentation:
-    def test_run_with_competitor_data(self, v4_ctx):
-        from txn_analysis.storylines.v4_s3_competition import run as run_s3
-        from txn_analysis.storylines.v4_s3_segmentation import run
-
-        run_s3(v4_ctx)
-        result = run(v4_ctx)
-        _assert_storyline_result(result)
-
-    def test_run_without_competitor_data(self, v4_ctx):
-        from txn_analysis.storylines.v4_s3_segmentation import run
-
-        result = run(v4_ctx)
-        _assert_storyline_result(result)
-
-
-# ---------------------------------------------------------------------------
-# S4: Financial Services Intelligence
-# ---------------------------------------------------------------------------
-
-
-class TestS4FinServ:
-    def test_run_returns_valid_structure(self, v4_ctx):
-        from txn_analysis.storylines.v4_s4_finserv import run
-
-        result = run(v4_ctx)
-        _assert_storyline_result(result)
-        assert "Financial" in result["title"]
-
-
-# ---------------------------------------------------------------------------
 # S5: Demographics & Branch Performance
 # ---------------------------------------------------------------------------
 
@@ -311,26 +190,6 @@ class TestS5Demographics:
 
     def test_has_sections(self, v4_ctx):
         from txn_analysis.storylines.v4_s5_demographics import run
-
-        result = run(v4_ctx)
-        assert len(result["sections"]) > 0
-
-
-# ---------------------------------------------------------------------------
-# S6: Risk & Balance Correlation
-# ---------------------------------------------------------------------------
-
-
-class TestS6Risk:
-    def test_run_returns_valid_structure(self, v4_ctx):
-        from txn_analysis.storylines.v4_s6_risk import run
-
-        result = run(v4_ctx)
-        _assert_storyline_result(result)
-        assert "Risk" in result["title"]
-
-    def test_has_sections(self, v4_ctx):
-        from txn_analysis.storylines.v4_s6_risk import run
 
         result = run(v4_ctx)
         assert len(result["sections"]) > 0
@@ -396,26 +255,3 @@ class TestS9Lifecycle:
 
         result = run(v4_ctx)
         assert len(result["sections"]) > 0
-
-
-# ---------------------------------------------------------------------------
-# V4 Run Pipeline (integration-level test)
-# ---------------------------------------------------------------------------
-
-
-class TestV4RunPipeline:
-    def test_run_constants(self):
-        from txn_analysis.v4_run import ALL_STORYLINES, STORYLINE_LABELS
-
-        assert len(ALL_STORYLINES) == 11
-        assert len(STORYLINE_LABELS) == 11
-        for key, label in STORYLINE_LABELS.items():
-            assert key.startswith("s")
-            assert isinstance(label, str)
-
-    def test_storyline_labels_match_all(self):
-        from txn_analysis.v4_run import ALL_STORYLINES, STORYLINE_LABELS
-
-        keys = [k for k, _ in ALL_STORYLINES]
-        for k in keys:
-            assert k in STORYLINE_LABELS, f"Missing label for {k}"

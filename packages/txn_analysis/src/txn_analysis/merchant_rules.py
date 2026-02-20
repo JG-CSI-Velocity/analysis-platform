@@ -6,7 +6,14 @@ Each rule specifies required substrings, a canonical name, and optional exclusio
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
+
+_MULTI_SPACE = re.compile(r"\s+")
 
 
 @dataclass(frozen=True)
@@ -34,12 +41,14 @@ MERCHANT_RULES: tuple[MerchantRule, ...] = (
     MerchantRule(required=("APPLE.COM",), canonical="APPLE.COM/BILL"),
     MerchantRule(required=("APPLE COM",), canonical="APPLE.COM/BILL"),
     MerchantRule(required=("APPLE CASH", "SENT MONEY"), canonical="APPLE CASH - SENT MONEY"),
+    MerchantRule(required=("APPLE CASH", "INST XFER"), canonical="APPLE CASH - TRANSFERS"),
+    MerchantRule(required=("APPLE CASH", "TRANSFER"), canonical="APPLE CASH - TRANSFERS"),
+    MerchantRule(required=("APPLE CASH", "BALANCE ADD"), canonical="APPLE CASH - BALANCE ADD"),
     MerchantRule(
         required=("APPLE CASH",),
-        canonical="APPLE CASH - TRANSFERS",
-        excluded=("SENT MONEY", "BALANCE ADD"),
+        canonical="APPLE CASH",
+        excluded=("SENT MONEY", "INST XFER", "TRANSFER", "BALANCE ADD"),
     ),
-    MerchantRule(required=("APPLE CASH", "BALANCE ADD"), canonical="APPLE CASH - BALANCE ADD"),
     MerchantRule(required=("APPLE", "STORE"), canonical="APPLE STORE"),
     # Google
     MerchantRule(required=("GOOGLE", "PLAY"), canonical="GOOGLE PLAY"),
@@ -73,6 +82,8 @@ MERCHANT_RULES: tuple[MerchantRule, ...] = (
     # ==========================================================================
     # RETAIL - BIG BOX
     # ==========================================================================
+    MerchantRule(required=("WMT PLUS",), canonical="WALMART PLUS"),
+    MerchantRule(required=("WALMART PLUS",), canonical="WALMART PLUS"),
     MerchantRule(required=("WALMART.COM",), canonical="WALMART.COM"),
     MerchantRule(required=("WALMART COM",), canonical="WALMART.COM"),
     MerchantRule(
@@ -409,8 +420,12 @@ MERCHANT_RULES: tuple[MerchantRule, ...] = (
 
 
 def standardize_merchant_name(merchant_name: str) -> str:
-    """Return the canonical merchant name, or the original if no rule matches."""
-    merchant_upper = str(merchant_name).upper()
+    """Return the canonical merchant name, or the original if no rule matches.
+
+    Normalization: cast to str, strip, uppercase, collapse multiple spaces.
+    """
+    raw = str(merchant_name).strip()
+    merchant_upper = _MULTI_SPACE.sub(" ", raw.upper())
     for rule in MERCHANT_RULES:
         if rule.startswith and not merchant_upper.startswith(rule.startswith):
             continue
@@ -419,3 +434,23 @@ def standardize_merchant_name(merchant_name: str) -> str:
                 continue
             return rule.canonical
     return merchant_name
+
+
+def apply_merchant_consolidation(
+    df: pd.DataFrame,
+    column: str = "merchant_name",
+) -> pd.DataFrame:
+    """Apply merchant name standardization to a DataFrame column.
+
+    Creates a new ``merchant_consolidated`` column by running
+    :func:`standardize_merchant_name` across every value in *column*.
+
+    Returns a copy of *df* with the additional column.
+    """
+    if column not in df.columns:
+        raise KeyError(
+            f"Column '{column}' not found in DataFrame. Available columns: {list(df.columns)}"
+        )
+    result = df.copy()
+    result["merchant_consolidated"] = result[column].apply(standardize_merchant_name)
+    return result

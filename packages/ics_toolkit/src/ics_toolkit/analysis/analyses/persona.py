@@ -142,10 +142,10 @@ def analyze_persona_overview(
     ]
 
     if classified.empty:
-        return AnalysisResult(
-            name="Persona Overview",
-            title="Debit Activation Persona Overview",
-            df=pd.DataFrame(columns=cols),
+        return AnalysisResult.from_df(
+            "Persona Overview",
+            "Debit Activation Persona Overview",
+            pd.DataFrame(columns=cols),
             sheet_name="55_Persona_Overview",
         )
 
@@ -192,10 +192,10 @@ def analyze_persona_overview(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Persona Overview",
-        title="Debit Activation Persona Overview",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Persona Overview",
+        "Debit Activation Persona Overview",
+        result_df,
         sheet_name="55_Persona_Overview",
     )
 
@@ -225,10 +225,10 @@ def analyze_persona_contribution(
     ]
 
     if classified.empty:
-        return AnalysisResult(
-            name="Persona Swipe Contribution",
-            title="Swipe Contribution by Persona",
-            df=pd.DataFrame(columns=cols),
+        return AnalysisResult.from_df(
+            "Persona Swipe Contribution",
+            "Swipe Contribution by Persona",
+            pd.DataFrame(columns=cols),
             sheet_name="56_Persona_Contrib",
         )
 
@@ -264,10 +264,10 @@ def analyze_persona_contribution(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Persona Swipe Contribution",
-        title="Swipe Contribution by Persona",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Persona Swipe Contribution",
+        "Swipe Contribution by Persona",
+        result_df,
         sheet_name="56_Persona_Contrib",
     )
 
@@ -290,20 +290,20 @@ def analyze_persona_by_branch(
     pivot_cols = ["Branch"] + PERSONA_ORDER + ["Total", "Fast Activator %"]
 
     if classified.empty or "Branch" not in classified.columns:
-        return AnalysisResult(
-            name="Persona by Branch",
-            title="Persona Distribution by Branch",
-            df=pd.DataFrame(columns=pivot_cols),
+        return AnalysisResult.from_df(
+            "Persona by Branch",
+            "Persona Distribution by Branch",
+            pd.DataFrame(columns=pivot_cols),
             sheet_name="57_Persona_Branch",
         )
 
     result_df = _persona_pivot(classified, "Branch")
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="Persona by Branch",
-        title="Persona Distribution by Branch",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Persona by Branch",
+        "Persona Distribution by Branch",
+        result_df,
         sheet_name="57_Persona_Branch",
     )
 
@@ -326,20 +326,20 @@ def analyze_persona_by_source(
     pivot_cols = ["Source"] + PERSONA_ORDER + ["Total", "Fast Activator %"]
 
     if classified.empty or "Source" not in classified.columns:
-        return AnalysisResult(
-            name="Persona by Source",
-            title="Persona Distribution by Source",
-            df=pd.DataFrame(columns=pivot_cols),
+        return AnalysisResult.from_df(
+            "Persona by Source",
+            "Persona Distribution by Source",
+            pd.DataFrame(columns=pivot_cols),
             sheet_name="58_Persona_Source",
         )
 
     result_df = _persona_pivot(classified, "Source")
     result_df = append_grand_total_row(result_df, label_col="Source")
 
-    return AnalysisResult(
-        name="Persona by Source",
-        title="Persona Distribution by Source",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Persona by Source",
+        "Persona Distribution by Source",
+        result_df,
         sheet_name="58_Persona_Source",
     )
 
@@ -360,10 +360,10 @@ def analyze_persona_revenue(
     classified = _classify_accounts(ics_stat_o_debit, settings)
 
     if classified.empty or "Total L12M Spend" not in classified.columns:
-        return AnalysisResult(
-            name="Persona Revenue Impact",
-            title="Persona Revenue Impact",
-            df=kpi_summary([("No data", 0)]),
+        return AnalysisResult.from_df(
+            "Persona Revenue Impact",
+            "Persona Revenue Impact",
+            kpi_summary([("No data", 0)]),
             sheet_name="59_Persona_Revenue",
         )
 
@@ -400,10 +400,10 @@ def analyze_persona_revenue(
         ("Revenue Lift (25% Never -> Slow)", round(revenue_lift, 2)),
     ]
 
-    return AnalysisResult(
-        name="Persona Revenue Impact",
-        title="Persona Revenue Impact",
-        df=kpi_summary(metrics),
+    return AnalysisResult.from_df(
+        "Persona Revenue Impact",
+        "Persona Revenue Impact",
+        kpi_summary(metrics),
         sheet_name="59_Persona_Revenue",
     )
 
@@ -426,20 +426,20 @@ def analyze_persona_by_balance(
     pivot_cols = ["Balance Tier"] + PERSONA_ORDER + ["Total", "Fast Activator %"]
 
     if classified.empty or "Curr Bal" not in classified.columns:
-        return AnalysisResult(
-            name="Persona by Balance Tier",
-            title="Persona Distribution by Balance Tier",
-            df=pd.DataFrame(columns=pivot_cols),
+        return AnalysisResult.from_df(
+            "Persona by Balance Tier",
+            "Persona Distribution by Balance Tier",
+            pd.DataFrame(columns=pivot_cols),
             sheet_name="60_Persona_Balance",
         )
 
     classified = add_balance_tier(classified, settings)
 
     if "Balance Tier" not in classified.columns:
-        return AnalysisResult(
-            name="Persona by Balance Tier",
-            title="Persona Distribution by Balance Tier",
-            df=pd.DataFrame(columns=pivot_cols),
+        return AnalysisResult.from_df(
+            "Persona by Balance Tier",
+            "Persona Distribution by Balance Tier",
+            pd.DataFrame(columns=pivot_cols),
             sheet_name="60_Persona_Balance",
         )
 
@@ -448,10 +448,10 @@ def analyze_persona_by_balance(
     result_df = _persona_pivot(classified, "Balance Tier")
     result_df = append_grand_total_row(result_df, label_col="Balance Tier")
 
-    return AnalysisResult(
-        name="Persona by Balance Tier",
-        title="Persona Distribution by Balance Tier",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Persona by Balance Tier",
+        "Persona Distribution by Balance Tier",
+        result_df,
         sheet_name="60_Persona_Balance",
     )
 
@@ -474,10 +474,10 @@ def analyze_persona_velocity(
     cols = ["Persona", "Days Bucket", "Count", "% of Persona"]
 
     if classified.empty or "Date Opened" not in classified.columns:
-        return AnalysisResult(
-            name="Persona Velocity",
-            title="Activation Velocity by Persona",
-            df=pd.DataFrame(columns=cols),
+        return AnalysisResult.from_df(
+            "Persona Velocity",
+            "Activation Velocity by Persona",
+            pd.DataFrame(columns=cols),
             sheet_name="61_Persona_Velocity",
         )
 
@@ -562,10 +562,10 @@ def analyze_persona_velocity(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Persona Velocity",
-        title="Activation Velocity by Persona",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Persona Velocity",
+        "Activation Velocity by Persona",
+        result_df,
         sheet_name="61_Persona_Velocity",
     )
 
@@ -588,10 +588,10 @@ def analyze_persona_cohort_trend(
     cols = ["Opening Month"] + [f"{p} %" for p in PERSONA_ORDER] + ["Total"]
 
     if classified.empty or "Opening Month" not in classified.columns:
-        return AnalysisResult(
-            name="Persona Cohort Trend",
-            title="Persona Trend by Opening Cohort",
-            df=pd.DataFrame(columns=cols),
+        return AnalysisResult.from_df(
+            "Persona Cohort Trend",
+            "Persona Trend by Opening Cohort",
+            pd.DataFrame(columns=cols),
             sheet_name="62_Persona_Cohort",
         )
 
@@ -613,9 +613,9 @@ def analyze_persona_cohort_trend(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Persona Cohort Trend",
-        title="Persona Trend by Opening Cohort",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Persona Cohort Trend",
+        "Persona Trend by Opening Cohort",
+        result_df,
         sheet_name="62_Persona_Cohort",
     )

@@ -50,10 +50,10 @@ def analyze_activation_funnel(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Activation Funnel",
-        title="ICS Activation Funnel",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Activation Funnel",
+        "ICS Activation Funnel",
+        result_df,
         sheet_name="38_Activ_Funnel",
     )
 
@@ -99,10 +99,10 @@ def analyze_revenue_impact(
 
     result_df = kpi_summary(metrics)
 
-    return AnalysisResult(
-        name="Revenue Impact",
-        title="ICS Revenue Impact Analysis",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Revenue Impact",
+        "ICS Revenue Impact Analysis",
+        result_df,
         sheet_name="39_Revenue_Impact",
     )
 
@@ -119,10 +119,10 @@ def analyze_revenue_by_branch(
     interchange_rate = settings.interchange_rate
 
     if data.empty or "Branch" not in data.columns:
-        return AnalysisResult(
-            name="Revenue by Branch",
-            title="Estimated Interchange Revenue by Branch",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "Revenue by Branch",
+            "Estimated Interchange Revenue by Branch",
+            pd.DataFrame(
                 columns=["Branch", "Accounts", "Total L12M Spend", "Est. Interchange", "Avg Spend"]
             ),
             sheet_name="65_Revenue_Branch",
@@ -151,10 +151,10 @@ def analyze_revenue_by_branch(
 
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="Revenue by Branch",
-        title="Estimated Interchange Revenue by Branch",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Revenue by Branch",
+        "Estimated Interchange Revenue by Branch",
+        result_df,
         sheet_name="65_Revenue_Branch",
     )
 
@@ -171,10 +171,10 @@ def analyze_revenue_by_source(
     interchange_rate = settings.interchange_rate
 
     if data.empty or "Source" not in data.columns:
-        return AnalysisResult(
-            name="Revenue by Source",
-            title="Estimated Interchange Revenue by Source",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "Revenue by Source",
+            "Estimated Interchange Revenue by Source",
+            pd.DataFrame(
                 columns=["Source", "Accounts", "Total L12M Spend", "Est. Interchange", "Avg Spend"]
             ),
             sheet_name="66_Revenue_Source",
@@ -203,10 +203,10 @@ def analyze_revenue_by_source(
 
     result_df = append_grand_total_row(result_df, label_col="Source")
 
-    return AnalysisResult(
-        name="Revenue by Source",
-        title="Estimated Interchange Revenue by Source",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Revenue by Source",
+        "Estimated Interchange Revenue by Source",
+        result_df,
         sheet_name="66_Revenue_Source",
     )
 
@@ -223,10 +223,10 @@ def analyze_dormant_high_balance(
     threshold = 10000
 
     if data.empty:
-        return AnalysisResult(
-            name="Dormant High-Balance",
-            title="Dormant High-Balance Accounts",
-            df=kpi_summary([("Status", "No debit accounts")]),
+        return AnalysisResult.from_df(
+            "Dormant High-Balance",
+            "Dormant High-Balance Accounts",
+            kpi_summary([("Status", "No debit accounts")]),
             sheet_name="84_Dormant_HiBal",
         )
 
@@ -255,9 +255,9 @@ def analyze_dormant_high_balance(
         ("Est. Interchange if Activated", potential_interchange),
     ]
 
-    return AnalysisResult(
-        name="Dormant High-Balance",
-        title="Dormant High-Balance Accounts",
-        df=kpi_summary(metrics),
+    return AnalysisResult.from_df(
+        "Dormant High-Balance",
+        "Dormant High-Balance Accounts",
+        kpi_summary(metrics),
         sheet_name="84_Dormant_HiBal",
     )

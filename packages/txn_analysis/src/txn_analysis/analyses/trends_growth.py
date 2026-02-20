@@ -55,10 +55,10 @@ def analyze_growth_leaders_decliners(
 
     result = pd.DataFrame(rows)
     if result.empty:
-        return AnalysisResult(
-            name="growth_leaders_decliners",
-            title="Growth Leaders and Decliners",
-            df=result,
+        return AnalysisResult.from_df(
+            "growth_leaders_decliners",
+            "Growth Leaders and Decliners",
+            result,
             sheet_name="M5B Growth",
         )
 
@@ -66,9 +66,9 @@ def analyze_growth_leaders_decliners(
     decliners = result.nsmallest(settings.top_n, "change_amount")
     combined = pd.concat([leaders, decliners], ignore_index=True).drop_duplicates()
 
-    return AnalysisResult(
-        name="growth_leaders_decliners",
-        title="Growth Leaders and Decliners",
-        df=combined,
+    return AnalysisResult.from_df(
+        "growth_leaders_decliners",
+        "Growth Leaders and Decliners",
+        combined,
         sheet_name="M5B Growth",
     )

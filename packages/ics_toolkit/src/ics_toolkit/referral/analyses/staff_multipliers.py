@@ -12,7 +12,7 @@ def analyze_staff_multipliers(ctx: ReferralContext) -> AnalysisResult:
     s = ctx.staff_metrics.copy()
 
     if s.empty:
-        return AnalysisResult(name=name, title=name, df=s, sheet_name="R05_Staff")
+        return AnalysisResult.from_df(name, name, s, sheet_name="R05_Staff")
 
     cols = {
         "Staff": "Staff",
@@ -27,4 +27,4 @@ def analyze_staff_multipliers(ctx: ReferralContext) -> AnalysisResult:
     out["Avg Referrer Score"] = out["Avg Referrer Score"].round(1)
     out = out.sort_values("Multiplier Score", ascending=False).reset_index(drop=True)
 
-    return AnalysisResult(name=name, title=name, df=out, sheet_name="R05_Staff")
+    return AnalysisResult.from_df(name, name, out, sheet_name="R05_Staff")

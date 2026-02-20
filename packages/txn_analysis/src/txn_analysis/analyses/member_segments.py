@@ -94,10 +94,10 @@ def analyze_member_segments(
             ),
         }
 
-    return AnalysisResult(
-        name="member_segments",
-        title="Account Segmentation by Spend Tier",
-        df=seg_summary,
+    return AnalysisResult.from_df(
+        "member_segments",
+        "Account Segmentation by Spend Tier",
+        seg_summary,
         sheet_name="M10 Segments",
         metadata={"dormant_threshold_days": dormant_threshold},
     )
@@ -127,9 +127,9 @@ def _classify_accounts(acct: pd.DataFrame, dormant_days: int) -> pd.Series:
 
 
 def _empty_result() -> AnalysisResult:
-    return AnalysisResult(
-        name="member_segments",
-        title="Account Segmentation by Spend Tier",
-        df=pd.DataFrame(),
+    return AnalysisResult.from_df(
+        "member_segments",
+        "Account Segmentation by Spend Tier",
+        pd.DataFrame(),
         sheet_name="M10 Segments",
     )

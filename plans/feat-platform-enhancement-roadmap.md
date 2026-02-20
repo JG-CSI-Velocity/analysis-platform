@@ -1,3 +1,5 @@
+> **SUPERSEDED** by `chore-unified-consolidation.md` (2026-02-13). Tiers 1-2 done; remaining tiers merged into the unified plan.
+
 # Platform Enhancement Roadmap
 
 **Type:** enhancement

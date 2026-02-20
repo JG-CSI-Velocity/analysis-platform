@@ -36,20 +36,20 @@ def spend_result() -> AnalysisResult:
             "pct_of_total_amount": [20.0, 15.0, 12.0, 10.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0],
         }
     )
-    return AnalysisResult(
-        name="top_merchants_by_spend",
-        title="Top Merchants by Spend",
-        df=df,
+    return AnalysisResult.from_df(
+        "top_merchants_by_spend",
+        "Top Merchants by Spend",
+        df,
         sheet_name="M1 Top Spend",
     )
 
 
 @pytest.fixture()
 def empty_result() -> AnalysisResult:
-    return AnalysisResult(
-        name="top_merchants_by_spend",
-        title="Top Merchants by Spend",
-        df=pd.DataFrame(),
+    return AnalysisResult.from_df(
+        "top_merchants_by_spend",
+        "Top Merchants by Spend",
+        pd.DataFrame(),
         sheet_name="M1 Top Spend",
     )
 
@@ -186,7 +186,7 @@ class TestTrendCharts:
                 "2025-09": [2, 1, 3, 4, 5],
             }
         )
-        return AnalysisResult(name="monthly_rank_tracking", title="Rank", df=df, sheet_name="M5A")
+        return AnalysisResult.from_df("monthly_rank_tracking", "Rank", df, sheet_name="M5A")
 
     @pytest.fixture()
     def growth_result(self):
@@ -196,9 +196,7 @@ class TestTrendCharts:
                 "spend_change_pct": [50.0, 30.0, 10.0, -5.0, -20.0, -40.0],
             }
         )
-        return AnalysisResult(
-            name="growth_leaders_decliners", title="Growth", df=df, sheet_name="M5B"
-        )
+        return AnalysisResult.from_df("growth_leaders_decliners", "Growth", df, sheet_name="M5B")
 
     @pytest.fixture()
     def cohort_result(self):
@@ -210,9 +208,7 @@ class TestTrendCharts:
                 "returning_merchants": [2, 4, 6],
             }
         )
-        return AnalysisResult(
-            name="new_vs_declining_merchants", title="Cohort", df=df, sheet_name="M5D"
-        )
+        return AnalysisResult.from_df("new_vs_declining_merchants", "Cohort", df, sheet_name="M5D")
 
     def test_rank_trajectory_fig(self, rank_result, chart_config):
         from txn_analysis.charts.trends import chart_rank_trajectory
@@ -245,7 +241,7 @@ class TestTrendCharts:
     def test_empty_rank_returns_empty(self, chart_config):
         from txn_analysis.charts.trends import chart_rank_trajectory
 
-        empty = AnalysisResult(name="x", title="x", df=pd.DataFrame(), sheet_name="x")
+        empty = AnalysisResult.from_df("x", "x", pd.DataFrame(), sheet_name="x")
         fig = chart_rank_trajectory(empty, chart_config)
         assert len(fig.data) == 0
 
@@ -265,9 +261,7 @@ class TestCompetitorCharts:
                 "threat_score": [80, 60, 45],
             }
         )
-        return AnalysisResult(
-            name="competitor_threat_assessment", title="Threat", df=df, sheet_name="M6"
-        )
+        return AnalysisResult.from_df("competitor_threat_assessment", "Threat", df, sheet_name="M6")
 
     def test_threat_scatter_fig(self, threat_result, chart_config):
         from txn_analysis.charts.competitor import chart_threat_scatter
@@ -287,7 +281,7 @@ class TestCompetitorCharts:
     def test_empty_threat_returns_empty(self, chart_config):
         from txn_analysis.charts.competitor import chart_threat_scatter
 
-        empty = AnalysisResult(name="x", title="x", df=pd.DataFrame(), sheet_name="x")
+        empty = AnalysisResult.from_df("x", "x", pd.DataFrame(), sheet_name="x")
         fig = chart_threat_scatter(empty, chart_config)
         assert len(fig.data) == 0
 
@@ -312,7 +306,7 @@ class TestScorecardBullets:
                 "format": ["", "$", "", "$"],
             }
         )
-        return AnalysisResult(name="portfolio_scorecard", title="Scorecard", df=df, sheet_name="M9")
+        return AnalysisResult.from_df("portfolio_scorecard", "Scorecard", df, sheet_name="M9")
 
     def test_returns_figure(self, scorecard_result, chart_config):
         from txn_analysis.charts.scorecard import chart_scorecard_bullets
@@ -331,7 +325,7 @@ class TestScorecardBullets:
     def test_empty_returns_empty(self, chart_config):
         from txn_analysis.charts.scorecard import chart_scorecard_bullets
 
-        empty = AnalysisResult(name="x", title="x", df=pd.DataFrame(), sheet_name="x")
+        empty = AnalysisResult.from_df("x", "x", pd.DataFrame(), sheet_name="x")
         fig = chart_scorecard_bullets(empty, chart_config)
         assert len(fig.data) == 0
 
@@ -347,7 +341,7 @@ class TestScorecardBullets:
                 "format": [""],
             }
         )
-        result = AnalysisResult(name="x", title="x", df=df, sheet_name="x")
+        result = AnalysisResult.from_df("x", "x", df, sheet_name="x")
         fig = chart_scorecard_bullets(result, chart_config)
         assert len(fig.data) == 0
 
@@ -366,7 +360,7 @@ class TestMCCChart:
                 "total_amount": [50000, 30000, 20000],
             }
         )
-        return AnalysisResult(name="mcc_by_accounts", title="MCC", df=df, sheet_name="M2")
+        return AnalysisResult.from_df("mcc_by_accounts", "MCC", df, sheet_name="M2")
 
     def test_mcc_comparison_fig(self, mcc_result, chart_config):
         from txn_analysis.charts.mcc import chart_mcc_comparison
@@ -403,8 +397,8 @@ class TestCreateCharts:
     def test_empty_results_produce_no_charts(self, chart_config):
         from txn_analysis.charts import create_charts
 
-        empty = AnalysisResult(
-            name="top_merchants_by_spend", title="x", df=pd.DataFrame(), sheet_name="x"
+        empty = AnalysisResult.from_df(
+            "top_merchants_by_spend", "x", pd.DataFrame(), sheet_name="x"
         )
         charts = create_charts([empty], chart_config)
         assert len(charts) == 0

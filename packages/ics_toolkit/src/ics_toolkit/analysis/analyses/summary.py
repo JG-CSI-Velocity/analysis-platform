@@ -31,10 +31,10 @@ def analyze_total_ics(
         }
     )
 
-    return AnalysisResult(
-        name="Total ICS Accounts",
-        title="ICS Accounts - Total Dataset",
-        df=result,
+    return AnalysisResult.from_df(
+        "Total ICS Accounts",
+        "ICS Accounts - Total Dataset",
+        result,
         sheet_name="01_Total_ICS",
     )
 
@@ -64,10 +64,10 @@ def analyze_open_ics(
         }
     )
 
-    return AnalysisResult(
-        name="Open ICS Accounts",
-        title="ICS Accounts - Open Accounts",
-        df=result,
+    return AnalysisResult.from_df(
+        "Open ICS Accounts",
+        "ICS Accounts - Open Accounts",
+        result,
         sheet_name="02_Open_ICS",
     )
 
@@ -102,10 +102,10 @@ def analyze_stat_code(
 
     result = append_grand_total_row(result, label_col="Stat Code")
 
-    return AnalysisResult(
-        name="ICS by Stat Code",
-        title="ICS Accounts - Status Code Distribution",
-        df=result,
+    return AnalysisResult.from_df(
+        "ICS by Stat Code",
+        "ICS Accounts - Status Code Distribution",
+        result,
         sheet_name="03_Stat_Code",
     )
 
@@ -127,10 +127,10 @@ def analyze_prod_code(
 
     result = append_grand_total_row(result, label_col="Prod Code")
 
-    return AnalysisResult(
-        name="Product Code Distribution",
-        title="ICS Stat Code O - Product Code Distribution",
-        df=result,
+    return AnalysisResult.from_df(
+        "Product Code Distribution",
+        "ICS Stat Code O - Product Code Distribution",
+        result,
         sheet_name="04_Prod_Code",
     )
 
@@ -153,10 +153,10 @@ def analyze_debit_dist(
 
     result = append_grand_total_row(result, label_col="Debit?")
 
-    return AnalysisResult(
-        name="Debit Distribution",
-        title="ICS Stat Code O - Debit Card Distribution",
-        df=result,
+    return AnalysisResult.from_df(
+        "Debit Distribution",
+        "ICS Stat Code O - Debit Card Distribution",
+        result,
         sheet_name="05_Debit_Dist",
     )
 
@@ -178,10 +178,10 @@ def analyze_debit_by_prod(
         rate_numerator="Yes",
     )
 
-    return AnalysisResult(
-        name="Debit x Prod Code",
-        title="ICS Stat Code O - Debit by Product Code",
-        df=result,
+    return AnalysisResult.from_df(
+        "Debit x Prod Code",
+        "ICS Stat Code O - Debit by Product Code",
+        result,
         sheet_name="06_Debit_x_Prod",
     )
 
@@ -203,10 +203,10 @@ def analyze_debit_by_branch(
         rate_numerator="Yes",
     )
 
-    return AnalysisResult(
-        name="Debit x Branch",
-        title="ICS Stat Code O - Debit by Branch",
-        df=result,
+    return AnalysisResult.from_df(
+        "Debit x Branch",
+        "ICS Stat Code O - Debit by Branch",
+        result,
         sheet_name="07_Debit_x_Branch",
     )
 
@@ -220,10 +220,10 @@ def analyze_penetration_by_branch(
 ) -> AnalysisResult:
     """ax64: ICS penetration rate by branch (ICS accounts / total accounts)."""
     if "Branch" not in df.columns:
-        return AnalysisResult(
-            name="ICS Penetration by Branch",
-            title="ICS Penetration by Branch",
-            df=pd.DataFrame(columns=["Branch", "Total Accounts", "ICS Accounts", "Penetration %"]),
+        return AnalysisResult.from_df(
+            "ICS Penetration by Branch",
+            "ICS Penetration by Branch",
+            pd.DataFrame(columns=["Branch", "Total Accounts", "ICS Accounts", "Penetration %"]),
             sheet_name="64_Penetration_Branch",
         )
 
@@ -239,9 +239,9 @@ def analyze_penetration_by_branch(
     result_df = result_df.sort_values("Total Accounts", ascending=False).reset_index(drop=True)
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="ICS Penetration by Branch",
-        title="ICS Penetration Rate by Branch",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "ICS Penetration by Branch",
+        "ICS Penetration Rate by Branch",
+        result_df,
         sheet_name="64_Penetration_Branch",
     )

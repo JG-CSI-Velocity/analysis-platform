@@ -1,3 +1,5 @@
+> **SUPERSEDED** by `chore-unified-consolidation.md` (2026-02-13). Phase 1 of this plan was completed; remaining phases merged into the unified plan.
+
 # Consolidate Moving Parts -- Platform Stabilization Roadmap
 
 **Type:** chore/stabilization

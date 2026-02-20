@@ -65,18 +65,18 @@ def analyze_competitor_segmentation(
         lambda r: safe_percentage(r["competitor_spend"], r["total_spend"]), axis=1
     )
 
-    return AnalysisResult(
-        name="competitor_segmentation",
-        title="Competitor Account Segmentation",
-        df=segment_summary,
+    return AnalysisResult.from_df(
+        "competitor_segmentation",
+        "Competitor Account Segmentation",
+        segment_summary,
         sheet_name="M6 Segmentation",
     )
 
 
 def _empty_result() -> AnalysisResult:
-    return AnalysisResult(
-        name="competitor_segmentation",
-        title="Competitor Account Segmentation",
-        df=pd.DataFrame(),
+    return AnalysisResult.from_df(
+        "competitor_segmentation",
+        "Competitor Account Segmentation",
+        pd.DataFrame(),
         sheet_name="M6 Segmentation",
     )

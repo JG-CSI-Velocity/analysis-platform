@@ -146,10 +146,10 @@ def analyze_portfolio_scorecard(
 
     result = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="portfolio_scorecard",
-        title="Portfolio Health Scorecard",
-        df=result,
+    return AnalysisResult.from_df(
+        "portfolio_scorecard",
+        "Portfolio Health Scorecard",
+        result,
         sheet_name="M9 Scorecard",
         metadata={
             "months_in_data": months_in_data,
@@ -186,9 +186,9 @@ def _kpi(
 
 
 def _empty_result() -> AnalysisResult:
-    return AnalysisResult(
-        name="portfolio_scorecard",
-        title="Portfolio Health Scorecard",
-        df=pd.DataFrame(),
+    return AnalysisResult.from_df(
+        "portfolio_scorecard",
+        "Portfolio Health Scorecard",
+        pd.DataFrame(),
         sheet_name="M9 Scorecard",
     )

@@ -79,4 +79,4 @@ def analyze_overview(
         kpis.append(("Avg Network Size", round(avg_net, 1) if pd.notna(avg_net) else "N/A"))
 
     out = pd.DataFrame(kpis, columns=["Metric", "Value"])
-    return AnalysisResult(name=name, title=name, df=out, sheet_name="R08_Overview")
+    return AnalysisResult.from_df(name, name, out, sheet_name="R08_Overview")

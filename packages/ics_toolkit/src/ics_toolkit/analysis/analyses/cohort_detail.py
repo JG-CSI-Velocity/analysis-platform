@@ -42,10 +42,10 @@ def analyze_cohort_milestones(
 
     if data.empty:
         cols = ["Opening Month", "Cohort Size", "Avg Bal"] + milestone_cols
-        return AnalysisResult(
-            name="Cohort Milestones",
-            title="ICS Stat O Debit - Cohort Milestones",
-            df=pd.DataFrame(columns=cols),
+        return AnalysisResult.from_df(
+            "Cohort Milestones",
+            "ICS Stat O Debit - Cohort Milestones",
+            pd.DataFrame(columns=cols),
             sheet_name="29_Cohort_Miles",
         )
 
@@ -91,10 +91,10 @@ def analyze_cohort_milestones(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Cohort Milestones",
-        title="ICS Stat O Debit - Cohort Milestones",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Cohort Milestones",
+        "ICS Stat O Debit - Cohort Milestones",
+        result_df,
         sheet_name="29_Cohort_Miles",
     )
 
@@ -121,10 +121,10 @@ def analyze_activation_summary(
             ("M6 Activation Rate", None),
             ("M12 Activation Rate", None),
         ]
-        return AnalysisResult(
-            name="Activation Summary",
-            title="ICS Stat O Debit - Activation Summary",
-            df=kpi_summary(metrics),
+        return AnalysisResult.from_df(
+            "Activation Summary",
+            "ICS Stat O Debit - Activation Summary",
+            kpi_summary(metrics),
             sheet_name="31_Activ_Summary",
         )
 
@@ -153,10 +153,10 @@ def analyze_activation_summary(
 
     result_df = kpi_summary(metrics)
 
-    return AnalysisResult(
-        name="Activation Summary",
-        title="ICS Stat O Debit - Activation Summary",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Activation Summary",
+        "ICS Stat O Debit - Activation Summary",
+        result_df,
         sheet_name="31_Activ_Summary",
     )
 
@@ -189,10 +189,10 @@ def analyze_growth_patterns(
     ]
 
     if data.empty:
-        return AnalysisResult(
-            name="Growth Patterns",
-            title="ICS Stat O Debit - Growth Patterns",
-            df=pd.DataFrame(columns=growth_cols),
+        return AnalysisResult.from_df(
+            "Growth Patterns",
+            "ICS Stat O Debit - Growth Patterns",
+            pd.DataFrame(columns=growth_cols),
             sheet_name="32_Growth",
         )
 
@@ -232,10 +232,10 @@ def analyze_growth_patterns(
 
     result_df = pd.DataFrame(rows)
 
-    return AnalysisResult(
-        name="Growth Patterns",
-        title="ICS Stat O Debit - Growth Patterns",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Growth Patterns",
+        "ICS Stat O Debit - Growth Patterns",
+        result_df,
         sheet_name="32_Growth",
     )
 
@@ -264,10 +264,10 @@ def analyze_activation_personas(
     ]
 
     if data.empty:
-        return AnalysisResult(
-            name="Activation Personas",
-            title="ICS Stat O Debit - Activation Personas",
-            df=pd.DataFrame(columns=persona_cols),
+        return AnalysisResult.from_df(
+            "Activation Personas",
+            "ICS Stat O Debit - Activation Personas",
+            pd.DataFrame(columns=persona_cols),
             sheet_name="34_Personas",
         )
 
@@ -317,10 +317,10 @@ def analyze_activation_personas(
             )
 
     if not categorized:
-        return AnalysisResult(
-            name="Activation Personas",
-            title="ICS Stat O Debit - Activation Personas",
-            df=pd.DataFrame(columns=persona_cols),
+        return AnalysisResult.from_df(
+            "Activation Personas",
+            "ICS Stat O Debit - Activation Personas",
+            pd.DataFrame(columns=persona_cols),
             sheet_name="34_Personas",
         )
 
@@ -349,10 +349,10 @@ def analyze_activation_personas(
     summary = summary.sort_values("Category").reset_index(drop=True)
     summary["Category"] = summary["Category"].astype(str)
 
-    return AnalysisResult(
-        name="Activation Personas",
-        title="ICS Stat O Debit - Activation Personas",
-        df=summary,
+    return AnalysisResult.from_df(
+        "Activation Personas",
+        "ICS Stat O Debit - Activation Personas",
+        summary,
         sheet_name="34_Personas",
     )
 
@@ -381,10 +381,10 @@ def analyze_branch_activation(
                 "Activation Rate",
             ]
         )
-        return AnalysisResult(
-            name="Branch Activation",
-            title="ICS Stat O Debit - Branch Activation",
-            df=result_df,
+        return AnalysisResult.from_df(
+            "Branch Activation",
+            "ICS Stat O Debit - Branch Activation",
+            result_df,
             sheet_name="36_Branch_Activ",
         )
 
@@ -411,9 +411,9 @@ def analyze_branch_activation(
 
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="Branch Activation",
-        title="ICS Stat O Debit - Branch Activation",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "Branch Activation",
+        "ICS Stat O Debit - Branch Activation",
+        result_df,
         sheet_name="36_Branch_Activ",
     )

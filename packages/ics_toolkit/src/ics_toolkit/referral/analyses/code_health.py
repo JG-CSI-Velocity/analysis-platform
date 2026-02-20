@@ -15,10 +15,10 @@ def analyze_code_health(ctx: ReferralContext) -> AnalysisResult:
 
     if df.empty:
         empty = pd.DataFrame()
-        return AnalysisResult(
-            name=name,
-            title=name,
-            df=empty,
+        return AnalysisResult.from_df(
+            name,
+            name,
+            empty,
             sheet_name="R07_Code_Health",
         )
 
@@ -49,4 +49,4 @@ def analyze_code_health(ctx: ReferralContext) -> AnalysisResult:
         inplace=True,
     )
 
-    return AnalysisResult(name=name, title=name, df=summary, sheet_name="R07_Code_Health")
+    return AnalysisResult.from_df(name, name, summary, sheet_name="R07_Code_Health")

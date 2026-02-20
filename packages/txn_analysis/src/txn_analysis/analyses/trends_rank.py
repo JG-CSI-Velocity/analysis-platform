@@ -38,9 +38,9 @@ def analyze_monthly_rank_tracking(
 
     result = result.sort_values("avg_rank").head(settings.top_n).reset_index(drop=True)
 
-    return AnalysisResult(
-        name="monthly_rank_tracking",
-        title="Monthly Merchant Rank Tracking",
-        df=result,
+    return AnalysisResult.from_df(
+        "monthly_rank_tracking",
+        "Monthly Merchant Rank Tracking",
+        result,
         sheet_name="M5A Rank Tracking",
     )

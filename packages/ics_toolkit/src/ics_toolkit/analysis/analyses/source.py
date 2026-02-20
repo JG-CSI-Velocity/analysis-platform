@@ -28,10 +28,10 @@ def analyze_source_dist(
 
     result = append_grand_total_row(result, label_col="Source")
 
-    return AnalysisResult(
-        name="Source Distribution",
-        title="ICS Accounts - Source Distribution",
-        df=result,
+    return AnalysisResult.from_df(
+        "Source Distribution",
+        "ICS Accounts - Source Distribution",
+        result,
         sheet_name="08_Source_Dist",
     )
 
@@ -51,10 +51,10 @@ def analyze_source_by_stat(
         add_totals=True,
     )
 
-    return AnalysisResult(
-        name="Source x Stat Code",
-        title="ICS Accounts - Source by Stat Code",
-        df=result,
+    return AnalysisResult.from_df(
+        "Source x Stat Code",
+        "ICS Accounts - Source by Stat Code",
+        result,
         sheet_name="09_Source_x_Stat",
     )
 
@@ -74,10 +74,10 @@ def analyze_source_by_prod(
         add_totals=True,
     )
 
-    return AnalysisResult(
-        name="Source x Prod Code",
-        title="ICS Stat Code O - Source by Product Code",
-        df=result,
+    return AnalysisResult.from_df(
+        "Source x Prod Code",
+        "ICS Stat Code O - Source by Product Code",
+        result,
         sheet_name="10_Source_x_Prod",
     )
 
@@ -97,10 +97,10 @@ def analyze_source_by_branch(
         add_totals=True,
     )
 
-    return AnalysisResult(
-        name="Source x Branch",
-        title="ICS Stat Code O - Source by Branch",
-        df=result,
+    return AnalysisResult.from_df(
+        "Source x Branch",
+        "ICS Stat Code O - Source by Branch",
+        result,
         sheet_name="11_Source_x_Branch",
     )
 
@@ -123,10 +123,10 @@ def analyze_account_type(
 
     result = append_grand_total_row(result, label_col="Business?")
 
-    return AnalysisResult(
-        name="Account Type",
-        title="ICS Stat Code O - Account Type Distribution",
-        df=result,
+    return AnalysisResult.from_df(
+        "Account Type",
+        "ICS Stat Code O - Account Type Distribution",
+        result,
         sheet_name="12_Account_Type",
     )
 
@@ -153,10 +153,10 @@ def analyze_source_by_year(
         add_totals=True,
     )
 
-    return AnalysisResult(
-        name="Source by Year",
-        title="ICS Stat Code O - Source by Year Opened",
-        df=result,
+    return AnalysisResult.from_df(
+        "Source by Year",
+        "ICS Stat Code O - Source by Year Opened",
+        result,
         sheet_name="13_Source_x_Year",
     )
 
@@ -172,10 +172,10 @@ def analyze_source_acquisition_mix(
     data = ics_all.copy()
 
     if "Date Opened" not in data.columns:
-        return AnalysisResult(
-            name="Source Acquisition Mix",
-            title="ICS Source Acquisition Mix Over Time",
-            df=pd.DataFrame(columns=["Month"]),
+        return AnalysisResult.from_df(
+            "Source Acquisition Mix",
+            "ICS Source Acquisition Mix Over Time",
+            pd.DataFrame(columns=["Month"]),
             sheet_name="85_Source_Acq_Mix",
         )
 
@@ -183,10 +183,10 @@ def analyze_source_acquisition_mix(
     data = data.dropna(subset=["Open Month"])
 
     if data.empty:
-        return AnalysisResult(
-            name="Source Acquisition Mix",
-            title="ICS Source Acquisition Mix Over Time",
-            df=pd.DataFrame(columns=["Month"]),
+        return AnalysisResult.from_df(
+            "Source Acquisition Mix",
+            "ICS Source Acquisition Mix Over Time",
+            pd.DataFrame(columns=["Month"]),
             sheet_name="85_Source_Acq_Mix",
         )
 
@@ -197,9 +197,9 @@ def analyze_source_acquisition_mix(
     ct["Open Month"] = ct["Open Month"].astype(str)
     ct = ct.rename(columns={"Open Month": "Month"})
 
-    return AnalysisResult(
-        name="Source Acquisition Mix",
-        title="ICS Source Acquisition Mix Over Time",
-        df=ct,
+    return AnalysisResult.from_df(
+        "Source Acquisition Mix",
+        "ICS Source Acquisition Mix Over Time",
+        ct,
         sheet_name="85_Source_Acq_Mix",
     )

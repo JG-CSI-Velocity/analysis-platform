@@ -55,10 +55,10 @@ def run_all_referral_analyses(
         except Exception as e:
             logger.warning("  [%d/%d] %s FAILED: %s", i + 1, total, name, e)
             results.append(
-                AnalysisResult(
-                    name=name,
-                    title=name,
-                    df=pd.DataFrame(),
+                AnalysisResult.from_df(
+                    name,
+                    name,
+                    pd.DataFrame(),
                     error=str(e),
                 )
             )
@@ -74,10 +74,10 @@ def run_all_referral_analyses(
     except Exception as e:
         logger.warning("  [%d/%d] %s FAILED: %s", total + 1, total + 1, name, e)
         results.append(
-            AnalysisResult(
-                name=name,
-                title=name,
-                df=pd.DataFrame(),
+            AnalysisResult.from_df(
+                name,
+                name,
+                pd.DataFrame(),
                 error=str(e),
             )
         )

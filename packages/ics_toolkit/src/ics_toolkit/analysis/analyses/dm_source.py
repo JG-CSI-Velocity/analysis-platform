@@ -55,10 +55,10 @@ def analyze_dm_overview(
         ("Total L12M Spend", total_spend),
     ]
 
-    return AnalysisResult(
-        name="DM Overview",
-        title="Direct Mail Source - Overview KPIs",
-        df=kpi_summary(metrics),
+    return AnalysisResult.from_df(
+        "DM Overview",
+        "Direct Mail Source - Overview KPIs",
+        kpi_summary(metrics),
         sheet_name="45_DM_Overview",
     )
 
@@ -74,10 +74,10 @@ def analyze_dm_by_branch(
     data = _dm_filter(ics_stat_o)
 
     if data.empty:
-        return AnalysisResult(
-            name="DM by Branch",
-            title="DM Open Accounts by Branch",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "DM by Branch",
+            "DM Open Accounts by Branch",
+            pd.DataFrame(
                 columns=["Branch", "Count", "% of DM", "Debit Count", "Debit %", "Avg Balance"]
             ),
             sheet_name="46_DM_Branch",
@@ -109,10 +109,10 @@ def analyze_dm_by_branch(
 
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="DM by Branch",
-        title="DM Open Accounts by Branch",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "DM by Branch",
+        "DM Open Accounts by Branch",
+        result_df,
         sheet_name="46_DM_Branch",
     )
 
@@ -129,10 +129,10 @@ def analyze_dm_by_debit(
     data = add_l12m_activity(data, settings.last_12_months)
 
     if data.empty:
-        return AnalysisResult(
-            name="DM by Debit Status",
-            title="DM Open Accounts by Debit Status",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "DM by Debit Status",
+            "DM Open Accounts by Debit Status",
+            pd.DataFrame(
                 columns=[
                     "Debit?",
                     "Count",
@@ -184,10 +184,10 @@ def analyze_dm_by_debit(
 
     result_df = append_grand_total_row(result_df, label_col="Debit?")
 
-    return AnalysisResult(
-        name="DM by Debit Status",
-        title="DM Open Accounts by Debit Status",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "DM by Debit Status",
+        "DM Open Accounts by Debit Status",
+        result_df,
         sheet_name="47_DM_Debit",
     )
 
@@ -203,10 +203,10 @@ def analyze_dm_by_product(
     data = _dm_filter(ics_stat_o)
 
     if data.empty:
-        return AnalysisResult(
-            name="DM by Product",
-            title="DM Open Accounts by Product Code",
-            df=pd.DataFrame(columns=["Prod Code", "Count", "%", "Debit Count", "Debit %"]),
+        return AnalysisResult.from_df(
+            "DM by Product",
+            "DM Open Accounts by Product Code",
+            pd.DataFrame(columns=["Prod Code", "Count", "%", "Debit Count", "Debit %"]),
             sheet_name="48_DM_Product",
         )
 
@@ -234,10 +234,10 @@ def analyze_dm_by_product(
 
     result_df = append_grand_total_row(result_df, label_col="Prod Code")
 
-    return AnalysisResult(
-        name="DM by Product",
-        title="DM Open Accounts by Product Code",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "DM by Product",
+        "DM Open Accounts by Product Code",
+        result_df,
         sheet_name="48_DM_Product",
     )
 
@@ -253,10 +253,10 @@ def analyze_dm_by_year(
     data = _dm_filter(ics_stat_o)
 
     if data.empty:
-        return AnalysisResult(
-            name="DM by Year Opened",
-            title="DM Open Accounts by Year Opened",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "DM by Year Opened",
+            "DM Open Accounts by Year Opened",
+            pd.DataFrame(
                 columns=["Year Opened", "Count", "%", "Debit Count", "Debit %", "Avg Balance"]
             ),
             sheet_name="49_DM_Year",
@@ -293,10 +293,10 @@ def analyze_dm_by_year(
 
     result_df = append_grand_total_row(result_df, label_col="Year Opened")
 
-    return AnalysisResult(
-        name="DM by Year Opened",
-        title="DM Open Accounts by Year Opened",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "DM by Year Opened",
+        "DM Open Accounts by Year Opened",
+        result_df,
         sheet_name="49_DM_Year",
     )
 
@@ -342,10 +342,10 @@ def analyze_dm_activity(
         ),
     ]
 
-    return AnalysisResult(
-        name="DM Activity Summary",
-        title="DM Debit Accounts - L12M Activity KPIs",
-        df=kpi_summary(metrics),
+    return AnalysisResult.from_df(
+        "DM Activity Summary",
+        "DM Debit Accounts - L12M Activity KPIs",
+        kpi_summary(metrics),
         sheet_name="50_DM_Activity",
     )
 
@@ -362,10 +362,10 @@ def analyze_dm_activity_by_branch(
     data = add_l12m_activity(data, settings.last_12_months)
 
     if data.empty:
-        return AnalysisResult(
-            name="DM Activity by Branch",
-            title="DM Debit Accounts - Activity by Branch",
-            df=pd.DataFrame(
+        return AnalysisResult.from_df(
+            "DM Activity by Branch",
+            "DM Debit Accounts - Activity by Branch",
+            pd.DataFrame(
                 columns=[
                     "Branch",
                     "Count",
@@ -408,10 +408,10 @@ def analyze_dm_activity_by_branch(
 
     result_df = append_grand_total_row(result_df, label_col="Branch")
 
-    return AnalysisResult(
-        name="DM Activity by Branch",
-        title="DM Debit Accounts - Activity by Branch",
-        df=result_df,
+    return AnalysisResult.from_df(
+        "DM Activity by Branch",
+        "DM Debit Accounts - Activity by Branch",
+        result_df,
         sheet_name="51_DM_Act_Branch",
     )
 
@@ -451,9 +451,9 @@ def analyze_dm_monthly_trends(
             }
         )
 
-    return AnalysisResult(
-        name="DM Monthly Trends",
-        title="DM Debit Accounts - Monthly Activity Trends",
-        df=pd.DataFrame(rows),
+    return AnalysisResult.from_df(
+        "DM Monthly Trends",
+        "DM Debit Accounts - Monthly Activity Trends",
+        pd.DataFrame(rows),
         sheet_name="52_DM_Monthly",
     )

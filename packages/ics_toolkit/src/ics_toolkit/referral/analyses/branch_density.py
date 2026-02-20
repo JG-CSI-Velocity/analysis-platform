@@ -18,7 +18,7 @@ def analyze_branch_density(ctx: ReferralContext) -> AnalysisResult:
     m = ctx.referrer_metrics
 
     if df.empty or m.empty:
-        return AnalysisResult(name=name, title=name, df=pd.DataFrame(), sheet_name="R06_Branch")
+        return AnalysisResult.from_df(name, name, pd.DataFrame(), sheet_name="R06_Branch")
 
     # Exclude unknown branches
     df = df[df["Branch Code"] != "UNKNOWN"].copy()
@@ -61,4 +61,4 @@ def analyze_branch_density(ctx: ReferralContext) -> AnalysisResult:
 
     branch = branch.sort_values("Avg Influence Score", ascending=False).reset_index(drop=True)
 
-    return AnalysisResult(name=name, title=name, df=branch, sheet_name="R06_Branch")
+    return AnalysisResult.from_df(name, name, branch, sheet_name="R06_Branch")

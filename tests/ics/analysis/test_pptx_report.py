@@ -20,22 +20,22 @@ from ics_toolkit.analysis.exports.pptx import (
 def mock_analyses():
     """Create mock analysis results matching SECTION_MAP names."""
     return [
-        AnalysisResult(
-            name="Total ICS Accounts",
-            title="ICS Accounts - Total Dataset",
-            df=pd.DataFrame({"Branch": ["Main", "West", "Total"], "Count": [60, 40, 100]}),
+        AnalysisResult.from_df(
+            "Total ICS Accounts",
+            "ICS Accounts - Total Dataset",
+            pd.DataFrame({"Branch": ["Main", "West", "Total"], "Count": [60, 40, 100]}),
             sheet_name="01_Total",
         ),
-        AnalysisResult(
-            name="Open ICS Accounts",
-            title="ICS Accounts - Open Accounts",
-            df=pd.DataFrame({"Branch": ["Main", "Total"], "Count": [50, 50]}),
+        AnalysisResult.from_df(
+            "Open ICS Accounts",
+            "ICS Accounts - Open Accounts",
+            pd.DataFrame({"Branch": ["Main", "Total"], "Count": [50, 50]}),
             sheet_name="02_Open",
         ),
-        AnalysisResult(
-            name="Bad Analysis",
-            title="Failed",
-            df=pd.DataFrame(),
+        AnalysisResult.from_df(
+            "Bad Analysis",
+            "Failed",
+            pd.DataFrame(),
             error="Something broke",
         ),
     ]
@@ -139,15 +139,15 @@ class TestWritePptxReport:
     def test_includes_table_slides(self, sample_settings, tmp_path):
         """Each successful non-empty analysis should produce a table slide."""
         analyses = [
-            AnalysisResult(
-                name="Total ICS Accounts",
-                title="Total ICS Accounts",
-                df=pd.DataFrame({"Branch": ["Main"], "Count": [100]}),
+            AnalysisResult.from_df(
+                "Total ICS Accounts",
+                "Total ICS Accounts",
+                pd.DataFrame({"Branch": ["Main"], "Count": [100]}),
             ),
-            AnalysisResult(
-                name="ICS by Stat Code",
-                title="ICS by Stat Code",
-                df=pd.DataFrame({"Stat": ["O", "C"], "Count": [80, 20]}),
+            AnalysisResult.from_df(
+                "ICS by Stat Code",
+                "ICS by Stat Code",
+                pd.DataFrame({"Stat": ["O", "C"], "Count": [80, 20]}),
             ),
         ]
         path = tmp_path / "tables.pptx"
@@ -159,10 +159,10 @@ class TestWritePptxReport:
     def test_chart_pngs_add_slides(self, sample_settings, tmp_path):
         """Analyses with chart PNGs get an extra chart slide."""
         analyses = [
-            AnalysisResult(
-                name="Total ICS Accounts",
-                title="Total ICS Accounts",
-                df=pd.DataFrame({"Branch": ["Main"], "Count": [100]}),
+            AnalysisResult.from_df(
+                "Total ICS Accounts",
+                "Total ICS Accounts",
+                pd.DataFrame({"Branch": ["Main"], "Count": [100]}),
             ),
         ]
         pngs = {"Total ICS Accounts": _make_tiny_png()}
@@ -180,10 +180,10 @@ class TestWritePptxReport:
     def test_unmapped_analyses_included(self, sample_settings, tmp_path):
         """Analyses not in SECTION_MAP still appear in the deck."""
         analyses = [
-            AnalysisResult(
-                name="Custom Analysis XYZ",
-                title="Custom Analysis XYZ",
-                df=pd.DataFrame({"Metric": ["A"], "Value": [42]}),
+            AnalysisResult.from_df(
+                "Custom Analysis XYZ",
+                "Custom Analysis XYZ",
+                pd.DataFrame({"Metric": ["A"], "Value": [42]}),
             ),
         ]
         path = tmp_path / "unmapped.pptx"

@@ -11,10 +11,10 @@ from ics_toolkit.analysis.exports.excel import write_excel_report
 def mock_analyses():
     """Create simple mock analysis results."""
     return [
-        AnalysisResult(
-            name="Test Analysis 1",
-            title="Test Title 1",
-            df=pd.DataFrame(
+        AnalysisResult.from_df(
+            "Test Analysis 1",
+            "Test Title 1",
+            pd.DataFrame(
                 {
                     "Category": ["A", "B", "Total"],
                     "Count": [10, 20, 30],
@@ -23,10 +23,10 @@ def mock_analyses():
             ),
             sheet_name="01_Test",
         ),
-        AnalysisResult(
-            name="Test Analysis 2",
-            title="Test Title 2",
-            df=pd.DataFrame(
+        AnalysisResult.from_df(
+            "Test Analysis 2",
+            "Test Title 2",
+            pd.DataFrame(
                 {
                     "Metric": ["Total", "Rate"],
                     "Value": [100, "50.0%"],
@@ -71,16 +71,16 @@ class TestWriteExcelReport:
 
     def test_skips_errored_analyses(self, sample_settings, sample_df, tmp_path):
         analyses = [
-            AnalysisResult(
-                name="Good",
-                title="Good Analysis",
-                df=pd.DataFrame({"A": [1]}),
+            AnalysisResult.from_df(
+                "Good",
+                "Good Analysis",
+                pd.DataFrame({"A": [1]}),
                 sheet_name="Good",
             ),
-            AnalysisResult(
-                name="Bad",
-                title="Bad Analysis",
-                df=pd.DataFrame(),
+            AnalysisResult.from_df(
+                "Bad",
+                "Bad Analysis",
+                pd.DataFrame(),
                 error="Something broke",
             ),
         ]

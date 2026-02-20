@@ -51,7 +51,7 @@ uv sync --all-packages
 uv run pytest tests/ -v
 ```
 
-Should see 976 tests pass (~55s on macOS, ~114s on Windows with 100 kaleido tests auto-skipped).
+Should see 2115 tests pass (~103s on macOS, ~180s on Windows with 100 kaleido tests auto-skipped).
 
 ---
 
@@ -285,7 +285,7 @@ make lint    # ruff check + format check
 make fmt     # auto-fix lint + format
 ```
 
-**1431 tests, ~105s runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
+**2115 tests, ~103s runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
 
 ## Lint
 
@@ -298,7 +298,7 @@ uv run ruff format --check .
 
 GitHub Actions workflow runs on push/PR to main:
 1. **lint** -- ruff check + format
-2. **test** -- unit tests with `--cov-fail-under=70` on Python 3.11
+2. **test** -- unit tests with `--cov-fail-under=80` on Python 3.12
 
 ## Key Dependencies
 

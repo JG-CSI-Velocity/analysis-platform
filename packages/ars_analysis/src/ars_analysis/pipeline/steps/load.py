@@ -16,7 +16,7 @@ REQUIRED_COLUMNS: tuple[tuple[str, ...], ...] = (
     ("Stat Code",),
     ("Product Code", "Prod Code"),
     ("Date Opened",),
-    ("Balance", "Current Balance", "Cur Bal"),
+    ("Avg Bal", "Balance", "Current Balance", "Cur Bal"),
 )
 
 # Columns to pre-parse as dates (avoids 14+ redundant to_datetime calls downstream).

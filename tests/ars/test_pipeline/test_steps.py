@@ -152,7 +152,7 @@ class TestLoadStep:
         )
         step_load_file(ctx, csv_path)
         assert "Product Code" in ctx.data.columns
-        assert "Balance" in ctx.data.columns
+        assert "Avg Bal" in ctx.data.columns
         assert "Prod Code" not in ctx.data.columns
         assert "Current Balance" not in ctx.data.columns
 

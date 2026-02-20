@@ -7,6 +7,7 @@ ARS v2 modular pipeline. It converts shared types at the boundary so the
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,31 @@ from shared.context import PipelineContext as SharedContext
 from shared.types import AnalysisResult as SharedResult
 
 logger = logging.getLogger(__name__)
+
+
+def _load_client_config(raw_config: dict) -> dict:
+    """Resolve client config: load from JSON file if config_path is present."""
+    config_path = raw_config.get("config_path")
+    if not config_path:
+        return raw_config
+
+    path = Path(config_path)
+    if not path.exists():
+        logger.warning("Config file not found: %s, using inline config", path)
+        return raw_config
+
+    all_clients = json.loads(path.read_text())
+    client_id = raw_config.get("client_id", "")
+
+    if client_id and client_id in all_clients:
+        return all_clients[client_id]
+
+    # If only one client in config, use it
+    if len(all_clients) == 1:
+        return next(iter(all_clients.values()))
+
+    logger.warning("Client %s not found in config file, using inline config", client_id)
+    return raw_config
 
 
 def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
@@ -41,7 +67,7 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
     load_all_modules()
 
     # 1. Build ARS ClientInfo from shared context
-    ccfg = ctx.client_config or {}
+    ccfg = _load_client_config({**(ctx.client_config or {}), "client_id": ctx.client_id})
     month = ctx.analysis_date.strftime("%Y.%m") if ctx.analysis_date else ""
 
     client_info = ClientInfo(

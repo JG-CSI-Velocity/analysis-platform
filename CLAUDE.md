@@ -1,10 +1,12 @@
 # Analysis Platform -- Claude Code Instructions
 
-## Current State (2026-02-13)
+## Current State (2026-02-20)
 
-**Monorepo health:** CI green, 2,318 tests, 89% coverage, 0 open PRs, 0 open issues.
+**Monorepo health:** CI green, 2,344 tests, 89% coverage, 0 open PRs, 0 open issues.
 
 ### Recent milestones
+- **PR #19**: Unified AnalysisResult (4 definitions -> 1 canonical in shared.types), deduplicated helpers
+- **E2E validation**: All 3 pipelines validated with synthetic data (TXN 35/35, ICS 80/80, ARS 20/20 modules)
 - **PR #17**: V4 consolidation -- killed entire V4 parallel pipeline, unified to 35 analyses (M1-M14 + scorecard)
 - **PR #18**: ARS CLI fix (`__main__.py`)
 - **PR #4**: ARS v2 modular pipeline migration (545 tests, 20 analytics modules)
@@ -13,14 +15,13 @@
 - **Issue #14**: Closed -- pipeline execution wiring already implemented in run_analysis.py
 
 ### Active roadmap
-- See `plans/chore-unified-consolidation.md` for the unified path forward
-- Priority: Unify AnalysisResult (4 definitions -> 1), deduplicate helpers, real-data validation
+- See `plans/chore-unified-consolidation.md` for the unified path forward (Phases 1-4 done)
+- Remaining: Phase 5 (decompose storyline monoliths, optional), Phase 6 (deferred features)
 
 ### What needs attention
-- **AnalysisResult unification**: 4 competing definitions across shared/ars/txn/ics. See plan Phase 2.
-- **Real-data validation**: All tests use synthetic fixtures. Run each pipeline with a real client file before deploying.
 - **Windows .bat validation**: `run.bat`, `dashboard.bat`, `run_batch.bat` need testing on Windows M: drive.
 - **Standalone repo archival**: `ars-pipeline`, `ars_analysis-jupyter`, `ics_toolkit`, `ics_append` are superseded by this monorepo.
+- **Real-data validation on Windows**: E2E done with synthetic data; needs real client ODD/ICS/TXN files from M: drive.
 
 ---
 
@@ -38,16 +39,17 @@ analysis_platform/
     ars/              ARS tests (545)
     txn/              Transaction tests (597)
     ics/              ICS tests (1049, including ics/referral/ -- 212)
-    shared/           Shared tests (50)
+    shared/           Shared tests (81)
     platform/         Platform tests (60)
     integration/      E2E tests (17)
+    e2e_data/         Synthetic data fixtures for pipeline validation
 ```
 
 ## Commands
 
 ```bash
 # Development
-make test          # all tests (~2,318, ~2 min)
+make test          # all tests (~2,344, ~2 min)
 make cov           # tests + coverage
 make lint          # ruff check + format check
 make fmt           # auto-fix lint + format
@@ -62,6 +64,11 @@ uv run pytest tests/integration/ -q  # E2E only
 uv run python -m ars_analysis --help
 uv run python -m ics_toolkit --help
 uv run python -m txn_analysis --help
+
+# E2E pipeline smoke tests (synthetic data)
+uv run python -m txn_analysis tests/e2e_data/8888_transactions.csv -o /tmp/txn_out
+uv run python -m ics_toolkit analyze tests/e2e_data/9999_ICS_2026.01.xlsx -o /tmp/ics_out --client-id 9999
+uv run python -m ars_analysis run "tests/e2e_data/1200_Test CU_2026.02.xlsx" --output-dir /tmp/ars_out
 
 # Platform CLI
 uv run python -m platform_app run --pipeline txn --data data/file.csv

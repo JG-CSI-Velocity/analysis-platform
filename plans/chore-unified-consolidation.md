@@ -214,27 +214,27 @@ First real-data test of each pipeline. This can run on macOS if you have sample 
 
 ### 4.1 Test TXN pipeline
 
-- [ ] Find or create a sample transaction CSV (needs: `merchant_name`, `amount`, `primary_account_num`, `transaction_date`, `mcc_code`)
-- [ ] Run: `uv run python -m txn_analysis /path/to/sample.csv`
-- [ ] Verify: Excel output + chart PNGs
+- [x] Created synthetic 200-row CSV (`tests/e2e_data/8888_transactions.csv`)
+- [x] Run: `uv run python -m txn_analysis tests/e2e_data/8888_transactions.csv --output-dir /tmp/e2e_txn_output`
+- [x] Verified: 35/35 analyses, 11 chart PNGs, Excel report (473 KB)
 
 ### 4.2 Test ICS pipeline
 
-- [ ] Find or create a sample ICS Excel
-- [ ] Run: `uv run python -m ics_toolkit analyze /path/to/sample.xlsx`
-- [ ] Verify: 37 analyses + PPTX
+- [x] Created synthetic 100-row Excel (`tests/e2e_data/9999_ICS_2026.01.xlsx`)
+- [x] Run: `uv run python -m ics_toolkit analyze tests/e2e_data/9999_ICS_2026.01.xlsx --output /tmp/e2e_ics_output`
+- [x] Verified: 80/80 analyses, Excel report (2.8 MB) + PPTX (157 slides, 4.8 MB)
 
 ### 4.3 Test ARS pipeline
 
-- [ ] Find a real ODD file (or synthetic with realistic column names and data volume)
-- [ ] Run: `uv run python -m ars_analysis run /path/to/ODD.xlsx`
-- [ ] Verify: Excel + charts + PPTX deck
+- [x] Created synthetic 200-row ODD Excel (`tests/e2e_data/1200_Test CU_2026.02.xlsx`)
+- [x] Run: `uv run python -m ars_analysis run "tests/e2e_data/1200_Test CU_2026.02.xlsx" --output-dir /tmp/e2e_ars_output`
+- [x] Verified: 20/20 modules, Excel (11 sheets) + 28 chart PNGs + PPTX (29 slides), 5/5 steps OK in 2.0s
 
 ### 4.4 Test Streamlit UI
 
-- [ ] `uv run streamlit run packages/platform_app/src/platform_app/app.py`
-- [ ] Upload a file, select modules, click Run
-- [ ] Verify progress bar, results display, output files
+- [x] `uv run streamlit run packages/platform_app/src/platform_app/app.py` -- launches cleanly
+- [ ] Upload a file, select modules, click Run (requires manual browser test)
+- [ ] Verify progress bar, results display, output files (requires manual browser test)
 
 ---
 

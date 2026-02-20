@@ -51,7 +51,7 @@ uv sync --all-packages
 uv run pytest tests/ -v
 ```
 
-Should see 2115 tests pass (~103s on macOS, ~180s on Windows with 100 kaleido tests auto-skipped).
+Should see 2301 tests pass (~94s on macOS, ~180s on Windows with 100 kaleido tests auto-skipped).
 
 ---
 
@@ -285,7 +285,7 @@ make lint    # ruff check + format check
 make fmt     # auto-fix lint + format
 ```
 
-**2115 tests, ~103s runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
+**2301 tests, ~94s runtime.** Windows auto-skips ~100 kaleido-dependent tests (chart PNG export hangs on Windows).
 
 ## Lint
 

@@ -65,4 +65,4 @@ make fmt           # auto-fix lint + format
 - `kaleido==0.2.1` pinned (v1.0+ has 50x regression)
 - `ruff check` + `ruff format` must pass before push
 - Tests must pass before push
-- CI coverage floor is 80% (`--cov-fail-under=80`) -- currently at 84%. 2115 tests, passing on main.
+- CI coverage floor is 80% (`--cov-fail-under=80`) -- currently at 88%. 2301 tests, passing.

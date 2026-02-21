@@ -20,7 +20,7 @@ class TestRunPipeline:
 
     def test_has_analyses(self, pipeline_settings):
         result = run_pipeline(pipeline_settings)
-        assert len(result.analyses) == 35
+        assert len(result.analyses) == 36
 
     def test_all_analyses_succeed(self, pipeline_settings):
         result = run_pipeline(pipeline_settings)

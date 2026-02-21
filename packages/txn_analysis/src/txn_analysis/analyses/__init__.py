@@ -23,6 +23,7 @@ from txn_analysis.analyses.competitor_metrics import (
 )
 from txn_analysis.analyses.competitor_segment import analyze_competitor_segmentation
 from txn_analysis.analyses.competitor_threat import analyze_threat_assessment
+from txn_analysis.analyses.discover_unmatched_financial import analyze_unmatched_financial
 from txn_analysis.analyses.financial_services import (
     analyze_financial_services_detection,
     analyze_financial_services_summary,
@@ -103,6 +104,7 @@ ANALYSIS_REGISTRY: list[tuple[str, AnalysisFunc]] = [
     ("competitor_monthly_trends", analyze_competitor_monthly_trends),
     ("competitor_threat_assessment", analyze_threat_assessment),
     ("competitor_segmentation", analyze_competitor_segmentation),
+    ("unmatched_financial", analyze_unmatched_financial),  # M6B-7
     # M7: Financial Services (detection before summary)
     ("financial_services_detection", analyze_financial_services_detection),
     ("financial_services_summary", analyze_financial_services_summary),

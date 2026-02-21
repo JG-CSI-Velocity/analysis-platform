@@ -78,7 +78,7 @@ class TestTxnCli:
         out.mkdir()
         result = runner.invoke(app, [str(TXN_CSV), "--output-dir", str(out)])
         assert result.exit_code == 0
-        assert "35/35" in result.output or "analyses completed" in result.output
+        assert "36/36" in result.output or "analyses completed" in result.output
 
 
 # ---------------------------------------------------------------------------

@@ -8,6 +8,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from shared.format_odd import check_ics_ready, check_odd_formatted, format_odd
+
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
@@ -45,6 +47,46 @@ with tab_oddd:
                 st.success(f"Found: `{Path(oddd_path.strip()).name}`")
             else:
                 st.error(f"Not found: `{oddd_path.strip()}`")
+
+    # --- ARS format + ICS readiness checks ---
+    oddd_file = st.session_state.get("uap_file_oddd", "")
+    if oddd_file and Path(oddd_file).exists():
+        st.divider()
+        try:
+            ars_status = check_odd_formatted(oddd_file)
+            st.session_state["_oddd_ars_status"] = ars_status
+            if ars_status.is_formatted:
+                st.success("File is formatted and ready for ARS analysis.")
+            else:
+                st.warning(
+                    f"ODD file is **unformatted** for ARS. "
+                    f"Missing: {', '.join(ars_status.missing_columns)}."
+                )
+                if st.button("Format Now", key="format_now_btn", type="primary"):
+                    with st.spinner("Formatting ODD file..."):
+                        df = pd.read_excel(oddd_file)
+                        df = format_odd(df)
+                        p = Path(oddd_file)
+                        out = p.parent / f"{p.stem}-formatted.xlsx"
+                        df.to_excel(out, index=False)
+                        st.session_state["uap_file_oddd"] = str(out)
+                    st.success(f"Formatted and saved: `{out.name}`")
+                    st.rerun()
+        except Exception as e:
+            st.warning(f"Could not check ARS format: {e}")
+
+        try:
+            ics_status = check_ics_ready(oddd_file)
+            st.session_state["_oddd_ics_status"] = ics_status
+            if ics_status.is_formatted:
+                st.success("ICS fields present (ICS Account, ICS Source).")
+            else:
+                st.warning(
+                    "ICS Account and ICS Source columns missing. "
+                    "Run ICS append before ICS analysis."
+                )
+        except Exception:
+            pass
 
 with tab_tran:
     tran_mode = st.radio(

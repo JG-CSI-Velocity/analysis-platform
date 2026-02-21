@@ -12,6 +12,7 @@ from platform_app.core.session_manager import (
     discover_csm_folders,
     resolve_workspace,
 )
+from shared.format_odd import check_ics_ready, check_odd_formatted
 
 # ---------------------------------------------------------------------------
 # Header
@@ -124,10 +125,33 @@ for col, (key, label, pipeline) in zip(cols, file_types):
             badge = '<span class="uap-badge uap-badge-muted">MISSING</span>'
             file_info = '<span style="font-family: var(--uap-mono); font-size: 0.72rem; color: #94A3B8;">not detected</span>'
 
+        # Extra validation badges for ODDD files
+        extra_badges = ""
+        if key == "oddd" and path and path.exists():
+            try:
+                ars_status = check_odd_formatted(path)
+                st.session_state["_oddd_ars_status"] = ars_status
+                if ars_status.is_formatted:
+                    extra_badges += '<br><span class="uap-badge uap-badge-ready" style="font-size:0.6rem;">FORMATTED</span>'
+                else:
+                    extra_badges += '<br><span class="uap-badge" style="background:#FEE2E2;color:#991B1B;font-size:0.6rem;">UNFORMATTED</span>'
+            except Exception:
+                extra_badges += '<br><span class="uap-badge uap-badge-muted" style="font-size:0.6rem;">CHECK FAILED</span>'
+
+            try:
+                ics_status = check_ics_ready(path)
+                st.session_state["_oddd_ics_status"] = ics_status
+                if ics_status.is_formatted:
+                    extra_badges += ' <span class="uap-badge uap-badge-ready" style="font-size:0.6rem;">ICS READY</span>'
+                else:
+                    extra_badges += ' <span class="uap-badge" style="background:#FEF3C7;color:#92400E;font-size:0.6rem;">ICS FIELDS MISSING</span>'
+            except Exception:
+                pass
+
         st.markdown(
             f"""<div class="uap-card" style="padding: 0.75rem;">
             <p style="font-family: var(--uap-mono); font-size: 0.65rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem;">{label}</p>
-            {badge}<br>
+            {badge}{extra_badges}<br>
             {file_info}
             <p style="font-size: 0.72rem; color: #94A3B8; margin-top: 0.25rem;">{pipeline}</p>
             </div>""",

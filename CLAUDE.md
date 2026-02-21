@@ -2,17 +2,16 @@
 
 ## Current State (2026-02-20)
 
-**Monorepo health:** CI green, 2,344 tests, 89% coverage, 0 open PRs, 0 open issues.
+**Monorepo health:** CI green, 2,358 tests, 94% coverage, 0 open PRs, 0 open issues.
 
 ### Recent milestones
+- **PR #21**: CLI E2E tests -- 14 integration tests exercising all 3 pipeline CLIs with synthetic data
+- **PR #20**: Synthetic E2E data fixtures + pipeline validation (TXN 35/35, ICS 80/80, ARS 20/20)
 - **PR #19**: Unified AnalysisResult (4 definitions -> 1 canonical in shared.types), deduplicated helpers
-- **E2E validation**: All 3 pipelines validated with synthetic data (TXN 35/35, ICS 80/80, ARS 20/20 modules)
 - **PR #17**: V4 consolidation -- killed entire V4 parallel pipeline, unified to 35 analyses (M1-M14 + scorecard)
 - **PR #18**: ARS CLI fix (`__main__.py`)
 - **PR #4**: ARS v2 modular pipeline migration (545 tests, 20 analytics modules)
 - **PR #9**: ICS Referral Intelligence Engine (212 tests, 8-step pipeline)
-- **UAP V2.0**: Unified Streamlit UI with industrial theme, module registry
-- **Issue #14**: Closed -- pipeline execution wiring already implemented in run_analysis.py
 
 ### Active roadmap
 - See `plans/chore-unified-consolidation.md` for the unified path forward (Phases 1-4 done)
@@ -30,7 +29,7 @@
 ```
 analysis_platform/
   packages/
-    shared/           Shared types, context, config (50 tests)
+    shared/           Shared types, context, config, helpers (81 tests)
     ars_analysis/     ARS pipeline (70+ analyses, PPTX deck, 545 tests)
     txn_analysis/     Transaction pipeline (35 analyses: M1-M14 + scorecard, 597 tests)
     ics_toolkit/      ICS pipeline (37 analyses + append + referral, 1049 tests)
@@ -41,7 +40,7 @@ analysis_platform/
     ics/              ICS tests (1049, including ics/referral/ -- 212)
     shared/           Shared tests (81)
     platform/         Platform tests (60)
-    integration/      E2E tests (17)
+    integration/      E2E tests (26: 12 orchestrator + 14 CLI)
     e2e_data/         Synthetic data fixtures for pipeline validation
 ```
 
@@ -49,7 +48,7 @@ analysis_platform/
 
 ```bash
 # Development
-make test          # all tests (~2,344, ~2 min)
+make test          # all tests (~2,358, ~2.5 min)
 make cov           # tests + coverage
 make lint          # ruff check + format check
 make fmt           # auto-fix lint + format
@@ -84,4 +83,4 @@ uv run streamlit run packages/platform_app/src/platform_app/app.py
 - `kaleido==0.2.1` pinned (v1.0+ has 50x regression)
 - `ruff check` + `ruff format` must pass before push
 - Tests must pass before push
-- CI coverage floor: 80% (`--cov-fail-under=80`), currently at 89%
+- CI coverage floor: 80% (`--cov-fail-under=80`), currently at 94%

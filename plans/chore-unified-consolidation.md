@@ -298,10 +298,10 @@ These are documented in existing plans but are NOT on the critical path:
 
 ## Success Criteria
 
-- [ ] 0 open issues on analysis-platform
-- [ ] Single `AnalysisResult` definition in `shared.types`, used by all 3 pipelines
-- [ ] No duplicated helper functions across packages
-- [ ] All tests pass (2,318+)
-- [ ] Coverage stays >= 89%
-- [ ] CLAUDE.md and HANDOFF.md reflect reality
-- [ ] At least one pipeline tested with real (non-synthetic) data
+- [x] 0 open issues on analysis-platform
+- [x] Single `AnalysisResult` definition in `shared.types`, used by all 3 pipelines (PR #19)
+- [x] No duplicated helper functions across packages (PR #19)
+- [x] All tests pass (2,358 -- exceeds 2,318 target)
+- [x] Coverage stays >= 89% (94%)
+- [x] CLAUDE.md and HANDOFF.md reflect reality
+- [ ] At least one pipeline tested with real (non-synthetic) data (deferred -- requires Windows M: drive)

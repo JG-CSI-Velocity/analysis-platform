@@ -18,7 +18,7 @@
 | Coverage | **94%** (CI floor 80%) |
 | Lint | Clean (ruff check + ruff format) |
 | Open PRs | 0 |
-| Open Issues | 0 |
+| Open Issues | 2 (#23 competitor config, #24 M: drive bug) |
 | Branches | `main` only (local + remote) |
 
 ### Recent Milestones
@@ -83,13 +83,13 @@ Settings (Pydantic) -> data_loader.load_data() -> run_all_analyses() -> export_o
 
 ### High Priority (when deploying)
 
+- **Issue #24**: Network path FileNotFoundError when formatting on M: drive (xlsxwriter temp file issue)
 - **Windows .bat validation**: `run.bat`, `dashboard.bat`, `run_batch.bat` need testing on Windows M: drive
 - **Real-data validation**: E2E done with synthetic data; needs real client ODD/ICS/TXN files from M: drive
 
 ### Medium Priority
 
-- **Standalone repo archival**: `ars-pipeline`, `ars_analysis-jupyter`, `ics_toolkit`, `ics_append` are superseded by this monorepo. Archive or make read-only.
-- **Migrate standalone issues**: txn-analysis #10 (config), txn-analysis #13 (competitor merge), ars-pipeline #10 (production file path bug)
+- **Issue #23**: Comprehensive competitor config with 3-tier matching (migrated from txn-analysis #10 + #13)
 - **Reg E Enhancement**: 5-sprint plan in `plans/feat-reg-e-enhancement.md`
 
 ### Low Priority
@@ -98,7 +98,12 @@ Settings (Pydantic) -> data_loader.load_data() -> run_all_analyses() -> export_o
 - **Chart formatting fixes**: Spine removal, positioning consistency
 - **Cross-pipeline dashboard**: Unified results viewer across ARS/TXN/ICS
 - **PPTX template system**: Branded deck generation
-- **CI caching**: `uv cache` in GitHub Actions for faster builds
+
+### Done (this session)
+
+- Standalone repos archived: `txn-analysis`, `ars-pipeline`, `ics_toolkit`, `ars_analysis-jupyter`
+- Standalone issues migrated: txn-analysis #10+#13 -> #23, ars-pipeline #10 -> #24
+- CI caching enabled via `astral-sh/setup-uv` `enable-cache: true`
 
 ---
 

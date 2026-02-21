@@ -19,8 +19,9 @@
 
 ### What needs attention
 - **Windows .bat validation**: `run.bat`, `dashboard.bat`, `run_batch.bat` need testing on Windows M: drive.
-- **Standalone repo archival**: `ars-pipeline`, `ars_analysis-jupyter`, `ics_toolkit`, `ics_append` are superseded by this monorepo.
 - **Real-data validation on Windows**: E2E done with synthetic data; needs real client ODD/ICS/TXN files from M: drive.
+- **Issue #24**: Network path FileNotFoundError when formatting on M: drive (xlsxwriter temp file issue)
+- **Issue #23**: Comprehensive competitor config with 3-tier matching (feature enhancement for M6)
 
 ---
 

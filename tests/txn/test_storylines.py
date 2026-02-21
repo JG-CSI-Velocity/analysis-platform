@@ -36,7 +36,7 @@ class TestStorylineAdapters:
     def test_registry_count(self):
         from txn_analysis.analyses import ANALYSIS_REGISTRY
 
-        assert len(ANALYSIS_REGISTRY) == 35
+        assert len(ANALYSIS_REGISTRY) == 36
 
     def test_scorecard_is_last(self):
         from txn_analysis.analyses import ANALYSIS_REGISTRY

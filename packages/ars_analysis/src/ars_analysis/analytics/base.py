@@ -33,6 +33,9 @@ class AnalysisResult:
     notes: str = ""
     success: bool = True
     error: str = ""
+    layout_index: int = 5
+    slide_type: str = "screenshot"
+    kpis: dict[str, str] | None = None
 
 
 class AnalysisModule(ABC):

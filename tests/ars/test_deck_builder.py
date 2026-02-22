@@ -102,7 +102,7 @@ class TestGroupBySection:
     def test_unknown_prefix(self):
         slides = [AnalysisResult(slide_id="XYZ-1", title="Unknown")]
         groups = _group_by_section(slides)
-        assert "xyz" in groups
+        assert "other" in groups
 
 
 class TestBuildDeck:
@@ -127,8 +127,8 @@ class TestBuildDeck:
         ctx = _make_ctx(tmp_path, with_chart=True)
         result = build_deck(ctx)
         prs = Presentation(str(result))
-        # At least: 1 divider + 1 chart slide for dctr, 1 divider + 1 text slide for attrition
-        assert len(prs.slides) >= 4
+        # Preamble (13) + section divider + chart slide + summary placeholder
+        assert len(prs.slides) >= 15
 
     def test_export_log_updated(self, tmp_path):
         ctx = _make_ctx(tmp_path, with_chart=True)
@@ -141,8 +141,8 @@ class TestBuildDeck:
         result = build_deck(ctx)
         assert result is not None
         prs = Presentation(str(result))
-        # Divider slides + text slides
-        assert len(prs.slides) >= 2
+        # Preamble (13) + section dividers + summary placeholder
+        assert len(prs.slides) >= 13
 
     def test_output_filename(self, tmp_path):
         ctx = _make_ctx(tmp_path, with_chart=True)

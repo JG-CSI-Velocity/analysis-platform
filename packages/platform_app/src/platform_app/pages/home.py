@@ -8,6 +8,7 @@ from pathlib import Path
 
 import streamlit as st
 
+from ics_toolkit.client_registry import resolve_master_config_path
 from platform_app.core.module_registry import Product, get_registry
 from platform_app.core.run_logger import RunRecord, generate_run_id, hash_file, log_run
 from platform_app.core.session_manager import (
@@ -113,23 +114,52 @@ with col_client:
     )
     st.session_state["uap_client_id"] = client_id
 
-with col_name:
-    client_name = st.text_input(
-        "Client Name",
-        value=st.session_state.get("uap_client_name", ""),
-        placeholder="e.g. Connex CU",
-    )
-    st.session_state["uap_client_name"] = client_name
-
 # ---------------------------------------------------------------------------
-# Auto-detect files
+# Auto-detect files (before name input so we can extract client name)
 # ---------------------------------------------------------------------------
 client_dir = month_dir / client_id
 if not client_dir.is_dir():
+    with col_name:
+        client_name = st.text_input(
+            "Client Name",
+            value=st.session_state.get("uap_client_name", ""),
+            placeholder="e.g. Connex CU",
+        )
+        st.session_state["uap_client_name"] = client_name
     st.warning(f"Client directory not found: `{client_dir}`")
     st.stop()
 
 detected = auto_detect_files(client_dir, client_id=client_id)
+
+# Extract client name from ODD filename (e.g. "1759_Connex CU_2026.02.xlsx")
+_auto_name = st.session_state.get("uap_client_name", "")
+if not _auto_name:
+    oddd_detected = detected.get("oddd")
+    if oddd_detected:
+        _stem = oddd_detected.stem.replace("-formatted", "")
+        _parts = _stem.split("_", maxsplit=2)
+        if len(_parts) > 1:
+            _auto_name = _parts[1]
+    if not _auto_name:
+        try:
+            _cfg_path = resolve_master_config_path()
+            if _cfg_path:
+                from ics_toolkit.client_registry import load_master_config
+
+                _reg = load_master_config(_cfg_path)
+                _entry = _reg.get(client_id)
+                if _entry and _entry.client_name:
+                    _auto_name = _entry.client_name
+        except Exception:
+            pass
+
+with col_name:
+    client_name = st.text_input(
+        "Client Name",
+        value=_auto_name,
+        placeholder="e.g. Connex CU",
+    )
+    st.session_state["uap_client_name"] = client_name
 
 # Store detected file paths in session
 for key in ("oddd", "tran", "ics"):
@@ -276,9 +306,7 @@ for i, tpl_name in enumerate(tpl_names):
 selected_modules = st.session_state.get("uap_selected_modules", set())
 
 if selected_modules:
-    st.caption(
-        f"**{selected_template or 'Custom'}** -- {len(selected_modules)} modules selected"
-    )
+    st.caption(f"**{selected_template or 'Custom'}** -- {len(selected_modules)} modules selected")
 else:
     st.info("Pick an analysis template above to continue.")
     st.stop()
@@ -323,7 +351,9 @@ if errors:
 # Pre-flight summary
 pf1, pf2, pf3 = st.columns(3)
 pf1.metric("Client", client_id)
-pf2.metric("Pipelines", ", ".join(p.value.upper() for p in sorted(needed_products, key=lambda x: x.value)))
+pf2.metric(
+    "Pipelines", ", ".join(p.value.upper() for p in sorted(needed_products, key=lambda x: x.value))
+)
 pf3.metric("Modules", len(selected_modules))
 
 run_btn = st.button(
@@ -352,6 +382,9 @@ tran_path = st.session_state.get("uap_file_tran", "")
 ics_path = st.session_state.get("uap_file_ics", "")
 odd_path = st.session_state.get("uap_file_odd", "")
 t0 = time.time()
+
+_config_path = resolve_master_config_path()
+_client_config = {"config_path": str(_config_path), "client_id": client_id} if _config_path else {}
 
 for product in sorted(needed_products, key=lambda p: p.value):
     pipeline_name = product.value
@@ -392,6 +425,7 @@ for product in sorted(needed_products, key=lambda p: p.value):
                 output_dir=out,
                 client_id=client_id,
                 client_name=client_name,
+                client_config=_client_config,
                 progress_callback=_on_progress,
             )
             elapsed = time.time() - t0
@@ -459,5 +493,36 @@ if pipeline_errors:
             st.code(tb)
 
 if all_results:
-    st.success("Analysis complete! Go to **View Outputs** to download files.")
     st.toast("Analysis complete!", icon=":material/check_circle:")
+
+    # Show key output files (PPTX, Excel) for immediate download
+    _DELIVERABLE_EXTS = {".pptx", ".xlsx"}
+    _MIME = {
+        ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }
+    deliverables: list[Path] = []
+    for out_dir in all_output_dirs.values():
+        if out_dir and Path(out_dir).is_dir():
+            deliverables.extend(
+                f for f in Path(out_dir).rglob("*") if f.is_file() and f.suffix in _DELIVERABLE_EXTS
+            )
+
+    if deliverables:
+        st.markdown('<p class="uap-label">OUTPUT FILES</p>', unsafe_allow_html=True)
+        for f in sorted(deliverables, key=lambda p: p.name):
+            dl_cols = st.columns([4, 1])
+            dl_cols[0].markdown(
+                f'<span style="font-family:var(--uap-mono);font-size:0.82rem;">{f.name}</span>'
+                f'<br><span style="font-size:0.7rem;color:#94A3B8;">{f.parent}</span>',
+                unsafe_allow_html=True,
+            )
+            dl_cols[1].download_button(
+                "Download",
+                f.read_bytes(),
+                file_name=f.name,
+                mime=_MIME.get(f.suffix, "application/octet-stream"),
+                key=f"home_dl_{f.name}",
+            )
+    else:
+        st.info("No PPTX or Excel files generated. Check **View Outputs** for charts.")

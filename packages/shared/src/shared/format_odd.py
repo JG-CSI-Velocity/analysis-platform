@@ -228,9 +228,14 @@ ARS_SIGNATURE_COLUMNS: tuple[str, ...] = (
 ARS_SIGNATURE_THRESHOLD = 3  # 3 of 5 handles edge cases (missing DOB, no Mail cols)
 
 # Columns appended by the ICS append step.
+# Some institutions use "ICS Source", others use just "Source".
 ICS_REQUIRED_COLUMNS: tuple[str, ...] = (
     "ICS Account",
     "ICS Source",
+)
+ICS_ALTERNATE_COLUMNS: tuple[str, ...] = (
+    "ICS Account",
+    "Source",
 )
 ICS_REQUIRED_THRESHOLD = 2  # both must be present
 
@@ -248,12 +253,15 @@ def check_odd_formatted(path: str | Path) -> FormatStatus:
 
 
 def check_ics_ready(path: str | Path) -> FormatStatus:
-    """Check if an ODD file has ICS Account + ICS Source columns (header-only read).
+    """Check if an ODD file has ICS columns (header-only read).
 
-    These columns are appended by the ICS append step and are required
-    before running ICS analysis.
+    Accepts either ``("ICS Account", "ICS Source")`` or ``("ICS Account", "Source")``
+    since institutions vary in column naming.
     """
-    return _check_columns(path, ICS_REQUIRED_COLUMNS, ICS_REQUIRED_THRESHOLD)
+    result = _check_columns(path, ICS_REQUIRED_COLUMNS, ICS_REQUIRED_THRESHOLD)
+    if result.is_formatted:
+        return result
+    return _check_columns(path, ICS_ALTERNATE_COLUMNS, ICS_REQUIRED_THRESHOLD)
 
 
 def _check_columns(

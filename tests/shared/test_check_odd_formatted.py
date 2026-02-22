@@ -101,7 +101,6 @@ class TestCheckIcsReady:
         result = check_ics_ready(formatted_odd_xlsx)
         assert result.is_formatted is False
         assert "ICS Account" in result.missing_columns
-        assert "ICS Source" in result.missing_columns
 
     def test_both_columns_present_is_ready(self, ics_ready_xlsx: Path) -> None:
         result = check_ics_ready(ics_ready_xlsx)
@@ -114,13 +113,26 @@ class TestCheckIcsReady:
         df.to_excel(path, index=False)
         result = check_ics_ready(path)
         assert result.is_formatted is False
-        assert "ICS Source" in result.missing_columns
+
+    def test_alternate_source_column(self, tmp_path: Path) -> None:
+        """ODD with 'Source' instead of 'ICS Source' should pass."""
+        df = pd.DataFrame({
+            "Acct Number": ["001"],
+            "ICS Account": ["Yes"],
+            "Source": ["REF"],
+        })
+        path = tmp_path / "alt_source.xlsx"
+        df.to_excel(path, index=False)
+        result = check_ics_ready(path)
+        assert result.is_formatted is True
+        assert "ICS Account" in result.found_columns
+        assert "Source" in result.found_columns
 
     def test_found_plus_missing_equals_all(self, formatted_odd_xlsx: Path) -> None:
         result = check_ics_ready(formatted_odd_xlsx)
-        assert set(result.found_columns) | set(result.missing_columns) == set(
-            ICS_REQUIRED_COLUMNS
-        )
+        # After fallback to alternate columns, checks against ICS_ALTERNATE_COLUMNS
+        all_cols = set(result.found_columns) | set(result.missing_columns)
+        assert len(all_cols) == 2  # always checks 2 columns
 
 
 class TestCheckOddFormattedCSV:

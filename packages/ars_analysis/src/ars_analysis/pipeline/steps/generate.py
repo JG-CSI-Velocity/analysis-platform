@@ -103,11 +103,23 @@ def _build_deck(ctx: PipelineContext) -> None:
     try:
         from ars_analysis.output.deck_builder import build_deck
 
-        build_deck(ctx)
+        result = build_deck(ctx)
+        if result:
+            if ctx.progress_callback:
+                ctx.progress_callback(f"PPTX deck: {result.name}")
+        else:
+            msg = "PPTX: no slides with charts to build deck"
+            logger.warning(msg)
+            if ctx.progress_callback:
+                ctx.progress_callback(msg)
     except ImportError:
-        logger.info(
-            "Deck build: {n} slides ready (deck_builder not available)",
-            n=len(ctx.all_slides),
-        )
+        msg = f"PPTX skipped: deck_builder not available ({len(ctx.all_slides)} slides ready)"
+        logger.warning(msg)
+        if ctx.progress_callback:
+            ctx.progress_callback(msg)
     except Exception as exc:
-        logger.warning("Deck build failed: {err}", err=exc)
+        msg = f"PPTX build failed: {exc}"
+        logger.error(msg)
+        ctx.export_log.append(f"ERROR: {msg}")
+        if ctx.progress_callback:
+            ctx.progress_callback(msg)

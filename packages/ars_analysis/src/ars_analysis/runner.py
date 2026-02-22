@@ -75,13 +75,13 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
         client_name=ctx.client_name or ctx.client_id,
         month=month,
         assigned_csm=ctx.csm,
-        eligible_stat_codes=ccfg.get("EligibleStatusCodes", []),
-        eligible_prod_codes=ccfg.get("EligibleProductCodes", []),
-        eligible_mailable=ccfg.get("EligibleMailable", []),
+        eligible_stat_codes=_ensure_list(ccfg.get("EligibleStatusCodes", [])),
+        eligible_prod_codes=_ensure_list(ccfg.get("EligibleProductCodes", [])),
+        eligible_mailable=_ensure_list(ccfg.get("EligibleMailCode", [])),
         nsf_od_fee=_safe_float(ccfg.get("NSF_OD_Fee", 0)),
         ic_rate=_safe_float(ccfg.get("ICRate", 0)),
         dc_indicator=ccfg.get("DCIndicator", "DC Indicator"),
-        reg_e_opt_in=ccfg.get("RegEOptInCode", []),
+        reg_e_opt_in=_ensure_list(ccfg.get("RegEOptInCode", [])),
         reg_e_column=ccfg.get("RegEColumn", ""),
     )
 
@@ -89,7 +89,11 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
     paths = OutputPaths.from_base(ctx.output_dir, ctx.client_id, month)
 
     # 3. Build ARS PipelineContext
-    ars_ctx = ARSContext(client=client_info, paths=paths)
+    ars_ctx = ARSContext(
+        client=client_info,
+        paths=paths,
+        progress_callback=ctx.progress_callback,
+    )
 
     # 4. Determine input file
     oddd_path = ctx.input_files.get("oddd")
@@ -172,6 +176,15 @@ def _convert_results(ars_ctx: Any) -> dict[str, SharedResult]:
             )
 
     return results
+
+
+def _ensure_list(value: object) -> list[str]:
+    """Wrap a scalar string as a single-element list; pass through lists."""
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str) and value:
+        return [value]
+    return []
 
 
 def _safe_float(value: object, default: float = 0.0) -> float:

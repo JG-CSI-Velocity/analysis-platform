@@ -61,7 +61,11 @@ def run_pipeline(
         n=len(steps),
     )
 
+    _notify = ctx.progress_callback
+
     for step in steps:
+        if _notify:
+            _notify(f"Step: {step.name}...")
         logger.info("Step '{name}' starting", name=step.name)
         t0 = time.perf_counter()
 
@@ -69,6 +73,8 @@ def run_pipeline(
             step.execute(ctx)
             elapsed = time.perf_counter() - t0
             results.append(StepResult(name=step.name, success=True, elapsed_seconds=elapsed))
+            if _notify:
+                _notify(f"Step {step.name} done ({elapsed:.0f}s)")
             logger.info(
                 "Step '{name}' completed in {t:.1f}s",
                 name=step.name,

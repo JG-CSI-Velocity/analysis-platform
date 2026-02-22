@@ -45,6 +45,9 @@ data/*.xlsx
 !tests/e2e_data/*.xlsx
 !tests/e2e_data/*.csv
 
+# Client config (contains client-specific data)
+config/clients_config.json
+
 # Environment
 .env
 .env.local

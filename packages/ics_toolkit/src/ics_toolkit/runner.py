@@ -30,6 +30,10 @@ def run_ics(ctx: PipelineContext) -> dict[str, SharedResult]:
     if ctx.client_name:
         kwargs["client_name"] = ctx.client_name
 
+    config_path = (ctx.client_config or {}).get("config_path")
+    if config_path:
+        kwargs["client_config_path"] = config_path
+
     settings = Settings.for_analysis(data_file=Path(data_file), **kwargs)
 
     def _progress_bridge(step: int, total: int, msg: str) -> None:

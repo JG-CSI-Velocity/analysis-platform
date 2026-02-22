@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -83,3 +84,4 @@ class PipelineContext:
     end_date: date | None = None
     txn_file_path: Path | None = None  # Transaction CSV for TXN module
     ics_dir: Path | None = None  # ICS data directory for ICS module
+    progress_callback: Callable[[str], None] | None = None

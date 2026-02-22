@@ -27,21 +27,31 @@ if not results and not errors:
     st.stop()
 
 # ---------------------------------------------------------------------------
+# Collect files once (avoid repeated rglob on network drives)
+# ---------------------------------------------------------------------------
+_DELIVERABLE_EXTS = {".pptx", ".xlsx"}
+
+deliverables: list[Path] = []
+chart_paths: dict[str, list[Path]] = {}  # pipeline -> [chart paths]
+total_analyses = sum(len(r) for r in results.values())
+
+for pipeline_name, out_dir in output_dirs.items():
+    if not out_dir or not Path(out_dir).is_dir():
+        continue
+    for f in Path(out_dir).rglob("*"):
+        if not f.is_file():
+            continue
+        if f.suffix in _DELIVERABLE_EXTS:
+            deliverables.append(f)
+        elif f.suffix == ".png":
+            chart_paths.setdefault(pipeline_name, []).append(f)
+
+total_charts = sum(len(v) for v in chart_paths.values())
+
+# ---------------------------------------------------------------------------
 # Summary metrics
 # ---------------------------------------------------------------------------
 st.markdown('<p class="uap-label">LAST RUN</p>', unsafe_allow_html=True)
-
-total_analyses = sum(len(r) for r in results.values())
-total_charts = 0
-all_files: list[Path] = []
-
-for out_dir in output_dirs.values():
-    if out_dir and Path(out_dir).is_dir():
-        charts = sorted(Path(out_dir).rglob("*.png"))
-        total_charts += len(charts)
-        all_files.extend(
-            f for f in Path(out_dir).rglob("*") if f.is_file() and f.suffix in MIME_MAP
-        )
 
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Pipelines", len(results))
@@ -49,74 +59,73 @@ m2.metric("Analyses", total_analyses)
 m3.metric("Charts", total_charts)
 m4.metric("Run ID", run_id or "--")
 
-st.divider()
-
 # ---------------------------------------------------------------------------
-# Results by pipeline
-# ---------------------------------------------------------------------------
-if results:
-    pipeline_tabs = st.tabs([name.upper() for name in results])
-
-    for tab, (pipeline_name, pipeline_results) in zip(pipeline_tabs, results.items()):
-        with tab:
-            out_dir = output_dirs.get(pipeline_name)
-
-            # Per-pipeline metrics
-            c1, c2 = st.columns(2)
-            c1.metric("Analyses", len(pipeline_results))
-            if out_dir:
-                chart_count = (
-                    len(sorted(Path(out_dir).rglob("*.png"))) if Path(out_dir).is_dir() else 0
-                )
-                c2.metric("Charts", chart_count)
-
-            # Data tables
-            st.markdown('<p class="uap-label">DATA TABLES</p>', unsafe_allow_html=True)
-            for name, ar in pipeline_results.items():
-                with st.expander(ar.summary or name, expanded=False):
-                    for sheet_name, df in ar.data.items():
-                        st.dataframe(df, use_container_width=True, hide_index=True)
-
-            # Charts
-            if out_dir and Path(out_dir).is_dir():
-                charts = sorted(Path(out_dir).rglob("*.png"))
-                if charts:
-                    st.markdown('<p class="uap-label">CHARTS</p>', unsafe_allow_html=True)
-                    chart_cols = st.columns(2)
-                    for i, img_path in enumerate(charts):
-                        with chart_cols[i % 2]:
-                            st.image(str(img_path), caption=img_path.stem, use_container_width=True)
-
-# ---------------------------------------------------------------------------
-# Downloads
+# Deliverable downloads (PPTX, Excel) -- top priority
 # ---------------------------------------------------------------------------
 st.divider()
-st.markdown('<p class="uap-label">DOWNLOADS</p>', unsafe_allow_html=True)
+st.markdown('<p class="uap-label">DELIVERABLES</p>', unsafe_allow_html=True)
 
-if all_files:
-    # Group by type
-    by_type: dict[str, list[Path]] = {}
-    for f in sorted(all_files, key=lambda p: p.name):
-        by_type.setdefault(f.suffix, []).append(f)
-
-    for ext, files in sorted(by_type.items()):
-        ext_label = ext.lstrip(".").upper()
-        st.markdown(
-            f'<p style="font-family: var(--uap-mono); font-size: 0.72rem; color: #94A3B8; margin: 0.5rem 0 0.25rem;">'
-            f"{ext_label} FILES ({len(files)})</p>",
+if deliverables:
+    for f in sorted(deliverables, key=lambda p: p.name):
+        ext_label = f.suffix.lstrip(".").upper()
+        badge_cls = "uap-badge-ready" if f.suffix == ".pptx" else "uap-badge-active"
+        dl_cols = st.columns([1, 4, 1])
+        dl_cols[0].markdown(
+            f'<span class="uap-badge {badge_cls}">{ext_label}</span>',
             unsafe_allow_html=True,
         )
-        for f in files:
-            mime = MIME_MAP.get(f.suffix, "application/octet-stream")
-            st.download_button(
-                f.name,
-                f.read_bytes(),
-                file_name=f.name,
-                mime=mime,
-                key=f"dl_{pipeline_name}_{f.name}",
-            )
+        dl_cols[1].markdown(
+            f'<span style="font-family:var(--uap-mono);font-size:0.82rem;">{f.name}</span>'
+            f'<br><span style="font-size:0.7rem;color:#94A3B8;">{f.parent}</span>',
+            unsafe_allow_html=True,
+        )
+        mime = MIME_MAP.get(f.suffix, "application/octet-stream")
+        dl_cols[2].download_button(
+            "Download",
+            f.read_bytes(),
+            file_name=f.name,
+            mime=mime,
+            key=f"dl_{f.name}",
+        )
 else:
-    st.caption("No downloadable files found.")
+    st.caption("No PPTX or Excel files found.")
+
+# ---------------------------------------------------------------------------
+# Data tables (from analysis results)
+# ---------------------------------------------------------------------------
+if results:
+    st.divider()
+    st.markdown('<p class="uap-label">DATA TABLES</p>', unsafe_allow_html=True)
+
+    for pipeline_name, pipeline_results in results.items():
+        with st.expander(f"{pipeline_name.upper()} -- {len(pipeline_results)} analyses", expanded=False):
+            for name, ar in pipeline_results.items():
+                st.markdown(
+                    f'<span style="font-family:var(--uap-mono);font-size:0.75rem;color:var(--uap-dim);">'
+                    f"{name}</span>",
+                    unsafe_allow_html=True,
+                )
+                for _sheet_name, df in ar.data.items():
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+
+# ---------------------------------------------------------------------------
+# Charts -- lazy load behind expander (avoids 75+ PNG network reads)
+# ---------------------------------------------------------------------------
+if chart_paths:
+    st.divider()
+    st.markdown('<p class="uap-label">CHARTS</p>', unsafe_allow_html=True)
+    st.caption(f"{total_charts} chart images available. Expand a section to view.")
+
+    for pipeline_name, charts in chart_paths.items():
+        charts_sorted = sorted(charts, key=lambda p: p.name)
+        with st.expander(
+            f"{pipeline_name.upper()} -- {len(charts_sorted)} charts",
+            expanded=False,
+        ):
+            chart_cols = st.columns(2)
+            for i, img_path in enumerate(charts_sorted):
+                with chart_cols[i % 2]:
+                    st.image(str(img_path), caption=img_path.stem, use_container_width=True)
 
 # ---------------------------------------------------------------------------
 # Errors

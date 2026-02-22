@@ -20,13 +20,18 @@ def step_analyze(ctx: PipelineContext) -> None:
         return
 
     logger.info("Running {n} analytics modules", n=len(modules))
+    _notify = ctx.progress_callback
+    total = len(modules)
     success_count = 0
     skip_count = 0
     fail_count = 0
 
-    for mod_cls in modules:
+    for idx, mod_cls in enumerate(modules, 1):
         mod = mod_cls()
         mid = mod.module_id
+
+        if _notify:
+            _notify(f"Module {idx}/{total}: {mid}")
 
         # Validate prerequisites
         errors = mod.validate(ctx)
@@ -69,11 +74,16 @@ def step_analyze(ctx: PipelineContext) -> None:
 def step_analyze_selected(ctx: PipelineContext, module_ids: list[str]) -> None:
     """Run only the specified modules (used by CLI --modules flag)."""
     logger.info("Running {n} selected modules: {ids}", n=len(module_ids), ids=module_ids)
+    _notify = ctx.progress_callback
+    total = len(module_ids)
     success_count = 0
     skip_count = 0
     fail_count = 0
 
-    for mid in module_ids:
+    for idx, mid in enumerate(module_ids, 1):
+        if _notify:
+            _notify(f"Module {idx}/{total}: {mid}")
+
         mod_cls = get_module(mid)
         mod = mod_cls()
 

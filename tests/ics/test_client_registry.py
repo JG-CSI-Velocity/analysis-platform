@@ -6,9 +6,11 @@ import pytest
 import yaml
 
 from ics_toolkit.client_registry import (
+    GENERIC_ENV_VAR,
     MasterClientConfig,
     get_client_config,
     load_master_config,
+    load_raw_client_entry,
     resolve_master_config_path,
 )
 
@@ -28,8 +30,8 @@ class TestMasterClientConfig:
         assert cfg.interchange_rate == 0.0195
         assert cfg.client_name == "Test CU"
 
-    def test_extra_fields_ignored(self):
-        """ARS-only fields don't cause validation errors."""
+    def test_extra_fields_preserved(self):
+        """ARS-only fields are preserved in model_extra."""
         cfg = MasterClientConfig(
             open_stat_codes=["O"],
             eligible_stat_code="O",
@@ -38,6 +40,10 @@ class TestMasterClientConfig:
             reg_e_opt_in="Y",
         )
         assert cfg.open_stat_codes == ["O"]
+        assert cfg.model_extra["eligible_stat_code"] == "O"
+        assert cfg.model_extra["eligible_prod_code"] == "100"
+        assert cfg.model_extra["eligible_mailable"] == "Y"
+        assert cfg.model_extra["reg_e_opt_in"] == "Y"
 
     def test_branch_mapping(self):
         cfg = MasterClientConfig(
@@ -77,18 +83,24 @@ class TestMasterClientConfig:
         assert cfg.interchange_rate == 0.025
 
     def test_ars_key_normalization_nsf_od_fee(self):
-        """NSF_OD_Fee is normalized but not consumed (extra=ignore)."""
+        """NSF_OD_Fee is normalized to nsf_od_fee and preserved in model_extra."""
         cfg = MasterClientConfig(NSF_OD_Fee=25.0)
-        # nsf_od_fee is not a field on the model, so it's ignored
-        assert cfg.interchange_rate is None
+        # nsf_od_fee is not a declared field, but extra="allow" preserves it
+        assert cfg.model_extra["nsf_od_fee"] == 25.0
+        # Original key also preserved
+        assert cfg.model_extra["NSF_OD_Fee"] == 25.0
 
     def test_snake_case_takes_priority_over_ars(self):
-        """If both snake_case and ARS key exist, snake_case wins."""
+        """If both snake_case and ARS key exist, snake_case wins.
+
+        The ARS key is still accessible in model_extra.
+        """
         cfg = MasterClientConfig(
             interchange_rate=0.018,
             ICRate=0.025,
         )
         assert cfg.interchange_rate == 0.018
+        assert cfg.model_extra["ICRate"] == 0.025
 
 
 # ---------------------------------------------------------------------------
@@ -261,3 +273,97 @@ class TestGetClientConfig:
     def test_empty_registry(self):
         result = get_client_config("1776", {})
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# load_raw_client_entry
+# ---------------------------------------------------------------------------
+
+
+class TestLoadRawClientEntry:
+    def test_returns_raw_dict(self, tmp_path):
+        data = {"1759": {"EligibleStatusCodes": ["O"], "ICRate": 0.019}}
+        f = tmp_path / "clients.json"
+        f.write_text(json.dumps(data))
+        entry = load_raw_client_entry(f, "1759")
+        assert entry["EligibleStatusCodes"] == ["O"]
+        assert entry["ICRate"] == 0.019
+
+    def test_missing_client_returns_empty(self, tmp_path):
+        data = {"1776": {"open_stat_codes": ["O"]}}
+        f = tmp_path / "clients.json"
+        f.write_text(json.dumps(data))
+        entry = load_raw_client_entry(f, "9999")
+        assert entry == {}
+
+    def test_invalid_json_returns_empty(self, tmp_path):
+        f = tmp_path / "bad.json"
+        f.write_text("not json{{{")
+        entry = load_raw_client_entry(f, "1759")
+        assert entry == {}
+
+    def test_numeric_key_lookup(self, tmp_path):
+        """JSON integer keys are matched via str coercion."""
+        data = {1759: {"ICRate": 0.025}}
+        f = tmp_path / "clients.json"
+        f.write_text(json.dumps(data))
+        entry = load_raw_client_entry(f, "1759")
+        assert entry["ICRate"] == 0.025
+
+    def test_yaml_file(self, tmp_path):
+        data = {"1759": {"client_name": "Test CU"}}
+        f = tmp_path / "clients.yaml"
+        f.write_text(yaml.dump(data))
+        entry = load_raw_client_entry(f, "1759")
+        assert entry["client_name"] == "Test CU"
+
+
+# ---------------------------------------------------------------------------
+# resolve_master_config_path -- expanded
+# ---------------------------------------------------------------------------
+
+
+class TestResolveExpandedPaths:
+    def test_generic_env_var(self, tmp_path, monkeypatch):
+        f = tmp_path / "clients.json"
+        f.write_text("{}")
+        monkeypatch.delenv("ICS_CLIENT_CONFIG", raising=False)
+        monkeypatch.setenv(GENERIC_ENV_VAR, str(f))
+        result = resolve_master_config_path()
+        assert result == f
+
+    def test_ics_env_takes_priority_over_generic(self, tmp_path, monkeypatch):
+        ics_file = tmp_path / "ics.json"
+        ics_file.write_text("{}")
+        generic_file = tmp_path / "generic.json"
+        generic_file.write_text("{}")
+        monkeypatch.setenv("ICS_CLIENT_CONFIG", str(ics_file))
+        monkeypatch.setenv(GENERIC_ENV_VAR, str(generic_file))
+        result = resolve_master_config_path()
+        assert result == ics_file
+
+    def test_repo_local_config(self, tmp_path, monkeypatch):
+        """Finds config/clients_config.json by walking up from CWD."""
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+        config_file = config_dir / "clients_config.json"
+        config_file.write_text("{}")
+        monkeypatch.delenv("ICS_CLIENT_CONFIG", raising=False)
+        monkeypatch.delenv(GENERIC_ENV_VAR, raising=False)
+        monkeypatch.chdir(tmp_path)
+        result = resolve_master_config_path()
+        assert result == config_file
+
+    def test_repo_local_from_subdirectory(self, tmp_path, monkeypatch):
+        """Finds config from a nested subdirectory."""
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+        config_file = config_dir / "clients_config.json"
+        config_file.write_text("{}")
+        sub = tmp_path / "packages" / "ars"
+        sub.mkdir(parents=True)
+        monkeypatch.delenv("ICS_CLIENT_CONFIG", raising=False)
+        monkeypatch.delenv(GENERIC_ENV_VAR, raising=False)
+        monkeypatch.chdir(sub)
+        result = resolve_master_config_path()
+        assert result == config_file

@@ -704,16 +704,54 @@ def migrate(
 
 
 def _load_client_info(config_path: str | None, file_path: Path) -> ClientInfo:
-    """Load client info from config JSON or infer from filename."""
-    if config_path:
-        path = Path(config_path)
+    """Load client info from config JSON or infer from filename.
+
+    Supports both single-client flat dicts and multi-client master format
+    (top-level keys are client IDs). Auto-resolves config when not provided.
+    """
+    # Infer client_id and month from filename first (needed for master lookup)
+    stem = file_path.stem
+    parts = stem.split("_", maxsplit=2)
+    client_id = parts[0] if parts else "0000"
+    client_name = parts[1] if len(parts) > 1 else "Unknown"
+    month = parts[2] if len(parts) > 2 else "2026.01"
+
+    # Auto-resolve config if not passed explicitly
+    resolved_path = config_path
+    if not resolved_path:
+        try:
+            from ics_toolkit.client_registry import resolve_master_config_path
+
+            found = resolve_master_config_path()
+            if found:
+                resolved_path = str(found)
+                logger.info("Auto-resolved client config: %s", resolved_path)
+        except ImportError:
+            pass
+
+    if resolved_path:
+        path = Path(resolved_path)
         if not path.exists():
             raise ConfigError(f"Client config not found: {path}")
         data = json.loads(path.read_text(encoding="utf-8"))
+
+        # Detect multi-client master format: top-level keys are client IDs
+        if _is_master_format(data):
+            entry = data.get(client_id, {})
+            if not entry:
+                logger.warning(
+                    "Client %s not in master config %s; using filename defaults",
+                    client_id,
+                    path,
+                )
+                return ClientInfo(client_id=client_id, client_name=client_name, month=month)
+            return _client_info_from_master_entry(entry, client_id, client_name, month)
+
+        # Single-client flat dict
         return ClientInfo(
-            client_id=str(data.get("client_id", "0000")),
-            client_name=data.get("client_name", "Unknown"),
-            month=data.get("month", "2026.01"),
+            client_id=str(data.get("client_id", client_id)),
+            client_name=data.get("client_name", client_name),
+            month=data.get("month", month),
             eligible_stat_codes=data.get("eligible_stat_codes", []),
             eligible_prod_codes=data.get("eligible_prod_codes", []),
             nsf_od_fee=data.get("nsf_od_fee", 0.0),
@@ -722,11 +760,52 @@ def _load_client_info(config_path: str | None, file_path: Path) -> ClientInfo:
             assigned_csm=data.get("assigned_csm", ""),
         )
 
-    # Infer from filename: e.g., "1200_Test CU_2026.02.xlsx"
-    stem = file_path.stem
-    parts = stem.split("_", maxsplit=2)
-    client_id = parts[0] if parts else "0000"
-    client_name = parts[1] if len(parts) > 1 else "Unknown"
-    month = parts[2] if len(parts) > 2 else "2026.01"
-
     return ClientInfo(client_id=client_id, client_name=client_name, month=month)
+
+
+def _is_master_format(data: dict) -> bool:
+    """Check if JSON is multi-client master format (top-level keys are client IDs)."""
+    if not data:
+        return False
+    first_key = next(iter(data))
+    first_val = data[first_key]
+    return isinstance(first_val, dict) and str(first_key).strip().isdigit()
+
+
+def _client_info_from_master_entry(
+    entry: dict, client_id: str, client_name: str, month: str
+) -> ClientInfo:
+    """Build ClientInfo from a master config entry (PascalCase keys)."""
+    return ClientInfo(
+        client_id=client_id,
+        client_name=entry.get("ClientName", client_name),
+        month=month,
+        eligible_stat_codes=_ensure_list(entry.get("EligibleStatusCodes", [])),
+        eligible_prod_codes=_ensure_list(entry.get("EligibleProductCodes", [])),
+        eligible_mailable=_ensure_list(entry.get("EligibleMailCode", [])),
+        nsf_od_fee=_safe_float(entry.get("NSF_OD_Fee", 0)),
+        ic_rate=_safe_float(entry.get("ICRate", 0)),
+        dc_indicator=entry.get("DCIndicator", "DC Indicator"),
+        reg_e_opt_in=_ensure_list(entry.get("RegEOptInCode", [])),
+        reg_e_column=entry.get("RegEColumn", ""),
+        assigned_csm=entry.get("AssignedCSM", ""),
+    )
+
+
+def _ensure_list(value: object) -> list[str]:
+    """Wrap a scalar string as a single-element list; pass through lists."""
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str) and value:
+        return [value]
+    return []
+
+
+def _safe_float(value: object, default: float = 0.0) -> float:
+    """Convert a config value to float, returning default for empty/invalid."""
+    if value is None or value == "":
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default

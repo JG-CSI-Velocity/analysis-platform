@@ -15,11 +15,26 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # Known ODD data roots (checked in order; first existing one is the default)
-KNOWN_DATA_ROOTS = [
+_RAW_DATA_ROOTS = [
     Path(r"M:\ARS\Incoming\ODDD Files"),
     Path("M:/ARS/Incoming/ODDD Files"),
     Path("data"),
 ]
+
+
+def _dedupe_roots(roots: list[Path]) -> list[Path]:
+    """Deduplicate paths that resolve to the same location (e.g. M:\\ vs M:/)."""
+    seen: set[str] = set()
+    result: list[Path] = []
+    for p in roots:
+        key = str(p).replace("\\", "/").rstrip("/")
+        if key not in seen:
+            seen.add(key)
+            result.append(p)
+    return result
+
+
+KNOWN_DATA_ROOTS = _dedupe_roots(_RAW_DATA_ROOTS)
 
 
 @dataclass(frozen=True)
@@ -113,7 +128,8 @@ def auto_detect_files(
     config = _find_by_patterns(client_dir, ["*config*.json", "*config*.yaml"])
 
     # Transaction files: first check inside the ODD client folder
-    tran = _find_by_patterns(client_dir, ["*tran*.csv", "*Tran*.csv", "*TRAN*.csv", "*.csv"])
+    # Note: avoid broad "*.csv" pattern -- it catches non-transaction files.
+    tran = _find_by_patterns(client_dir, ["*tran*.csv", "*Tran*.csv", "*TRAN*.csv"])
 
     # If not found locally, look in Incoming/Transaction Files/{ClientID}*/
     if tran is None and client_id:
@@ -155,9 +171,17 @@ def _find_client_tran_dir(tran_root: Path, client_id: str) -> Path | None:
     """Find a transaction folder matching the client ID prefix."""
     if not tran_root.is_dir():
         return None
-    for d in tran_root.iterdir():
-        if d.is_dir() and (d.name == client_id or d.name.startswith(f"{client_id} ") or d.name.startswith(f"{client_id}-")):
-            return d
+    try:
+        for d in tran_root.iterdir():
+            if d.is_dir() and (
+                d.name == client_id
+                or d.name.startswith(f"{client_id} ")
+                or d.name.startswith(f"{client_id}-")
+                or d.name.startswith(f"{client_id}_")
+            ):
+                return d
+    except PermissionError:
+        logger.warning("Permission denied scanning %s", tran_root)
     return None
 
 
@@ -205,7 +229,11 @@ def resolve_workspace(
 def _find_by_patterns(directory: Path, patterns: list[str]) -> Path | None:
     """Return the first file matching any of the glob patterns."""
     for pattern in patterns:
-        matches = sorted(directory.glob(pattern))
+        try:
+            matches = sorted(directory.glob(pattern))
+        except PermissionError:
+            logger.warning("Permission denied scanning %s for %s", directory, pattern)
+            continue
         if matches:
             return matches[-1]  # most recent
     return None

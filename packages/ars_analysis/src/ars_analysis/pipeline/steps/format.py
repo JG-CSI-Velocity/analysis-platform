@@ -318,7 +318,7 @@ def format_all(
                 df = format_odd(df)
                 out_name = odd_file.stem + "-formatted.xlsx"
                 local_out = tmp_dir / out_name
-                df.to_excel(local_out, index=False, engine="xlsxwriter")
+                df.to_excel(local_out, index=False, engine="openpyxl")
 
                 # Copy result to network destination
                 dest_dir = out_root / csm_name / full_month / client_dir.name

@@ -24,13 +24,7 @@ ALL_MOD_KEYS = [m.key for m in registry]
 
 
 def _sync_checkboxes(keys: list[str], value: bool) -> None:
-    """Sync checkbox widget keys to match bulk selection state.
-
-    Streamlit checkboxes store their own state under their widget key.
-    After first render, the `value=` param is ignored in favor of the
-    stored widget state. So bulk actions must explicitly set widget keys
-    before calling st.rerun().
-    """
+    """Sync checkbox widget keys to match bulk selection state."""
     for k in keys:
         st.session_state[f"mod_{k}"] = value
 
@@ -52,73 +46,61 @@ def _deselect_keys(keys: list[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Scoped CSS
+# Config
+# ---------------------------------------------------------------------------
+_PROD_COLORS = {
+    Product.ARS: "#3B82F6",
+    Product.TXN: "#10B981",
+    Product.ICS: "#F59E0B",
+}
+_PROD_LABELS = {
+    Product.ARS: ("ARS", "Account Review Suite", "8 modules"),
+    Product.TXN: ("TXN", "Transaction Analysis", "35 modules"),
+    Product.ICS: ("ICS", "ICS Toolkit", "37 modules"),
+}
+_STATUS_TAG = {
+    ModuleStatus.STABLE: ("BUILT", "tag-built"),
+    ModuleStatus.BETA: ("BETA", "tag-beta"),
+    ModuleStatus.DRAFT: ("PLANNED", "tag-draft"),
+}
+
+_prod_modules = {p: [m for m in registry if m.product == p] for p in Product}
+
+# ---------------------------------------------------------------------------
+# CSS
 # ---------------------------------------------------------------------------
 st.markdown(
     """
 <style>
-.prod-card {
-    border: 2px solid var(--uap-border);
-    border-radius: 8px;
-    padding: 1rem 1.2rem;
-    background: #FFFFFF;
-    transition: all 0.15s ease;
-    text-align: center;
-}
-.prod-card.active { border-color: var(--uap-accent); background: #EFF6FF; }
-.prod-card .prod-name {
+/* Template pills */
+.tpl-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 0.5rem 0; }
+
+/* Tab counter badge */
+.tab-badge {
+    display: inline-block;
     font-family: var(--uap-mono);
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    margin-bottom: 2px;
+    font-size: 0.6rem; font-weight: 700;
+    padding: 1px 6px; border-radius: 10px;
+    margin-left: 6px;
 }
-.prod-card .prod-count {
-    font-family: var(--uap-sans);
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--uap-ink);
-    line-height: 1.1;
+
+/* Category expander overrides */
+div[data-testid="stExpander"] {
+    border: 1px solid var(--uap-border) !important;
+    border-radius: 6px !important;
+    margin-bottom: 0.4rem !important;
 }
-.prod-card .prod-sub {
-    font-family: var(--uap-mono);
-    font-size: 0.62rem;
-    color: var(--uap-muted);
-    letter-spacing: 0.04em;
+div[data-testid="stExpander"] summary {
+    font-family: var(--uap-sans) !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
 }
-.cat-header {
-    display: flex;
-    align-items: center;
-    padding: 0.6rem 0 0.3rem 0;
-    border-bottom: 1px solid var(--uap-border);
-    margin-bottom: 0.4rem;
-}
-.cat-bar {
-    width: 4px; height: 18px; border-radius: 2px;
-    margin-right: 10px; flex-shrink: 0;
-}
-.cat-label {
-    font-family: var(--uap-mono);
-    font-size: 0.72rem; font-weight: 600;
-    letter-spacing: 0.06em; color: var(--uap-dim);
-}
-.cat-count {
-    font-family: var(--uap-mono);
-    font-size: 0.62rem; color: var(--uap-muted); margin-left: auto;
-}
-.mod-row {
-    display: flex; align-items: center;
-    padding: 0.25rem 0 0.25rem 14px; gap: 8px; flex-wrap: wrap;
-}
-.mod-name {
-    font-family: var(--uap-sans); font-weight: 500;
-    font-size: 0.86rem; color: var(--uap-ink);
-}
-.mod-desc { font-family: var(--uap-sans); font-size: 0.76rem; color: #94A3B8; }
+
+/* Module tags */
 .mod-tag {
     display: inline-block; font-family: var(--uap-mono);
     font-size: 0.58rem; font-weight: 600; letter-spacing: 0.04em;
-    padding: 1px 6px; border-radius: 2px;
+    padding: 1px 6px; border-radius: 2px; margin-left: 4px;
 }
 .tag-built { background: #DCFCE7; color: #166534; }
 .tag-beta { background: #DBEAFE; color: #1E40AF; }
@@ -126,10 +108,24 @@ st.markdown(
 .tag-dep { background: #FEF3C7; color: #92400E; }
 .tag-last { background: #E0E7FF; color: #3730A3; }
 .tag-out { background: #F1F5F9; color: #64748B; }
+
+/* Module info line */
+.mod-info {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0.15rem 0; flex-wrap: wrap;
+}
+.mod-name {
+    font-family: var(--uap-sans); font-weight: 500;
+    font-size: 0.86rem; color: var(--uap-ink);
+}
+.mod-desc {
+    font-family: var(--uap-sans); font-size: 0.76rem; color: #94A3B8;
+}
+
+/* Selection summary bar */
 .sel-bar {
     background: var(--uap-ink); color: #CBD5E1;
-    padding: 0.6rem 1.2rem; border-radius: 8px; margin-top: 1rem;
-    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.7rem 1.2rem; border-radius: 8px; margin-top: 0.5rem;
 }
 .sel-bar .sel-count {
     font-family: var(--uap-mono); font-size: 0.82rem;
@@ -150,236 +146,162 @@ st.markdown('<p class="uap-label">ANALYSIS / MODULE LIBRARY</p>', unsafe_allow_h
 st.title("Module Library")
 
 # ---------------------------------------------------------------------------
-# Product config
+# Templates -- promoted to top as quick-launch
 # ---------------------------------------------------------------------------
-_PROD_COLORS = {
-    Product.ARS: "#3B82F6",
-    Product.TXN: "#10B981",
-    Product.ICS: "#F59E0B",
-}
-_PROD_LABELS = {
-    Product.ARS: ("ARS", "Account Review Suite"),
-    Product.TXN: ("TXN", "Transaction Analysis"),
-    Product.ICS: ("ICS", "ICS Toolkit"),
-}
-_STATUS_TAG = {
-    ModuleStatus.STABLE: ("BUILT", "tag-built"),
-    ModuleStatus.BETA: ("BETA", "tag-beta"),
-    ModuleStatus.DRAFT: ("PLANNED", "tag-draft"),
-}
-
-_prod_modules = {p: [m for m in registry if m.product == p] for p in Product}
-_prod_selected = {p: sum(1 for m in mods if m.key in selected) for p, mods in _prod_modules.items()}
-
-# ---------------------------------------------------------------------------
-# Quick-select: product cards with toggle button
-# ---------------------------------------------------------------------------
-st.markdown('<p class="uap-label">QUICK SELECT</p>', unsafe_allow_html=True)
-
-qc1, qc2, qc3 = st.columns(3)
-
-for col, product in zip([qc1, qc2, qc3], Product):
-    label, subtitle = _PROD_LABELS[product]
-    color = _PROD_COLORS[product]
-    total = len(_prod_modules[product])
-    sel_ct = _prod_selected[product]
-    all_selected = sel_ct == total
-    prod_keys = [m.key for m in _prod_modules[product]]
-
-    with col:
-        active_cls = "active" if sel_ct > 0 else ""
-        st.markdown(
-            f'<div class="prod-card {active_cls}" style="border-color: {color if sel_ct > 0 else ""}">'
-            f'<div class="prod-name" style="color: {color}">{label}</div>'
-            f'<div class="prod-count">{sel_ct}<span style="font-size:0.8rem;font-weight:400;color:#94A3B8;">/{total}</span></div>'
-            f'<div class="prod-sub">{subtitle}</div>'
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-
-        # Single toggle: select all / deselect all
-        if all_selected:
-            if st.button(
-                f"Deselect {label}",
-                key=f"prod_toggle_{product.value}",
-                use_container_width=True,
-            ):
-                _deselect_keys(prod_keys)
-        elif sel_ct > 0:
-            # Partial -- show "Select All" to fill remaining
-            if st.button(
-                f"Select All {label}",
-                key=f"prod_toggle_{product.value}",
-                use_container_width=True,
-            ):
-                _select_keys(prod_keys)
-        else:
-            if st.button(
-                f"Select All {label}",
-                key=f"prod_toggle_{product.value}",
-                use_container_width=True,
-            ):
-                _select_keys(prod_keys)
-
-# ---------------------------------------------------------------------------
-# Templates
-# ---------------------------------------------------------------------------
-st.divider()
-st.markdown('<p class="uap-label">TEMPLATES</p>', unsafe_allow_html=True)
-
 templates = load_templates()
-template_names = list(templates.keys())
 
-tc1, tc2, tc3 = st.columns([3, 1, 1])
-with tc1:
-    selected_template = st.selectbox(
-        "Load template",
-        options=["-- Select a template --"] + template_names,
-        key="mod_template",
-        label_visibility="collapsed",
-    )
-with tc2:
-    if st.button("Load", key="mod_load_template", use_container_width=True):
-        if selected_template != "-- Select a template --":
-            new_keys = templates[selected_template]
-            st.session_state["uap_selected_modules"] = set(new_keys)
-            # Sync all checkboxes: turn on loaded, turn off the rest
+st.markdown('<p class="uap-label">QUICK START</p>', unsafe_allow_html=True)
+
+# Render template buttons in a row
+tpl_cols = st.columns(len(templates) + 1)
+for i, (tpl_name, tpl_keys) in enumerate(templates.items()):
+    with tpl_cols[i]:
+        if st.button(tpl_name, key=f"tpl_{i}", use_container_width=True):
+            st.session_state["uap_selected_modules"] = set(tpl_keys)
             _sync_checkboxes(ALL_MOD_KEYS, False)
-            _sync_checkboxes(new_keys, True)
+            _sync_checkboxes(tpl_keys, True)
             st.rerun()
-with tc3:
-    if st.button("Clear All", key="mod_clear_all", use_container_width=True):
+with tpl_cols[-1]:
+    if st.button("Clear All", key="tpl_clear", use_container_width=True):
         st.session_state["uap_selected_modules"] = set()
         _sync_checkboxes(ALL_MOD_KEYS, False)
         st.rerun()
 
-# ---------------------------------------------------------------------------
-# Search + filter
-# ---------------------------------------------------------------------------
 st.divider()
 
-fc1, fc2, fc3 = st.columns([3, 1, 1])
-with fc1:
-    search = st.text_input(
-        "Search",
-        placeholder="Search modules...",
-        key="mod_search",
-        label_visibility="collapsed",
-    )
-with fc2:
-    product_filter = st.selectbox(
-        "Product",
-        options=["All"] + [p.value.upper() for p in Product],
-        key="mod_product",
-    )
-with fc3:
-    status_filter = st.selectbox(
-        "Status",
-        options=["All", "stable", "beta", "draft"],
-        key="mod_status",
-    )
+# ---------------------------------------------------------------------------
+# Tabbed product view
+# ---------------------------------------------------------------------------
 
-filtered = list(registry)
-if product_filter != "All":
-    filtered = [m for m in filtered if m.product.value == product_filter.lower()]
-if status_filter != "All":
-    filtered = [m for m in filtered if m.status.value == status_filter]
-if search.strip():
-    q = search.strip().lower()
-    filtered = [
-        m
-        for m in filtered
-        if q in m.name.lower()
-        or q in m.description.lower()
-        or q in m.category.lower()
-        or q in m.key.lower()
-        or any(q in t for t in m.tags)
-    ]
+# Build tab labels with selection counts
+tab_labels = []
+for product in Product:
+    label, _, _ = _PROD_LABELS[product]
+    total = len(_prod_modules[product])
+    sel_ct = sum(1 for m in _prod_modules[product] if m.key in selected)
+    if sel_ct > 0:
+        tab_labels.append(f"{label}  ({sel_ct}/{total})")
+    else:
+        tab_labels.append(f"{label}  (0/{total})")
 
-if not filtered:
-    st.warning("No modules match your filters.")
-    st.stop()
+tabs = st.tabs(tab_labels)
+
+for tab, product in zip(tabs, Product):
+    with tab:
+        prod_label, prod_subtitle, prod_count = _PROD_LABELS[product]
+        color = _PROD_COLORS[product]
+        modules = _prod_modules[product]
+        prod_keys = [m.key for m in modules]
+        prod_sel = sum(1 for m in modules if m.key in selected)
+        all_selected = prod_sel == len(modules)
+
+        # Product header row: subtitle + select/deselect toggle
+        h1, h2 = st.columns([4, 1])
+        with h1:
+            st.caption(f"{prod_subtitle}  --  {len(modules)} modules")
+        with h2:
+            if all_selected:
+                if st.button(
+                    "Deselect All",
+                    key=f"prod_tog_{product.value}",
+                    use_container_width=True,
+                ):
+                    _deselect_keys(prod_keys)
+            else:
+                if st.button(
+                    "Select All",
+                    key=f"prod_tog_{product.value}",
+                    use_container_width=True,
+                    type="primary" if prod_sel == 0 else "secondary",
+                ):
+                    _select_keys(prod_keys)
+
+        # Group modules by category
+        categories: dict[str, list[ModuleInfo]] = {}
+        for m in modules:
+            categories.setdefault(m.category, []).append(m)
+
+        # Render each category as an expander
+        for cat_name, cat_modules in categories.items():
+            cat_keys = [m.key for m in cat_modules]
+            cat_sel = sum(1 for m in cat_modules if m.key in selected)
+            cat_total = len(cat_modules)
+
+            # Expander label with count
+            if cat_sel > 0:
+                exp_label = f"{cat_name}  --  {cat_sel}/{cat_total} selected"
+            else:
+                exp_label = f"{cat_name}  --  {cat_total} modules"
+
+            with st.expander(exp_label, expanded=cat_sel > 0):
+                # Category-level select/deselect
+                all_cat_in = cat_sel == cat_total
+                sc1, sc2 = st.columns([4, 1])
+                with sc2:
+                    if all_cat_in:
+                        if st.button(
+                            "Deselect",
+                            key=f"cat_{product.value}_{cat_name}",
+                            use_container_width=True,
+                        ):
+                            _deselect_keys(cat_keys)
+                    else:
+                        if st.button(
+                            "Select",
+                            key=f"cat_{product.value}_{cat_name}",
+                            use_container_width=True,
+                        ):
+                            _select_keys(cat_keys)
+
+                # Individual module checkboxes
+                for m in cat_modules:
+                    status_label, status_cls = _STATUS_TAG.get(m.status, ("?", "tag-draft"))
+
+                    c_chk, c_info = st.columns([0.3, 5])
+                    with c_chk:
+                        widget_key = f"mod_{m.key}"
+                        if widget_key not in st.session_state:
+                            st.session_state[widget_key] = m.key in selected
+
+                        checked = st.checkbox(
+                            m.name,
+                            key=widget_key,
+                            label_visibility="collapsed",
+                        )
+                        if checked and m.key not in selected:
+                            selected.add(m.key)
+                            st.session_state["uap_selected_modules"] = selected
+                        elif not checked and m.key in selected:
+                            selected.discard(m.key)
+                            st.session_state["uap_selected_modules"] = selected
+
+                    with c_info:
+                        badges = f'<span class="mod-tag {status_cls}">{status_label}</span>'
+                        if m.depends_on:
+                            badges += (
+                                f'<span class="mod-tag tag-dep">needs {len(m.depends_on)}</span>'
+                            )
+                        if m.run_order == 99:
+                            badges += '<span class="mod-tag tag-last">runs last</span>'
+                        for o in m.output_types:
+                            badges += f'<span class="mod-tag tag-out">{o}</span>'
+
+                        desc = (
+                            f'<span class="mod-desc">-- {m.description}</span>'
+                            if m.description
+                            else ""
+                        )
+
+                        st.markdown(
+                            f'<div class="mod-info">'
+                            f'<span class="mod-name">{m.name}</span>'
+                            f"{badges} {desc}"
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
 
 # ---------------------------------------------------------------------------
-# Module grid -- grouped by Product > Category
-# ---------------------------------------------------------------------------
-groups: dict[str, list[ModuleInfo]] = {}
-for m in filtered:
-    key = f"{m.product.value.upper()} / {m.category}"
-    groups.setdefault(key, []).append(m)
-
-
-def _render_module(m: ModuleInfo) -> None:
-    """Render a single module row with checkbox."""
-    status_label, status_cls = _STATUS_TAG.get(m.status, ("?", "tag-draft"))
-
-    c_chk, c_info = st.columns([0.3, 5])
-    with c_chk:
-        widget_key = f"mod_{m.key}"
-        if widget_key not in st.session_state:
-            st.session_state[widget_key] = m.key in selected
-
-        checked = st.checkbox(
-            m.name,
-            key=widget_key,
-            label_visibility="collapsed",
-        )
-        if checked and m.key not in selected:
-            selected.add(m.key)
-            st.session_state["uap_selected_modules"] = selected
-        elif not checked and m.key in selected:
-            selected.discard(m.key)
-            st.session_state["uap_selected_modules"] = selected
-
-    with c_info:
-        badges = f'<span class="mod-tag {status_cls}">{status_label}</span>'
-        if m.depends_on:
-            badges += f'<span class="mod-tag tag-dep">needs {len(m.depends_on)}</span>'
-        if m.run_order == 99:
-            badges += '<span class="mod-tag tag-last">runs last</span>'
-        for o in m.output_types:
-            badges += f'<span class="mod-tag tag-out">{o}</span>'
-
-        desc = f' <span class="mod-desc">-- {m.description}</span>' if m.description else ""
-
-        st.markdown(
-            f'<div class="mod-row"><span class="mod-name">{m.name}</span>{badges}{desc}</div>',
-            unsafe_allow_html=True,
-        )
-
-
-for cat_name, modules in sorted(groups.items()):
-    product = modules[0].product
-    color = _PROD_COLORS.get(product, "#94A3B8")
-    cat_sel = sum(1 for m in modules if m.key in selected)
-    cat_total = len(modules)
-    cat_keys = [m.key for m in modules]
-    all_in = cat_sel == cat_total
-
-    # Category header with single toggle
-    hdr1, hdr2 = st.columns([5, 1])
-    with hdr1:
-        st.markdown(
-            f'<div class="cat-header">'
-            f'<div class="cat-bar" style="background:{color};"></div>'
-            f'<span class="cat-label">{cat_name}</span>'
-            f'<span class="cat-count">{cat_sel}/{cat_total}</span>'
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-    with hdr2:
-        if all_in:
-            if st.button("Deselect", key=f"cattog_{cat_name}", use_container_width=True):
-                _deselect_keys(cat_keys)
-        else:
-            if st.button("Select", key=f"cattog_{cat_name}", use_container_width=True):
-                _select_keys(cat_keys)
-
-    for m in modules:
-        _render_module(m)
-
-# ---------------------------------------------------------------------------
-# Selection summary
+# Selection summary bar
 # ---------------------------------------------------------------------------
 st.divider()
 
@@ -394,10 +316,8 @@ if selected:
 
     st.markdown(
         f'<div class="sel-bar">'
-        f"<div>"
-        f'<span class="sel-count">{len(selected)} modules selected</span><br>'
-        f'<span class="sel-detail">{detail_str}</span>'
-        f"</div>"
+        f'<span class="sel-count">{len(selected)} modules selected</span>'
+        f'<br><span class="sel-detail">{detail_str}</span>'
         f"</div>",
         unsafe_allow_html=True,
     )
@@ -422,4 +342,4 @@ else:
         "</div>",
         unsafe_allow_html=True,
     )
-    st.caption("Use the quick-select buttons above, load a template, or check individual modules.")
+    st.caption("Pick a template above or browse the tabs to select modules.")

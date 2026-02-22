@@ -1,4 +1,4 @@
-"""UAP Workspace -- CSM + client folder selection and file auto-detection."""
+"""UAP Workspace -- CSM + month + client folder selection and file auto-detection."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from platform_app.core.session_manager import (
     auto_detect_files,
     discover_clients,
     discover_csm_folders,
+    discover_months,
     resolve_workspace,
 )
 from shared.format_odd import check_ics_ready, check_odd_formatted
@@ -19,7 +20,7 @@ from shared.format_odd import check_ics_ready, check_odd_formatted
 # ---------------------------------------------------------------------------
 st.markdown('<p class="uap-label">DATA / WORKSPACE</p>', unsafe_allow_html=True)
 st.title("Workspace")
-st.caption("Select your CSM folder and client to auto-detect data files.")
+st.caption("Select your CSM folder, review month, and client to auto-detect data files.")
 
 # ---------------------------------------------------------------------------
 # Data root configuration
@@ -27,8 +28,8 @@ st.caption("Select your CSM folder and client to auto-detect data files.")
 data_root_str = st.text_input(
     "Data root directory",
     value=st.session_state.get("uap_data_root", ""),
-    placeholder="/path/to/data or M:/ARS",
-    help="Root directory containing CSM folders. Each CSM has client subfolders.",
+    placeholder=r"M:\ARS\Incoming\ODDD Files",
+    help="Root directory containing CSM folders (e.g. M:\\ARS\\Incoming\\ODDD Files).",
 )
 
 if not data_root_str.strip():
@@ -63,15 +64,37 @@ csm = st.selectbox(
 st.session_state["uap_csm"] = csm
 
 # ---------------------------------------------------------------------------
+# Month selection
+# ---------------------------------------------------------------------------
+st.markdown('<p class="uap-label">REVIEW MONTH</p>', unsafe_allow_html=True)
+
+csm_dir = data_root / csm
+months = discover_months(csm_dir)
+
+if not months:
+    st.warning(f"No month folders (YYYY.MM) found in `{csm_dir}`")
+    st.stop()
+
+month = st.selectbox(
+    "Select month",
+    options=months,
+    index=months.index(st.session_state.get("uap_month", months[0]))
+    if st.session_state.get("uap_month") in months
+    else 0,
+    help="Month folders are sorted newest first.",
+)
+st.session_state["uap_month"] = month
+
+# ---------------------------------------------------------------------------
 # Client selection
 # ---------------------------------------------------------------------------
 st.markdown('<p class="uap-label">CLIENT</p>', unsafe_allow_html=True)
 
-csm_dir = data_root / csm
-clients = discover_clients(csm_dir)
+month_dir = csm_dir / month
+clients = discover_clients(month_dir)
 
 if not clients:
-    st.warning(f"No client folders in `{csm_dir}`")
+    st.warning(f"No client folders in `{month_dir}`")
     st.stop()
 
 c1, c2 = st.columns([2, 1])
@@ -99,7 +122,7 @@ st.session_state["uap_client_name"] = client_name
 st.divider()
 st.markdown('<p class="uap-label">DETECTED FILES</p>', unsafe_allow_html=True)
 
-client_dir = csm_dir / client_id
+client_dir = month_dir / client_id
 if not client_dir.is_dir():
     st.warning(f"Client directory not found: `{client_dir}`")
     st.stop()
@@ -159,8 +182,14 @@ for col, (key, label, pipeline) in zip(cols, file_types):
         )
 
 # Store workspace in session
-ws = resolve_workspace(csm, client_id, client_name.strip(), data_root)
+ws = resolve_workspace(csm, client_id, client_name.strip(), data_root, month=month)
 st.session_state["uap_workspace"] = ws
+
+# Store detected file paths in session for downstream pages
+for key, _, _ in file_types:
+    path = detected.get(key)
+    if path and path.exists():
+        st.session_state[f"uap_file_{key}"] = str(path)
 
 # Available pipelines
 st.divider()

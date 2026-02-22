@@ -323,8 +323,9 @@ class TestSessionManager:
             csm="jg",
             client_id="1234",
             client_name="Test CU",
-            root=Path("/data/jg/1234"),
-            oddd_file=Path("/data/jg/1234/odd.xlsx"),
+            month="2026.02",
+            root=Path("/data/jg/2026.02/1234"),
+            oddd_file=Path("/data/jg/2026.02/1234/odd.xlsx"),
         )
         assert ws.has_ars_data is True
         assert ws.has_txn_data is False
@@ -350,6 +351,19 @@ class TestSessionManager:
 
         result = discover_csm_folders(tmp_path)
         assert result == ["alice", "bob"]
+
+    def test_discover_months(self, tmp_path):
+        from platform_app.core.session_manager import discover_months
+
+        (tmp_path / "2026.01").mkdir()
+        (tmp_path / "2026.02").mkdir()
+        (tmp_path / "2025.12").mkdir()
+        (tmp_path / "not-a-month").mkdir()
+        (tmp_path / ".hidden").mkdir()
+
+        result = discover_months(tmp_path)
+        # Newest first
+        assert result == ["2026.02", "2026.01", "2025.12"]
 
     def test_discover_clients(self, tmp_path):
         from platform_app.core.session_manager import discover_clients

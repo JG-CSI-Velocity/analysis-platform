@@ -1,6 +1,6 @@
 """Workspace session manager: CSM + client folder resolution.
 
-CSMs operate in: /data/{csm_name}/{client_id}/
+CSMs operate in: /data/{csm_name}/{YYYY.MM}/{client_id}/
 The session manager resolves paths, auto-detects data files,
 and persists workspace state across Streamlit reruns.
 """
@@ -8,6 +8,7 @@ and persists workspace state across Streamlit reruns.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -28,6 +29,7 @@ class ClientWorkspace:
     csm: str
     client_id: str
     client_name: str
+    month: str
     root: Path
     oddd_file: Path | None = None
     tran_file: Path | None = None
@@ -59,6 +61,9 @@ class ClientWorkspace:
         return pipelines
 
 
+_MONTH_RE = re.compile(r"^\d{4}\.\d{2}$")
+
+
 def discover_csm_folders(data_root: Path) -> list[str]:
     """Return sorted list of CSM folder names under data_root."""
     if not data_root.is_dir():
@@ -66,11 +71,21 @@ def discover_csm_folders(data_root: Path) -> list[str]:
     return sorted(d.name for d in data_root.iterdir() if d.is_dir() and not d.name.startswith("."))
 
 
-def discover_clients(csm_dir: Path) -> list[str]:
-    """Return sorted list of client folder names under a CSM directory."""
+def discover_months(csm_dir: Path) -> list[str]:
+    """Return sorted list of YYYY.MM month folders under a CSM directory."""
     if not csm_dir.is_dir():
         return []
-    return sorted(d.name for d in csm_dir.iterdir() if d.is_dir() and not d.name.startswith("."))
+    return sorted(
+        (d.name for d in csm_dir.iterdir() if d.is_dir() and _MONTH_RE.match(d.name)),
+        reverse=True,
+    )
+
+
+def discover_clients(month_dir: Path) -> list[str]:
+    """Return sorted list of client folder names under a month directory."""
+    if not month_dir.is_dir():
+        return []
+    return sorted(d.name for d in month_dir.iterdir() if d.is_dir() and not d.name.startswith("."))
 
 
 def auto_detect_files(client_dir: Path) -> dict[str, Path | None]:
@@ -91,9 +106,10 @@ def resolve_workspace(
     client_id: str,
     client_name: str,
     data_root: Path,
+    month: str = "",
 ) -> ClientWorkspace:
-    """Build a ClientWorkspace from CSM + client selection."""
-    client_dir = data_root / csm / client_id
+    """Build a ClientWorkspace from CSM + month + client selection."""
+    client_dir = data_root / csm / month / client_id if month else data_root / csm / client_id
     output_dir = client_dir / "output"
 
     detected = auto_detect_files(client_dir) if client_dir.is_dir() else {}
@@ -102,6 +118,7 @@ def resolve_workspace(
         csm=csm,
         client_id=client_id,
         client_name=client_name,
+        month=month,
         root=client_dir,
         oddd_file=detected.get("oddd"),
         tran_file=detected.get("tran"),

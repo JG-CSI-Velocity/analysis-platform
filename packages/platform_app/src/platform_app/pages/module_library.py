@@ -315,18 +315,20 @@ def _render_module(m: ModuleInfo) -> None:
 
     c_chk, c_info = st.columns([0.3, 5])
     with c_chk:
-        was_selected = m.key in selected
+        widget_key = f"mod_{m.key}"
+        if widget_key not in st.session_state:
+            st.session_state[widget_key] = m.key in selected
+
         checked = st.checkbox(
             m.name,
-            value=was_selected,
-            key=f"mod_{m.key}",
+            key=widget_key,
             label_visibility="collapsed",
         )
-        if checked != was_selected:
-            if checked:
-                selected.add(m.key)
-            else:
-                selected.discard(m.key)
+        if checked and m.key not in selected:
+            selected.add(m.key)
+            st.session_state["uap_selected_modules"] = selected
+        elif not checked and m.key in selected:
+            selected.discard(m.key)
             st.session_state["uap_selected_modules"] = selected
 
     with c_info:

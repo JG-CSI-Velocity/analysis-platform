@@ -1,4 +1,4 @@
-"""7-step ODDD formatting pipeline.
+"""7-step ODDD formatting pipeline + format validation checks.
 
 Ported from ars-pipeline/src/ars/pipeline/steps/format.py (339 lines).
 Transforms raw ODDD files into the formatted structure needed by ARS and ICS.
@@ -14,10 +14,16 @@ Steps:
 
 from __future__ import annotations
 
+import csv
+import logging
+from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 def format_odd(df: pd.DataFrame) -> pd.DataFrame:
@@ -194,3 +200,111 @@ def _categorize_swipes(monthly_avg: float) -> str:
         return "26-40 Swipes"
     else:
         return "41+ Swipes"
+
+
+# ---------------------------------------------------------------------------
+# Format validation -- header-only checks for ARS formatting and ICS readiness
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class FormatStatus:
+    """Result of checking whether an ODD file has required columns."""
+
+    is_formatted: bool
+    found_columns: tuple[str, ...]
+    missing_columns: tuple[str, ...]
+    checked_path: str
+
+
+# Columns produced by format_odd() steps 3/5/6 that do NOT exist in raw ODD.
+ARS_SIGNATURE_COLUMNS: tuple[str, ...] = (
+    "Total Spend",
+    "Total Swipes",
+    "SwipeCat12",
+    "Account Holder Age",
+    "Response Grouping",
+)
+ARS_SIGNATURE_THRESHOLD = 3  # 3 of 5 handles edge cases (missing DOB, no Mail cols)
+
+# Columns appended by the ICS append step.
+ICS_REQUIRED_COLUMNS: tuple[str, ...] = (
+    "ICS Account",
+    "ICS Source",
+)
+ICS_REQUIRED_THRESHOLD = 2  # both must be present
+
+
+def check_odd_formatted(path: str | Path) -> FormatStatus:
+    """Check if an ODD file has been through ARS formatting (header-only read).
+
+    Reads column headers without loading the full dataset. Checks for
+    signature columns that ``format_odd()`` adds (Total Spend, SwipeCat12, etc.).
+
+    Returns a ``FormatStatus`` with ``is_formatted=True`` when at least
+    ``ARS_SIGNATURE_THRESHOLD`` of the ``ARS_SIGNATURE_COLUMNS`` are found.
+    """
+    return _check_columns(path, ARS_SIGNATURE_COLUMNS, ARS_SIGNATURE_THRESHOLD)
+
+
+def check_ics_ready(path: str | Path) -> FormatStatus:
+    """Check if an ODD file has ICS Account + ICS Source columns (header-only read).
+
+    These columns are appended by the ICS append step and are required
+    before running ICS analysis.
+    """
+    return _check_columns(path, ICS_REQUIRED_COLUMNS, ICS_REQUIRED_THRESHOLD)
+
+
+def _check_columns(
+    path: str | Path,
+    signature: tuple[str, ...],
+    threshold: int,
+) -> FormatStatus:
+    """Shared implementation for column-presence checks."""
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    suffix = path.suffix.lower()
+    if suffix not in (".xlsx", ".xls", ".csv"):
+        raise ValueError(f"Unsupported file format: {suffix}")
+
+    headers = _read_column_headers(path)
+    header_set = set(headers)
+
+    found = tuple(c for c in signature if c in header_set)
+    missing = tuple(c for c in signature if c not in header_set)
+
+    return FormatStatus(
+        is_formatted=len(found) >= threshold,
+        found_columns=found,
+        missing_columns=missing,
+        checked_path=str(path),
+    )
+
+
+def _read_column_headers(path: Path) -> list[str]:
+    """Read column headers only, without loading data rows."""
+    suffix = path.suffix.lower()
+
+    if suffix == ".xlsx":
+        from openpyxl import load_workbook
+
+        wb = load_workbook(path, read_only=True, data_only=True)
+        try:
+            ws = wb.active
+            row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))
+            return [str(c) for c in row if c is not None]
+        finally:
+            wb.close()
+
+    if suffix == ".xls":
+        df = pd.read_excel(path, nrows=0, engine="xlrd")
+        return list(df.columns)
+
+    # CSV
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        first_row = next(reader, [])
+    return [c.strip() for c in first_row]

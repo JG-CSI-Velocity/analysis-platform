@@ -11,6 +11,7 @@ import streamlit as st
 from platform_app.core.module_registry import Product, get_registry
 from platform_app.core.run_logger import RunRecord, generate_run_id, hash_file, log_run
 from platform_app.orchestrator import run_pipeline
+from shared.format_odd import check_ics_ready, check_odd_formatted
 
 # ---------------------------------------------------------------------------
 # Header
@@ -76,6 +77,45 @@ if file_status:
             unsafe_allow_html=True,
         )
 
+# Format validation gates
+if Product.ARS in needed_products and oddd_path and Path(oddd_path).exists():
+    try:
+        ars_status = check_odd_formatted(oddd_path)
+        badge_cls = "uap-badge-ready" if ars_status.is_formatted else "uap-badge-error"
+        badge_txt = "FORMATTED" if ars_status.is_formatted else "UNFORMATTED"
+        st.markdown(
+            f'<div style="display: flex; align-items: center; padding: 0.3rem 0;">'
+            f'<span class="uap-badge {badge_cls}" style="min-width: 60px; text-align: center;">{badge_txt}</span>'
+            f'<span style="font-family: var(--uap-sans); font-size: 0.88rem; margin-left: 0.75rem;">ARS Format</span>'
+            f'<span style="font-family: var(--uap-mono); font-size: 0.72rem; color: #94A3B8; margin-left: auto;">'
+            f'{len(ars_status.found_columns)}/{len(ars_status.found_columns) + len(ars_status.missing_columns)} columns</span>'
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        ars_status = None
+else:
+    ars_status = None
+
+if Product.ICS in needed_products and oddd_path and Path(oddd_path).exists():
+    try:
+        ics_status = check_ics_ready(oddd_path)
+        badge_cls = "uap-badge-ready" if ics_status.is_formatted else "uap-badge-error"
+        badge_txt = "ICS READY" if ics_status.is_formatted else "ICS MISSING"
+        st.markdown(
+            f'<div style="display: flex; align-items: center; padding: 0.3rem 0;">'
+            f'<span class="uap-badge {badge_cls}" style="min-width: 60px; text-align: center;">{badge_txt}</span>'
+            f'<span style="font-family: var(--uap-sans); font-size: 0.88rem; margin-left: 0.75rem;">ICS Fields</span>'
+            f'<span style="font-family: var(--uap-mono); font-size: 0.72rem; color: #94A3B8; margin-left: auto;">'
+            f'{len(ics_status.found_columns)}/{len(ics_status.found_columns) + len(ics_status.missing_columns)} columns</span>'
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        ics_status = None
+else:
+    ics_status = None
+
 # Validation
 errors: list[str] = []
 if not selected_modules:
@@ -85,6 +125,14 @@ if not client_id:
 for name, (ready, _) in file_status.items():
     if not ready:
         errors.append(f"{name} data file missing. Go to **Data Ingestion** to upload.")
+if Product.ARS in needed_products and ars_status and not ars_status.is_formatted:
+    errors.append(
+        "ARS ODD file is unformatted. Format via **Data Ingestion** or CLI `ars format`."
+    )
+if Product.ICS in needed_products and ics_status and not ics_status.is_formatted:
+    errors.append(
+        "ODD file missing ICS fields (ICS Account, ICS Source). Run ICS append first."
+    )
 
 if errors:
     st.divider()

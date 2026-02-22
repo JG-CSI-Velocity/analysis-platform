@@ -224,26 +224,24 @@ button[data-baseweb="tab"] {
 # ---------------------------------------------------------------------------
 # Navigation
 # ---------------------------------------------------------------------------
-home = st.Page("pages/home.py", title="Home", icon=":material/terminal:", default=True)
+home = st.Page("pages/home.py", title="Run Analysis", icon=":material/play_circle:", default=True)
+
+outputs = st.Page("pages/outputs.py", title="View Outputs", icon=":material/download:")
+history = st.Page("pages/run_history.py", title="Run History", icon=":material/history:")
 
 workspace = st.Page("pages/workspace.py", title="Workspace", icon=":material/folder_open:")
 data_ingest = st.Page(
     "pages/data_ingestion.py", title="Data Ingestion", icon=":material/upload_file:"
 )
-
 modules = st.Page("pages/module_library.py", title="Module Library", icon=":material/apps:")
-run_page = st.Page("pages/run_analysis.py", title="Run Analysis", icon=":material/play_circle:")
+run_page = st.Page("pages/run_analysis.py", title="Run (Advanced)", icon=":material/tune:")
 batch = st.Page("pages/batch_workflow.py", title="Batch Run", icon=":material/playlist_play:")
-
-outputs = st.Page("pages/outputs.py", title="View Outputs", icon=":material/download:")
-history = st.Page("pages/run_history.py", title="Run History", icon=":material/history:")
 
 pg = st.navigation(
     {
         "": [home],
-        "DATA": [workspace, data_ingest],
-        "ANALYSIS": [modules, run_page, batch],
         "OUTPUTS": [outputs, history],
+        "ADVANCED": [workspace, data_ingest, modules, run_page, batch],
     }
 )
 

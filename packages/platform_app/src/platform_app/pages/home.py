@@ -65,14 +65,67 @@ def _flavor_text(pipeline: str, phase: str = "start") -> str:
 
 def _make_status_line(msg: str, pipeline: str) -> str:
     """Shorten a verbose progress callback to a clean one-liner."""
-    # Strip common prefixes from runner callbacks
     short = msg
     for prefix in ("Starting ", "ARS complete: ", "ICS complete: ", "TXN complete: "):
         if short.startswith(prefix):
             short = short[len(prefix) :]
             break
-    # Capitalize pipeline tag
     return f"{pipeline.upper()} -- {short}"
+
+
+# ---------------------------------------------------------------------------
+# Cached helpers -- avoid re-reading Excel / disk on every rerun
+# ---------------------------------------------------------------------------
+def _cached_detect_and_check(client_dir: Path, client_id: str) -> dict:
+    """Detect files + format checks, cached in session_state by client path.
+
+    Returns dict with keys: detected, ars_formatted, ics_ready.
+    Only re-runs when the client directory changes.
+    """
+    cache_key = f"{client_dir}|{client_id}"
+    cached = st.session_state.get("_detect_cache")
+    if cached and cached.get("_key") == cache_key:
+        return cached
+
+    detected = auto_detect_files(client_dir, client_id=client_id)
+
+    oddd_file = detected.get("oddd")
+    oddd_path = str(oddd_file) if oddd_file and oddd_file.exists() else ""
+
+    ars_formatted = False
+    ics_ready = False
+
+    if oddd_path:
+        try:
+            ars_status = check_odd_formatted(oddd_path)
+            ars_formatted = ars_status.is_formatted
+        except Exception:
+            pass
+        try:
+            ics_status = check_ics_ready(oddd_path)
+            ics_ready = ics_status.is_formatted
+        except Exception:
+            pass
+
+    # ICS fallback: if ODD has ICS columns but no separate ICS file, use ODD
+    if ics_ready and not detected.get("ics") and detected.get("oddd"):
+        detected["ics"] = detected["oddd"]
+
+    result = {
+        "_key": cache_key,
+        "detected": detected,
+        "oddd_path": oddd_path,
+        "ars_formatted": ars_formatted,
+        "ics_ready": ics_ready,
+    }
+    st.session_state["_detect_cache"] = result
+    return result
+
+
+@st.cache_resource(show_spinner=False)
+def _cached_config_path() -> Path | None:
+    """Resolve master config path once per session."""
+    return resolve_master_config_path()
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +221,7 @@ with col_client:
     st.session_state["uap_client_id"] = client_id
 
 # ---------------------------------------------------------------------------
-# Auto-detect files (before name input so we can extract client name)
+# Auto-detect files (cached -- only re-reads when client changes)
 # ---------------------------------------------------------------------------
 client_dir = month_dir / client_id
 if not client_dir.is_dir():
@@ -182,7 +235,11 @@ if not client_dir.is_dir():
     st.warning(f"Client directory not found: `{client_dir}`")
     st.stop()
 
-detected = auto_detect_files(client_dir, client_id=client_id)
+_cache = _cached_detect_and_check(client_dir, client_id)
+detected = _cache["detected"]
+oddd_path = _cache["oddd_path"]
+ars_formatted = _cache["ars_formatted"]
+ics_ready = _cache["ics_ready"]
 
 # Extract client name from ODD filename (e.g. "1759_Connex CU_2026.02.xlsx")
 _auto_name = st.session_state.get("uap_client_name", "")
@@ -195,7 +252,7 @@ if not _auto_name:
             _auto_name = _parts[1]
     if not _auto_name:
         try:
-            _cfg_path = resolve_master_config_path()
+            _cfg_path = _cached_config_path()
             if _cfg_path:
                 from ics_toolkit.client_registry import load_master_config
 
@@ -215,34 +272,6 @@ with col_name:
     st.session_state["uap_client_name"] = client_name
 
 # ---------------------------------------------------------------------------
-# Format validation (BEFORE badges so ICS fallback is applied first)
-# ---------------------------------------------------------------------------
-oddd_path = ""
-_oddd_file = detected.get("oddd")
-if _oddd_file and _oddd_file.exists():
-    oddd_path = str(_oddd_file)
-
-ars_formatted = False
-ics_ready = False
-
-if oddd_path:
-    try:
-        ars_status = check_odd_formatted(oddd_path)
-        ars_formatted = ars_status.is_formatted
-    except Exception:
-        ars_status = None
-
-    try:
-        ics_status = check_ics_ready(oddd_path)
-        ics_ready = ics_status.is_formatted
-    except Exception:
-        ics_status = None
-
-# ICS fallback: if ODD has ICS columns but no separate ICS file, use ODD
-if ics_ready and not detected.get("ics") and detected.get("oddd"):
-    detected["ics"] = detected["oddd"]
-
-# ---------------------------------------------------------------------------
 # Store detected file paths in session
 # ---------------------------------------------------------------------------
 for key in ("oddd", "tran", "ics"):
@@ -253,7 +282,7 @@ for key in ("oddd", "tran", "ics"):
         del st.session_state[f"uap_file_{key}"]
 
 # ---------------------------------------------------------------------------
-# File status badges
+# File status badges (compact single row)
 # ---------------------------------------------------------------------------
 file_checks = [
     ("oddd", "ODD File"),
@@ -266,7 +295,6 @@ for key, label in file_checks:
     path = detected.get(key)
     if path and path.exists():
         cls = "uap-badge-ready"
-        # For ICS, note when using ODD as source
         if key == "ics" and detected.get("ics") == detected.get("oddd") and ics_ready:
             txt = f"{path.name} (in ODD)"
         else:
@@ -279,42 +307,38 @@ for key, label in file_checks:
         f'<span style="font-family:var(--uap-mono);font-size:0.72rem;color:#64748B;margin-right:16px;">{txt}</span>'
     )
 
+# Add format badges inline
+if oddd_path:
+    if ars_formatted:
+        badge_html_parts.append('<span class="uap-badge uap-badge-ready" style="margin-right:4px;">FORMATTED</span>')
+    else:
+        badge_html_parts.append(
+            '<span class="uap-badge" style="background:#FEE2E2;color:#991B1B;margin-right:4px;">UNFORMATTED</span>'
+        )
+    if ics_ready:
+        badge_html_parts.append('<span class="uap-badge uap-badge-ready" style="margin-right:4px;">ICS READY</span>')
+
 st.markdown(
     f'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:0.4rem 0;">{"".join(badge_html_parts)}</div>',
     unsafe_allow_html=True,
 )
 
-# Format status badges
-if oddd_path:
-    format_parts = []
-    if ars_formatted:
-        format_parts.append('<span class="uap-badge uap-badge-ready">FORMATTED</span>')
-    else:
-        format_parts.append(
-            '<span class="uap-badge" style="background:#FEE2E2;color:#991B1B;">UNFORMATTED</span>'
-        )
-    if ics_ready:
-        format_parts.append('<span class="uap-badge uap-badge-ready">ICS READY</span>')
+# Offer inline format if unformatted
+if oddd_path and not ars_formatted:
+    import pandas as pd
 
-    st.markdown(
-        f'<div style="display:flex;align-items:center;gap:6px;padding:0.2rem 0;">{" ".join(format_parts)}</div>',
-        unsafe_allow_html=True,
-    )
-
-    # Offer inline format if unformatted
-    if not ars_formatted:
-        import pandas as pd
-
-        if st.button("Format ODD Now", type="secondary", key="home_format_btn"):
-            with st.spinner("Formatting..."):
-                df = pd.read_excel(oddd_path)
-                df = format_odd(df)
-                p = Path(oddd_path)
-                out = p.parent / f"{p.stem}-formatted.xlsx"
-                df.to_excel(out, index=False, engine="openpyxl")
-                st.session_state["uap_file_oddd"] = str(out)
-            st.success(f"Saved: `{out.name}`")
-            st.rerun()
+    if st.button("Format ODD Now", type="secondary", key="home_format_btn"):
+        with st.spinner("Formatting..."):
+            df = pd.read_excel(oddd_path)
+            df = format_odd(df)
+            p = Path(oddd_path)
+            out = p.parent / f"{p.stem}-formatted.xlsx"
+            df.to_excel(out, index=False, engine="openpyxl")
+            st.session_state["uap_file_oddd"] = str(out)
+            # Invalidate cache so next rerun picks up the formatted file
+            st.session_state.pop("_detect_cache", None)
+        st.success(f"Saved: `{out.name}`")
+        st.rerun()
 
 st.divider()
 
@@ -371,7 +395,7 @@ for i, tpl_name in enumerate(tpl_names):
         ):
             st.session_state["uap_selected_template"] = tpl_name
             st.session_state["uap_selected_modules"] = set(tpl_keys)
-            st.rerun()
+            selected_template = tpl_name
 
 selected_modules = st.session_state.get("uap_selected_modules", set())
 
@@ -379,41 +403,44 @@ if selected_modules:
     st.caption(f"**{selected_template or 'Custom'}** -- {len(selected_modules)} modules selected")
 
 # ---------------------------------------------------------------------------
-# Module TOC grouped by pipeline
+# Module TOC -- three-column tabs by pipeline
 # ---------------------------------------------------------------------------
 _modules_by_product: dict[Product, list] = {}
 for m in registry:
     _modules_by_product.setdefault(m.product, []).append(m)
 
-for product in (Product.ARS, Product.ICS, Product.TXN):
-    modules = _modules_by_product.get(product, [])
-    if not modules:
-        continue
+_products_with_modules = [p for p in (Product.ARS, Product.ICS, Product.TXN) if _modules_by_product.get(p)]
 
-    avail = _product_available.get(product, False)
-    status_icon = "available" if avail else "no data"
-    status_color = "#16A34A" if avail else "#94A3B8"
-    count = len(modules)
+if _products_with_modules:
+    tab_labels = []
+    for p in _products_with_modules:
+        count = len(_modules_by_product[p])
+        avail = _product_available.get(p, False)
+        tab_labels.append(f"{p.value.upper()} ({count})")
 
-    with st.expander(
-        f"{product.value.upper()} -- {count} modules ({status_icon})",
-        expanded=avail and bool(selected_modules),
-    ):
-        for m in sorted(modules, key=lambda x: x.run_order):
-            is_selected = m.key in selected_modules
-            if is_selected:
-                st.markdown(
-                    f'<span style="color:{status_color};font-weight:600;">'
-                    f'{m.name}</span>'
-                    f' <span style="color:#64748B;font-size:0.8rem;">{m.description}</span>',
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(
-                    f'<span style="color:#94A3B8;">{m.name}</span>'
-                    f' <span style="color:#CBD5E1;font-size:0.8rem;">{m.description}</span>',
-                    unsafe_allow_html=True,
-                )
+    tabs = st.tabs(tab_labels)
+
+    for tab, product in zip(tabs, _products_with_modules):
+        modules = _modules_by_product[product]
+        avail = _product_available.get(product, False)
+
+        with tab:
+            if not avail:
+                st.caption("No data file detected for this pipeline.")
+            for m in sorted(modules, key=lambda x: x.run_order):
+                is_selected = m.key in selected_modules
+                if is_selected:
+                    st.markdown(
+                        f"**{m.name}** "
+                        f'<span style="color:#64748B;font-size:0.82rem;">{m.description}</span>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f'<span style="color:#94A3B8;">{m.name}</span> '
+                        f'<span style="color:#CBD5E1;font-size:0.82rem;">{m.description}</span>',
+                        unsafe_allow_html=True,
+                    )
 
 if not selected_modules:
     st.info("Pick an analysis template above to continue.")
@@ -426,8 +453,8 @@ st.divider()
 # =========================================================================
 st.markdown('<p class="uap-label">STEP 3 / RUN</p>', unsafe_allow_html=True)
 
-# Resolve config early (used for both preview and execution)
-_config_path = resolve_master_config_path()
+# Resolve config (cached)
+_config_path = _cached_config_path()
 _client_config = {"config_path": str(_config_path), "client_id": client_id} if _config_path else {}
 
 # Determine which pipelines are needed
@@ -504,12 +531,15 @@ with st.expander("Client Configuration", expanded=False):
             _branch_str = " / ".join(f"{k} = {v}" for k, v in _branches.items())
             st.caption(_branch_str)
 
-run_btn = st.button(
-    f"Run {len(selected_modules)} Modules",
-    type="primary",
-    use_container_width=True,
-    key="home_run_btn",
-)
+# ---------------------------------------------------------------------------
+# Run button (inside a form to prevent accidental reruns)
+# ---------------------------------------------------------------------------
+with st.form("run_form", border=False):
+    run_btn = st.form_submit_button(
+        f"Run {len(selected_modules)} Modules",
+        type="primary",
+        use_container_width=True,
+    )
 
 if not run_btn:
     st.stop()
@@ -646,7 +676,6 @@ if pipeline_errors:
             st.code(tb)
 
 if all_results:
-    # Show key output files (PPTX, Excel) for immediate download
     _DELIVERABLE_EXTS = {".pptx", ".xlsx"}
     _MIME = {
         ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",

@@ -129,7 +129,14 @@ def auto_detect_files(
 
     # Transaction files: first check inside the ODD client folder
     # Note: avoid broad "*.csv" pattern -- it catches non-transaction files.
-    tran = _find_by_patterns(client_dir, ["*tran*.csv", "*Tran*.csv", "*TRAN*.csv"])
+    tran = _find_by_patterns(
+        client_dir,
+        [
+            "*tran*.csv", "*Tran*.csv", "*TRAN*.csv",
+            "*txn*.csv", "*TXN*.csv",
+            "*transaction*.csv", "*Transaction*.csv",
+        ],
+    )
 
     # If not found locally, look in Incoming/Transaction Files/{ClientID}*/
     if tran is None and client_id:

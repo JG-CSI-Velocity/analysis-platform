@@ -7,6 +7,7 @@ from pathlib import Path
 import streamlit as st
 
 from platform_app.core.session_manager import (
+    KNOWN_DATA_ROOTS,
     auto_detect_files,
     discover_clients,
     discover_csm_folders,
@@ -23,17 +24,29 @@ st.title("Workspace")
 st.caption("Select your CSM folder, review month, and client to auto-detect data files.")
 
 # ---------------------------------------------------------------------------
-# Data root configuration
+# Data root configuration -- auto-detect from known paths
 # ---------------------------------------------------------------------------
-data_root_str = st.text_input(
-    "Data root directory",
-    value=st.session_state.get("uap_data_root", ""),
-    placeholder=r"M:\ARS\Incoming\ODDD Files",
-    help="Root directory containing CSM folders (e.g. M:\\ARS\\Incoming\\ODDD Files).",
-)
+available_roots = [str(p) for p in KNOWN_DATA_ROOTS if p.is_dir()]
 
-if not data_root_str.strip():
-    st.info("Enter the path to your data root directory to browse CSM folders.")
+if available_roots:
+    saved = st.session_state.get("uap_data_root", "")
+    default_idx = available_roots.index(saved) if saved in available_roots else 0
+    data_root_str = st.selectbox(
+        "Data root directory",
+        options=available_roots,
+        index=default_idx,
+        help="Auto-detected from known network paths.",
+    )
+else:
+    data_root_str = st.text_input(
+        "Data root directory",
+        value=st.session_state.get("uap_data_root", ""),
+        placeholder=r"M:\ARS\Incoming\ODDD Files",
+        help=r"Root directory containing CSM folders (e.g. M:\ARS\Incoming\ODDD Files).",
+    )
+
+if not data_root_str or not data_root_str.strip():
+    st.info("No data root found. Enter the path to your ODDD Files directory.")
     st.stop()
 
 data_root = Path(data_root_str.strip())

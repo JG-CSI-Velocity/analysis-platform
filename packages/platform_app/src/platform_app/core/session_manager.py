@@ -14,11 +14,11 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Default root directories to scan for CSM folders
-DEFAULT_DATA_ROOTS = [
+# Known ODD data roots (checked in order; first existing one is the default)
+KNOWN_DATA_ROOTS = [
+    Path(r"M:\ARS\Incoming\ODDD Files"),
+    Path("M:/ARS/Incoming/ODDD Files"),
     Path("data"),
-    Path("/data"),
-    Path("M:/ARS"),
 ]
 
 

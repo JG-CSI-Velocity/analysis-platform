@@ -19,9 +19,18 @@ logger = logging.getLogger(__name__)
 
 
 def _load_client_config(raw_config: dict) -> dict:
-    """Resolve client config: load from JSON file if config_path is present."""
+    """Resolve client config: load from JSON file if config_path is present.
+
+    Falls back to ics_toolkit.client_registry resolution if no explicit path.
+    """
     config_path = raw_config.get("config_path")
+
+    # Fallback: resolve config path independently if none provided
     if not config_path:
+        config_path = _resolve_config_fallback()
+
+    if not config_path:
+        logger.warning("No config file found -- using inline config (may be empty)")
         return raw_config
 
     path = Path(config_path)
@@ -29,18 +38,54 @@ def _load_client_config(raw_config: dict) -> dict:
         logger.warning("Config file not found: %s, using inline config", path)
         return raw_config
 
+    logger.info("Loading client config from: %s", path)
     all_clients = json.loads(path.read_text())
     client_id = raw_config.get("client_id", "")
 
     if client_id and client_id in all_clients:
+        logger.info("Found config for client %s (%d fields)", client_id, len(all_clients[client_id]))
         return all_clients[client_id]
 
     # If only one client in config, use it
     if len(all_clients) == 1:
         return next(iter(all_clients.values()))
 
-    logger.warning("Client %s not found in config file, using inline config", client_id)
+    logger.warning("Client %s not found in config file (%d clients available)", client_id, len(all_clients))
     return raw_config
+
+
+def _resolve_config_fallback() -> str | None:
+    """Try to find clients_config.json via client_registry or known paths."""
+    try:
+        from ics_toolkit.client_registry import resolve_master_config_path
+
+        resolved = resolve_master_config_path()
+        if resolved:
+            return str(resolved)
+    except ImportError:
+        pass
+
+    # Direct fallback for known ARS locations
+    import platform as _platform
+
+    _fallback_paths = (
+        [
+            Path(r"M:\ARS\Config\clients_config.json"),
+            Path(r"M:\ICS\Config\clients_config.json"),
+            Path(r"M:\Config\clients_config.json"),
+        ]
+        if _platform.system() == "Windows"
+        else [
+            Path("/Volumes/M/ARS/Config/clients_config.json"),
+            Path("/Volumes/M/ICS/Config/clients_config.json"),
+            Path("/Volumes/M/Config/clients_config.json"),
+        ]
+    )
+    for p in _fallback_paths:
+        if p.exists():
+            return str(p)
+
+    return None
 
 
 def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:

@@ -487,13 +487,19 @@ if errors:
         st.error(e)
     st.stop()
 
-# Pre-flight summary
-pf1, pf2, pf3 = st.columns(3)
-pf1.metric("Client", client_id)
-pf2.metric(
-    "Pipelines", ", ".join(p.value.upper() for p in sorted(needed_products, key=lambda x: x.value))
+# Pre-flight summary (styled markdown instead of st.metric to avoid blue labels)
+_pipelines_str = ", ".join(p.value.upper() for p in sorted(needed_products, key=lambda x: x.value))
+st.markdown(
+    f'<div style="display:flex;gap:2rem;padding:0.5rem 0;">'
+    f'<div><span style="color:#64748B;font-size:0.75rem;">CLIENT</span><br>'
+    f'<span style="font-size:1.1rem;font-weight:600;">{client_id}</span></div>'
+    f'<div><span style="color:#64748B;font-size:0.75rem;">PIPELINES</span><br>'
+    f'<span style="font-size:1.1rem;font-weight:600;">{_pipelines_str}</span></div>'
+    f'<div><span style="color:#64748B;font-size:0.75rem;">MODULES</span><br>'
+    f'<span style="font-size:1.1rem;font-weight:600;">{len(selected_modules)}</span></div>'
+    f'</div>',
+    unsafe_allow_html=True,
 )
-pf3.metric("Modules", len(selected_modules))
 
 # ---------------------------------------------------------------------------
 # Config preview
@@ -506,13 +512,24 @@ with st.expander("Client Configuration", expanded=False):
     if not _raw_entry:
         st.warning(f"Client {client_id} not found in config. Analysis will use defaults.")
     else:
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("IC Rate", _raw_entry.get("ICRate", "--"))
-        c2.metric("NSF/OD Fee", f"${_raw_entry.get('NSF_OD_Fee', '--')}")
+        # Key metrics as styled HTML (no blue st.metric labels)
+        _ic = _raw_entry.get("ICRate", "--")
+        _fee = _raw_entry.get("NSF_OD_Fee", "--")
         _n_prods = len(_raw_entry.get("EligibleProductCodes", []))
-        c3.metric("Eligible Products", _n_prods)
         _n_branches = len(_raw_entry.get("BranchMapping", {}))
-        c4.metric("Branches", _n_branches)
+        st.markdown(
+            f'<div style="display:flex;gap:2rem;padding:0.3rem 0 0.6rem;">'
+            f'<div><span style="color:#64748B;font-size:0.72rem;">IC RATE</span><br>'
+            f'<span style="font-weight:600;">{_ic}</span></div>'
+            f'<div><span style="color:#64748B;font-size:0.72rem;">NSF/OD FEE</span><br>'
+            f'<span style="font-weight:600;">${_fee}</span></div>'
+            f'<div><span style="color:#64748B;font-size:0.72rem;">ELIGIBLE PRODUCTS</span><br>'
+            f'<span style="font-weight:600;">{_n_prods}</span></div>'
+            f'<div><span style="color:#64748B;font-size:0.72rem;">BRANCHES</span><br>'
+            f'<span style="font-weight:600;">{_n_branches}</span></div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
         _detail_rows = [
             ("Eligible Status Codes", _format_list(_raw_entry.get("EligibleStatusCodes", []))),
@@ -530,6 +547,12 @@ with st.expander("Client Configuration", expanded=False):
             st.markdown("**Branch Mapping**:")
             _branch_str = " / ".join(f"{k} = {v}" for k, v in _branches.items())
             st.caption(_branch_str)
+
+    # Show resolved config path for debugging
+    if _config_path:
+        st.caption(f"Config: {_config_path}")
+    else:
+        st.caption("Config: no config file found (ARS runner will attempt auto-resolve)")
 
 # ---------------------------------------------------------------------------
 # Run button (inside a form to prevent accidental reruns)
@@ -593,7 +616,10 @@ for product in sorted(needed_products, key=lambda p: p.value):
         _pipe=pipeline_name,
     ) -> None:
         _short = _make_status_line(msg, _pipe)
-        _line.caption(_short)
+        _line.markdown(
+            f'<p style="font-size:1rem;color:#334155;margin:0.3rem 0;">{_short}</p>',
+            unsafe_allow_html=True,
+        )
 
     try:
         results = run_pipeline(
@@ -608,11 +634,19 @@ for product in sorted(needed_products, key=lambda p: p.value):
         all_results[pipeline_name] = results
         all_output_dirs[pipeline_name] = out
         elapsed = time.time() - t0
-        _status_line.caption(f"{pipeline_name.upper()} done -- {len(results)} results in {elapsed:.1f}s")
+        _status_line.markdown(
+            f'<p style="font-size:1rem;color:#16A34A;margin:0.3rem 0;">'
+            f'{pipeline_name.upper()} done -- {len(results)} results in {elapsed:.1f}s</p>',
+            unsafe_allow_html=True,
+        )
     except Exception:
         elapsed = time.time() - t0
         pipeline_errors[pipeline_name] = traceback.format_exc()
-        _status_line.caption(f"{pipeline_name.upper()} failed after {elapsed:.1f}s")
+        _status_line.markdown(
+            f'<p style="font-size:1rem;color:#DC2626;margin:0.3rem 0;">'
+            f'{pipeline_name.upper()} failed after {elapsed:.1f}s</p>',
+            unsafe_allow_html=True,
+        )
 
 total_elapsed = round(time.time() - t0, 1)
 _progress_bar.progress(1.0, text=f"All done in {total_elapsed}s")

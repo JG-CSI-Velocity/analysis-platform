@@ -44,9 +44,13 @@ class TestArsRunnerReceivesConfig:
         # With 2+ clients and no match, falls back to raw_config
         assert result.get("config_path") == str(config_file)
 
-    def test_no_config_path_returns_raw(self):
+    def test_no_config_path_returns_raw(self, monkeypatch):
         from ars_analysis.runner import _load_client_config
 
+        # Mock away the fallback resolver so it doesn't find local config
+        monkeypatch.setattr(
+            "ars_analysis.runner._resolve_config_fallback", lambda: None
+        )
         raw = {"client_id": "1759", "some_key": "val"}
         result = _load_client_config(raw)
         assert result == raw

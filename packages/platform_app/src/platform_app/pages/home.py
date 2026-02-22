@@ -35,6 +35,46 @@ def _format_list(value: object) -> str:
     return ""
 
 
+_FLAVOR = {
+    "ars": [
+        "Crunching debit card numbers...",
+        "Digging into attrition patterns...",
+        "Building the story for your client...",
+        "Reg E, mailers, value tiers -- the works...",
+    ],
+    "ics": [
+        "Mapping ICS account relationships...",
+        "Tracing referral sources...",
+        "This ICS data is looking interesting...",
+    ],
+    "txn": [
+        "Scanning transaction patterns...",
+        "Finding where the money goes...",
+        "Competitor intel incoming...",
+    ],
+}
+
+
+def _flavor_text(pipeline: str, phase: str = "start") -> str:
+    """Return a concise flavor line for the progress bar."""
+    import random
+
+    lines = _FLAVOR.get(pipeline, [f"Running {pipeline.upper()}..."])
+    return random.choice(lines)  # noqa: S311
+
+
+def _make_status_line(msg: str, pipeline: str) -> str:
+    """Shorten a verbose progress callback to a clean one-liner."""
+    # Strip common prefixes from runner callbacks
+    short = msg
+    for prefix in ("Starting ", "ARS complete: ", "ICS complete: ", "TXN complete: "):
+        if short.startswith(prefix):
+            short = short[len(prefix) :]
+            break
+    # Capitalize pipeline tag
+    return f"{pipeline.upper()} -- {short}"
+
+
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
@@ -482,7 +522,8 @@ all_results: dict[str, dict] = {}
 all_output_dirs: dict[str, Path] = {}
 pipeline_errors: dict[str, str] = {}
 
-overall_progress = st.progress(0, text="Initializing...")
+_progress_bar = st.progress(0, text="Warming up the engines...")
+_status_line = st.empty()
 total_pipelines = len(needed_products)
 completed = 0
 
@@ -494,10 +535,7 @@ t0 = time.time()
 for product in sorted(needed_products, key=lambda p: p.value):
     pipeline_name = product.value
     completed += 1
-    overall_progress.progress(
-        completed / (total_pipelines + 1),
-        text=f"[{completed}/{total_pipelines}] Running {pipeline_name.upper()}...",
-    )
+    pct = completed / (total_pipelines + 1)
 
     input_files: dict[str, Path] = {}
     if product == Product.ARS:
@@ -515,39 +553,40 @@ for product in sorted(needed_products, key=lambda p: p.value):
         continue
 
     out.mkdir(parents=True, exist_ok=True)
+    _progress_bar.progress(pct, text=_flavor_text(pipeline_name, "start"))
+
+    def _on_progress(
+        msg: str,
+        _bar=_progress_bar,
+        _line=_status_line,
+        _pct=pct,
+        _pipe=pipeline_name,
+    ) -> None:
+        _short = _make_status_line(msg, _pipe)
+        _line.caption(_short)
 
     try:
-        with st.status(f"Running {pipeline_name.upper()}...", expanded=True) as status:
-            messages: list[str] = []
-
-            def _on_progress(msg: str, msgs: list[str] = messages, st_status=status) -> None:
-                msgs.append(msg)
-                st_status.write(msg)
-
-            results = run_pipeline(
-                pipeline_name,
-                input_files=input_files,
-                output_dir=out,
-                client_id=client_id,
-                client_name=client_name,
-                client_config=_client_config,
-                progress_callback=_on_progress,
-            )
-            elapsed = time.time() - t0
-            status.update(
-                label=f"{pipeline_name.upper()} -- {elapsed:.1f}s",
-                state="complete",
-                expanded=False,
-            )
-
+        results = run_pipeline(
+            pipeline_name,
+            input_files=input_files,
+            output_dir=out,
+            client_id=client_id,
+            client_name=client_name,
+            client_config=_client_config,
+            progress_callback=_on_progress,
+        )
         all_results[pipeline_name] = results
         all_output_dirs[pipeline_name] = out
+        elapsed = time.time() - t0
+        _status_line.caption(f"{pipeline_name.upper()} done -- {len(results)} results in {elapsed:.1f}s")
     except Exception:
         elapsed = time.time() - t0
         pipeline_errors[pipeline_name] = traceback.format_exc()
-        st.error(f"{pipeline_name.upper()} failed after {elapsed:.1f}s")
+        _status_line.caption(f"{pipeline_name.upper()} failed after {elapsed:.1f}s")
 
-overall_progress.progress(1.0, text="Complete!")
+total_elapsed = round(time.time() - t0, 1)
+_progress_bar.progress(1.0, text=f"All done in {total_elapsed}s")
+_status_line.empty()
 
 # ---------------------------------------------------------------------------
 # Log run
@@ -585,21 +624,28 @@ st.session_state["uap_last_run_id"] = run_id
 # Summary
 # ---------------------------------------------------------------------------
 st.divider()
-st.markdown('<p class="uap-label">COMPLETE</p>', unsafe_allow_html=True)
 
-m1, m2, m3 = st.columns(3)
-m1.metric("Pipelines", f"{len(all_results)}/{total_pipelines}")
-m2.metric("Results", sum(len(r) for r in all_results.values()))
-m3.metric("Run ID", run_id)
+_total_results = sum(len(r) for r in all_results.values())
+_ok_count = len(all_results)
+_fail_count = len(pipeline_errors)
+
+if _fail_count == 0:
+    st.success(
+        f"**{client_name or client_id}** -- {_total_results} analyses across "
+        f"{_ok_count} pipeline{'s' if _ok_count > 1 else ''} in {total_elapsed}s"
+    )
+else:
+    st.warning(
+        f"**{client_name or client_id}** -- {_ok_count} passed, {_fail_count} failed in {total_elapsed}s"
+    )
 
 if pipeline_errors:
-    for name, tb in pipeline_errors.items():
-        with st.expander(f"Error: {name.upper()}", expanded=False):
+    with st.expander("Error details", expanded=False):
+        for name, tb in pipeline_errors.items():
+            st.markdown(f"**{name.upper()}**")
             st.code(tb)
 
 if all_results:
-    st.toast("Analysis complete!", icon=":material/check_circle:")
-
     # Show key output files (PPTX, Excel) for immediate download
     _DELIVERABLE_EXTS = {".pptx", ".xlsx"}
     _MIME = {
@@ -614,7 +660,6 @@ if all_results:
             )
 
     if deliverables:
-        st.markdown('<p class="uap-label">OUTPUT FILES</p>', unsafe_allow_html=True)
         for f in sorted(deliverables, key=lambda p: p.name):
             dl_cols = st.columns([4, 1])
             dl_cols[0].markdown(
@@ -630,4 +675,4 @@ if all_results:
                 key=f"home_dl_{f.name}",
             )
     else:
-        st.info("No PPTX or Excel files generated. Check **View Outputs** for charts.")
+        st.info("No PPTX or Excel files generated. Check View Outputs for charts.")

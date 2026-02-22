@@ -18,11 +18,13 @@ GENERIC_ENV_VAR = "CLIENT_CONFIG_PATH"
 # Default M drive paths (platform-dependent)
 _DEFAULT_PATHS = (
     [
+        Path(r"M:\ARS\Config\clients_config.json"),
         Path(r"M:\ICS\Config\clients_config.json"),
         Path(r"M:\Config\clients_config.json"),
     ]
     if platform.system() == "Windows"
     else [
+        Path("/Volumes/M/ARS/Config/clients_config.json"),
         Path("/Volumes/M/ICS/Config/clients_config.json"),
         Path("/Volumes/M/Config/clients_config.json"),
     ]

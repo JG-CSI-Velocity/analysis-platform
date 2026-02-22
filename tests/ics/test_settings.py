@@ -123,8 +123,12 @@ class TestMasterConfigIntegration:
         s = AnalysisSettings(data_file=csv, client_config_path=master)
         assert s.open_stat_codes == ["O"]  # default
 
-    def test_no_client_config_path_no_io(self, _csv_file):
+    def test_no_client_config_path_no_io(self, _csv_file, monkeypatch):
         """Without client_config_path, no master file loading occurs."""
+        monkeypatch.setattr(
+            "ics_toolkit.client_registry.resolve_master_config_path",
+            lambda *a, **kw: None,
+        )
         s = AnalysisSettings(data_file=_csv_file)
         assert s.open_stat_codes == ["O"]
         assert s.branch_mapping is None

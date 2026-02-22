@@ -8,7 +8,10 @@ from pathlib import Path
 
 import streamlit as st
 
-from ics_toolkit.client_registry import resolve_master_config_path
+from ics_toolkit.client_registry import (
+    load_raw_client_entry,
+    resolve_master_config_path,
+)
 from platform_app.core.module_registry import Product, get_registry
 from platform_app.core.run_logger import RunRecord, generate_run_id, hash_file, log_run
 from platform_app.core.session_manager import (
@@ -21,6 +24,16 @@ from platform_app.core.session_manager import (
 from platform_app.core.templates import load_templates
 from platform_app.orchestrator import run_pipeline
 from shared.format_odd import check_ics_ready, check_odd_formatted, format_odd
+
+
+def _format_list(value: object) -> str:
+    """Format a config value (list or string) as comma-separated string."""
+    if isinstance(value, list):
+        return ", ".join(str(v) for v in value)
+    if isinstance(value, str) and value:
+        return value
+    return ""
+
 
 # ---------------------------------------------------------------------------
 # Header
@@ -161,7 +174,37 @@ with col_name:
     )
     st.session_state["uap_client_name"] = client_name
 
+# ---------------------------------------------------------------------------
+# Format validation (BEFORE badges so ICS fallback is applied first)
+# ---------------------------------------------------------------------------
+oddd_path = ""
+_oddd_file = detected.get("oddd")
+if _oddd_file and _oddd_file.exists():
+    oddd_path = str(_oddd_file)
+
+ars_formatted = False
+ics_ready = False
+
+if oddd_path:
+    try:
+        ars_status = check_odd_formatted(oddd_path)
+        ars_formatted = ars_status.is_formatted
+    except Exception:
+        ars_status = None
+
+    try:
+        ics_status = check_ics_ready(oddd_path)
+        ics_ready = ics_status.is_formatted
+    except Exception:
+        ics_status = None
+
+# ICS fallback: if ODD has ICS columns but no separate ICS file, use ODD
+if ics_ready and not detected.get("ics") and detected.get("oddd"):
+    detected["ics"] = detected["oddd"]
+
+# ---------------------------------------------------------------------------
 # Store detected file paths in session
+# ---------------------------------------------------------------------------
 for key in ("oddd", "tran", "ics"):
     path = detected.get(key)
     if path and path.exists():
@@ -169,7 +212,9 @@ for key in ("oddd", "tran", "ics"):
     elif f"uap_file_{key}" in st.session_state:
         del st.session_state[f"uap_file_{key}"]
 
+# ---------------------------------------------------------------------------
 # File status badges
+# ---------------------------------------------------------------------------
 file_checks = [
     ("oddd", "ODD File"),
     ("tran", "Transaction"),
@@ -181,7 +226,11 @@ for key, label in file_checks:
     path = detected.get(key)
     if path and path.exists():
         cls = "uap-badge-ready"
-        txt = path.name
+        # For ICS, note when using ODD as source
+        if key == "ics" and detected.get("ics") == detected.get("oddd") and ics_ready:
+            txt = f"{path.name} (in ODD)"
+        else:
+            txt = path.name
     else:
         cls = "uap-badge-muted"
         txt = "not found"
@@ -195,24 +244,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Format validation for ODD file
-oddd_path = st.session_state.get("uap_file_oddd", "")
-ars_formatted = False
-ics_ready = False
-
-if oddd_path and Path(oddd_path).exists():
-    try:
-        ars_status = check_odd_formatted(oddd_path)
-        ars_formatted = ars_status.is_formatted
-    except Exception:
-        ars_status = None
-
-    try:
-        ics_status = check_ics_ready(oddd_path)
-        ics_ready = ics_status.is_formatted
-    except Exception:
-        ics_status = None
-
+# Format status badges
+if oddd_path:
     format_parts = []
     if ars_formatted:
         format_parts.append('<span class="uap-badge uap-badge-ready">FORMATTED</span>')
@@ -254,21 +287,19 @@ templates = load_templates()
 registry = get_registry()
 module_map = {m.key: m for m in registry}
 
+# Determine which products have data available
+_product_available = {
+    Product.ARS: bool(detected.get("oddd")),
+    Product.TXN: bool(detected.get("tran")),
+    Product.ICS: bool(detected.get("ics")),
+}
+
 # Filter templates to those whose files are available
 available_templates: dict[str, list[str]] = {}
 for tpl_name, tpl_keys in templates.items():
-    # Check what products this template needs
     products_needed = {module_map[k].product for k in tpl_keys if k in module_map}
-    can_run = True
-    if Product.ARS in products_needed and not detected.get("oddd"):
-        can_run = False
-    if Product.TXN in products_needed and not detected.get("tran"):
-        can_run = False
-    if Product.ICS in products_needed and not detected.get("ics"):
-        can_run = False
-    available_templates[tpl_name] = tpl_keys
-    if not can_run:
-        available_templates[tpl_name] = []  # mark as unavailable
+    can_run = all(_product_available.get(p, False) for p in products_needed)
+    available_templates[tpl_name] = tpl_keys if can_run else []
 
 # Template buttons
 tpl_names = list(templates.keys())
@@ -281,7 +312,6 @@ for i, tpl_name in enumerate(tpl_names):
     tpl_keys = templates[tpl_name]
     is_available = bool(available_templates.get(tpl_name))
     with tpl_cols[i % n_cols]:
-        # Count modules by product
         product_counts: dict[str, int] = {}
         for k in tpl_keys:
             if k in module_map:
@@ -307,7 +337,45 @@ selected_modules = st.session_state.get("uap_selected_modules", set())
 
 if selected_modules:
     st.caption(f"**{selected_template or 'Custom'}** -- {len(selected_modules)} modules selected")
-else:
+
+# ---------------------------------------------------------------------------
+# Module TOC grouped by pipeline
+# ---------------------------------------------------------------------------
+_modules_by_product: dict[Product, list] = {}
+for m in registry:
+    _modules_by_product.setdefault(m.product, []).append(m)
+
+for product in (Product.ARS, Product.ICS, Product.TXN):
+    modules = _modules_by_product.get(product, [])
+    if not modules:
+        continue
+
+    avail = _product_available.get(product, False)
+    status_icon = "available" if avail else "no data"
+    status_color = "#16A34A" if avail else "#94A3B8"
+    count = len(modules)
+
+    with st.expander(
+        f"{product.value.upper()} -- {count} modules ({status_icon})",
+        expanded=avail and bool(selected_modules),
+    ):
+        for m in sorted(modules, key=lambda x: x.run_order):
+            is_selected = m.key in selected_modules
+            if is_selected:
+                st.markdown(
+                    f'<span style="color:{status_color};font-weight:600;">'
+                    f'{m.name}</span>'
+                    f' <span style="color:#64748B;font-size:0.8rem;">{m.description}</span>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f'<span style="color:#94A3B8;">{m.name}</span>'
+                    f' <span style="color:#CBD5E1;font-size:0.8rem;">{m.description}</span>',
+                    unsafe_allow_html=True,
+                )
+
+if not selected_modules:
     st.info("Pick an analysis template above to continue.")
     st.stop()
 
@@ -317,6 +385,10 @@ st.divider()
 # STEP 3 -- Run
 # =========================================================================
 st.markdown('<p class="uap-label">STEP 3 / RUN</p>', unsafe_allow_html=True)
+
+# Resolve config early (used for both preview and execution)
+_config_path = resolve_master_config_path()
+_client_config = {"config_path": str(_config_path), "client_id": client_id} if _config_path else {}
 
 # Determine which pipelines are needed
 needed_products: set[Product] = set()
@@ -356,6 +428,42 @@ pf2.metric(
 )
 pf3.metric("Modules", len(selected_modules))
 
+# ---------------------------------------------------------------------------
+# Config preview
+# ---------------------------------------------------------------------------
+_raw_entry: dict = {}
+if _config_path:
+    _raw_entry = load_raw_client_entry(_config_path, client_id)
+
+with st.expander("Client Configuration", expanded=False):
+    if not _raw_entry:
+        st.warning(f"Client {client_id} not found in config. Analysis will use defaults.")
+    else:
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("IC Rate", _raw_entry.get("ICRate", "--"))
+        c2.metric("NSF/OD Fee", f"${_raw_entry.get('NSF_OD_Fee', '--')}")
+        _n_prods = len(_raw_entry.get("EligibleProductCodes", []))
+        c3.metric("Eligible Products", _n_prods)
+        _n_branches = len(_raw_entry.get("BranchMapping", {}))
+        c4.metric("Branches", _n_branches)
+
+        _detail_rows = [
+            ("Eligible Status Codes", _format_list(_raw_entry.get("EligibleStatusCodes", []))),
+            ("Ineligible Status Codes", _format_list(_raw_entry.get("IneligibleStatusCodes", []))),
+            ("Eligible Product Codes", _format_list(_raw_entry.get("EligibleProductCodes", []))),
+            ("Ineligible Product Codes", _format_list(_raw_entry.get("IneligibleProductCodes", []))),
+            ("Eligible Mail Code", str(_raw_entry.get("EligibleMailCode", "--"))),
+            ("Reg E Opt-In Code", _format_list(_raw_entry.get("RegEOptInCode", []))),
+        ]
+        for label, value in _detail_rows:
+            st.markdown(f"**{label}**: {value or '--'}")
+
+        _branches = _raw_entry.get("BranchMapping", {})
+        if _branches:
+            st.markdown("**Branch Mapping**:")
+            _branch_str = " / ".join(f"{k} = {v}" for k, v in _branches.items())
+            st.caption(_branch_str)
+
 run_btn = st.button(
     f"Run {len(selected_modules)} Modules",
     type="primary",
@@ -382,9 +490,6 @@ tran_path = st.session_state.get("uap_file_tran", "")
 ics_path = st.session_state.get("uap_file_ics", "")
 odd_path = st.session_state.get("uap_file_odd", "")
 t0 = time.time()
-
-_config_path = resolve_master_config_path()
-_client_config = {"config_path": str(_config_path), "client_id": client_id} if _config_path else {}
 
 for product in sorted(needed_products, key=lambda p: p.value):
     pipeline_name = product.value

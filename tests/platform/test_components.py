@@ -373,3 +373,48 @@ class TestSessionManager:
 
         result = discover_clients(tmp_path)
         assert result == ["1234", "5678"]
+
+    def test_auto_detect_tran_from_sibling_dir(self, tmp_path):
+        """Transaction files live in Incoming/Transaction Files/{ID - Name}/."""
+        from platform_app.core.session_manager import auto_detect_files
+
+        # Build M: drive layout
+        incoming = tmp_path / "Incoming"
+        odd_client = incoming / "ODDD Files" / "JamesG" / "2026.02" / "1234"
+        odd_client.mkdir(parents=True)
+        (odd_client / "1234-ODD.xlsx").write_bytes(b"fake")
+
+        tran_client = incoming / "Transaction Files" / "1234 - Test CU"
+        tran_client.mkdir(parents=True)
+        (tran_client / "transactions.csv").write_bytes(b"fake")
+
+        detected = auto_detect_files(odd_client, client_id="1234")
+        assert detected["oddd"] is not None
+        assert detected["tran"] is not None
+        assert detected["tran"].name == "transactions.csv"
+
+    def test_auto_detect_tran_not_found_without_client_id(self, tmp_path):
+        """Without client_id, sibling scan is skipped."""
+        from platform_app.core.session_manager import auto_detect_files
+
+        incoming = tmp_path / "Incoming"
+        odd_client = incoming / "ODDD Files" / "JamesG" / "2026.02" / "1234"
+        odd_client.mkdir(parents=True)
+
+        tran_client = incoming / "Transaction Files" / "1234 - Test CU"
+        tran_client.mkdir(parents=True)
+        (tran_client / "transactions.csv").write_bytes(b"fake")
+
+        detected = auto_detect_files(odd_client)
+        assert detected["tran"] is None
+
+    def test_find_client_tran_dir_matches_prefix(self, tmp_path):
+        """Matches folder by client ID prefix (ID - Name format)."""
+        from platform_app.core.session_manager import _find_client_tran_dir
+
+        (tmp_path / "1234 - Connex CU").mkdir()
+        (tmp_path / "5678 - Other CU").mkdir()
+
+        assert _find_client_tran_dir(tmp_path, "1234").name == "1234 - Connex CU"
+        assert _find_client_tran_dir(tmp_path, "5678").name == "5678 - Other CU"
+        assert _find_client_tran_dir(tmp_path, "9999") is None

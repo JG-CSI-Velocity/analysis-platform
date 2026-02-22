@@ -88,17 +88,91 @@ def discover_clients(month_dir: Path) -> list[str]:
     return sorted(d.name for d in month_dir.iterdir() if d.is_dir() and not d.name.startswith("."))
 
 
-def auto_detect_files(client_dir: Path) -> dict[str, Path | None]:
+def auto_detect_files(
+    client_dir: Path,
+    client_id: str = "",
+    incoming_root: Path | None = None,
+) -> dict[str, Path | None]:
     """Scan a client directory for known data file patterns.
+
+    Parameters
+    ----------
+    client_dir : Path
+        The ODD client folder (root/CSM/YYYY.MM/ClientID/).
+    client_id : str
+        Client ID used to locate transaction files in the sibling
+        ``Transaction Files`` directory.
+    incoming_root : Path or None
+        The ``Incoming`` root (parent of "ODDD Files" and "Transaction Files").
+        If None, auto-resolved from client_dir.
 
     Returns dict with keys: oddd, tran, ics, config -- each Path or None.
     """
     oddd = _find_by_patterns(client_dir, ["*ODD*.xlsx", "*ODDD*.xlsx", "*odd*.xlsx"])
-    tran = _find_by_patterns(client_dir, ["*tran*.csv", "*Tran*.csv", "*TRAN*.csv", "*.csv"])
     ics = _find_by_patterns(client_dir, ["*ICS*.xlsx", "*ics*.xlsx", "*ICS*.csv"])
     config = _find_by_patterns(client_dir, ["*config*.json", "*config*.yaml"])
 
+    # Transaction files: first check inside the ODD client folder
+    tran = _find_by_patterns(client_dir, ["*tran*.csv", "*Tran*.csv", "*TRAN*.csv", "*.csv"])
+
+    # If not found locally, look in Incoming/Transaction Files/{ClientID}*/
+    if tran is None and client_id:
+        tran = _find_tran_file(client_dir, client_id, incoming_root)
+
     return {"oddd": oddd, "tran": tran, "ics": ics, "config": config}
+
+
+def _find_tran_file(
+    client_dir: Path,
+    client_id: str,
+    incoming_root: Path | None = None,
+) -> Path | None:
+    """Locate transaction files in Incoming/Transaction Files/{ClientID}*/.
+
+    The M: drive layout puts ODD files under ``Incoming/ODDD Files/...``
+    and transaction files under ``Incoming/Transaction Files/{ClientID - Name}/``.
+    We walk up from the client_dir to find the "Incoming" parent, then look
+    for a matching transaction folder by client ID prefix.
+    """
+    if incoming_root is None:
+        incoming_root = _resolve_incoming_root(client_dir)
+    if incoming_root is None:
+        return None
+
+    tran_root = incoming_root / "Transaction Files"
+    if not tran_root.is_dir():
+        return None
+
+    # Find folder starting with the client ID (e.g. "1234 - Connex CU")
+    tran_dir = _find_client_tran_dir(tran_root, client_id)
+    if tran_dir is None:
+        return None
+
+    return _find_by_patterns(tran_dir, ["*.csv", "*.txt"])
+
+
+def _find_client_tran_dir(tran_root: Path, client_id: str) -> Path | None:
+    """Find a transaction folder matching the client ID prefix."""
+    if not tran_root.is_dir():
+        return None
+    for d in tran_root.iterdir():
+        if d.is_dir() and (d.name == client_id or d.name.startswith(f"{client_id} ") or d.name.startswith(f"{client_id}-")):
+            return d
+    return None
+
+
+def _resolve_incoming_root(client_dir: Path) -> Path | None:
+    """Walk up from a client dir to find the Incoming parent.
+
+    Expected structure: .../Incoming/ODDD Files/CSM/YYYY.MM/ClientID
+    We look for a parent named "Incoming" or whose child is "ODDD Files".
+    """
+    for parent in client_dir.parents:
+        if parent.name.lower() == "incoming":
+            return parent
+        if (parent / "Transaction Files").is_dir():
+            return parent
+    return None
 
 
 def resolve_workspace(
@@ -112,7 +186,7 @@ def resolve_workspace(
     client_dir = data_root / csm / month / client_id if month else data_root / csm / client_id
     output_dir = client_dir / "output"
 
-    detected = auto_detect_files(client_dir) if client_dir.is_dir() else {}
+    detected = auto_detect_files(client_dir, client_id=client_id) if client_dir.is_dir() else {}
 
     return ClientWorkspace(
         csm=csm,

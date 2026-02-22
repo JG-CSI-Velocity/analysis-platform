@@ -127,7 +127,7 @@ if not client_dir.is_dir():
     st.warning(f"Client directory not found: `{client_dir}`")
     st.stop()
 
-detected = auto_detect_files(client_dir)
+detected = auto_detect_files(client_dir, client_id=client_id)
 
 # Display detected files as status indicators
 file_types = [

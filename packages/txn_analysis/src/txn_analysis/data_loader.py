@@ -152,46 +152,61 @@ def _has_recognizable_columns(df: pd.DataFrame) -> bool:
     return False
 
 
+def _sniff_delimiter(path: Path) -> tuple[str, bool]:
+    """Read the first 2 lines of a file to detect delimiter and whether it has a header.
+
+    Returns (separator, has_header).  Only reads ~2 lines from disk -- fast on network drives.
+    """
+    from txn_analysis.column_map import COLUMN_ALIASES, REQUIRED_COLUMNS
+
+    known = {k.lower() for k in COLUMN_ALIASES} | {c.lower() for c in REQUIRED_COLUMNS}
+
+    with open(path, encoding="utf-8", errors="replace") as f:
+        line1 = f.readline().strip()
+        line2 = f.readline().strip()
+
+    # Count candidate separators in the first data-bearing line
+    for sep in ("\t", "|", ","):
+        parts = line1.split(sep)
+        if len(parts) >= 4:
+            # Check if first line looks like a header (has recognizable column names)
+            normalized = {p.strip().lower().replace("-", "_") for p in parts}
+            if normalized & known:
+                return sep, True
+            # First line isn't a header -- check if second line splits the same way
+            # (first line is likely a metadata row)
+            if line2:
+                parts2 = line2.split(sep)
+                if len(parts2) >= 4:
+                    return sep, False
+
+    # Default fallback
+    return ",", True
+
+
 def _read_csv_autodetect(path: Path) -> pd.DataFrame:
     """Read a CSV/TXT file, auto-detecting delimiter and header row.
 
-    Tries these strategies in order:
-    1. Default comma-delimited with header
-    2. Tab-delimited with header
-    3. Pipe-delimited with header
-    4. Tab-delimited, skip metadata row, assign TRANSACTION_COLUMNS
-    5. Pipe-delimited, skip metadata row, assign TRANSACTION_COLUMNS
+    Sniffs the first 2 lines to determine the delimiter and whether the file
+    has a header row, then reads the full file exactly once.
     """
-    # Strategy 1: comma-delimited with header (most common)
-    df = pd.read_csv(path, low_memory=False)
-    if _has_recognizable_columns(df):
-        return df
+    sep, has_header = _sniff_delimiter(path)
 
-    # Strategy 2: tab-delimited with header
-    df = pd.read_csv(path, sep="\t", low_memory=False)
-    if _has_recognizable_columns(df):
-        return df
+    if has_header:
+        df = pd.read_csv(path, sep=sep, low_memory=False)
+        if _has_recognizable_columns(df):
+            return df
+        # Sniff guessed wrong about header -- try headerless
+        logger.debug("Sniffed header but no recognizable columns, trying headerless: %s", path.name)
 
-    # Strategy 3: pipe-delimited with header
-    df = pd.read_csv(path, sep="|", low_memory=False)
-    if _has_recognizable_columns(df):
-        return df
-
-    # Strategy 4: tab-delimited, skip metadata row, assign standard columns
-    df = pd.read_csv(path, sep="\t", skiprows=1, header=None, low_memory=False)
+    # Headerless file: skip first row (metadata), assign standard column names
+    df = pd.read_csv(path, sep=sep, skiprows=1, header=None, low_memory=False)
     if len(df.columns) >= 4:
         df.columns = TRANSACTION_COLUMNS[: len(df.columns)]
-        logger.info("Auto-detected tab-delimited headerless transaction file: %s", path.name)
+        logger.info("Auto-detected %s-delimited headerless file: %s", repr(sep), path.name)
         return df
 
-    # Strategy 5: pipe-delimited, skip metadata row, assign standard columns
-    df = pd.read_csv(path, sep="|", skiprows=1, header=None, low_memory=False)
-    if len(df.columns) >= 4:
-        df.columns = TRANSACTION_COLUMNS[: len(df.columns)]
-        logger.info("Auto-detected pipe-delimited headerless transaction file: %s", path.name)
-        return df
-
-    # Fall back to original comma read and let resolve_columns raise a clear error
+    # Last resort: comma with header
     return pd.read_csv(path, low_memory=False)
 
 

@@ -96,27 +96,27 @@ def _make_status_line(msg: str, pipeline: str) -> str:
 def _read_tran_file(p: Path) -> pd.DataFrame:
     """Read a single transaction file, auto-detecting delimiter and header.
 
+    Sniffs the first 2 lines to determine delimiter, then reads once.
     Handles comma, tab, and pipe delimiters. For headerless files (common with
     monthly transaction exports), skips the metadata row and assigns standard
     column names from the txn_analysis pipeline.
     """
-    from txn_analysis.data_loader import TRANSACTION_COLUMNS
+    from txn_analysis.data_loader import TRANSACTION_COLUMNS, _sniff_delimiter
 
-    # Try common delimiters with header
-    for sep in (",", "\t", "|"):
+    sep, has_header = _sniff_delimiter(p)
+
+    if has_header:
         df = pd.read_csv(p, sep=sep, low_memory=False)
         col_lower = {str(c).strip().lower().replace("-", "_") for c in df.columns}
         if col_lower & {"merchant_name", "amount", "transaction_date", "merchant", "amt", "date"}:
             return df
 
-    # Headerless file: skip metadata row, assign standard columns
-    for sep in ("\t", "|", ","):
-        df = pd.read_csv(p, sep=sep, skiprows=1, header=None, low_memory=False)
-        if len(df.columns) >= 4:
-            df.columns = TRANSACTION_COLUMNS[: len(df.columns)]
-            return df
+    # Headerless: skip metadata row, assign standard columns
+    df = pd.read_csv(p, sep=sep, skiprows=1, header=None, low_memory=False)
+    if len(df.columns) >= 4:
+        df.columns = TRANSACTION_COLUMNS[: len(df.columns)]
+        return df
 
-    # Fallback: return comma read and let downstream handle the error
     return pd.read_csv(p, low_memory=False)
 
 

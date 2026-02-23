@@ -59,10 +59,7 @@ echo   Close this window or press Ctrl+C to stop.
 echo.
 
 REM Kill any stale Streamlit process holding port 8501
-for /f "tokens=5" %%p in ('netstat -aon ^| findstr :8501 ^| findstr LISTENING') do (
-    echo   Stopping previous Streamlit (PID %%p)...
-    taskkill /PID %%p /F >nul 2>&1
-)
+powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8501 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }" 2>nul
 
 %ST% run "%APP%" --server.port 8501 --server.headless true
 

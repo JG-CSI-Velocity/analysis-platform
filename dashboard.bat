@@ -11,10 +11,7 @@ if "%REAL_DIR:~-1%"=="\" set "REAL_DIR=%REAL_DIR:~0,-1%"
 set "APP=%REAL_DIR%\packages\platform_app\src\platform_app\app.py"
 
 REM Kill any stale Streamlit process holding port 8501
-for /f "tokens=5" %%p in ('netstat -aon ^| findstr :8501 ^| findstr LISTENING') do (
-    echo   Stopping previous Streamlit (PID %%p)...
-    taskkill /PID %%p /F >nul 2>&1
-)
+powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8501 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }" 2>nul
 
 REM Try uv first, fall back to .venv
 where uv >nul 2>&1

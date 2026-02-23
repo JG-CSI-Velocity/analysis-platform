@@ -21,14 +21,16 @@ def step_subsets(ctx: PipelineContext) -> None:
     df = ctx.data
     subs = DataSubsets()
 
-    # Auto-compute date range from data (enables L12M everywhere)
+    # Auto-compute date range from data (enables L12M everywhere).
+    # Store as pd.Timestamp so downstream comparisons against datetime64 columns work.
     if "Date Opened" in df.columns and ctx.end_date is None:
-        date_col = df["Date Opened"].dropna()
+        date_col = pd.to_datetime(df["Date Opened"], errors="coerce").dropna()
         if not date_col.empty:
             from dateutil.relativedelta import relativedelta
 
-            ctx.end_date = date_col.max().date()
-            ctx.start_date = ctx.end_date - relativedelta(months=12)
+            _max = date_col.max()
+            ctx.end_date = _max.normalize()
+            ctx.start_date = pd.Timestamp(ctx.end_date.date() - relativedelta(months=12))
             logger.info(
                 "Auto-computed date range: {start} to {end}",
                 start=ctx.start_date,
@@ -140,10 +142,8 @@ def step_subsets(ctx: PipelineContext) -> None:
 
     # Last 12 months filter
     if "Date Opened" in df.columns and ctx.end_date is not None:
-        from dateutil.relativedelta import relativedelta
-
-        cutoff = ctx.end_date - relativedelta(months=12)
-        subs.last_12_months = df[df["Date Opened"] >= str(cutoff)]
+        cutoff = ctx.start_date if ctx.start_date is not None else ctx.end_date - pd.DateOffset(months=12)
+        subs.last_12_months = df[pd.to_datetime(df["Date Opened"], errors="coerce") >= cutoff]
         logger.info("Last 12 months: {n:,} rows (cutoff={cutoff})", n=len(subs.last_12_months), cutoff=cutoff)
 
     ctx.subsets = subs

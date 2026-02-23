@@ -90,8 +90,8 @@ class PipelineContext:
     results: dict[str, list] = field(default_factory=dict)  # module_id -> [AnalysisResult]
     all_slides: list = field(default_factory=list)
     export_log: list[str] = field(default_factory=list)
-    start_date: date | None = None
-    end_date: date | None = None
+    start_date: date | pd.Timestamp | None = None
+    end_date: date | pd.Timestamp | None = None
     txn_file_path: Path | None = None  # Transaction CSV for TXN module
     ics_dir: Path | None = None  # ICS data directory for ICS module
     debit_column: str = ""  # Auto-detected debit column name (set by step_subsets)

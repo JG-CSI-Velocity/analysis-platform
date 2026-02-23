@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json as _json
+import shutil
+import tempfile
 import time
 import traceback
 from pathlib import Path
@@ -88,6 +90,7 @@ def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
     Reads all .txt/.csv files, concatenates them, and writes a combined file.
     Returns the path to the combined file, or None if no files found.
     If only one file, returns it directly (no combine needed).
+    Skips re-combining if output already exists and source files haven't changed.
     """
     if not file_paths:
         return None
@@ -101,6 +104,19 @@ def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
 
     import pandas as pd
     from loguru import logger as _log
+
+    # Check if combined file already exists and is newer than all source files
+    out_path = output_dir / f"_combined_transactions_{len(paths)}files.csv"
+    if out_path.exists():
+        out_mtime = out_path.stat().st_mtime
+        sources_unchanged = all(p.stat().st_mtime <= out_mtime for p in paths)
+        if sources_unchanged:
+            _log.info(
+                "Using cached combined file: {} ({:,} bytes)",
+                out_path.name,
+                out_path.stat().st_size,
+            )
+            return out_path
 
     _log.info("Combining {} transaction files into one", len(paths))
     frames = []
@@ -119,7 +135,7 @@ def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
     combined = pd.concat(frames, ignore_index=True)
     _log.info("Combined: {:,} total rows from {} files", len(combined), len(frames))
 
-    out_path = output_dir / f"_combined_transactions_{len(frames)}files.csv"
+    output_dir.mkdir(parents=True, exist_ok=True)
     combined.to_csv(out_path, index=False)
     return out_path
 
@@ -233,7 +249,7 @@ if not csm_folders:
     st.warning(f"No CSM folders found in `{data_root}`")
     st.stop()
 
-col_csm, col_month, col_client, col_name = st.columns([2, 1, 1, 2])
+col_csm, col_month, col_client = st.columns([2, 1, 1])
 
 with col_csm:
     csm = st.selectbox(
@@ -296,13 +312,6 @@ with col_client:
 # ---------------------------------------------------------------------------
 client_dir = month_dir / client_id
 if not client_dir.is_dir():
-    with col_name:
-        client_name = st.text_input(
-            "Client Name",
-            value=st.session_state.get("uap_client_name", ""),
-            placeholder="e.g. Connex CU",
-        )
-        st.session_state["uap_client_name"] = client_name
     st.warning(f"Client directory not found: `{client_dir}`")
     st.stop()
 
@@ -312,35 +321,29 @@ oddd_path = _cache["oddd_path"]
 ars_formatted = _cache["ars_formatted"]
 ics_ready = _cache["ics_ready"]
 
-# Extract client name from ODD filename (e.g. "1759_Connex CU_2026.02.xlsx")
-_auto_name = st.session_state.get("uap_client_name", "")
+# Auto-populate client name from ODD filename (e.g. "1759_Connex CU_2026.02.xlsx")
+_auto_name = ""
+oddd_detected = detected.get("oddd")
+if oddd_detected:
+    _stem = oddd_detected.stem.replace("-formatted", "")
+    _parts = _stem.split("_", maxsplit=2)
+    if len(_parts) > 1:
+        _auto_name = _parts[1]
 if not _auto_name:
-    oddd_detected = detected.get("oddd")
-    if oddd_detected:
-        _stem = oddd_detected.stem.replace("-formatted", "")
-        _parts = _stem.split("_", maxsplit=2)
-        if len(_parts) > 1:
-            _auto_name = _parts[1]
-    if not _auto_name:
-        try:
-            _cfg_path = _cached_config_path()
-            if _cfg_path:
-                from ics_toolkit.client_registry import load_master_config
+    try:
+        _cfg_path = _cached_config_path()
+        if _cfg_path:
+            from ics_toolkit.client_registry import load_master_config
 
-                _reg = load_master_config(_cfg_path)
-                _entry = _reg.get(client_id)
-                if _entry and _entry.client_name:
-                    _auto_name = _entry.client_name
-        except Exception:
-            pass
+            _reg = load_master_config(_cfg_path)
+            _entry = _reg.get(client_id)
+            if _entry and _entry.client_name:
+                _auto_name = _entry.client_name
+    except Exception:
+        pass
 
-with col_name:
-    client_name = st.text_input(
-        "Client Name",
-        value=_auto_name,
-        placeholder="e.g. Connex CU",
-    )
-    st.session_state["uap_client_name"] = client_name
+client_name = _auto_name or client_id
+st.session_state["uap_client_name"] = client_name
 
 # ---------------------------------------------------------------------------
 # Store detected file paths in session
@@ -358,6 +361,10 @@ if _tran_files:
     st.session_state["uap_tran_files"] = [str(p) for p in _tran_files]
 else:
     st.session_state.pop("uap_tran_files", None)
+
+# Show resolved client name
+if _auto_name:
+    st.caption(f"**{client_id}** -- {_auto_name}")
 
 # ---------------------------------------------------------------------------
 # File status badges (compact single row)
@@ -431,6 +438,7 @@ st.divider()
 # STEP 2 -- Pick pipelines
 # =========================================================================
 st.markdown('<p class="uap-label">STEP 2 / SELECT PIPELINES</p>', unsafe_allow_html=True)
+st.caption("Toggle which pipelines to run. Multiple can be active at once.")
 
 
 @st.cache_data(show_spinner=False)
@@ -804,6 +812,32 @@ odd_path = st.session_state.get("uap_file_odd", "")
 t0 = time.time()
 total_pipelines = len(needed_products)
 
+# Read ODD Excel once, save as local CSV.  This avoids:
+#   1. Repeated slow network reads from M: drive
+#   2. Repeated slow Excel parsing (openpyxl) -- CSV is ~10x faster to re-read
+# Both ARS and ICS pipelines will read the fast local CSV instead.
+_local_oddd: str = oddd_path
+_local_dir = Path(tempfile.mkdtemp(prefix="uap_run_"))
+if oddd_path and Path(oddd_path).exists():
+    import pandas as pd
+
+    _render_exec_dashboard(_exec_plan, 0, "Loading ODD data...")
+    _oddd_df = pd.read_excel(oddd_path)
+    _local_csv = _local_dir / (Path(oddd_path).stem + ".csv")
+    _oddd_df.to_csv(_local_csv, index=False)
+    _local_oddd = str(_local_csv)
+    del _oddd_df
+
+# Pre-combine transaction files (cached if already combined)
+_effective_tran: Path | None = None
+if Product.TXN in needed_products:
+    _render_exec_dashboard(_exec_plan, 0, "Preparing transaction data...")
+    _effective_tran = _combine_tran_files(
+        _all_tran_paths, Path(oddd_path).parent if oddd_path else Path(".")
+    )
+    if not _effective_tran and tran_path:
+        _effective_tran = Path(tran_path)
+
 for idx, step in enumerate(_exec_plan):
     product = step["product"]
     pipeline_name = product.value
@@ -814,22 +848,16 @@ for idx, step in enumerate(_exec_plan):
 
     input_files: dict[str, Path] = {}
     if product == Product.ARS:
-        input_files["oddd"] = Path(oddd_path)
+        input_files["oddd"] = Path(_local_oddd)
         out = Path(oddd_path).parent / "output"
     elif product == Product.TXN:
-        # Combine all transaction files into one if multiple found
-        _effective_tran = _combine_tran_files(
-            _all_tran_paths, Path(oddd_path).parent if oddd_path else Path(".")
-        )
-        if not _effective_tran and tran_path:
-            _effective_tran = Path(tran_path)
         if _effective_tran:
             input_files["tran"] = _effective_tran
         if odd_path and Path(odd_path).exists():
             input_files["odd"] = Path(odd_path)
         out = (_effective_tran.parent if _effective_tran else Path(".")) / "output_txn"
     elif product == Product.ICS:
-        input_files["ics"] = Path(ics_path) if ics_path else Path(oddd_path)
+        input_files["ics"] = Path(ics_path) if ics_path else Path(_local_oddd)
         out = Path(oddd_path).parent / "output_ics"
     else:
         continue
@@ -879,6 +907,9 @@ total_elapsed = round(time.time() - t0, 1)
 _render_exec_dashboard(_exec_plan, 1.0, "")
 _progress_bar.empty()
 _status_line.empty()
+
+# Clean up local copy
+shutil.rmtree(_local_dir, ignore_errors=True)
 
 # ---------------------------------------------------------------------------
 # Log run

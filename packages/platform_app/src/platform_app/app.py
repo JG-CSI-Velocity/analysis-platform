@@ -338,6 +338,7 @@ button[data-baseweb="tab"] {
     font-family: var(--uap-mono);
     font-size: 0.72rem;
     color: #94A3B8;
+    margin-right: 1.5rem;
 }
 
 /* Result cards */

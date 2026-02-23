@@ -277,6 +277,7 @@ class AnalysisSettings(BaseModel):
             return
 
         for field_name in (
+            "data_start_date",
             "open_stat_codes",
             "closed_stat_codes",
             "interchange_rate",

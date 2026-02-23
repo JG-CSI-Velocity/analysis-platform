@@ -48,6 +48,7 @@ def step_load(ctx: PipelineContext) -> None:
             logger.debug("Pre-parsed date column: {col}", col=col)
 
     _normalize_columns(df, file_path)
+    df = _filter_by_start_date(df, ctx)
 
     ctx.data = df
     ctx.data_original = df
@@ -71,6 +72,7 @@ def step_load_file(ctx: PipelineContext, file_path: Path) -> None:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
     _normalize_columns(df, file_path)
+    df = _filter_by_start_date(df, ctx)
 
     ctx.data = df
     ctx.data_original = df
@@ -80,6 +82,33 @@ def step_load_file(ctx: PipelineContext, file_path: Path) -> None:
         cols=len(df.columns),
         name=file_path.name,
     )
+
+
+def _filter_by_start_date(df: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
+    """Drop rows where Date Opened is before the program launch date.
+
+    Accounts opened before data_start_date are test/bad data.
+    Rows with NaT Date Opened are preserved (missing date != before start).
+    """
+    start = ctx.client.data_start_date
+    if not start:
+        return df
+
+    if "Date Opened" not in df.columns:
+        return df
+
+    cutoff = pd.Timestamp(start)
+    before = len(df)
+    mask = df["Date Opened"].isna() | (df["Date Opened"] >= cutoff)
+    df = df[mask].copy()
+    dropped = before - len(df)
+    if dropped > 0:
+        logger.info(
+            "Filtered {n} rows opened before {d} (program launch date)",
+            n=dropped,
+            d=start,
+        )
+    return df
 
 
 def _normalize_columns(df: pd.DataFrame, file_path: Path) -> None:

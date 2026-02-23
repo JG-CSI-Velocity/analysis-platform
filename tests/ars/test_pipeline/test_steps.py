@@ -167,6 +167,78 @@ class TestLoadStep:
         step_load_file(ctx, csv_path)
         assert pd.api.types.is_datetime64_any_dtype(ctx.data["Date Opened"])
 
+    def test_data_start_date_filters_old_rows(self, tmp_path):
+        """Rows opened before data_start_date are dropped."""
+        df = pd.DataFrame(
+            {
+                "Stat Code": ["O"] * 10,
+                "Product Code": ["DDA"] * 10,
+                "Date Opened": pd.to_datetime(
+                    ["2019-06-01"] * 4 + ["2020-03-01"] * 6
+                ),
+                "Avg Bal": [1000.0] * 10,
+            }
+        )
+        csv_path = tmp_path / "start_date_test.csv"
+        df.to_csv(csv_path, index=False)
+
+        ctx = PipelineContext(
+            client=ClientInfo(
+                client_id="1200",
+                client_name="Test CU",
+                month="2026.02",
+                data_start_date="2020-01-01",
+            ),
+            paths=OutputPaths(base_dir=tmp_path),
+        )
+        step_load_file(ctx, csv_path)
+        assert len(ctx.data) == 6
+
+    def test_data_start_date_preserves_nat(self, tmp_path):
+        """Rows with NaT Date Opened are kept (missing != before start)."""
+        df = pd.DataFrame(
+            {
+                "Stat Code": ["O"] * 5,
+                "Product Code": ["DDA"] * 5,
+                "Date Opened": pd.to_datetime(
+                    ["2019-01-01", "2020-06-01", None, None, "2021-01-01"]
+                ),
+                "Avg Bal": [1000.0] * 5,
+            }
+        )
+        csv_path = tmp_path / "nat_test.csv"
+        df.to_csv(csv_path, index=False)
+
+        ctx = PipelineContext(
+            client=ClientInfo(
+                client_id="1200",
+                client_name="Test CU",
+                month="2026.02",
+                data_start_date="2020-01-01",
+            ),
+            paths=OutputPaths(base_dir=tmp_path),
+        )
+        step_load_file(ctx, csv_path)
+        # Keeps: 2020-06-01, NaT, NaT, 2021-01-01 (drops 2019-01-01)
+        assert len(ctx.data) == 4
+
+    def test_data_start_date_none_no_filtering(self, tmp_path, odd_df):
+        """When data_start_date is None, no rows are filtered."""
+        csv_path = tmp_path / "no_filter_test.csv"
+        odd_df.to_csv(csv_path, index=False)
+
+        ctx = PipelineContext(
+            client=ClientInfo(
+                client_id="1200",
+                client_name="Test CU",
+                month="2026.02",
+                data_start_date=None,
+            ),
+            paths=OutputPaths(base_dir=tmp_path),
+        )
+        step_load_file(ctx, csv_path)
+        assert len(ctx.data) == 10
+
 
 # --- Subsets step tests ---
 

@@ -210,6 +210,7 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
         dc_indicator=ccfg.get("DCIndicator", "DC Indicator"),
         reg_e_opt_in=_rege_opt,
         reg_e_column=ccfg.get("RegEColumn", ""),
+        data_start_date=ccfg.get("DataStartDate"),
     )
 
     # 2. Build OutputPaths -- use output_dir directly (caller already scoped it)

@@ -33,6 +33,7 @@ _DEFAULT_PATHS = (
 # ARS-style key -> canonical snake_case key
 _ARS_KEY_MAP: dict[str, str] = {
     "BranchMapping": "branch_mapping",
+    "DataStartDate": "data_start_date",
     "ICRate": "interchange_rate",
     "NSF_OD_Fee": "nsf_od_fee",
     "EligibleStatusCodes": "open_stat_codes",
@@ -49,6 +50,7 @@ class MasterClientConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="allow")
 
     client_name: str | None = None
+    data_start_date: str | None = None  # Program launch date (YYYY-MM-DD)
     open_stat_codes: list[str] | None = None
     closed_stat_codes: list[str] | None = None
     interchange_rate: float | None = None

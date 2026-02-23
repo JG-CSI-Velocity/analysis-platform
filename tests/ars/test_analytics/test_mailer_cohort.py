@@ -124,9 +124,7 @@ class TestBuildCohortTrajectory:
         # Remove spend columns
         spend_cols = [c for c in cohort_mailer_ctx.data.columns if "Spend" in c]
         swipe_cols = [c for c in cohort_mailer_ctx.data.columns if "Swipe" in c]
-        cohort_mailer_ctx.data = cohort_mailer_ctx.data.drop(
-            columns=spend_cols + swipe_cols
-        )
+        cohort_mailer_ctx.data = cohort_mailer_ctx.data.drop(columns=spend_cols + swipe_cols)
         traj = build_cohort_trajectory(cohort_mailer_ctx, "Spend")
         assert traj.empty
 

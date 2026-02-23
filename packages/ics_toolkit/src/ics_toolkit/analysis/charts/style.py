@@ -19,26 +19,26 @@ SKY = "#4A90D9"
 # ---------------------------------------------------------------------------
 
 # Goal 1: Acquisition -- bringing accounts in
-ACQUISITION = "#2ECC71"       # Vibrant green for new accounts, opens
-DM_SOURCE = NAVY              # Direct Mail channel
-REF_SOURCE = TEAL             # Referral channel
+ACQUISITION = "#2ECC71"  # Vibrant green for new accounts, opens
+DM_SOURCE = NAVY  # Direct Mail channel
+REF_SOURCE = TEAL  # Referral channel
 
 # Goal 2: Value -- proving revenue impact
-VALUE = "#27AE60"             # Deep green for revenue/interchange
-SPEND = "#4A90D9"             # Blue for spend metrics
-INTERCHANGE = "#1B365D"       # Navy for interchange revenue
+VALUE = "#27AE60"  # Deep green for revenue/interchange
+SPEND = "#4A90D9"  # Blue for spend metrics
+INTERCHANGE = "#1B365D"  # Navy for interchange revenue
 
 # Goal 3: Need -- retention and health
-CLOSURE = "#E74C3C"           # Red for closures, attrition
-DECAY = "#E67E22"             # Orange for engagement decay
-GROWTH = "#27AE60"            # Green for net growth
+CLOSURE = "#E74C3C"  # Red for closures, attrition
+DECAY = "#E67E22"  # Orange for engagement decay
+GROWTH = "#27AE60"  # Green for net growth
 
 # General semantic
 POSITIVE = "#27AE60"
 NEGATIVE = "#E74C3C"
 NEUTRAL = "#95A5A6"
 SILVER = "#BDC3C7"
-HIGHLIGHT = "#F39C12"         # Gold for callouts
+HIGHLIGHT = "#F39C12"  # Gold for callouts
 MUTED = "#7F8C8D"
 
 # Persona colors (established in existing codebase)

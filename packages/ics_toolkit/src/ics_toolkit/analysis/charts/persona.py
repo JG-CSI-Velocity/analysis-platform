@@ -35,14 +35,25 @@ def chart_persona_map(df: pd.DataFrame, config: ChartConfig) -> bytes:
             color = PERSONA_COLORS.get(persona, "#999")
 
             ax.scatter(
-                float(r["Avg M1 Swipes"]), float(r["Avg M3 Swipes"]),
-                s=size, c=color, alpha=0.7, edgecolors="white", linewidth=1.5,
-                label=f"{persona} ({count:,})", zorder=5,
+                float(r["Avg M1 Swipes"]),
+                float(r["Avg M3 Swipes"]),
+                s=size,
+                c=color,
+                alpha=0.7,
+                edgecolors="white",
+                linewidth=1.5,
+                label=f"{persona} ({count:,})",
+                zorder=5,
             )
             ax.annotate(
-                persona, (float(r["Avg M1 Swipes"]), float(r["Avg M3 Swipes"])),
-                textcoords="offset points", xytext=(0, 15),
-                fontsize=12, fontweight="bold", color=color, ha="center",
+                persona,
+                (float(r["Avg M1 Swipes"]), float(r["Avg M3 Swipes"])),
+                textcoords="offset points",
+                xytext=(0, 15),
+                fontsize=12,
+                fontweight="bold",
+                color=color,
+                ha="center",
             )
 
         ax.set_xlabel("Avg M1 Swipes (Early Engagement)")
@@ -67,21 +78,47 @@ def chart_persona_contribution(df: pd.DataFrame, config: ChartConfig) -> bytes:
         y = np.arange(len(personas))
         height = 0.35
 
-        ax.barh(y - height / 2, df["% of Accounts"], height,
-                label="% of Accounts", color=colors,
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+        ax.barh(
+            y - height / 2,
+            df["% of Accounts"],
+            height,
+            label="% of Accounts",
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+        )
 
         # Lighter version for swipes
-        ax.barh(y + height / 2, df["% of L12M Swipes"], height,
-                label="% of L12M Swipes", color=colors, alpha=0.5,
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+        ax.barh(
+            y + height / 2,
+            df["% of L12M Swipes"],
+            height,
+            label="% of L12M Swipes",
+            color=colors,
+            alpha=0.5,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+        )
 
         # Data labels
         for yi, (acct, swipe) in enumerate(zip(df["% of Accounts"], df["% of L12M Swipes"])):
-            ax.text(acct, yi - height / 2, f" {acct:.1f}%",
-                    va="center", fontsize=DATA_LABEL_SIZE - 3, fontweight="bold")
-            ax.text(swipe, yi + height / 2, f" {swipe:.1f}%",
-                    va="center", fontsize=DATA_LABEL_SIZE - 3, fontweight="bold", alpha=0.8)
+            ax.text(
+                acct,
+                yi - height / 2,
+                f" {acct:.1f}%",
+                va="center",
+                fontsize=DATA_LABEL_SIZE - 3,
+                fontweight="bold",
+            )
+            ax.text(
+                swipe,
+                yi + height / 2,
+                f" {swipe:.1f}%",
+                va="center",
+                fontsize=DATA_LABEL_SIZE - 3,
+                fontweight="bold",
+                alpha=0.8,
+            )
 
         ax.set_yticks(y)
         ax.set_yticklabels(list(reversed(personas)))
@@ -113,8 +150,16 @@ def chart_persona_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
                 lambda r: (r[persona] / r["Total"] * 100) if r["Total"] > 0 else 0, axis=1
             )
             color = PERSONA_COLORS.get(persona, "#999")
-            ax.bar(x, pct, bottom=bottom, label=persona, color=color,
-                   edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, width=0.6)
+            ax.bar(
+                x,
+                pct,
+                bottom=bottom,
+                label=persona,
+                color=color,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                width=0.6,
+            )
             bottom += pct.values
 
         ax.set_xticks(x)
@@ -147,8 +192,16 @@ def chart_persona_by_source(df: pd.DataFrame, config: ChartConfig) -> bytes:
                 lambda r: (r[persona] / r["Total"] * 100) if r["Total"] > 0 else 0, axis=1
             )
             color = PERSONA_COLORS.get(persona, "#999")
-            ax.bar(x, pct, bottom=bottom, label=persona, color=color,
-                   edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, width=0.5)
+            ax.bar(
+                x,
+                pct,
+                bottom=bottom,
+                label=persona,
+                color=color,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                width=0.5,
+            )
             bottom += pct.values
 
         ax.set_xticks(x)
@@ -171,8 +224,15 @@ def chart_persona_revenue(df: pd.DataFrame, config: ChartConfig) -> bytes:
     with chart_figure(figsize=(14, 8), save_path=buf) as (_fig, ax):
         revenue_rows = df[df["Metric"].str.contains("Interchange", na=False)].copy()
         if revenue_rows.empty:
-            ax.text(0.5, 0.5, "No revenue data", transform=ax.transAxes,
-                    ha="center", va="center", fontsize=18)
+            ax.text(
+                0.5,
+                0.5,
+                "No revenue data",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                fontsize=18,
+            )
         else:
             labels = list(revenue_rows["Metric"])
             values = pd.to_numeric(revenue_rows["Value"], errors="coerce").fillna(0)
@@ -187,17 +247,25 @@ def chart_persona_revenue(df: pd.DataFrame, config: ChartConfig) -> bytes:
                     colors.append(NAVY)
 
             bars = ax.barh(
-                range(len(labels)), values, color=colors,
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.55,
+                range(len(labels)),
+                values,
+                color=colors,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                height=0.55,
             )
             ax.set_yticks(range(len(labels)))
             ax.set_yticklabels(labels)
 
             for bar, val in zip(bars, values):
                 ax.text(
-                    bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                    f"  ${val:,.0f}", va="center", ha="left",
-                    fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
+                    bar.get_width(),
+                    bar.get_y() + bar.get_height() / 2,
+                    f"  ${val:,.0f}",
+                    va="center",
+                    ha="left",
+                    fontsize=DATA_LABEL_SIZE - 2,
+                    fontweight="bold",
                 )
 
             ax.set_xlabel("Estimated Interchange ($)")

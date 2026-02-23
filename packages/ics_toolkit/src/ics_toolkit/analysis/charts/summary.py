@@ -25,12 +25,14 @@ def chart_total_ics(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
         data = df[df["Category"] != "Total Accounts"].copy()
-        colors = [NAVY, TEAL][:len(data)]
+        colors = [NAVY, TEAL][: len(data)]
 
         wedges, _, autotexts = ax.pie(
-            data["Count"], colors=colors,
+            data["Count"],
+            colors=colors,
             autopct=lambda pct: f"{pct:.1f}%",
-            startangle=90, pctdistance=0.78,
+            startangle=90,
+            pctdistance=0.78,
             wedgeprops={"edgecolor": "white", "linewidth": 2},
         )
         centre = __import__("matplotlib.patches", fromlist=["Circle"]).Circle(
@@ -43,11 +45,16 @@ def chart_total_ics(df: pd.DataFrame, config: ChartConfig) -> bytes:
             t.set_fontweight("bold")
 
         legend_labels = [
-            f"{cat}  ({count:,})"
-            for cat, count in zip(data["Category"], data["Count"])
+            f"{cat}  ({count:,})" for cat, count in zip(data["Category"], data["Count"])
         ]
-        ax.legend(wedges, legend_labels, loc="center left",
-                  bbox_to_anchor=(0.85, 0.5), fontsize=13, frameon=False)
+        ax.legend(
+            wedges,
+            legend_labels,
+            loc="center left",
+            bbox_to_anchor=(0.85, 0.5),
+            fontsize=13,
+            frameon=False,
+        )
 
         ax.set_title("Total ICS Accounts", fontsize=22, fontweight="bold", pad=20)
         ax.set_aspect("equal")
@@ -63,15 +70,25 @@ def chart_stat_code(df: pd.DataFrame, config: ChartConfig) -> bytes:
         data = df[df["Stat Code"] != "Total"].copy()
 
         bars = ax.bar(
-            data["Stat Code"], data["Count"], color=NAVY,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.5,
+            data["Stat Code"],
+            data["Count"],
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.5,
         )
 
         for bar, val in zip(bars, data["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Stat Code")
@@ -96,17 +113,26 @@ def chart_prod_code(df: pd.DataFrame, config: ChartConfig) -> bytes:
         colors = [(*base, 0.4 + 0.6 * i / max(n - 1, 1)) for i in range(n)]
 
         bars = ax.barh(
-            range(n), data["Account Count"], color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
+            range(n),
+            data["Account Count"],
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            height=0.65,
         )
         ax.set_yticks(range(n))
         ax.set_yticklabels(data["Prod Code"])
 
         for bar, val in zip(bars, data["Account Count"]):
             ax.text(
-                bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                f"  {val:,}", va="center", ha="left",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                f"  {val:,}",
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Account Count")
@@ -123,12 +149,14 @@ def chart_debit_dist(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
         data = df[df["Debit?"] != "Total"].copy()
-        colors = [ACQUISITION, "#E74C3C"][:len(data)]
+        colors = [ACQUISITION, "#E74C3C"][: len(data)]
 
         wedges, _, autotexts = ax.pie(
-            data["Count"], colors=colors,
+            data["Count"],
+            colors=colors,
             autopct=lambda pct: f"{pct:.1f}%",
-            startangle=90, pctdistance=0.78,
+            startangle=90,
+            pctdistance=0.78,
             wedgeprops={"edgecolor": "white", "linewidth": 2},
         )
         centre = __import__("matplotlib.patches", fromlist=["Circle"]).Circle(
@@ -140,11 +168,15 @@ def chart_debit_dist(df: pd.DataFrame, config: ChartConfig) -> bytes:
             t.set_fontsize(14)
             t.set_fontweight("bold")
 
-        legend_labels = [
-            f"{lbl}  ({val:,})" for lbl, val in zip(data["Debit?"], data["Count"])
-        ]
-        ax.legend(wedges, legend_labels, loc="center left",
-                  bbox_to_anchor=(0.85, 0.5), fontsize=13, frameon=False)
+        legend_labels = [f"{lbl}  ({val:,})" for lbl, val in zip(data["Debit?"], data["Count"])]
+        ax.legend(
+            wedges,
+            legend_labels,
+            loc="center left",
+            bbox_to_anchor=(0.85, 0.5),
+            fontsize=13,
+            frameon=False,
+        )
 
         ax.set_title("Debit Card Distribution", fontsize=22, fontweight="bold", pad=20)
         ax.set_aspect("equal")
@@ -162,17 +194,39 @@ def chart_debit_by_prod(df: pd.DataFrame, config: ChartConfig) -> bytes:
         width = 0.3
 
         if "Yes" in data.columns:
-            ax.bar(x - width / 2, data["Yes"], width, label="Debit Yes",
-                   color=ACQUISITION, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+            ax.bar(
+                x - width / 2,
+                data["Yes"],
+                width,
+                label="Debit Yes",
+                color=ACQUISITION,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+            )
         if "No" in data.columns:
-            ax.bar(x + width / 2, data["No"], width, label="Debit No",
-                   color="#E74C3C", edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=0.7)
+            ax.bar(
+                x + width / 2,
+                data["No"],
+                width,
+                label="Debit No",
+                color="#E74C3C",
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                alpha=0.7,
+            )
 
         if "% with Debit" in data.columns:
             ax2 = ax.twinx()
-            ax2.plot(x, data["% with Debit"], color=NAVY,
-                     marker="D", markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
-                     label="% with Debit", zorder=5)
+            ax2.plot(
+                x,
+                data["% with Debit"],
+                color=NAVY,
+                marker="D",
+                markersize=MARKER_SIZE,
+                linewidth=LINE_WIDTH,
+                label="% with Debit",
+                zorder=5,
+            )
             ax2.set_ylabel("% with Debit")
             ax2.set_ylim(0, 1.15)
             ax2.yaxis.set_major_formatter(lambda x, _: f"{x:.0%}")
@@ -208,8 +262,12 @@ def chart_debit_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         colors = [ACQUISITION if r >= med else NAVY for r in rates]
 
         bars = ax.barh(
-            range(n), rates, color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
+            range(n),
+            rates,
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            height=0.65,
         )
         ax.set_yticks(range(n))
         ax.set_yticklabels(data["Branch"].astype(str))
@@ -217,9 +275,13 @@ def chart_debit_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         for bar, val in zip(bars, rates):
             label = f"{val:.1%}" if isinstance(val, float) else str(val)
             ax.text(
-                bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                f"  {label}", va="center", ha="left",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                f"  {label}",
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
             )
 
         ax.set_xlabel("% with Debit Card")
@@ -245,23 +307,30 @@ def chart_penetration_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         colors = [TEAL if r >= med else NAVY for r in data["Penetration %"]]
 
         bars = ax.barh(
-            range(n), data["Penetration %"], color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
+            range(n),
+            data["Penetration %"],
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            height=0.65,
         )
         ax.set_yticks(range(n))
         ax.set_yticklabels(data["Branch"].astype(str))
 
         for bar, val in zip(bars, data["Penetration %"]):
             ax.text(
-                bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                f"  {val:.1f}%", va="center", ha="left",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                f"  {val:.1f}%",
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
             )
 
         # Median line
         ax.axvline(med, color="#E74C3C", linestyle="--", linewidth=1.5, alpha=0.6)
-        ax.text(med, n - 0.5, f" Median: {med:.1f}%",
-                fontsize=12, color="#E74C3C", va="bottom")
+        ax.text(med, n - 0.5, f" Median: {med:.1f}%", fontsize=12, color="#E74C3C", va="bottom")
 
         ax.set_xlabel("ICS Penetration Rate (%)")
         ax.set_title("ICS Penetration by Branch")

@@ -26,25 +26,27 @@ from ars_analysis.pipeline.context import (
 def dormant_df():
     """DataFrame with a mix of debit/non-debit accounts and declining spend."""
     n = 80
-    return pd.DataFrame({
-        "Date Opened": pd.date_range("2019-01-01", periods=n, freq="ME"),
-        "Stat Code": ["O"] * 65 + ["C"] * 15,
-        "Product Code": ["DDA"] * n,
-        "Debit?": ["Yes"] * 50 + ["No"] * 30,
-        "Business?": ["No"] * 60 + ["Yes"] * 20,
-        "Branch": ["Main"] * 30 + ["North"] * 25 + ["South"] * 25,
-        "Avg Bal": (
-            [2000.0 + i * 100 for i in range(50)]  # debit holders
-            + [5000.0 + i * 200 for i in range(30)]  # non-debit (higher balance)
-        ),
-        # 6 spend months: first 3 high, last 3 declining for rows 50-79
-        "Feb24 Spend": [800.0 + i * 10 for i in range(n)],
-        "Mar24 Spend": [790.0 + i * 10 for i in range(n)],
-        "Apr24 Spend": [780.0 + i * 10 for i in range(n)],
-        "May24 Spend": [400.0 + i * 5 for i in range(50)] + [300.0 - i * 5 for i in range(30)],
-        "Jun24 Spend": [380.0 + i * 5 for i in range(50)] + [250.0 - i * 5 for i in range(30)],
-        "Jul24 Spend": [370.0 + i * 5 for i in range(50)] + [200.0 - i * 5 for i in range(30)],
-    })
+    return pd.DataFrame(
+        {
+            "Date Opened": pd.date_range("2019-01-01", periods=n, freq="ME"),
+            "Stat Code": ["O"] * 65 + ["C"] * 15,
+            "Product Code": ["DDA"] * n,
+            "Debit?": ["Yes"] * 50 + ["No"] * 30,
+            "Business?": ["No"] * 60 + ["Yes"] * 20,
+            "Branch": ["Main"] * 30 + ["North"] * 25 + ["South"] * 25,
+            "Avg Bal": (
+                [2000.0 + i * 100 for i in range(50)]  # debit holders
+                + [5000.0 + i * 200 for i in range(30)]  # non-debit (higher balance)
+            ),
+            # 6 spend months: first 3 high, last 3 declining for rows 50-79
+            "Feb24 Spend": [800.0 + i * 10 for i in range(n)],
+            "Mar24 Spend": [790.0 + i * 10 for i in range(n)],
+            "Apr24 Spend": [780.0 + i * 10 for i in range(n)],
+            "May24 Spend": [400.0 + i * 5 for i in range(50)] + [300.0 - i * 5 for i in range(30)],
+            "Jun24 Spend": [380.0 + i * 5 for i in range(50)] + [250.0 - i * 5 for i in range(30)],
+            "Jul24 Spend": [370.0 + i * 5 for i in range(50)] + [200.0 - i * 5 for i in range(30)],
+        }
+    )
 
 
 @pytest.fixture
@@ -141,10 +143,12 @@ class TestFindDecliningAccounts:
         assert (result["spend_decline"] > 0.20).all()
 
     def test_none_with_few_spend_cols(self):
-        df = pd.DataFrame({
-            "Feb24 Spend": [100, 200],
-            "Mar24 Spend": [90, 180],
-        })
+        df = pd.DataFrame(
+            {
+                "Feb24 Spend": [100, 200],
+                "Mar24 Spend": [90, 180],
+            }
+        )
         assert _find_declining_accounts(df) is None
 
     def test_none_when_all_increasing(self, dormant_df):

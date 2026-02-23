@@ -36,9 +36,7 @@ def step_subsets(ctx: PipelineContext) -> None:
             # End of previous complete month
             ctx.end_date = _first_of_current - pd.Timedelta(days=1)
             # Start = first of month, 12 months before end_date's month
-            ctx.start_date = pd.Timestamp(
-                ctx.end_date.replace(day=1) - relativedelta(months=11)
-            )
+            ctx.start_date = pd.Timestamp(ctx.end_date.replace(day=1) - relativedelta(months=11))
             logger.info(
                 "Auto-computed date range: {start} to {end} (last 12 completed months)",
                 start=ctx.start_date,
@@ -89,8 +87,7 @@ def step_subsets(ctx: PipelineContext) -> None:
 
     if not eligible_stats and _stat_col:
         logger.warning(
-            "No EligibleStatusCodes configured -- eligible_data will be None. "
-            "Check client config."
+            "No EligibleStatusCodes configured -- eligible_data will be None. Check client config."
         )
 
     if eligible_stats and _stat_col:
@@ -142,9 +139,11 @@ def step_subsets(ctx: PipelineContext) -> None:
             ctx.debit_column = dc_col
         if dc_col in df.columns and subs.eligible_data is not None:
             subs.eligible_with_debit = subs.eligible_data[
-                subs.eligible_data[dc_col].astype(str).str.strip().str.upper().isin(
-                    ("D", "DC", "DEBIT", "YES", "Y")
-                )
+                subs.eligible_data[dc_col]
+                .astype(str)
+                .str.strip()
+                .str.upper()
+                .isin(("D", "DC", "DEBIT", "YES", "Y"))
             ]
             logger.info(
                 "Eligible with debit: {n:,} rows",
@@ -153,13 +152,21 @@ def step_subsets(ctx: PipelineContext) -> None:
 
     # Last 12 months filter
     if "Date Opened" in df.columns and ctx.end_date is not None:
-        cutoff = pd.Timestamp(ctx.start_date) if ctx.start_date is not None else ctx.end_date - pd.DateOffset(months=12)
+        cutoff = (
+            pd.Timestamp(ctx.start_date)
+            if ctx.start_date is not None
+            else ctx.end_date - pd.DateOffset(months=12)
+        )
         if pd.api.types.is_datetime64_any_dtype(df["Date Opened"]):
             _do_parsed = df["Date Opened"]
         else:
             _do_parsed = pd.to_datetime(df["Date Opened"], errors="coerce")
         subs.last_12_months = df[_do_parsed >= cutoff]
-        logger.info("Last 12 months: {n:,} rows (cutoff={cutoff})", n=len(subs.last_12_months), cutoff=cutoff)
+        logger.info(
+            "Last 12 months: {n:,} rows (cutoff={cutoff})",
+            n=len(subs.last_12_months),
+            cutoff=cutoff,
+        )
 
     ctx.subsets = subs
     logger.info("Subsets created for {client}", client=ctx.client.client_id)

@@ -230,9 +230,7 @@ def _draw_priority_matrix(ax, df: pd.DataFrame) -> str:
             ax.scatter([], [], c=f"C{cmap[b]}", label=b, s=50)
         ax.legend(fontsize=11, loc="upper left", title="Branch", frameon=True)
     else:
-        ax.scatter(
-            x, y, s=sizes, c=NEGATIVE, alpha=0.6, edgecolors="white", linewidth=0.5
-        )
+        ax.scatter(x, y, s=sizes, c=NEGATIVE, alpha=0.6, edgecolors="white", linewidth=0.5)
 
     ax.set_xlabel("Spend Decline (%)", fontsize=14)
     ax.set_ylabel("Account Balance ($)", fontsize=14)

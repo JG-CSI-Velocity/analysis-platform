@@ -39,8 +39,12 @@ def chart_dm_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         colors = [(*base, 0.4 + 0.6 * i / max(n - 1, 1)) for i in range(n)]
 
         bars = ax.barh(
-            range(n), data["Count"], color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
+            range(n),
+            data["Count"],
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            height=0.65,
         )
         ax.set_yticks(range(n))
         ax.set_yticklabels(data["Branch"].astype(str))
@@ -53,9 +57,14 @@ def chart_dm_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
             else:
                 label = f"  {count:,}"
             ax.text(
-                bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                label, va="center", ha="left",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                label,
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Account Count")
@@ -74,16 +83,25 @@ def chart_dm_by_year(df: pd.DataFrame, config: ChartConfig) -> bytes:
         data = df[df["Year Opened"] != "Total"].copy()
 
         bars = ax.bar(
-            data["Year Opened"].astype(str), data["Count"],
-            color=NAVY, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH,
-            alpha=BAR_ALPHA, width=0.55,
+            data["Year Opened"].astype(str),
+            data["Count"],
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
         )
 
         for bar, val in zip(bars, data["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Year Opened")
@@ -104,25 +122,40 @@ def chart_dm_activity_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         data = data.sort_values("Count", ascending=False)
 
         bars = ax.bar(
-            data["Branch"].astype(str), data["Count"],
-            color=NAVY, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH,
-            alpha=BAR_ALPHA, width=0.55, label="Count",
+            data["Branch"].astype(str),
+            data["Count"],
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
+            label="Count",
         )
 
         for bar, val in zip(bars, data["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE - 3, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE - 3,
+                fontweight="bold",
+                color=NAVY,
             )
 
         if "Activation %" in data.columns:
             ax2 = ax.twinx()
             rates = pd.to_numeric(data["Activation %"], errors="coerce")
             ax2.plot(
-                data["Branch"].astype(str), rates, color=ACQUISITION,
-                marker="D", markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
-                label="Activation %", zorder=5,
+                data["Branch"].astype(str),
+                rates,
+                color=ACQUISITION,
+                marker="D",
+                markersize=MARKER_SIZE,
+                linewidth=LINE_WIDTH,
+                label="Activation %",
+                zorder=5,
             )
             ax2.set_ylabel("Activation %")
             ax2.set_ylim(0, 105)
@@ -149,15 +182,36 @@ def chart_dm_monthly_trends(df: pd.DataFrame, config: ChartConfig) -> bytes:
         x = range(len(df))
         months = list(df["Month"])
 
-        ax.plot(x, df["Total Swipes"], color=NAVY, marker="o",
-                markersize=MARKER_SIZE, linewidth=LINE_WIDTH, label="Total Swipes")
-        ax.plot(x, df["Active Accounts"], color=TEAL, marker="s",
-                markersize=MARKER_SIZE, linewidth=LINE_WIDTH, label="Active Accounts")
+        ax.plot(
+            x,
+            df["Total Swipes"],
+            color=NAVY,
+            marker="o",
+            markersize=MARKER_SIZE,
+            linewidth=LINE_WIDTH,
+            label="Total Swipes",
+        )
+        ax.plot(
+            x,
+            df["Active Accounts"],
+            color=TEAL,
+            marker="s",
+            markersize=MARKER_SIZE,
+            linewidth=LINE_WIDTH,
+            label="Active Accounts",
+        )
 
         ax2 = ax.twinx()
-        ax2.plot(x, df["Total Spend"], color=SPEND, marker="^",
-                 markersize=MARKER_SIZE, linewidth=LINE_WIDTH, linestyle="--",
-                 label="Total Spend")
+        ax2.plot(
+            x,
+            df["Total Spend"],
+            color=SPEND,
+            marker="^",
+            markersize=MARKER_SIZE,
+            linewidth=LINE_WIDTH,
+            linestyle="--",
+            label="Total Spend",
+        )
         ax2.set_ylabel("Total Spend ($)")
         ax2.yaxis.set_major_formatter(DOLLAR_FORMATTER)
         ax2.grid(False)

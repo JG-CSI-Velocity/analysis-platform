@@ -138,7 +138,9 @@ def discover_pairs(ctx: PipelineContext) -> list[tuple[str, str, str]]:
         rc = f"{month} Resp"
         if rc not in cols:
             # Fuzzy: look for case-insensitive resp match
-            rc_matches = [c for c in cols if re.match(rf"^{re.escape(month)}\s*Resp\s*$", c, re.IGNORECASE)]
+            rc_matches = [
+                c for c in cols if re.match(rf"^{re.escape(month)}\s*Resp\s*$", c, re.IGNORECASE)
+            ]
             rc = rc_matches[0] if rc_matches else None
         if rc and rc in cols and ctx.data[rc].notna().any():
             pairs.append((month, rc, mc))

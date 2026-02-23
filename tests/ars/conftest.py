@@ -408,14 +408,19 @@ def cohort_mailer_df():
 
     # Apr24: 10 NU respond, 8 TH-10 respond
     apr_resp = (
-        ["NU 5+"] * 10 + ["NU 1-4"] * 5 + [None] * 10  # 25 NU
-        + ["TH-10"] * 8 + [None] * 7  # 15 TH-10
+        ["NU 5+"] * 10
+        + ["NU 1-4"] * 5
+        + [None] * 10  # 25 NU
+        + ["TH-10"] * 8
+        + [None] * 7  # 15 TH-10
         + [None] * 20  # 20 not mailed
     )
     # May24: 5 more NU respond (some are re-responders), 3 TH-10
     may_resp = (
-        ["NU 5+"] * 5 + [None] * 20  # 25 NU
-        + ["TH-10"] * 3 + [None] * 12  # 15 TH-10
+        ["NU 5+"] * 5
+        + [None] * 20  # 25 NU
+        + ["TH-10"] * 3
+        + [None] * 12  # 15 TH-10
         + [None] * 20  # 20 not mailed
     )
 

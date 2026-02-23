@@ -62,7 +62,9 @@ def debit_mask(df: pd.DataFrame, col: str | None = None) -> pd.Series:
 # -- Core DCTR calculation ---------------------------------------------------
 
 
-def dctr(df: pd.DataFrame, debit_col: str | None = None, yes: str = "Yes") -> tuple[int, int, float]:
+def dctr(
+    df: pd.DataFrame, debit_col: str | None = None, yes: str = "Yes"
+) -> tuple[int, int, float]:
     """Return (total, with_debit, rate) for a DataFrame."""
     total = len(df)
     if debit_col is None:

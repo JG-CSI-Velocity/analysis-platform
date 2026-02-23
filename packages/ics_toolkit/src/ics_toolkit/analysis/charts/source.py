@@ -31,18 +31,28 @@ def chart_source_dist(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(figsize=(12, 8), save_path=buf) as (_fig, ax):
         data = df[df["Source"] != "Total"].copy()
-        colors = [NAVY, TEAL][:len(data)] + PALETTE[2:len(data)]
+        colors = [NAVY, TEAL][: len(data)] + PALETTE[2 : len(data)]
 
         bars = ax.bar(
-            data["Source"], data["Count"], color=colors[:len(data)],
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.5,
+            data["Source"],
+            data["Count"],
+            color=colors[: len(data)],
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.5,
         )
 
         for bar, val in zip(bars, data["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Source")
@@ -66,9 +76,14 @@ def chart_source_by_stat(df: pd.DataFrame, config: ChartConfig) -> bytes:
         for i, col in enumerate(value_cols):
             vals = pd.to_numeric(data[col], errors="coerce").fillna(0)
             ax.bar(
-                x, vals, bottom=bottom, label=str(col),
+                x,
+                vals,
+                bottom=bottom,
+                label=str(col),
                 color=PALETTE[i % len(PALETTE)],
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                alpha=BAR_ALPHA,
                 width=0.55,
             )
             bottom += vals.values
@@ -99,9 +114,14 @@ def chart_source_by_prod(df: pd.DataFrame, config: ChartConfig) -> bytes:
             vals = pd.to_numeric(data[col], errors="coerce").fillna(0)
             offset = (i - n_bars / 2 + 0.5) * width
             ax.bar(
-                x + offset, vals, width, label=str(col),
+                x + offset,
+                vals,
+                width,
+                label=str(col),
                 color=PALETTE[i % len(PALETTE)],
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                alpha=BAR_ALPHA,
             )
 
         ax.set_xticks(x)
@@ -140,9 +160,14 @@ def chart_source_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
                 val = z_data[row_i, col_i]
                 text_color = "white" if val > z_max * 0.55 else "#333"
                 ax.text(
-                    col_i, row_i, f"{int(val):,}",
-                    ha="center", va="center", fontsize=10,
-                    color=text_color, fontweight="bold",
+                    col_i,
+                    row_i,
+                    f"{int(val):,}",
+                    ha="center",
+                    va="center",
+                    fontsize=10,
+                    color=text_color,
+                    fontweight="bold",
                 )
 
         ax.set_xlabel("Branch")
@@ -158,12 +183,14 @@ def chart_account_type(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
         data = df[df["Business?"] != "Total"].copy()
-        colors = [NAVY, TEAL][:len(data)]
+        colors = [NAVY, TEAL][: len(data)]
 
         wedges, _, autotexts = ax.pie(
-            data["Count"], colors=colors,
+            data["Count"],
+            colors=colors,
             autopct=lambda pct: f"{pct:.1f}%",
-            startangle=90, pctdistance=0.78,
+            startangle=90,
+            pctdistance=0.78,
             wedgeprops={"edgecolor": "white", "linewidth": 2},
         )
         centre = __import__("matplotlib.patches", fromlist=["Circle"]).Circle(
@@ -175,11 +202,15 @@ def chart_account_type(df: pd.DataFrame, config: ChartConfig) -> bytes:
             t.set_fontsize(14)
             t.set_fontweight("bold")
 
-        legend_labels = [
-            f"{lbl}  ({val:,})" for lbl, val in zip(data["Business?"], data["Count"])
-        ]
-        ax.legend(wedges, legend_labels, loc="center left",
-                  bbox_to_anchor=(0.85, 0.5), fontsize=13, frameon=False)
+        legend_labels = [f"{lbl}  ({val:,})" for lbl, val in zip(data["Business?"], data["Count"])]
+        ax.legend(
+            wedges,
+            legend_labels,
+            loc="center left",
+            bbox_to_anchor=(0.85, 0.5),
+            fontsize=13,
+            frameon=False,
+        )
 
         ax.set_title("Personal vs Business", fontsize=22, fontweight="bold", pad=20)
         ax.set_aspect("equal")
@@ -200,9 +231,14 @@ def chart_source_by_year(df: pd.DataFrame, config: ChartConfig) -> bytes:
         for i, col in enumerate(year_cols):
             vals = pd.to_numeric(data[col], errors="coerce").fillna(0)
             ax.bar(
-                x, vals, bottom=bottom, label=str(col),
+                x,
+                vals,
+                bottom=bottom,
+                label=str(col),
                 color=PALETTE[i % len(PALETTE)],
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                alpha=BAR_ALPHA,
                 width=0.55,
             )
             bottom += vals.values
@@ -231,9 +267,14 @@ def chart_source_acquisition_mix(df: pd.DataFrame, config: ChartConfig) -> bytes
         for i, col in enumerate(source_cols):
             vals = pd.to_numeric(df[col], errors="coerce").fillna(0)
             ax.bar(
-                x, vals, bottom=bottom, label=str(col),
+                x,
+                vals,
+                bottom=bottom,
+                label=str(col),
                 color=PALETTE[i % len(PALETTE)],
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                alpha=BAR_ALPHA,
                 width=0.7,
             )
             bottom += vals.values

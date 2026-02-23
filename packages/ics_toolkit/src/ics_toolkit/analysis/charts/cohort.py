@@ -40,8 +40,14 @@ def chart_cohort_activation(df: pd.DataFrame, config: ChartConfig) -> bytes:
             vals = pd.to_numeric(df[col], errors="coerce")
             offset = (bar_idx - n_bars / 2 + 0.5) * width
             ax.bar(
-                x + offset, vals, width, label=m, color=color,
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
+                x + offset,
+                vals,
+                width,
+                label=m,
+                color=color,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                alpha=BAR_ALPHA,
             )
             bar_idx += 1
 
@@ -65,8 +71,15 @@ def chart_cohort_heatmap(df: pd.DataFrame, config: ChartConfig) -> bytes:
     with chart_figure(figsize=(16, 10), save_path=buf) as (fig, ax):
         month_cols = [c for c in df.columns if c != "Opening Month"]
         if not month_cols:
-            ax.text(0.5, 0.5, "No monthly data available",
-                    transform=ax.transAxes, ha="center", va="center", fontsize=18)
+            ax.text(
+                0.5,
+                0.5,
+                "No monthly data available",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                fontsize=18,
+            )
         else:
             z_data = df[month_cols].apply(pd.to_numeric, errors="coerce").values
             z_masked = np.ma.masked_invalid(z_data)
@@ -90,9 +103,14 @@ def chart_cohort_heatmap(df: pd.DataFrame, config: ChartConfig) -> bytes:
                         continue
                     text_color = "white" if val > z_max * 0.55 else "#333"
                     ax.text(
-                        col_i, row_i, f"{int(val):,}",
-                        ha="center", va="center", fontsize=10,
-                        color=text_color, fontweight="bold",
+                        col_i,
+                        row_i,
+                        f"{int(val):,}",
+                        ha="center",
+                        va="center",
+                        fontsize=10,
+                        color=text_color,
+                        fontweight="bold",
                     )
 
             ax.set_xlabel("Month")
@@ -121,8 +139,14 @@ def chart_cohort_milestones(df: pd.DataFrame, config: ChartConfig) -> bytes:
             vals = pd.to_numeric(df[col], errors="coerce")
             offset = (bar_idx - n_bars / 2 + 0.5) * width
             ax.bar(
-                x + offset, vals, width, label=m, color=color,
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
+                x + offset,
+                vals,
+                width,
+                label=m,
+                color=color,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                alpha=BAR_ALPHA,
             )
             bar_idx += 1
 
@@ -153,17 +177,27 @@ def chart_activation_summary(df: pd.DataFrame, config: ChartConfig) -> bytes:
                 milestones.append(label)
                 rates.append(float(value) / 100.0)
 
-        colors = [NAVY, TEAL, ACQUISITION, "#F39C12"][:len(milestones)]
+        colors = [NAVY, TEAL, ACQUISITION, "#F39C12"][: len(milestones)]
         bars = ax.bar(
-            milestones, rates, color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.5,
+            milestones,
+            rates,
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.5,
         )
 
         for bar, rate in zip(bars, rates):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{rate:.1%}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE + 2, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{rate:.1%}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE + 2,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Milestone")
@@ -197,9 +231,12 @@ def chart_growth_patterns(df: pd.DataFrame, config: ChartConfig) -> bytes:
 
             if vals:
                 ax.plot(
-                    x_labels, vals, label=str(cohort),
+                    x_labels,
+                    vals,
+                    label=str(cohort),
                     marker=markers[i % len(markers)],
-                    markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
+                    markersize=MARKER_SIZE,
+                    linewidth=LINE_WIDTH,
                     color=PALETTE[i % len(PALETTE)],
                 )
 
@@ -218,21 +255,23 @@ def chart_activation_personas(df: pd.DataFrame, config: ChartConfig) -> bytes:
     """Donut chart of activation persona distribution."""
     buf = BytesIO()
     with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
-        colors = [PERSONA_COLORS.get(cat, PALETTE[i % len(PALETTE)])
-                  for i, cat in enumerate(df["Category"])]
+        colors = [
+            PERSONA_COLORS.get(cat, PALETTE[i % len(PALETTE)])
+            for i, cat in enumerate(df["Category"])
+        ]
 
         wedges, _, autotexts = ax.pie(
-            df["Account Count"], colors=colors,
+            df["Account Count"],
+            colors=colors,
             autopct=lambda pct: f"{pct:.1f}%" if pct > 3 else "",
-            startangle=90, pctdistance=0.78,
+            startangle=90,
+            pctdistance=0.78,
             wedgeprops={"edgecolor": "white", "linewidth": 2},
         )
 
         # Center hole for donut
         centre = ax.add_patch(
-            __import__("matplotlib.patches", fromlist=["Circle"]).Circle(
-                (0, 0), 0.35, fc="white"
-            )
+            __import__("matplotlib.patches", fromlist=["Circle"]).Circle((0, 0), 0.35, fc="white")
         )
 
         for t in autotexts:
@@ -241,12 +280,15 @@ def chart_activation_personas(df: pd.DataFrame, config: ChartConfig) -> bytes:
 
         # Legend with counts
         legend_labels = [
-            f"{cat}  ({count:,})"
-            for cat, count in zip(df["Category"], df["Account Count"])
+            f"{cat}  ({count:,})" for cat, count in zip(df["Category"], df["Account Count"])
         ]
         ax.legend(
-            wedges, legend_labels, loc="center left",
-            bbox_to_anchor=(0.85, 0.5), fontsize=12, frameon=False,
+            wedges,
+            legend_labels,
+            loc="center left",
+            bbox_to_anchor=(0.85, 0.5),
+            fontsize=12,
+            frameon=False,
         )
 
         ax.set_title("Activation Personas", fontsize=22, fontweight="bold", pad=20)
@@ -271,8 +313,12 @@ def chart_branch_activation(df: pd.DataFrame, config: ChartConfig) -> bytes:
         colors = [ACQUISITION if r >= med else NAVY for r in rates]
 
         bars = ax.barh(
-            range(n), rates, color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
+            range(n),
+            rates,
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            height=0.65,
         )
         ax.set_yticks(range(n))
         ax.set_yticklabels(data["Branch"].astype(str))
@@ -280,15 +326,18 @@ def chart_branch_activation(df: pd.DataFrame, config: ChartConfig) -> bytes:
         for bar, val in zip(bars, rates):
             label = f"{val:.1%}" if isinstance(val, float) else str(val)
             ax.text(
-                bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                f"  {label}", va="center", ha="left",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                f"  {label}",
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
             )
 
         # Median reference line
         ax.axvline(med, color="#E74C3C", linestyle="--", linewidth=1.5, alpha=0.6)
-        ax.text(med, n - 0.5, f" Median: {med:.1%}",
-                fontsize=12, color="#E74C3C", va="bottom")
+        ax.text(med, n - 0.5, f" Median: {med:.1%}", fontsize=12, color="#E74C3C", va="bottom")
 
         ax.set_xlabel("Activation Rate")
         ax.set_title("Branch Activation Rates")

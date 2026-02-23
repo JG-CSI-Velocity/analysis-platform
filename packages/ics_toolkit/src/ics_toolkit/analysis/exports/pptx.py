@@ -388,10 +388,16 @@ def write_ics_reports(
     secondary_path = out / f"{client_id}_ICS_Secondary_{date_str}.pptx"
 
     primary = write_pptx_primary(
-        settings, analyses, output_path=primary_path, chart_pngs=chart_pngs,
+        settings,
+        analyses,
+        output_path=primary_path,
+        chart_pngs=chart_pngs,
     )
     secondary = write_pptx_secondary(
-        settings, analyses, output_path=secondary_path, chart_pngs=chart_pngs,
+        settings,
+        analyses,
+        output_path=secondary_path,
+        chart_pngs=chart_pngs,
     )
     return primary, secondary
 
@@ -463,7 +469,9 @@ def write_pptx_primary(
 
     prs.save(str(output_path))
     logger.info(
-        "Primary PPTX saved: %s (%d slides)", output_path, len(prs.slides),
+        "Primary PPTX saved: %s (%d slides)",
+        output_path,
+        len(prs.slides),
     )
     return output_path
 
@@ -516,7 +524,9 @@ def write_pptx_secondary(
 
     prs.save(str(output_path))
     logger.info(
-        "Secondary PPTX saved: %s (%d slides)", output_path, len(prs.slides),
+        "Secondary PPTX saved: %s (%d slides)",
+        output_path,
+        len(prs.slides),
     )
     return output_path
 
@@ -537,7 +547,10 @@ def write_pptx_report(
         or :func:`write_pptx_secondary` for the full detail deck.
     """
     return write_pptx_secondary(
-        settings, analyses, output_path=output_path, chart_pngs=chart_pngs,
+        settings,
+        analyses,
+        output_path=output_path,
+        chart_pngs=chart_pngs,
     )
 
 
@@ -577,7 +590,9 @@ def _get_layout(prs: Presentation, preferred: int, fallback: int = 6):
 
 
 def _add_title_slide(
-    prs: Presentation, settings: Settings, title_text: str = "ICS Accounts Analysis",
+    prs: Presentation,
+    settings: Settings,
+    title_text: str = "ICS Accounts Analysis",
 ) -> None:
     """Add branded title slide."""
     layout = _get_layout(prs, preferred=1, fallback=0)
@@ -620,7 +635,10 @@ def _add_styled_section_divider(prs: Presentation, title: str) -> None:
 
     # Add large centered title
     txbox = slide.shapes.add_textbox(
-        Inches(1.5), Inches(2.5), Inches(10.33), Inches(2.0),
+        Inches(1.5),
+        Inches(2.5),
+        Inches(10.33),
+        Inches(2.0),
     )
     tf = txbox.text_frame
     tf.word_wrap = True
@@ -640,7 +658,10 @@ def _add_styled_section_divider(prs: Presentation, title: str) -> None:
 
 
 def _add_merged_slide(
-    prs: Presentation, title: str, left_png: bytes, right_png: bytes,
+    prs: Presentation,
+    title: str,
+    left_png: bytes,
+    right_png: bytes,
 ) -> None:
     """Add slide with two chart images side by side."""
     layout = _get_layout(prs, preferred=11, fallback=6)
@@ -649,12 +670,18 @@ def _add_merged_slide(
     _add_slide_title(slide, title)
 
     slide.shapes.add_picture(
-        BytesIO(left_png), MERGE_LEFT_X, MERGE_IMG_Y,
-        width=MERGE_IMG_W, height=MERGE_IMG_H,
+        BytesIO(left_png),
+        MERGE_LEFT_X,
+        MERGE_IMG_Y,
+        width=MERGE_IMG_W,
+        height=MERGE_IMG_H,
     )
     slide.shapes.add_picture(
-        BytesIO(right_png), MERGE_RIGHT_X, MERGE_IMG_Y,
-        width=MERGE_IMG_W, height=MERGE_IMG_H,
+        BytesIO(right_png),
+        MERGE_RIGHT_X,
+        MERGE_IMG_Y,
+        width=MERGE_IMG_W,
+        height=MERGE_IMG_H,
     )
 
 
@@ -703,7 +730,10 @@ def _add_kpi_slide(prs: Presentation, analysis: AnalysisResult) -> None:
         light = traffic_lights.get(key, "")
         if light and light != "gray":
             ind_box = slide.shapes.add_textbox(
-                left, top + Inches(1.1), KPI_BOX_W, Inches(0.3),
+                left,
+                top + Inches(1.1),
+                KPI_BOX_W,
+                Inches(0.3),
             )
             ip = ind_box.text_frame.paragraphs[0]
             ip.text = f"[{light.upper()}]"

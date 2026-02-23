@@ -104,14 +104,20 @@ class TestPrimaryDeck:
     def test_creates_file(self, sample_settings, all_analyses, tmp_path):
         path = tmp_path / "primary.pptx"
         result = write_pptx_primary(
-            sample_settings, all_analyses, output_path=path, chart_pngs={},
+            sample_settings,
+            all_analyses,
+            output_path=path,
+            chart_pngs={},
         )
         assert result.exists()
 
     def test_slide_count_under_35(self, sample_settings, all_analyses, all_chart_pngs, tmp_path):
         path = tmp_path / "primary.pptx"
         write_pptx_primary(
-            sample_settings, all_analyses, output_path=path, chart_pngs=all_chart_pngs,
+            sample_settings,
+            all_analyses,
+            output_path=path,
+            chart_pngs=all_chart_pngs,
         )
         prs = Presentation(str(path))
         count = len(prs.slides)
@@ -119,12 +125,19 @@ class TestPrimaryDeck:
         assert count >= 5, f"Primary deck has only {count} slides, too few"
 
     def test_storyline_sections_present(
-        self, sample_settings, all_analyses, all_chart_pngs, tmp_path,
+        self,
+        sample_settings,
+        all_analyses,
+        all_chart_pngs,
+        tmp_path,
     ):
         """All 6 storyline sections should have divider slides."""
         path = tmp_path / "primary.pptx"
         write_pptx_primary(
-            sample_settings, all_analyses, output_path=path, chart_pngs=all_chart_pngs,
+            sample_settings,
+            all_analyses,
+            output_path=path,
+            chart_pngs=all_chart_pngs,
         )
         prs = Presentation(str(path))
         all_text = []
@@ -138,20 +151,25 @@ class TestPrimaryDeck:
             assert section_title in combined, f"Section '{section_title}' not found in deck"
 
     def test_merged_slides_have_two_images(
-        self, sample_settings, all_analyses, all_chart_pngs, tmp_path,
+        self,
+        sample_settings,
+        all_analyses,
+        all_chart_pngs,
+        tmp_path,
     ):
         """Merge-pair slides should contain exactly 2 picture shapes."""
         path = tmp_path / "primary.pptx"
         write_pptx_primary(
-            sample_settings, all_analyses, output_path=path, chart_pngs=all_chart_pngs,
+            sample_settings,
+            all_analyses,
+            output_path=path,
+            chart_pngs=all_chart_pngs,
         )
         prs = Presentation(str(path))
 
         merged_slides = []
         for slide in prs.slides:
-            texts = [
-                s.text_frame.text for s in slide.shapes if s.has_text_frame
-            ]
+            texts = [s.text_frame.text for s in slide.shapes if s.has_text_frame]
             combined = " ".join(texts)
             if "|" in combined:
                 merged_slides.append(slide)
@@ -159,17 +177,22 @@ class TestPrimaryDeck:
         assert len(merged_slides) > 0, "No merged slides found"
         for slide in merged_slides:
             pics = [s for s in slide.shapes if s.shape_type == 13]  # 13 = Picture
-            assert len(pics) == 2, (
-                f"Merged slide should have 2 pictures, got {len(pics)}"
-            )
+            assert len(pics) == 2, f"Merged slide should have 2 pictures, got {len(pics)}"
 
     def test_no_table_in_primary(
-        self, sample_settings, all_analyses, all_chart_pngs, tmp_path,
+        self,
+        sample_settings,
+        all_analyses,
+        all_chart_pngs,
+        tmp_path,
     ):
         """Primary deck should not contain data tables (tables are in secondary)."""
         path = tmp_path / "primary.pptx"
         write_pptx_primary(
-            sample_settings, all_analyses, output_path=path, chart_pngs=all_chart_pngs,
+            sample_settings,
+            all_analyses,
+            output_path=path,
+            chart_pngs=all_chart_pngs,
         )
         prs = Presentation(str(path))
         table_count = 0
@@ -191,7 +214,10 @@ class TestPrimaryDeck:
         ]
         path = tmp_path / "kpi.pptx"
         write_pptx_primary(
-            sample_settings, analyses, output_path=path, chart_pngs={},
+            sample_settings,
+            analyses,
+            output_path=path,
+            chart_pngs={},
         )
         prs = Presentation(str(path))
         # Title + section divider + KPI slide = at least 3
@@ -232,7 +258,11 @@ class TestSecondaryDeck:
 
 class TestBothDecks:
     def test_write_ics_reports_creates_both(
-        self, sample_settings, all_analyses, all_chart_pngs, tmp_path,
+        self,
+        sample_settings,
+        all_analyses,
+        all_chart_pngs,
+        tmp_path,
     ):
         primary, secondary = write_ics_reports(
             sample_settings,
@@ -246,7 +276,11 @@ class TestBothDecks:
         assert "Secondary" in secondary.name
 
     def test_primary_much_smaller_than_secondary(
-        self, sample_settings, all_analyses, all_chart_pngs, tmp_path,
+        self,
+        sample_settings,
+        all_analyses,
+        all_chart_pngs,
+        tmp_path,
     ):
         primary_path, secondary_path = write_ics_reports(
             sample_settings,
@@ -259,7 +293,11 @@ class TestBothDecks:
         assert len(primary_prs.slides) < len(secondary_prs.slides)
 
     def test_no_analysis_lost(
-        self, sample_settings, all_analyses, all_chart_pngs, tmp_path,
+        self,
+        sample_settings,
+        all_analyses,
+        all_chart_pngs,
+        tmp_path,
     ):
         """Every successful analysis should appear in at least one deck."""
         primary_path, secondary_path = write_ics_reports(

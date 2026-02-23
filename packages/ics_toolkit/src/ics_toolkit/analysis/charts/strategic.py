@@ -35,12 +35,21 @@ def chart_activation_funnel(df: pd.DataFrame, config: ChartConfig) -> bytes:
         colors = []
         for i in range(n):
             frac = 1.0 - (i / max(n - 1, 1)) * 0.6
-            r, g, b = int(0x1B * frac + 0xFF * (1 - frac)), int(0x36 * frac + 0xFF * (1 - frac)), int(0x5D * frac + 0xFF * (1 - frac))
+            r, g, b = (
+                int(0x1B * frac + 0xFF * (1 - frac)),
+                int(0x36 * frac + 0xFF * (1 - frac)),
+                int(0x5D * frac + 0xFF * (1 - frac)),
+            )
             colors.append(f"#{r:02X}{g:02X}{b:02X}")
 
         bars = ax.barh(
-            range(n), counts, color=colors, edgecolor=BAR_EDGE,
-            linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, height=0.65,
+            range(n),
+            counts,
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            height=0.65,
         )
 
         ax.set_yticks(range(n))
@@ -51,9 +60,14 @@ def chart_activation_funnel(df: pd.DataFrame, config: ChartConfig) -> bytes:
             pct = val / total * 100 if total > 0 else 0
             label = f"{val:,}  ({pct:.0f}%)" if i > 0 else f"{val:,}"
             ax.text(
-                bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                f"  {label}", va="center", ha="left",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                f"  {label}",
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Accounts")
@@ -79,23 +93,40 @@ def chart_revenue_impact(df: pd.DataFrame, config: ChartConfig) -> bytes:
                 revenue_metrics.append((metric, float(value)))
 
         if not revenue_metrics:
-            ax.text(0.5, 0.5, "No revenue data available",
-                    transform=ax.transAxes, ha="center", va="center", fontsize=18)
+            ax.text(
+                0.5,
+                0.5,
+                "No revenue data available",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                fontsize=18,
+            )
         else:
             labels = [m[0] for m in revenue_metrics]
             values = [m[1] for m in revenue_metrics]
 
-            colors = [INTERCHANGE, VALUE, SPEND, TEAL, ACQUISITION][:len(values)]
+            colors = [INTERCHANGE, VALUE, SPEND, TEAL, ACQUISITION][: len(values)]
             bars = ax.bar(
-                labels, values, color=colors, edgecolor=BAR_EDGE,
-                linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.55,
+                labels,
+                values,
+                color=colors,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+                alpha=BAR_ALPHA,
+                width=0.55,
             )
 
             for bar, val in zip(bars, values):
                 ax.text(
-                    bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                    f"${val:,.0f}", ha="center", va="bottom",
-                    fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height(),
+                    f"${val:,.0f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=DATA_LABEL_SIZE,
+                    fontweight="bold",
+                    color=NAVY,
                 )
 
             ax.set_ylabel("USD ($)")
@@ -122,17 +153,26 @@ def chart_revenue_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         colors = [(*base, 0.4 + 0.6 * i / max(n - 1, 1)) for i in range(n)]
 
         bars = ax.barh(
-            range(n), data["Est. Interchange"], color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
+            range(n),
+            data["Est. Interchange"],
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            height=0.65,
         )
         ax.set_yticks(range(n))
         ax.set_yticklabels(data["Branch"].astype(str))
 
         for bar, val in zip(bars, data["Est. Interchange"]):
             ax.text(
-                bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                f"  ${val:,.0f}", va="center", ha="left",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                f"  ${val:,.0f}",
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Estimated Interchange ($)")
@@ -150,18 +190,28 @@ def chart_revenue_by_source(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(figsize=(12, 8), save_path=buf) as (_fig, ax):
         data = df[df["Source"] != "Total"].copy() if "Source" in df.columns else df
-        colors = [NAVY, TEAL, ACQUISITION, SPEND][:len(data)]
+        colors = [NAVY, TEAL, ACQUISITION, SPEND][: len(data)]
 
         bars = ax.bar(
-            data["Source"], data["Est. Interchange"], color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.5,
+            data["Source"],
+            data["Est. Interchange"],
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.5,
         )
 
         for bar, val in zip(bars, data["Est. Interchange"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"${val:,.0f}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"${val:,.0f}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Source")

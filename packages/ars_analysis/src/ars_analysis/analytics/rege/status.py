@@ -122,14 +122,23 @@ class RegEStatus(AnalysisModule):
 
                 # Rate in center
                 ax_d.text(
-                    0, 0.05, f"{rate:.1%}",
-                    ha="center", va="center",
-                    fontsize=28, fontweight="bold", color="#1B2A4A",
+                    0,
+                    0.05,
+                    f"{rate:.1%}",
+                    ha="center",
+                    va="center",
+                    fontsize=28,
+                    fontweight="bold",
+                    color="#1B2A4A",
                 )
                 ax_d.text(
-                    0, -0.18, "opt-in rate",
-                    ha="center", va="center",
-                    fontsize=12, color=NEUTRAL,
+                    0,
+                    -0.18,
+                    "opt-in rate",
+                    ha="center",
+                    va="center",
+                    fontsize=12,
+                    color=NEUTRAL,
                 )
 
                 ax_d.set_title(label, fontsize=20, fontweight="bold", pad=15)
@@ -141,14 +150,20 @@ class RegEStatus(AnalysisModule):
                     f"Opted Out: {sizes[1]:,}",
                 ]
                 ax_d.legend(
-                    wedges, legend_labels,
-                    loc="upper center", bbox_to_anchor=(0.5, -0.02),
-                    fontsize=14, frameon=False, ncol=1,
+                    wedges,
+                    legend_labels,
+                    loc="upper center",
+                    bbox_to_anchor=(0.5, -0.02),
+                    fontsize=14,
+                    frameon=False,
+                    ncol=1,
                 )
 
             fig.suptitle(
                 f"Reg E Opt-In Status -- {ctx.client.client_name}",
-                fontsize=22, fontweight="bold", y=1.0,
+                fontsize=22,
+                fontweight="bold",
+                y=1.0,
             )
         chart_path = save_to
 

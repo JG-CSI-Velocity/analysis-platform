@@ -284,9 +284,7 @@ class RegEDimensions(AnalysisModule):
                 fontsize=14,
             )
             ax.set_xticks(list(x))
-            ax.set_xticklabels(
-                chart["Account Age"].tolist(), rotation=30, ha="right", fontsize=16
-            )
+            ax.set_xticklabels(chart["Account Age"].tolist(), rotation=30, ha="right", fontsize=16)
             ax.set_ylabel("Opt-In Rate (%)", fontsize=20)
             ax.set_title("Reg E Opt-In by Account Age", fontweight="bold", fontsize=24, pad=15)
             ax.tick_params(axis="y", labelsize=18)
@@ -650,14 +648,18 @@ class RegEDimensions(AnalysisModule):
         p_wd_l12m = 0
         if not el12m_df.empty and "Business?" in el12m_df.columns:
             _dm = debit_mask(el12m_df)
-            mask = _dm & (el12m_df["Business?"].astype(str).str.strip().str.upper().isin(("NO", "N")))
+            mask = _dm & (
+                el12m_df["Business?"].astype(str).str.strip().str.upper().isin(("NO", "N"))
+            )
             p_wd_l12m = int(mask.sum())
 
         # Reg E in L12M personal with debit
         rege_l12m = 0
         if col and p_wd_l12m > 0 and not el12m_df.empty:
             _dm = debit_mask(el12m_df)
-            mask = _dm & (el12m_df["Business?"].astype(str).str.strip().str.upper().isin(("NO", "N")))
+            mask = _dm & (
+                el12m_df["Business?"].astype(str).str.strip().str.upper().isin(("NO", "N"))
+            )
             p_debit_df = el12m_df[mask]
             if col in p_debit_df.columns:
                 rege_l12m = int(p_debit_df[col].astype(str).str.strip().isin(opts).sum())

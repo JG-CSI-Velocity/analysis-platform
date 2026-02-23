@@ -69,8 +69,23 @@ class TestSlideLayoutMap:
             assert sid in SLIDE_LAYOUT_MAP, f"Missing {sid}"
 
     def test_a7_entries_present(self):
-        expected = ["A7.4", "A7.5", "A7.6a", "A7.6b", "A7.7", "A7.8", "A7.9",
-                    "A7.10a", "A7.10b", "A7.10c", "A7.11", "A7.12", "A7.13", "A7.14", "A7.15"]
+        expected = [
+            "A7.4",
+            "A7.5",
+            "A7.6a",
+            "A7.6b",
+            "A7.7",
+            "A7.8",
+            "A7.9",
+            "A7.10a",
+            "A7.10b",
+            "A7.10c",
+            "A7.11",
+            "A7.12",
+            "A7.13",
+            "A7.14",
+            "A7.15",
+        ]
         for sid in expected:
             assert sid in SLIDE_LAYOUT_MAP
 
@@ -80,8 +95,21 @@ class TestSlideLayoutMap:
             assert sid in SLIDE_LAYOUT_MAP
 
     def test_rege_entries_present(self):
-        expected = ["A8.1", "A8.2", "A8.3", "A8.4a", "A8.4b", "A8.4c",
-                    "A8.5", "A8.6", "A8.7", "A8.10", "A8.11", "A8.12", "A8.13"]
+        expected = [
+            "A8.1",
+            "A8.2",
+            "A8.3",
+            "A8.4a",
+            "A8.4b",
+            "A8.4c",
+            "A8.5",
+            "A8.6",
+            "A8.7",
+            "A8.10",
+            "A8.11",
+            "A8.12",
+            "A8.13",
+        ]
         for sid in expected:
             assert sid in SLIDE_LAYOUT_MAP
 
@@ -216,8 +244,11 @@ class TestResultToSlide:
         chart = tmp_path / "chart.png"
         _write_minimal_png(chart)
         r = AnalysisResult(
-            slide_id="A9.1", title="Test", chart_path=chart,
-            layout_index=13, slide_type="screenshot",
+            slide_id="A9.1",
+            title="Test",
+            chart_path=chart,
+            layout_index=13,
+            slide_type="screenshot",
         )
         sc = _result_to_slide(r)
         assert sc.layout_index == 13
@@ -252,10 +283,11 @@ class TestConsolidate:
         right = self._make_result("A7.4", tmp_path)
         other = self._make_result("A7.10a", tmp_path)
 
-        main, appendix = _consolidate(
-            [left, right, other], DCTR_MERGES, DCTR_APPENDIX_IDS)
+        main, appendix = _consolidate([left, right, other], DCTR_MERGES, DCTR_APPENDIX_IDS)
         # The merge should produce one multi_screenshot replacing both
-        multi = [s for s in main if isinstance(s, SlideContent) and s.slide_type == "multi_screenshot"]
+        multi = [
+            s for s in main if isinstance(s, SlideContent) and s.slide_type == "multi_screenshot"
+        ]
         assert len(multi) == 1
         assert len(multi[0].images) == 2
 
@@ -281,7 +313,7 @@ class TestConsolidate:
         main, appendix = _consolidate(slides, ATTRITION_MERGES, ATTRITION_APPENDIX_IDS)
         multi = [s for s in main if isinstance(s, SlideContent)]
         assert len(multi) == 1  # merged pair
-        assert len(main) == 2   # merged + A9.1
+        assert len(main) == 2  # merged + A9.1
 
 
 # =============================================================================
@@ -292,18 +324,21 @@ class TestConsolidate:
 class TestSectionMapping:
     """Section assignment from slide IDs."""
 
-    @pytest.mark.parametrize("slide_id,expected", [
-        ("DCTR-1", "dctr"),
-        ("A7.4", "dctr"),
-        ("A8.1", "rege"),
-        ("A9.1", "attrition"),
-        ("A11.1", "value"),
-        ("A12.Nov25.Swipes", "mailer"),
-        ("A13.Sep24", "mailer"),
-        ("ICS-1", "ics"),
-        ("S1", "insights"),
-        ("XYZ-1", "other"),
-    ])
+    @pytest.mark.parametrize(
+        "slide_id,expected",
+        [
+            ("DCTR-1", "dctr"),
+            ("A7.4", "dctr"),
+            ("A8.1", "rege"),
+            ("A9.1", "attrition"),
+            ("A11.1", "value"),
+            ("A12.Nov25.Swipes", "mailer"),
+            ("A13.Sep24", "mailer"),
+            ("ICS-1", "ics"),
+            ("S1", "insights"),
+            ("XYZ-1", "other"),
+        ],
+    )
     def test_section_mapping(self, slide_id, expected):
         assert _get_section(slide_id) == expected
 
@@ -341,7 +376,9 @@ class TestPreamble:
     def test_all_valid_layouts(self):
         slides = _build_preamble_slides("Test CU", "2026.01")
         for i, sc in enumerate(slides):
-            assert 0 <= sc.layout_index <= 13, f"Preamble slide {i} has invalid layout {sc.layout_index}"
+            assert 0 <= sc.layout_index <= 13, (
+                f"Preamble slide {i} has invalid layout {sc.layout_index}"
+            )
 
     def test_slide_types(self):
         slides = _build_preamble_slides("Test CU", "2026.01")
@@ -360,6 +397,7 @@ class TestDeckBuilderClass:
 
     def test_build_empty_slides(self, tmp_path):
         from ars_analysis.output.deck_builder import _FALLBACK_TEMPLATE
+
         if not _FALLBACK_TEMPLATE.exists():
             pytest.skip("Template not available")
 
@@ -372,6 +410,7 @@ class TestDeckBuilderClass:
 
     def test_build_section_slide(self, tmp_path):
         from ars_analysis.output.deck_builder import _FALLBACK_TEMPLATE
+
         if not _FALLBACK_TEMPLATE.exists():
             pytest.skip("Template not available")
 
@@ -384,16 +423,21 @@ class TestDeckBuilderClass:
 
     def test_build_screenshot_slide(self, tmp_path):
         from ars_analysis.output.deck_builder import _FALLBACK_TEMPLATE
+
         if not _FALLBACK_TEMPLATE.exists():
             pytest.skip("Template not available")
 
         chart = tmp_path / "chart.png"
         _write_minimal_png(chart)
         output = tmp_path / "test.pptx"
-        slides = [SlideContent(
-            slide_type="screenshot", title="Chart Test",
-            images=[str(chart)], layout_index=9,
-        )]
+        slides = [
+            SlideContent(
+                slide_type="screenshot",
+                title="Chart Test",
+                images=[str(chart)],
+                layout_index=9,
+            )
+        ]
         builder = DeckBuilder(str(_FALLBACK_TEMPLATE))
         builder.build(slides, str(output))
         prs = Presentation(str(output))

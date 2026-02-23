@@ -71,15 +71,25 @@ def chart_engagement_decay(df: pd.DataFrame, config: ChartConfig) -> bytes:
                 gradient.append(CLOSURE)
 
         bars = ax.bar(
-            df["Decay Category"], df["Count"], color=gradient,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.55,
+            df["Decay Category"],
+            df["Count"],
+            color=gradient,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
         )
 
         for bar, val in zip(bars, df["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Engagement Category")
@@ -100,18 +110,41 @@ def chart_net_portfolio_growth(df: pd.DataFrame, config: ChartConfig) -> bytes:
         months = list(df["Month"])
 
         # Cumulative line on primary axis
-        ax.plot(x, df["Cumulative"], color=NAVY, marker="o",
-                markersize=MARKER_SIZE, linewidth=LINE_WIDTH + 0.5,
-                label="Cumulative Net", zorder=5)
+        ax.plot(
+            x,
+            df["Cumulative"],
+            color=NAVY,
+            marker="o",
+            markersize=MARKER_SIZE,
+            linewidth=LINE_WIDTH + 0.5,
+            label="Cumulative Net",
+            zorder=5,
+        )
 
         # Opens/Closes bars on secondary axis
         ax2 = ax.twinx()
         closes_neg = -pd.to_numeric(df["Closes"], errors="coerce").fillna(0)
 
-        ax2.bar(x - 0.2, df["Opens"], 0.4, color=GROWTH, alpha=0.75,
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, label="Opens")
-        ax2.bar(x + 0.2, closes_neg, 0.4, color=CLOSURE, alpha=0.75,
-                edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, label="Closes")
+        ax2.bar(
+            x - 0.2,
+            df["Opens"],
+            0.4,
+            color=GROWTH,
+            alpha=0.75,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            label="Opens",
+        )
+        ax2.bar(
+            x + 0.2,
+            closes_neg,
+            0.4,
+            color=CLOSURE,
+            alpha=0.75,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            label="Closes",
+        )
 
         # Zero line
         ax2.axhline(0, color="#999", linewidth=0.8, zorder=1)
@@ -151,16 +184,26 @@ def chart_concentration(df: pd.DataFrame, config: ChartConfig) -> bytes:
 
         spend_pct = pd.to_numeric(df["Spend Share %"], errors="coerce")
         bars = ax.bar(
-            df["Percentile"], spend_pct, color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.55,
+            df["Percentile"],
+            spend_pct,
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
         )
 
         for bar, val in zip(bars, spend_pct):
             label = f"{val:.1f}%" if pd.notna(val) else ""
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                label, ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                label,
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Percentile")
@@ -180,16 +223,25 @@ def chart_closure_by_source(df: pd.DataFrame, config: ChartConfig) -> bytes:
         data = df[df["Source"] != "Total"].copy() if "Source" in df.columns else df
 
         bars = ax.bar(
-            data["Source"], data["Closed Count"],
-            color=CLOSURE, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH,
-            alpha=BAR_ALPHA, width=0.5,
+            data["Source"],
+            data["Closed Count"],
+            color=CLOSURE,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.5,
         )
 
         for bar, val in zip(bars, data["Closed Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=CLOSURE,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=CLOSURE,
             )
 
         ax.set_xlabel("Source")
@@ -211,18 +263,27 @@ def chart_closure_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         n = len(data)
 
         bars = ax.barh(
-            range(n), data["Closed Count"],
-            color=CLOSURE, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH,
-            alpha=0.85, height=0.65,
+            range(n),
+            data["Closed Count"],
+            color=CLOSURE,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=0.85,
+            height=0.65,
         )
         ax.set_yticks(range(n))
         ax.set_yticklabels(data["Branch"].astype(str))
 
         for bar, val in zip(bars, data["Closed Count"]):
             ax.text(
-                bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                f"  {val:,}", va="center", ha="left",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=CLOSURE,
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                f"  {val:,}",
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=CLOSURE,
             )
 
         ax.set_xlabel("Closed Accounts")
@@ -239,16 +300,25 @@ def chart_closure_by_account_age(df: pd.DataFrame, config: ChartConfig) -> bytes
     buf = BytesIO()
     with chart_figure(save_path=buf) as (_fig, ax):
         bars = ax.bar(
-            df["Age Range"], df["Closed Count"],
-            color=CLOSURE, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH,
-            alpha=BAR_ALPHA, width=0.55,
+            df["Age Range"],
+            df["Closed Count"],
+            color=CLOSURE,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
         )
 
         for bar, val in zip(bars, df["Closed Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=CLOSURE,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=CLOSURE,
             )
 
         ax.set_xlabel("Account Age at Closure")
@@ -270,18 +340,37 @@ def chart_net_growth_by_source(df: pd.DataFrame, config: ChartConfig) -> bytes:
         x = np.arange(len(data))
         width = 0.25
 
-        ax.bar(x - width, data["Opens"], width, label="Opens",
-               color=GROWTH, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
-        ax.bar(x, data["Closes"], width, label="Closes",
-               color=CLOSURE, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+        ax.bar(
+            x - width,
+            data["Opens"],
+            width,
+            label="Opens",
+            color=GROWTH,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+        )
+        ax.bar(
+            x,
+            data["Closes"],
+            width,
+            label="Closes",
+            color=CLOSURE,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+        )
 
         # Net as diamond markers
-        ax.scatter(x + width, data["Net"], s=120, marker="D",
-                   color=NAVY, zorder=5, label="Net")
+        ax.scatter(x + width, data["Net"], s=120, marker="D", color=NAVY, zorder=5, label="Net")
         for xi, val in zip(x, data["Net"]):
-            ax.text(xi + width, val, f" {int(val):+,}",
-                    fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
-                    va="bottom", color=NAVY)
+            ax.text(
+                xi + width,
+                val,
+                f" {int(val):+,}",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                va="bottom",
+                color=NAVY,
+            )
 
         ax.set_xticks(x)
         ax.set_xticklabels(data["Source"])
@@ -304,15 +393,29 @@ def chart_closure_rate_trend(df: pd.DataFrame, config: ChartConfig) -> bytes:
         x = np.arange(len(df))
         months = list(df["Month"])
 
-        ax.bar(x, df["Closures"], color=CLOSURE, alpha=0.45,
-               edgecolor="none", width=0.7, label="Closures")
+        ax.bar(
+            x,
+            df["Closures"],
+            color=CLOSURE,
+            alpha=0.45,
+            edgecolor="none",
+            width=0.7,
+            label="Closures",
+        )
         ax.set_ylabel("Closures")
 
         ax2 = ax.twinx()
         rates = pd.to_numeric(df["Closure Rate %"], errors="coerce")
-        ax2.plot(x, rates, color=NAVY, marker="o",
-                 markersize=MARKER_SIZE + 2, linewidth=LINE_WIDTH + 0.5,
-                 label="Closure Rate %", zorder=5)
+        ax2.plot(
+            x,
+            rates,
+            color=NAVY,
+            marker="o",
+            markersize=MARKER_SIZE + 2,
+            linewidth=LINE_WIDTH + 0.5,
+            label="Closure Rate %",
+            zorder=5,
+        )
         ax2.set_ylabel("Closure Rate %")
         ax2.grid(False)
 

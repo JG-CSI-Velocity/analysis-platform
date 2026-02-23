@@ -26,15 +26,25 @@ def chart_age_comparison(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(save_path=buf) as (_fig, ax):
         bars = ax.bar(
-            df["Age Range"], df["Count"], color=NAVY,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.55,
+            df["Age Range"],
+            df["Count"],
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
         )
 
         for bar, val in zip(bars, df["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Age Range")
@@ -55,15 +65,25 @@ def chart_closures(df: pd.DataFrame, config: ChartConfig) -> bytes:
         data = df[df["Month Closed"] != "Total"].copy()
 
         bars = ax.bar(
-            data["Month Closed"], data["Count"], color=CLOSURE,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.6,
+            data["Month Closed"],
+            data["Count"],
+            color=CLOSURE,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.6,
         )
 
         for bar, val in zip(bars, data["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=CLOSURE,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=CLOSURE,
             )
 
         ax.set_xlabel("Month Closed")
@@ -97,15 +117,25 @@ def chart_open_vs_close(df: pd.DataFrame, config: ChartConfig) -> bytes:
             colors.append(CLOSURE)
 
         bars = ax.bar(
-            labels, values, color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.45,
+            labels,
+            values,
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.45,
         )
 
         for bar, val in zip(bars, values):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE + 4, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE + 4,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_ylabel("Count")
@@ -122,15 +152,25 @@ def chart_balance_tiers(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(save_path=buf) as (_fig, ax):
         bars = ax.bar(
-            df["Balance Tier"], df["Count"], color=TEAL,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.55,
+            df["Balance Tier"],
+            df["Count"],
+            color=TEAL,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
         )
 
         for bar, val in zip(bars, df["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Balance Tier")
@@ -151,18 +191,28 @@ def chart_stat_open_close(df: pd.DataFrame, config: ChartConfig) -> bytes:
         data = df[~df["Stat Code"].isin(["Total", "Grand Total"])].copy()
 
         bars = ax.bar(
-            data["Stat Code"], data["Count"], color=NAVY,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
-            width=0.5, label="Count",
+            data["Stat Code"],
+            data["Count"],
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.5,
+            label="Count",
         )
 
         if "Avg Curr Bal" in data.columns:
             ax2 = ax.twinx()
             bal = pd.to_numeric(data["Avg Curr Bal"], errors="coerce")
             ax2.plot(
-                data["Stat Code"], bal, color=TEAL,
-                marker="D", markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
-                label="Avg Balance", zorder=5,
+                data["Stat Code"],
+                bal,
+                color=TEAL,
+                marker="D",
+                markersize=MARKER_SIZE,
+                linewidth=LINE_WIDTH,
+                label="Avg Balance",
+                zorder=5,
             )
             ax2.set_ylabel("Avg Current Balance")
             ax2.yaxis.set_major_formatter(DOLLAR_FORMATTER)
@@ -186,17 +236,27 @@ def chart_age_vs_balance(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(save_path=buf) as (fig, ax):
         bars = ax.bar(
-            df["Age Range"], df["Count"], color=NAVY,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
-            width=0.55, label="Count",
+            df["Age Range"],
+            df["Count"],
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
+            label="Count",
         )
 
         if "Avg Curr Bal" in df.columns:
             ax2 = ax.twinx()
             ax2.plot(
-                df["Age Range"], df["Avg Curr Bal"], color=TEAL,
-                marker="D", markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
-                label="Avg Balance", zorder=5,
+                df["Age Range"],
+                df["Avg Curr Bal"],
+                color=TEAL,
+                marker="D",
+                markersize=MARKER_SIZE,
+                linewidth=LINE_WIDTH,
+                label="Avg Balance",
+                zorder=5,
             )
             ax2.set_ylabel("Avg Current Balance ($)")
             ax2.yaxis.set_major_formatter(DOLLAR_FORMATTER)
@@ -223,12 +283,26 @@ def chart_balance_tier_detail(df: pd.DataFrame, config: ChartConfig) -> bytes:
         x = np.arange(len(df))
         width = 0.3
 
-        ax.bar(x - width / 2, df["Count"], width, label="Count",
-               color=NAVY, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+        ax.bar(
+            x - width / 2,
+            df["Count"],
+            width,
+            label="Count",
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+        )
 
         if "Avg Swipes" in df.columns:
-            ax.bar(x + width / 2, df["Avg Swipes"], width, label="Avg Swipes",
-                   color=TEAL, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+            ax.bar(
+                x + width / 2,
+                df["Avg Swipes"],
+                width,
+                label="Avg Swipes",
+                color=TEAL,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+            )
 
         ax.set_xticks(x)
         ax.set_xticklabels(df["Balance Tier"], rotation=-30, ha="left")
@@ -248,15 +322,25 @@ def chart_age_dist(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(save_path=buf) as (_fig, ax):
         bars = ax.bar(
-            df["Age Range"], df["Count"], color=TEAL,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.55,
+            df["Age Range"],
+            df["Count"],
+            color=TEAL,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
         )
 
         for bar, val in zip(bars, df["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Age Range")
@@ -278,12 +362,24 @@ def chart_balance_trajectory(df: pd.DataFrame, config: ChartConfig) -> bytes:
         x = np.arange(len(data))
         width = 0.3
 
-        ax.bar(x - width / 2, pd.to_numeric(data["Avg Bal"], errors="coerce"),
-               width, label="Avg Balance", color=TEAL,
-               edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
-        ax.bar(x + width / 2, pd.to_numeric(data["Curr Bal"], errors="coerce"),
-               width, label="Current Balance", color=NAVY,
-               edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+        ax.bar(
+            x - width / 2,
+            pd.to_numeric(data["Avg Bal"], errors="coerce"),
+            width,
+            label="Avg Balance",
+            color=TEAL,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+        )
+        ax.bar(
+            x + width / 2,
+            pd.to_numeric(data["Curr Bal"], errors="coerce"),
+            width,
+            label="Current Balance",
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+        )
 
         ax.set_xticks(x)
         ax.set_xticklabels(data["Branch"].astype(str), rotation=45, ha="right")

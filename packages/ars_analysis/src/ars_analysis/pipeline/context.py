@@ -26,7 +26,9 @@ class ClientInfo:
     reg_e_opt_in: list[str] = field(default_factory=list)
     reg_e_column: str = ""
     assigned_csm: str = ""
-    data_start_date: str | None = None  # Program launch date (YYYY-MM-DD); drop rows opened before this
+    data_start_date: str | None = (
+        None  # Program launch date (YYYY-MM-DD); drop rows opened before this
+    )
 
 
 @dataclass

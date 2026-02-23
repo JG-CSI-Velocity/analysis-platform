@@ -107,7 +107,9 @@ def detect_reg_e_column(df: pd.DataFrame) -> str | None:
         return None
     # Sort chronologically; columns that fail to parse go first (NaT)
     reg_e_cols.sort(key=_parse_reg_e_date)
-    logger.debug("Reg E columns found: {cols}, selected: {sel}", cols=reg_e_cols, sel=reg_e_cols[-1])
+    logger.debug(
+        "Reg E columns found: {cols}, selected: {sel}", cols=reg_e_cols, sel=reg_e_cols[-1]
+    )
     return reg_e_cols[-1]
 
 

@@ -107,11 +107,13 @@ def build_cohort_trajectory(
             offset = _month_offset(ts, anchor_timestamps[idx])
             val = data.at[idx, col]
             if pd.notna(val):
-                records.append({
-                    "offset": offset,
-                    "group": groups[idx],
-                    "value": float(val),
-                })
+                records.append(
+                    {
+                        "offset": offset,
+                        "group": groups[idx],
+                        "value": float(val),
+                    }
+                )
 
     if not records:
         return pd.DataFrame(columns=["offset", "group", "avg_value", "n_accounts"])
@@ -179,9 +181,14 @@ def _draw_trajectory(
             ms = 8
 
         ax.plot(
-            grp["offset"], grp["avg_value"],
-            marker="o", color=color, linestyle=ls,
-            linewidth=lw, markersize=ms, label=group,
+            grp["offset"],
+            grp["avg_value"],
+            marker="o",
+            color=color,
+            linestyle=ls,
+            linewidth=lw,
+            markersize=ms,
+            label=group,
         )
 
         # Endpoint label
@@ -192,22 +199,32 @@ def _draw_trajectory(
             else:
                 lbl = f"{last['avg_value']:,.0f}"
             ax.annotate(
-                lbl, xy=(last["offset"], last["avg_value"]),
-                xytext=(8, 6), textcoords="offset points",
-                fontsize=12, fontweight="bold", color=color,
+                lbl,
+                xy=(last["offset"], last["avg_value"]),
+                xytext=(8, 6),
+                textcoords="offset points",
+                fontsize=12,
+                fontweight="bold",
+                color=color,
             )
 
     # Vertical line at M0
     ax.axvline(0, color="#888888", linestyle=":", linewidth=1.5, alpha=0.7)
     ax.text(
-        0.02, 0.97, "Response\nMonth", transform=ax.transAxes,
-        fontsize=11, color="#888888", va="top",
+        0.02,
+        0.97,
+        "Response\nMonth",
+        transform=ax.transAxes,
+        fontsize=11,
+        color="#888888",
+        va="top",
     )
 
     title_scope = "Per-Segment" if by_segment else "Responder vs Non-Responder"
     ax.set_title(
         f"{title_scope} {metric_type} Trajectory",
-        fontsize=20, fontweight="bold",
+        fontsize=20,
+        fontweight="bold",
     )
     ax.set_xlabel("Months Relative to First Response", fontsize=14)
     ylabel = f"Avg {metric_type} per Account"
@@ -286,15 +303,15 @@ def _draw_direction_bars(
 
     ax.bar(x - width / 2, before_slopes, width, label="Before Response", color=SILVER)
     for xi, (val, color) in enumerate(zip(after_slopes, after_colors)):
-        ax.bar(xi + width / 2, val, width, color=color,
-               label="After Response" if xi == 0 else None)
+        ax.bar(xi + width / 2, val, width, color=color, label="After Response" if xi == 0 else None)
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=14)
     ax.set_ylabel(f"Avg Monthly {metric_type} Change", fontsize=14)
     ax.set_title(
         f"{metric_type} Direction: Before vs After Response",
-        fontsize=20, fontweight="bold",
+        fontsize=20,
+        fontweight="bold",
     )
     ax.axhline(0, color="black", linewidth=0.8)
     ax.legend(fontsize=14, loc="upper right", frameon=True)
@@ -307,13 +324,26 @@ def _draw_direction_bars(
     # Data labels on bars
     for xi, (bv, av) in enumerate(zip(before_slopes, after_slopes)):
         fmt = "${:+,.0f}" if metric_type == "Spend" else "{:+,.0f}"
-        ax.text(xi - width / 2, bv, fmt.format(bv),
-                ha="center", va="bottom" if bv >= 0 else "top",
-                fontsize=12, fontweight="bold", color="#555")
-        ax.text(xi + width / 2, av, fmt.format(av),
-                ha="center", va="bottom" if av >= 0 else "top",
-                fontsize=12, fontweight="bold",
-                color=POSITIVE if av > 0 else NEGATIVE)
+        ax.text(
+            xi - width / 2,
+            bv,
+            fmt.format(bv),
+            ha="center",
+            va="bottom" if bv >= 0 else "top",
+            fontsize=12,
+            fontweight="bold",
+            color="#555",
+        )
+        ax.text(
+            xi + width / 2,
+            av,
+            fmt.format(av),
+            ha="center",
+            va="bottom" if av >= 0 else "top",
+            fontsize=12,
+            fontweight="bold",
+            color=POSITIVE if av > 0 else NEGATIVE,
+        )
 
     # Insight
     if "Responders" in labels:
@@ -379,15 +409,23 @@ class ResponderCohort(AnalysisModule):
         spend_cols, swipe_cols = discover_metric_cols(ctx)
 
         if not pairs:
-            return [AnalysisResult(
-                slide_id="A16", title="Cohort Trajectories",
-                success=False, error="No mail/response pairs found",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A16",
+                    title="Cohort Trajectories",
+                    success=False,
+                    error="No mail/response pairs found",
+                )
+            ]
         if not spend_cols and not swipe_cols:
-            return [AnalysisResult(
-                slide_id="A16", title="Cohort Trajectories",
-                success=False, error="No Spend or Swipes columns found",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A16",
+                    title="Cohort Trajectories",
+                    success=False,
+                    error="No Spend or Swipes columns found",
+                )
+            ]
 
         results: list[AnalysisResult] = []
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
@@ -399,10 +437,14 @@ class ResponderCohort(AnalysisModule):
                 save_to = ctx.paths.charts_dir / "a16_1_spend_trajectory.png"
                 with chart_figure(figsize=(14, 8), save_path=save_to) as (_fig, ax):
                     insight = _draw_trajectory(ax, traj, "Spend")
-                results.append(AnalysisResult(
-                    slide_id="A16.1", title="Responder Spend Trajectory",
-                    chart_path=save_to, notes=insight,
-                ))
+                results.append(
+                    AnalysisResult(
+                        slide_id="A16.1",
+                        title="Responder Spend Trajectory",
+                        chart_path=save_to,
+                        notes=insight,
+                    )
+                )
                 ctx.results["a16_spend_traj"] = traj
 
         # A16.2 -- Responder vs Non-Resp Swipe Trajectory
@@ -412,10 +454,14 @@ class ResponderCohort(AnalysisModule):
                 save_to = ctx.paths.charts_dir / "a16_2_swipe_trajectory.png"
                 with chart_figure(figsize=(14, 8), save_path=save_to) as (_fig, ax):
                     insight = _draw_trajectory(ax, traj, "Swipes")
-                results.append(AnalysisResult(
-                    slide_id="A16.2", title="Responder Swipe Trajectory",
-                    chart_path=save_to, notes=insight,
-                ))
+                results.append(
+                    AnalysisResult(
+                        slide_id="A16.2",
+                        title="Responder Swipe Trajectory",
+                        chart_path=save_to,
+                        notes=insight,
+                    )
+                )
 
         # A16.3 -- Per-Segment Spend Trajectory
         if spend_cols:
@@ -424,10 +470,14 @@ class ResponderCohort(AnalysisModule):
                 save_to = ctx.paths.charts_dir / "a16_3_segment_spend.png"
                 with chart_figure(figsize=(16, 8), save_path=save_to) as (_fig, ax):
                     insight = _draw_trajectory(ax, traj, "Spend", by_segment=True)
-                results.append(AnalysisResult(
-                    slide_id="A16.3", title="Per-Segment Spend Trajectory",
-                    chart_path=save_to, notes=insight,
-                ))
+                results.append(
+                    AnalysisResult(
+                        slide_id="A16.3",
+                        title="Per-Segment Spend Trajectory",
+                        chart_path=save_to,
+                        notes=insight,
+                    )
+                )
 
         # A16.4 -- Per-Segment Swipe Trajectory
         if swipe_cols:
@@ -436,10 +486,14 @@ class ResponderCohort(AnalysisModule):
                 save_to = ctx.paths.charts_dir / "a16_4_segment_swipes.png"
                 with chart_figure(figsize=(16, 8), save_path=save_to) as (_fig, ax):
                     insight = _draw_trajectory(ax, traj, "Swipes", by_segment=True)
-                results.append(AnalysisResult(
-                    slide_id="A16.4", title="Per-Segment Swipe Trajectory",
-                    chart_path=save_to, notes=insight,
-                ))
+                results.append(
+                    AnalysisResult(
+                        slide_id="A16.4",
+                        title="Per-Segment Swipe Trajectory",
+                        chart_path=save_to,
+                        notes=insight,
+                    )
+                )
 
         # A16.5 -- Direction Change Proof
         if spend_cols:
@@ -448,10 +502,14 @@ class ResponderCohort(AnalysisModule):
                 save_to = ctx.paths.charts_dir / "a16_5_direction_change.png"
                 with chart_figure(figsize=(14, 8), save_path=save_to) as (_fig, ax):
                     insight = _draw_direction_bars(ax, traj_resp, "Spend")
-                results.append(AnalysisResult(
-                    slide_id="A16.5", title="Spend Direction Change",
-                    chart_path=save_to, notes=insight,
-                ))
+                results.append(
+                    AnalysisResult(
+                        slide_id="A16.5",
+                        title="Spend Direction Change",
+                        chart_path=save_to,
+                        notes=insight,
+                    )
+                )
 
         # A16.6 -- Cohort Size (optional, only if 8+ metric months)
         metric_count = max(len(spend_cols), len(swipe_cols))
@@ -461,15 +519,23 @@ class ResponderCohort(AnalysisModule):
                 save_to = ctx.paths.charts_dir / "a16_6_cohort_size.png"
                 with chart_figure(figsize=(14, 8), save_path=save_to) as (_fig, ax):
                     insight = _draw_cohort_size(ax, traj)
-                results.append(AnalysisResult(
-                    slide_id="A16.6", title="Cohort Size & Retention",
-                    chart_path=save_to, notes=insight,
-                ))
+                results.append(
+                    AnalysisResult(
+                        slide_id="A16.6",
+                        title="Cohort Size & Retention",
+                        chart_path=save_to,
+                        notes=insight,
+                    )
+                )
 
         if not results:
-            return [AnalysisResult(
-                slide_id="A16", title="Cohort Trajectories",
-                success=False, error="Insufficient data for trajectory analysis",
-            )]
+            return [
+                AnalysisResult(
+                    slide_id="A16",
+                    title="Cohort Trajectories",
+                    success=False,
+                    error="Insufficient data for trajectory analysis",
+                )
+            ]
 
         return results

@@ -497,13 +497,19 @@ class DCTRBranches(AnalysisModule):
                         for j in range(n_m):
                             v = data_vals[i, j]
                             if not np.isnan(v):
-                                txt_color = "black" if abs(v - avg_dctr) < (vmax - vmin) * 0.3 else "white"
+                                txt_color = (
+                                    "black" if abs(v - avg_dctr) < (vmax - vmin) * 0.3 else "white"
+                                )
                                 fw = "900" if v == global_max or v == global_min else "bold"
                                 ax.text(
-                                    j, i,
+                                    j,
+                                    i,
                                     f"{v:.0f}",
-                                    ha="center", va="center",
-                                    fontsize=14, fontweight=fw, color=txt_color,
+                                    ha="center",
+                                    va="center",
+                                    fontsize=14,
+                                    fontweight=fw,
+                                    color=txt_color,
                                 )
 
                     cbar = fig.colorbar(im, ax=ax, shrink=0.8)
@@ -511,7 +517,9 @@ class DCTRBranches(AnalysisModule):
                     cbar.ax.axhline(y=avg_dctr, color="black", linewidth=2)
                     ax.set_title(
                         "Monthly DCTR Heatmap by Branch (TTM)",
-                        fontsize=22, fontweight="bold", pad=15,
+                        fontsize=22,
+                        fontweight="bold",
+                        pad=15,
                     )
                 chart_path = save_to
             except Exception as exc:

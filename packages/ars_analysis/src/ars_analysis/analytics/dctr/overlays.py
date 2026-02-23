@@ -202,25 +202,40 @@ class DCTROverlays(AnalysisModule):
                             avg = overall_row["DCTR %"].iloc[0] * 100
                             ax.axhline(y=avg, color="red", linestyle="--", linewidth=2, alpha=0.7)
                             ax.text(
-                                len(dr) - 0.5, avg + 0.8,
+                                len(dr) - 0.5,
+                                avg + 0.8,
                                 f"Avg: {avg:.1f}%",
-                                ha="right", color="red", fontweight="bold", fontsize=16,
+                                ha="right",
+                                color="red",
+                                fontweight="bold",
+                                fontsize=16,
                             )
 
                         # Peak annotation
                         peak_idx = np.argmax(vals)
                         peak_label = dr["Age Group"].values[peak_idx]
                         ax.text(
-                            0.98, 0.95,
+                            0.98,
+                            0.95,
                             f"Peak: {peak_label} at {vals[peak_idx]:.1f}%",
-                            transform=ax.transAxes, ha="right", va="top",
-                            fontsize=14, fontweight="bold", color="#1E3D59",
-                            bbox={"boxstyle": "round,pad=0.4", "facecolor": "#E8F4FD", "edgecolor": TEAL},
+                            transform=ax.transAxes,
+                            ha="right",
+                            va="top",
+                            fontsize=14,
+                            fontweight="bold",
+                            color="#1E3D59",
+                            bbox={
+                                "boxstyle": "round,pad=0.4",
+                                "facecolor": "#E8F4FD",
+                                "edgecolor": TEAL,
+                            },
                         )
 
                         ax.set_title(
                             "Eligible Accounts DCTR by Account Holder Age",
-                            fontsize=24, fontweight="bold", pad=25,
+                            fontsize=24,
+                            fontweight="bold",
+                            pad=25,
                         )
                         ax.set_xlabel("Age Group", fontsize=20, fontweight="bold")
                         ax.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")

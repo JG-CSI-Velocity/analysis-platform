@@ -37,30 +37,52 @@ def chart_activity_by_source(df: pd.DataFrame, config: ChartConfig) -> bytes:
         data = df[df["Source"] != "Total"].copy()
 
         bars = ax.bar(
-            data["Source"], data["Count"], color=NAVY,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
-            width=0.5, label="Count",
+            data["Source"],
+            data["Count"],
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.5,
+            label="Count",
         )
 
         for bar, val in zip(bars, data["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=NAVY,
             )
 
         if "Activation Rate" in data.columns:
             ax2 = ax.twinx()
             rates = pd.to_numeric(data["Activation Rate"], errors="coerce")
             ax2.plot(
-                data["Source"], rates, color=ACQUISITION,
-                marker="D", markersize=MARKER_SIZE + 2, linewidth=LINE_WIDTH,
-                label="Activation Rate", zorder=5,
+                data["Source"],
+                rates,
+                color=ACQUISITION,
+                marker="D",
+                markersize=MARKER_SIZE + 2,
+                linewidth=LINE_WIDTH,
+                label="Activation Rate",
+                zorder=5,
             )
             for x, y in zip(data["Source"], rates):
                 if pd.notna(y):
-                    ax2.text(x, y, f" {y:.0%}", fontsize=DATA_LABEL_SIZE - 2,
-                             color=ACQUISITION, fontweight="bold", va="bottom")
+                    ax2.text(
+                        x,
+                        y,
+                        f" {y:.0%}",
+                        fontsize=DATA_LABEL_SIZE - 2,
+                        color=ACQUISITION,
+                        fontweight="bold",
+                        va="bottom",
+                    )
             ax2.set_ylabel("Activation Rate")
             ax2.set_ylim(0, 1.15)
             ax2.yaxis.set_major_formatter(lambda x, _: f"{x:.0%}")
@@ -84,25 +106,40 @@ def chart_activity_by_balance(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(save_path=buf) as (fig, ax):
         bars = ax.bar(
-            df["Balance Tier"], df["Count"], color=NAVY,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
-            width=0.55, label="Count",
+            df["Balance Tier"],
+            df["Count"],
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
+            label="Count",
         )
 
         for bar, val in zip(bars, df["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE - 3, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE - 3,
+                fontweight="bold",
+                color=NAVY,
             )
 
         if "Activation Rate" in df.columns:
             ax2 = ax.twinx()
             rates = pd.to_numeric(df["Activation Rate"], errors="coerce")
             ax2.plot(
-                df["Balance Tier"], rates, color=ACQUISITION,
-                marker="D", markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
-                label="Activation Rate", zorder=5,
+                df["Balance Tier"],
+                rates,
+                color=ACQUISITION,
+                marker="D",
+                markersize=MARKER_SIZE,
+                linewidth=LINE_WIDTH,
+                label="Activation Rate",
+                zorder=5,
             )
             ax2.set_ylabel("Activation Rate")
             ax2.set_ylim(0, 1.15)
@@ -137,8 +174,12 @@ def chart_activity_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         colors = [ACQUISITION if r >= rates.median() else NAVY for r in rates]
 
         bars = ax.barh(
-            range(n), rates, color=colors,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
+            range(n),
+            rates,
+            color=colors,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            height=0.65,
         )
         ax.set_yticks(range(n))
         ax.set_yticklabels(data["Branch"].astype(str))
@@ -146,9 +187,13 @@ def chart_activity_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         for bar, val in zip(bars, rates):
             label = f"{val:.1%}" if isinstance(val, float) else str(val)
             ax.text(
-                bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                f"  {label}", va="center", ha="left",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                f"  {label}",
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
             )
 
         ax.set_xlabel("Activation Rate")
@@ -168,15 +213,36 @@ def chart_monthly_trends(df: pd.DataFrame, config: ChartConfig) -> bytes:
         x = range(len(df))
         months = list(df["Month"])
 
-        ax.plot(x, df["Total Swipes"], color=NAVY, marker="o",
-                markersize=MARKER_SIZE, linewidth=LINE_WIDTH, label="Total Swipes")
-        ax.plot(x, df["Active Accounts"], color=TEAL, marker="s",
-                markersize=MARKER_SIZE, linewidth=LINE_WIDTH, label="Active Accounts")
+        ax.plot(
+            x,
+            df["Total Swipes"],
+            color=NAVY,
+            marker="o",
+            markersize=MARKER_SIZE,
+            linewidth=LINE_WIDTH,
+            label="Total Swipes",
+        )
+        ax.plot(
+            x,
+            df["Active Accounts"],
+            color=TEAL,
+            marker="s",
+            markersize=MARKER_SIZE,
+            linewidth=LINE_WIDTH,
+            label="Active Accounts",
+        )
 
         ax2 = ax.twinx()
-        ax2.plot(x, df["Total Spend"], color=SPEND, marker="^",
-                 markersize=MARKER_SIZE, linewidth=LINE_WIDTH, linestyle="--",
-                 label="Total Spend")
+        ax2.plot(
+            x,
+            df["Total Spend"],
+            color=SPEND,
+            marker="^",
+            markersize=MARKER_SIZE,
+            linewidth=LINE_WIDTH,
+            linestyle="--",
+            label="Total Spend",
+        )
         ax2.set_ylabel("Total Spend ($)")
         ax2.yaxis.set_major_formatter(DOLLAR_FORMATTER)
         ax2.grid(False)
@@ -201,13 +267,23 @@ def chart_activity_source_comparison(df: pd.DataFrame, config: ChartConfig) -> b
     buf = BytesIO()
     with chart_figure(figsize=(14, 8), save_path=buf) as (_fig, ax):
         chart_metrics = [
-            "% Active", "Avg Swipes / Account", "Avg Spend / Account",
-            "Avg Swipes / Active", "Avg Spend / Active",
+            "% Active",
+            "Avg Swipes / Account",
+            "Avg Spend / Account",
+            "Avg Swipes / Active",
+            "Avg Spend / Active",
         ]
         data = df[df["Metric"].isin(chart_metrics)].copy()
         if data.empty:
-            ax.text(0.5, 0.5, "No comparison data", transform=ax.transAxes,
-                    ha="center", va="center", fontsize=18)
+            ax.text(
+                0.5,
+                0.5,
+                "No comparison data",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                fontsize=18,
+            )
         else:
             y = np.arange(len(data))
             height = 0.35
@@ -215,10 +291,24 @@ def chart_activity_source_comparison(df: pd.DataFrame, config: ChartConfig) -> b
             dm_vals = pd.to_numeric(data["DM"], errors="coerce")
             ref_vals = pd.to_numeric(data["Referral"], errors="coerce")
 
-            ax.barh(y - height / 2, dm_vals, height, label="DM",
-                    color=NAVY, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
-            ax.barh(y + height / 2, ref_vals, height, label="Referral",
-                    color=TEAL, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+            ax.barh(
+                y - height / 2,
+                dm_vals,
+                height,
+                label="DM",
+                color=NAVY,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+            )
+            ax.barh(
+                y + height / 2,
+                ref_vals,
+                height,
+                label="Referral",
+                color=TEAL,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+            )
 
             ax.set_yticks(y)
             ax.set_yticklabels(list(reversed(chart_metrics)))
@@ -239,15 +329,29 @@ def chart_monthly_interchange(df: pd.DataFrame, config: ChartConfig) -> bytes:
         x = np.arange(len(df))
         months = list(df["Month"])
 
-        ax.bar(x, df["Total Spend"], color=SPEND, alpha=0.35,
-               edgecolor="none", width=0.7, label="Total Spend")
+        ax.bar(
+            x,
+            df["Total Spend"],
+            color=SPEND,
+            alpha=0.35,
+            edgecolor="none",
+            width=0.7,
+            label="Total Spend",
+        )
         ax.set_ylabel("Total Spend ($)")
         ax.yaxis.set_major_formatter(DOLLAR_FORMATTER)
 
         ax2 = ax.twinx()
-        ax2.plot(x, df["Est. Interchange"], color=INTERCHANGE,
-                 marker="o", markersize=MARKER_SIZE + 2, linewidth=LINE_WIDTH + 0.5,
-                 label="Est. Interchange", zorder=5)
+        ax2.plot(
+            x,
+            df["Est. Interchange"],
+            color=INTERCHANGE,
+            marker="o",
+            markersize=MARKER_SIZE + 2,
+            linewidth=LINE_WIDTH + 0.5,
+            label="Est. Interchange",
+            zorder=5,
+        )
         ax2.set_ylabel("Est. Interchange ($)")
         ax2.yaxis.set_major_formatter(DOLLAR_FORMATTER)
         ax2.grid(False)
@@ -256,9 +360,13 @@ def chart_monthly_interchange(df: pd.DataFrame, config: ChartConfig) -> bytes:
         if len(df) > 0:
             last_ic = df["Est. Interchange"].iloc[-1]
             ax2.annotate(
-                f"${last_ic:,.0f}", xy=(x[-1], last_ic),
-                xytext=(10, 10), textcoords="offset points",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=INTERCHANGE,
+                f"${last_ic:,.0f}",
+                xy=(x[-1], last_ic),
+                xytext=(10, 10),
+                textcoords="offset points",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=INTERCHANGE,
             )
 
         ax.set_xticks(x)
@@ -280,13 +388,23 @@ def chart_business_vs_personal(df: pd.DataFrame, config: ChartConfig) -> bytes:
     buf = BytesIO()
     with chart_figure(figsize=(14, 8), save_path=buf) as (_fig, ax):
         chart_metrics = [
-            "% Active", "Avg Swipes / Account", "Avg Spend / Account",
-            "Avg Swipes / Active", "Avg Spend / Active",
+            "% Active",
+            "Avg Swipes / Account",
+            "Avg Spend / Account",
+            "Avg Swipes / Active",
+            "Avg Spend / Active",
         ]
         data = df[df["Metric"].isin(chart_metrics)].copy()
         if data.empty:
-            ax.text(0.5, 0.5, "No comparison data", transform=ax.transAxes,
-                    ha="center", va="center", fontsize=18)
+            ax.text(
+                0.5,
+                0.5,
+                "No comparison data",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                fontsize=18,
+            )
         else:
             y = np.arange(len(data))
             height = 0.35
@@ -294,10 +412,24 @@ def chart_business_vs_personal(df: pd.DataFrame, config: ChartConfig) -> bytes:
             biz_vals = pd.to_numeric(data["Business"], errors="coerce")
             per_vals = pd.to_numeric(data["Personal"], errors="coerce")
 
-            ax.barh(y - height / 2, biz_vals, height, label="Business",
-                    color=NAVY, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
-            ax.barh(y + height / 2, per_vals, height, label="Personal",
-                    color=TEAL, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+            ax.barh(
+                y - height / 2,
+                biz_vals,
+                height,
+                label="Business",
+                color=NAVY,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+            )
+            ax.barh(
+                y + height / 2,
+                per_vals,
+                height,
+                label="Personal",
+                color=TEAL,
+                edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH,
+            )
 
             ax.set_yticks(y)
             ax.set_yticklabels(list(reversed(chart_metrics)))

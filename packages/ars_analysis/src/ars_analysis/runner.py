@@ -44,14 +44,18 @@ def _load_client_config(raw_config: dict) -> dict:
     client_id = raw_config.get("client_id", "")
 
     if client_id and client_id in all_clients:
-        logger.info("Found config for client %s (%d fields)", client_id, len(all_clients[client_id]))
+        logger.info(
+            "Found config for client %s (%d fields)", client_id, len(all_clients[client_id])
+        )
         return all_clients[client_id]
 
     # If only one client in config, use it
     if len(all_clients) == 1:
         return next(iter(all_clients.values()))
 
-    logger.warning("Client %s not found in config file (%d clients available)", client_id, len(all_clients))
+    logger.warning(
+        "Client %s not found in config file (%d clients available)", client_id, len(all_clients)
+    )
     return raw_config
 
 
@@ -232,7 +236,9 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
     # Build settings namespace with template + branch mapping
     _branch_map = ccfg.get("BranchMapping") or ccfg.get("branch_mapping")
     ars_ctx.settings = SimpleNamespace(
-        paths=SimpleNamespace(template_path=tpl_path) if tpl_path else SimpleNamespace(template_path=None),
+        paths=SimpleNamespace(template_path=tpl_path)
+        if tpl_path
+        else SimpleNamespace(template_path=None),
         branch_mapping=_branch_map if isinstance(_branch_map, dict) else None,
     )
     if tpl_path:

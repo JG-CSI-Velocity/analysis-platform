@@ -24,20 +24,19 @@ from ars_analysis.pipeline.context import (
 def branch_df():
     """DataFrame with 5 branches for scorecard tests."""
     n = 100
-    branches = (
-        ["Main"] * 30 + ["North"] * 25 + ["South"] * 20
-        + ["West"] * 15 + ["East"] * 10
+    branches = ["Main"] * 30 + ["North"] * 25 + ["South"] * 20 + ["West"] * 15 + ["East"] * 10
+    return pd.DataFrame(
+        {
+            "Date Opened": pd.date_range("2020-01-01", periods=n, freq="ME"),
+            "Stat Code": ["O"] * 80 + ["C"] * 20,
+            "Product Code": ["DDA"] * n,
+            "Debit?": ["Yes"] * 60 + ["No"] * 40,
+            "Business?": ["No"] * 75 + ["Yes"] * 25,
+            "Branch": branches,
+            "Reg E Code 2024.02": ["Y"] * 40 + ["N"] * 30 + ["Y"] * 15 + ["N"] * 15,
+            "Avg Bal": [1000.0 + i * 50 for i in range(n)],
+        }
     )
-    return pd.DataFrame({
-        "Date Opened": pd.date_range("2020-01-01", periods=n, freq="ME"),
-        "Stat Code": ["O"] * 80 + ["C"] * 20,
-        "Product Code": ["DDA"] * n,
-        "Debit?": ["Yes"] * 60 + ["No"] * 40,
-        "Business?": ["No"] * 75 + ["Yes"] * 25,
-        "Branch": branches,
-        "Reg E Code 2024.02": ["Y"] * 40 + ["N"] * 30 + ["Y"] * 15 + ["N"] * 15,
-        "Avg Bal": [1000.0 + i * 50 for i in range(n)],
-    })
 
 
 @pytest.fixture

@@ -77,7 +77,10 @@ class DCTRFunnel(AnalysisModule):
         td = len(ewd)
         logger.info(
             "A7.7 funnel: Total={ta}, Open={to}, Eligible={te}, Debit={td}",
-            ta=ta, to=to_, te=te, td=td,
+            ta=ta,
+            to=to_,
+            te=te,
+            td=td,
         )
         if ta == 0:
             return [
@@ -169,9 +172,7 @@ class DCTRFunnel(AnalysisModule):
 
         l12m_open = filter_l12m(oa, sd, ed_date) if oa is not None else pd.DataFrame()
         l12m_elig = filter_l12m(ed, sd, ed_date) if ed is not None else pd.DataFrame()
-        l12m_debit = (
-            l12m_elig[debit_mask(l12m_elig)] if not l12m_elig.empty else pd.DataFrame()
-        )
+        l12m_debit = l12m_elig[debit_mask(l12m_elig)] if not l12m_elig.empty else pd.DataFrame()
 
         ta = len(l12m_all)
         to_ = len(l12m_open)
@@ -179,7 +180,10 @@ class DCTRFunnel(AnalysisModule):
         td = len(l12m_debit)
         logger.info(
             "A7.8 L12M funnel: Total={ta}, Open={to}, Eligible={te}, Debit={td}",
-            ta=ta, to=to_, te=te, td=td,
+            ta=ta,
+            to=to_,
+            te=te,
+            td=td,
         )
         if ta == 0:
             logger.warning("A7.8: 0 accounts in L12M range {sd} - {ed}", sd=sd, ed=ed_date)

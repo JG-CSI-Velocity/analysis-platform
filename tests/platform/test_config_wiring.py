@@ -21,9 +21,7 @@ class TestArsRunnerReceivesConfig:
         config_file = tmp_path / "clients.json"
         config_file.write_text(json.dumps(data))
 
-        result = _load_client_config(
-            {"config_path": str(config_file), "client_id": "1759"}
-        )
+        result = _load_client_config({"config_path": str(config_file), "client_id": "1759"})
         assert result["EligibleStatusCodes"] == ["O", "A"]
         assert result["ICRate"] == 0.019
 
@@ -37,9 +35,7 @@ class TestArsRunnerReceivesConfig:
         config_file = tmp_path / "clients.json"
         config_file.write_text(json.dumps(data))
 
-        result = _load_client_config(
-            {"config_path": str(config_file), "client_id": "9999"}
-        )
+        result = _load_client_config({"config_path": str(config_file), "client_id": "9999"})
         # With 2+ clients and no match, falls back to raw_config
         assert result.get("config_path") == str(config_file)
 
@@ -47,9 +43,7 @@ class TestArsRunnerReceivesConfig:
         from ars_analysis.runner import _load_client_config
 
         # Mock away the fallback resolver so it doesn't find local config
-        monkeypatch.setattr(
-            "ars_analysis.runner._resolve_config_fallback", lambda: None
-        )
+        monkeypatch.setattr("ars_analysis.runner._resolve_config_fallback", lambda: None)
         raw = {"client_id": "1759", "some_key": "val"}
         result = _load_client_config(raw)
         assert result == raw

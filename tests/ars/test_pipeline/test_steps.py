@@ -173,9 +173,7 @@ class TestLoadStep:
             {
                 "Stat Code": ["O"] * 10,
                 "Product Code": ["DDA"] * 10,
-                "Date Opened": pd.to_datetime(
-                    ["2019-06-01"] * 4 + ["2020-03-01"] * 6
-                ),
+                "Date Opened": pd.to_datetime(["2019-06-01"] * 4 + ["2020-03-01"] * 6),
                 "Avg Bal": [1000.0] * 10,
             }
         )

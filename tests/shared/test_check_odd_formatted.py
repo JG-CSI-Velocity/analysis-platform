@@ -87,9 +87,7 @@ class TestCheckOddFormatted:
 
     def test_found_plus_missing_equals_all(self, raw_odd_xlsx: Path) -> None:
         result = check_odd_formatted(raw_odd_xlsx)
-        assert set(result.found_columns) | set(result.missing_columns) == set(
-            ARS_SIGNATURE_COLUMNS
-        )
+        assert set(result.found_columns) | set(result.missing_columns) == set(ARS_SIGNATURE_COLUMNS)
 
     def test_checked_path_recorded(self, raw_odd_xlsx: Path) -> None:
         result = check_odd_formatted(raw_odd_xlsx)
@@ -116,11 +114,13 @@ class TestCheckIcsReady:
 
     def test_alternate_source_column(self, tmp_path: Path) -> None:
         """ODD with 'Source' instead of 'ICS Source' should pass."""
-        df = pd.DataFrame({
-            "Acct Number": ["001"],
-            "ICS Account": ["Yes"],
-            "Source": ["REF"],
-        })
+        df = pd.DataFrame(
+            {
+                "Acct Number": ["001"],
+                "ICS Account": ["Yes"],
+                "Source": ["REF"],
+            }
+        )
         path = tmp_path / "alt_source.xlsx"
         df.to_excel(path, index=False)
         result = check_ics_ready(path)

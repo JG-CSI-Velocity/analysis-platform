@@ -175,8 +175,23 @@ class TestSaveRunReport:
             paths=OutputPaths(base_dir=tmp_path, excel_dir=tmp_path),
         )
         report = [
-            SlideStatus(slide_id="A1", module_id="overview", success=True, has_chart=True, has_excel=True, title="OK"),
-            SlideStatus(slide_id="A2", module_id="mailer", success=False, has_chart=False, has_excel=False, error="No data", title="Fail"),
+            SlideStatus(
+                slide_id="A1",
+                module_id="overview",
+                success=True,
+                has_chart=True,
+                has_excel=True,
+                title="OK",
+            ),
+            SlideStatus(
+                slide_id="A2",
+                module_id="mailer",
+                success=False,
+                has_chart=False,
+                has_excel=False,
+                error="No data",
+                title="Fail",
+            ),
         ]
         _save_run_report(ctx, report)
 

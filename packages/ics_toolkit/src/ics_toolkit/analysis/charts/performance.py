@@ -40,15 +40,25 @@ def chart_days_to_first_use(df: pd.DataFrame, config: ChartConfig) -> bytes:
                 gradient.append("#95A5A6")
 
         bars = ax.bar(
-            df["Days Bucket"], df["Count"], color=gradient,
-            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.6,
+            df["Days Bucket"],
+            df["Count"],
+            color=gradient,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.6,
         )
 
         for bar, val in zip(bars, df["Count"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE,
+                fontweight="bold",
+                color=NAVY,
             )
 
         ax.set_xlabel("Days to First Use")
@@ -78,14 +88,12 @@ def chart_branch_performance_index(df: pd.DataFrame, config: ChartConfig) -> byt
             values += values[:1]
 
             color = PALETTE[i % len(PALETTE)]
-            ax.plot(angles, values, color=color, linewidth=LINE_WIDTH,
-                    label=str(row["Branch"]))
+            ax.plot(angles, values, color=color, linewidth=LINE_WIDTH, label=str(row["Branch"]))
             ax.fill(angles, values, color=color, alpha=0.1)
 
         ax.set_xticks(angles[:-1])
         ax.set_xticklabels(categories, fontsize=13)
-        ax.set_title("Branch Performance Index", fontsize=22,
-                      fontweight="bold", pad=30)
+        ax.set_title("Branch Performance Index", fontsize=22, fontweight="bold", pad=30)
         ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.0), fontsize=11)
 
         max_val = max(200, df[categories].max().max() + 20) if not df.empty else 200
@@ -103,25 +111,40 @@ def chart_product_code_performance(df: pd.DataFrame, config: ChartConfig) -> byt
         data = df[df["Prod Code"] != "Total"].copy() if "Prod Code" in df.columns else df
 
         bars = ax.bar(
-            data["Prod Code"].astype(str), data["Accounts"],
-            color=NAVY, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH,
-            alpha=BAR_ALPHA, width=0.55, label="Accounts",
+            data["Prod Code"].astype(str),
+            data["Accounts"],
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            width=0.55,
+            label="Accounts",
         )
 
         for bar, val in zip(bars, data["Accounts"]):
             ax.text(
-                bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:,}", ha="center", va="bottom",
-                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:,}",
+                ha="center",
+                va="bottom",
+                fontsize=DATA_LABEL_SIZE - 2,
+                fontweight="bold",
+                color=NAVY,
             )
 
         if "Activation %" in data.columns:
             ax2 = ax.twinx()
             rates = pd.to_numeric(data["Activation %"], errors="coerce")
             ax2.plot(
-                data["Prod Code"].astype(str), rates,
-                color=ACQUISITION, marker="D", markersize=MARKER_SIZE,
-                linewidth=LINE_WIDTH, label="Activation %", zorder=5,
+                data["Prod Code"].astype(str),
+                rates,
+                color=ACQUISITION,
+                marker="D",
+                markersize=MARKER_SIZE,
+                linewidth=LINE_WIDTH,
+                label="Activation %",
+                zorder=5,
             )
             ax2.set_ylabel("Activation %")
             ax2.set_ylim(0, 105)

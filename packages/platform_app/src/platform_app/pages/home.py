@@ -7,7 +7,6 @@ import logging
 import shutil
 import tempfile
 import time
-import traceback
 import warnings
 from pathlib import Path
 
@@ -890,89 +889,10 @@ if not run_btn and not _is_running:
 # Execution -- full analytics dashboard
 # ---------------------------------------------------------------------------
 
-# Immediate feedback: visible as soon as the rerun reaches this line
-_pipelines_label = " + ".join(
-    p.value.upper() for p in sorted(needed_products, key=lambda x: x.value)
-)
-_prep = st.status("Preparing analysis...", expanded=True)
-_prep.write(f"Client **{client_id}** -- {_pipelines_label}")
-_prep.write(f"Modules: {len(selected_modules)}")
-
 run_id = generate_run_id()
 all_results: dict[str, dict] = {}
 all_output_dirs: dict[str, Path] = {}
 pipeline_errors: dict[str, str] = {}
-
-# Build pipeline execution plan for the tracker
-_exec_plan: list[dict] = []
-for product in sorted(needed_products, key=lambda p: p.value):
-    _product_keys = [
-        k for k in selected_modules if module_map.get(k) and module_map[k].product == product
-    ]
-    _exec_plan.append(
-        {
-            "product": product,
-            "name": product.value.upper(),
-            "modules": len(_product_keys),
-            "status": "pending",
-            "elapsed": 0.0,
-            "results": 0,
-        }
-    )
-
-# Progress area
-_exec_container = st.empty()
-_progress_bar = st.empty()
-_status_line = st.empty()
-
-
-def _render_exec_dashboard(plan: list[dict], pct: float, status_text: str) -> None:
-    """Render the full execution tracker with progress bar and module status."""
-    w = max(0, min(100, pct * 100))
-
-    # Progress bar
-    _progress_bar.markdown(
-        f'<div style="background:#E2E8F0;border-radius:6px;height:6px;margin:0.75rem 0 0.25rem;">'
-        f'<div style="background:linear-gradient(90deg,#16A34A,#22C55E);height:100%;'
-        f'border-radius:6px;width:{w:.0f}%;transition:width 0.4s ease;"></div></div>',
-        unsafe_allow_html=True,
-    )
-
-    # Pipeline tracker
-    rows = []
-    for p in plan:
-        if p["status"] == "done":
-            dot = "dot-done"
-            time_str = f"{p['elapsed']:.1f}s  --  {p['results']} results"
-            name_style = "color:#16A34A;font-weight:600;"
-        elif p["status"] == "running":
-            dot = "dot-running"
-            time_str = status_text
-            name_style = "color:#1E293B;font-weight:600;"
-        elif p["status"] == "failed":
-            dot = "dot-fail"
-            time_str = f"{p['elapsed']:.1f}s  --  FAILED"
-            name_style = "color:#DC2626;font-weight:600;"
-        else:
-            dot = "dot-pending"
-            time_str = f"{p['modules']} modules queued"
-            name_style = "color:#94A3B8;"
-
-        rows.append(
-            f'<div class="uap-exec-row">'
-            f'<div class="uap-exec-dot {dot}"></div>'
-            f'<div class="uap-exec-name" style="{name_style}">{p["name"]}</div>'
-            f'<div class="uap-exec-time">{time_str}</div>'
-            f"</div>"
-        )
-
-    _exec_container.markdown(
-        f'<div class="uap-exec-track">{"".join(rows)}</div>',
-        unsafe_allow_html=True,
-    )
-
-
-_render_exec_dashboard(_exec_plan, 0, "Initializing...")
 
 tran_path = st.session_state.get("uap_file_tran", "")
 _all_tran_paths = st.session_state.get("uap_tran_files", [])
@@ -981,42 +901,76 @@ odd_path = st.session_state.get("uap_file_odd", "")
 t0 = time.time()
 total_pipelines = len(needed_products)
 
-# Pre-convert ODD Excel to local CSV only when ARS or ICS needs it.
-# This avoids the 8-minute network Excel read when only TXN is selected.
+_pipelines_label = " + ".join(
+    p.value.upper() for p in sorted(needed_products, key=lambda x: x.value)
+)
+
+# ---- Single progress tracker: one st.status() per phase ----
+
+# PHASE 1: Data preparation
+_data_status = st.status(
+    f"Step 1 of {total_pipelines + 1} -- Loading data files...", expanded=True
+)
+_data_status.write(f"Client **{client_id}** -- {_pipelines_label}")
+
 _local_oddd: str = oddd_path
 _local_dir = Path(tempfile.mkdtemp(prefix="uap_run_"))
 _needs_odd = Product.ARS in needed_products or Product.ICS in needed_products
+
 if _needs_odd and oddd_path and Path(oddd_path).exists():
-    _prep.write("Loading ODD data from Excel...")
-    _render_exec_dashboard(_exec_plan, 0, "Loading ODD data...")
+    _data_status.write("Reading ODD Excel from network drive...")
+    logger.info("Loading ODD Excel: %s", oddd_path)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
         _oddd_df = pd.read_excel(oddd_path)
     _local_csv = _local_dir / (Path(oddd_path).stem + ".csv")
     _oddd_df.to_csv(_local_csv, index=False)
     _local_oddd = str(_local_csv)
+    _data_status.write(f"ODD loaded: {len(_oddd_df):,} accounts")
+    logger.info("ODD loaded: %d rows", len(_oddd_df))
     del _oddd_df
 
-# Pre-combine transaction files (cached if already combined)
 _effective_tran: Path | None = None
 if Product.TXN in needed_products:
-    _prep.write("Preparing transaction data...")
-    _render_exec_dashboard(_exec_plan, 0, "Preparing transaction data...")
+    n_tran = len(_all_tran_paths)
+    _data_status.write(f"Reading {n_tran} transaction file{'s' if n_tran != 1 else ''}...")
+    logger.info("Combining %d transaction files", n_tran)
     _effective_tran = _combine_tran_files(
         _all_tran_paths, Path(oddd_path).parent if oddd_path else Path(".")
     )
     if not _effective_tran and tran_path:
         _effective_tran = Path(tran_path)
+    if _effective_tran:
+        _data_status.write(f"Transaction data ready: {_effective_tran.name}")
 
-_prep.update(label="Data prepared", state="complete", expanded=False)
+_data_elapsed = round(time.time() - t0, 1)
+_data_status.update(
+    label=f"Step 1 of {total_pipelines + 1} -- Data loaded ({_data_elapsed}s)",
+    state="complete",
+    expanded=False,
+)
 
-for idx, step in enumerate(_exec_plan):
-    product = step["product"]
+# PHASE 2+: Pipeline execution -- one st.status() per pipeline
+_pipeline_statuses: list = []
+for product in sorted(needed_products, key=lambda p: p.value):
+    _pipeline_statuses.append(
+        st.status(
+            f"Step {len(_pipeline_statuses) + 2} of {total_pipelines + 1} "
+            f"-- {product.value.upper()} pipeline queued",
+            expanded=False,
+        )
+    )
+
+for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
     pipeline_name = product.value
-    step["status"] = "running"
-    pct = idx / total_pipelines
-
-    _render_exec_dashboard(_exec_plan, pct, _flavor_text(pipeline_name, "start"))
+    _ps = _pipeline_statuses[idx]
+    _step_num = idx + 2
+    _ps.update(
+        label=f"Step {_step_num} of {total_pipelines + 1} "
+        f"-- Running {pipeline_name.upper()} pipeline...",
+        state="running",
+        expanded=True,
+    )
 
     input_files: dict[str, Path] = {}
     if product == Product.ARS:
@@ -1037,8 +991,6 @@ for idx, step in enumerate(_exec_plan):
     try:
         out.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        step["status"] = "failed"
-        step["elapsed"] = 0.0
         _err_msg = (
             f"Cannot create output directory: {out}\n\n"
             f"If this is a network path (M: drive), check that the drive is connected.\n\n"
@@ -1046,17 +998,23 @@ for idx, step in enumerate(_exec_plan):
         )
         pipeline_errors[pipeline_name] = _err_msg
         logger.error("Output dir creation failed for %s: %s", pipeline_name, exc)
-        _render_exec_dashboard(_exec_plan, (idx + 1) / total_pipelines, "")
+        _ps.update(
+            label=f"Step {_step_num} of {total_pipelines + 1} "
+            f"-- {pipeline_name.upper()} FAILED (output dir)",
+            state="error", expanded=True,
+        )
+        _ps.write(f"ERROR: {_err_msg}")
         continue
+
+    _module_count = 0
 
     def _on_progress(
         msg: str,
-        _plan=_exec_plan,
-        _pct=pct,
+        _status=_ps,
         _pipe=pipeline_name,
     ) -> None:
         _short = _make_status_line(msg, _pipe)
-        _render_exec_dashboard(_plan, _pct, _short)
+        _status.write(_short)
 
     _product_keys = [
         k for k in selected_modules if module_map.get(k) and module_map[k].product == product
@@ -1064,6 +1022,8 @@ for idx, step in enumerate(_exec_plan):
     _pipeline_config = {**_client_config}
     if _product_keys:
         _pipeline_config["module_ids"] = _product_keys
+
+    _ps.write(f"Running {len(_product_keys)} modules...")
 
     step_t0 = time.time()
     try:
@@ -1078,28 +1038,43 @@ for idx, step in enumerate(_exec_plan):
         )
         all_results[pipeline_name] = results
         all_output_dirs[pipeline_name] = out
-        step["status"] = "done"
-        step["elapsed"] = time.time() - step_t0
-        step["results"] = len(results)
-        logger.info("Pipeline %s complete: %d results in %.1fs", pipeline_name, len(results), step["elapsed"])
+        _step_elapsed = round(time.time() - step_t0, 1)
+        _ps.update(
+            label=f"Step {_step_num} of {total_pipelines + 1} "
+            f"-- {pipeline_name.upper()} complete "
+            f"({len(results)} results, {_step_elapsed}s)",
+            state="complete", expanded=False,
+        )
+        logger.info("Pipeline %s complete: %d results in %.1fs", pipeline_name, len(results), _step_elapsed)
     except Exception:
-        step["status"] = "failed"
-        step["elapsed"] = time.time() - step_t0
-        pipeline_errors[pipeline_name] = traceback.format_exc()
-        logger.error("Pipeline %s failed for client %s:\n%s", pipeline_name, client_id, traceback.format_exc())
+        import traceback as _tb
 
-    _render_exec_dashboard(_exec_plan, (idx + 1) / total_pipelines, "")
+        _step_elapsed = round(time.time() - step_t0, 1)
+        _tb_str = _tb.format_exc()
+        pipeline_errors[pipeline_name] = _tb_str
+        _ps.update(
+            label=f"Step {_step_num} of {total_pipelines + 1} "
+            f"-- {pipeline_name.upper()} FAILED ({_step_elapsed}s)",
+            state="error", expanded=True,
+        )
+        _ps.code(_tb_str[-500:], language="python")
+        logger.error("Pipeline %s failed for client %s:\n%s", pipeline_name, client_id, _tb_str)
 
 total_elapsed = round(time.time() - t0, 1)
-_render_exec_dashboard(_exec_plan, 1.0, "")
-_progress_bar.empty()
-_status_line.empty()
 
 # Re-enable the run button
 st.session_state["uap_running"] = False
 
 # Clean up local copy
 shutil.rmtree(_local_dir, ignore_errors=True)
+
+# Final summary line
+_ok = len(all_results)
+_fail = len(pipeline_errors)
+if _fail:
+    st.warning(f"Completed in {total_elapsed}s -- {_ok} pipeline(s) OK, {_fail} failed. Check errors above.")
+else:
+    st.success(f"All {_ok} pipeline(s) complete in {total_elapsed}s.")
 
 # ---------------------------------------------------------------------------
 # Log run

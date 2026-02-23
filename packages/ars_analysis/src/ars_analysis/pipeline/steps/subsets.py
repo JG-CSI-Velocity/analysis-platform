@@ -68,7 +68,10 @@ def step_subsets(ctx: PipelineContext) -> None:
         _open_mask = _open_mask | _stat_upper.str.startswith("O", na=False)
 
     if "Date Closed" in df.columns:
-        _dc_parsed = pd.to_datetime(df["Date Closed"], errors="coerce")
+        if pd.api.types.is_datetime64_any_dtype(df["Date Closed"]):
+            _dc_parsed = df["Date Closed"]
+        else:
+            _dc_parsed = pd.to_datetime(df["Date Closed"], errors="coerce")
         _open_mask = _open_mask | _dc_parsed.isna()
 
     subs.open_accounts = df[_open_mask]
@@ -150,8 +153,12 @@ def step_subsets(ctx: PipelineContext) -> None:
 
     # Last 12 months filter
     if "Date Opened" in df.columns and ctx.end_date is not None:
-        cutoff = ctx.start_date if ctx.start_date is not None else ctx.end_date - pd.DateOffset(months=12)
-        subs.last_12_months = df[pd.to_datetime(df["Date Opened"], errors="coerce") >= cutoff]
+        cutoff = pd.Timestamp(ctx.start_date) if ctx.start_date is not None else ctx.end_date - pd.DateOffset(months=12)
+        if pd.api.types.is_datetime64_any_dtype(df["Date Opened"]):
+            _do_parsed = df["Date Opened"]
+        else:
+            _do_parsed = pd.to_datetime(df["Date Opened"], errors="coerce")
+        subs.last_12_months = df[_do_parsed >= cutoff]
         logger.info("Last 12 months: {n:,} rows (cutoff={cutoff})", n=len(subs.last_12_months), cutoff=cutoff)
 
     ctx.subsets = subs

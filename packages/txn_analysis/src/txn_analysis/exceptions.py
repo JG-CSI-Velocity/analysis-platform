@@ -19,7 +19,12 @@ class ColumnMismatchError(DataLoadError):
     def __init__(self, missing: set[str], available: set[str]) -> None:
         self.missing = missing
         self.available = available
-        super().__init__(f"Missing required columns: {sorted(missing)}")
+        hint = (
+            f"Missing required columns: {sorted(missing)}\n"
+            f"Available columns in file: {sorted(available)}\n"
+            f"Add aliases for your column names in column_map.py COLUMN_ALIASES"
+        )
+        super().__init__(hint)
 
 
 class AnalysisError(TxnError):

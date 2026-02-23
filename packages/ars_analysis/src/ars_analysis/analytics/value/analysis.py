@@ -185,13 +185,18 @@ def _safe(fn, label: str, ctx: PipelineContext) -> list[AnalysisResult]:
     try:
         return fn(ctx)
     except Exception as exc:
-        logger.warning("{label} failed: {err}", label=label, err=exc)
+        logger.warning(
+            "{label} failed: {err_type}: {err}",
+            label=label,
+            err_type=type(exc).__name__,
+            err=exc,
+        )
         return [
             AnalysisResult(
                 slide_id=label,
                 title=label,
                 success=False,
-                error=str(exc),
+                error=f"{type(exc).__name__}: {exc}",
             )
         ]
 
@@ -257,8 +262,10 @@ class ValueAnalysis(AnalysisModule):
         # L12M-active personal accounts
         df = ep.copy()
         if "Date Closed" in df.columns:
-            df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce")
-            if ctx.start_date:
+            # Ensure datetime (may already be parsed by step_load)
+            if not pd.api.types.is_datetime64_any_dtype(df["Date Closed"]):
+                df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce")
+            if ctx.start_date is not None:
                 cutoff = pd.Timestamp(ctx.start_date)
                 active = df[df["Date Closed"].isna() | (df["Date Closed"] >= cutoff)].copy()
             else:
@@ -270,12 +277,13 @@ class ValueAnalysis(AnalysisModule):
         spend_col = _find_col(active, "spend")
         items_col = _find_col(active, "items")
         if not spend_col or not items_col:
+            available = [c for c in active.columns if "spend" in c.lower() or "item" in c.lower()]
             return [
                 AnalysisResult(
                     slide_id="A11.1",
                     title="Value of a Debit Card",
                     success=False,
-                    error="Missing spend/items columns",
+                    error=f"Missing spend/items columns (found: {available})",
                 )
             ]
 
@@ -470,8 +478,10 @@ class ValueAnalysis(AnalysisModule):
         # L12M-active filter
         df = base.copy()
         if "Date Closed" in df.columns:
-            df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce")
-            if ctx.start_date:
+            # Ensure datetime (may already be parsed by step_load)
+            if not pd.api.types.is_datetime64_any_dtype(df["Date Closed"]):
+                df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce")
+            if ctx.start_date is not None:
                 cutoff = pd.Timestamp(ctx.start_date)
                 active = df[df["Date Closed"].isna() | (df["Date Closed"] >= cutoff)].copy()
             else:
@@ -483,12 +493,13 @@ class ValueAnalysis(AnalysisModule):
         spend_col = _find_col(active, "spend")
         items_col = _find_col(active, "items")
         if not spend_col or not items_col:
+            available = [c for c in active.columns if "spend" in c.lower() or "item" in c.lower()]
             return [
                 AnalysisResult(
                     slide_id="A11.2",
                     title="Value of Reg E Opt-In",
                     success=False,
-                    error="Missing spend/items columns",
+                    error=f"Missing spend/items columns (found: {available})",
                 )
             ]
 

@@ -140,3 +140,43 @@ class TestResolveColumns:
         with pytest.raises(ColumnMismatchError) as exc_info:
             resolve_columns(df)
         assert "foo" in exc_info.value.available
+
+    def test_error_message_shows_available_columns(self):
+        df = pd.DataFrame({"foo": [1], "bar": [2]})
+        with pytest.raises(ColumnMismatchError) as exc_info:
+            resolve_columns(df)
+        msg = str(exc_info.value)
+        assert "Available columns in file" in msg
+        assert "foo" in msg
+
+    def test_keyword_fallback_merchant(self):
+        """Non-standard column names should match via keyword fallback."""
+        df = pd.DataFrame(
+            {
+                "Merchant Description": ["Store A"],
+                "Tran Amount": [25.0],
+                "Card Number": ["1234"],
+                "Posting Date": ["2025-01-01"],
+            }
+        )
+        result = resolve_columns(df)
+        assert "merchant_name" in result.columns
+        assert "amount" in result.columns
+        assert "primary_account_num" in result.columns
+        assert "transaction_date" in result.columns
+
+    def test_keyword_fallback_cu_style(self):
+        """Credit union export columns should resolve via keyword or alias."""
+        df = pd.DataFrame(
+            {
+                "Payee Name": ["Walmart"],
+                "Purchase Amount": [50.0],
+                "Member Number": ["M-001"],
+                "Settlement Date": ["2025-03-15"],
+            }
+        )
+        result = resolve_columns(df)
+        assert "merchant_name" in result.columns
+        assert "amount" in result.columns
+        assert "primary_account_num" in result.columns
+        assert "transaction_date" in result.columns

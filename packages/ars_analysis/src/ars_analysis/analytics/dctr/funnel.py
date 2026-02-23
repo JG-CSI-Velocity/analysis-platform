@@ -12,7 +12,7 @@ from loguru import logger
 from matplotlib.ticker import FuncFormatter
 
 from ars_analysis.analytics.base import AnalysisModule, AnalysisResult
-from ars_analysis.analytics.dctr._helpers import filter_l12m
+from ars_analysis.analytics.dctr._helpers import debit_mask, filter_l12m
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
 from ars_analysis.charts.style import NEGATIVE, POSITIVE
@@ -170,7 +170,7 @@ class DCTRFunnel(AnalysisModule):
         l12m_open = filter_l12m(oa, sd, ed_date) if oa is not None else pd.DataFrame()
         l12m_elig = filter_l12m(ed, sd, ed_date) if ed is not None else pd.DataFrame()
         l12m_debit = (
-            l12m_elig[l12m_elig["Debit?"] == "Yes"] if not l12m_elig.empty else pd.DataFrame()
+            l12m_elig[debit_mask(l12m_elig)] if not l12m_elig.empty else pd.DataFrame()
         )
 
         ta = len(l12m_all)
@@ -276,11 +276,11 @@ class DCTRFunnel(AnalysisModule):
         )
 
         e_total = len(l12m_elig)
-        e_debit = len(l12m_elig[l12m_elig["Debit?"] == "Yes"])
+        e_debit = int(debit_mask(l12m_elig).sum())
         e_dctr = (e_debit / e_total * 100) if e_total > 0 else 0
 
         n_total = len(non_elig)
-        n_debit = len(non_elig[non_elig["Debit?"] == "Yes"]) if not non_elig.empty else 0
+        n_debit = int(debit_mask(non_elig).sum()) if not non_elig.empty else 0
         n_dctr = (n_debit / n_total * 100) if n_total > 0 else 0
 
         gap = e_dctr - n_dctr

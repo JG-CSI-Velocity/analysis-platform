@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pandas as pd
 from loguru import logger
 
 from ars_analysis.exceptions import DataError
@@ -55,8 +56,18 @@ def step_subsets(ctx: PipelineContext) -> None:
         )
 
         subs.open_accounts = df[_stat_upper.str.startswith("O", na=False)]
-        logger.info("Open accounts: {n:,} rows", n=len(subs.open_accounts))
-    else:
+        logger.info("Open accounts (via Stat Code): {n:,} rows", n=len(subs.open_accounts))
+
+    # Fallback: if Stat Code detection yielded 0 rows, use Date Closed (NaT = open)
+    if (subs.open_accounts is None or subs.open_accounts.empty) and "Date Closed" in df.columns:
+        _dc_col = pd.to_datetime(df["Date Closed"], errors="coerce")
+        subs.open_accounts = df[_dc_col.isna()]
+        logger.info(
+            "Open accounts (via Date Closed NaT fallback): {n:,} rows",
+            n=len(subs.open_accounts),
+        )
+
+    if subs.open_accounts is None:
         logger.warning("No 'Stat Code' column found. Columns: {cols}", cols=list(df.columns)[:20])
 
     # Eligible accounts based on client config
@@ -114,6 +125,8 @@ def step_subsets(ctx: PipelineContext) -> None:
                     dc_col = candidate
                     logger.info("Auto-detected debit column: {col}", col=dc_col)
                     break
+        if dc_col in df.columns:
+            ctx.debit_column = dc_col
         if dc_col in df.columns and subs.eligible_data is not None:
             subs.eligible_with_debit = subs.eligible_data[
                 subs.eligible_data[dc_col].astype(str).str.strip().str.upper().isin(

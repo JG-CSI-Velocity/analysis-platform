@@ -381,9 +381,11 @@ M:\ARS\
     CSM-Data\                    Additional CSM data
   Ready for Analysis\
     {CSM}\{ClientID}\            Formatted files ready for pipeline
-  Analysis Outputs\              Final deliverables (PPTX decks, Excel reports)
-  Output\                        Working output (charts, intermediate files)
+  Analysis Outputs\              Final deliverables delivered to VP/CSMs
+  Output\                        Pipeline working output (per-client subfolders with charts, Excel, PPTX)
   Logs\                          Pipeline log files
+
+  _archive\                      Stale folders moved here by cleanup_and_organize.bat
 ```
 
 Each CSM has their own folder structure:
@@ -396,10 +398,21 @@ Each CSM has their own folder structure:
     {ClientID}_ICS_YYYY.MM.xlsx     (if ICS)
 ```
 
+### The Two Output Folders
+
+There are two output folders on the M: drive that serve different purposes:
+
+| Folder | Purpose | Who Uses It |
+|--------|---------|------------|
+| `M:\ARS\Output\` | **Working output** -- where the pipeline writes results during processing. Contains per-client subfolders with charts, Excel, PPTX, and run reports. | Pipeline (automatic) |
+| `M:\ARS\Analysis Outputs\` | **Final deliverables** -- curated results for VP review and CSM distribution. Files are copied or moved here after QA. | CSMs / VP (manual or archive step) |
+
+The pipeline writes to `Output\` by default. The `Analysis Outputs\` folder is the "clean" destination where reviewed, approved deliverables go.
+
 ### Output Structure (Per Client Run)
 
 ```
-{output_dir}/{ClientID}/{YYYY.MM}/
+M:\ARS\Output\{ClientID}\{YYYY.MM}\
   charts/                           Individual chart PNGs (one per analysis)
   {ClientID}_{YYYY.MM}_deck.pptx    PowerPoint presentation
   {ClientID}_{YYYY.MM}_analysis.xlsx Excel workbook (one tab per analysis + Summary)
@@ -455,3 +468,16 @@ analysis-platform/
 **PPTX build crashes** -- The deck builder now has per-slide error handling. Check the run report JSON for which specific slide failed and why. Common cause: chart file was not generated (upstream module failed).
 
 **Runtime is slow** -- Make sure you are selecting specific modules in the Module Library, not running all 20. The module selection is wired through to the runner; only selected modules execute.
+
+**Dashboard port stuck (localhost:8501 already in use)** -- Kill the old Streamlit process:
+
+```cmd
+REM Find the process using port 8501
+netstat -ano | findstr :8501
+
+REM Kill it (replace 12345 with the PID from the last column)
+taskkill /F /PID 12345
+
+REM Or kill all in one shot:
+for /f "tokens=5" %a in ('netstat -ano ^| findstr :8501') do taskkill /F /PID %a
+```

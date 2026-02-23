@@ -1014,24 +1014,89 @@ def _result_to_slide(result) -> SlideContent | None:
 # MAILER SLIDE ORDERING
 # =============================================================================
 
-_MAILER_FIXED_IDS = {"A13.Agg": 1, "A13.5": 2, "A13.6": 3}
+_MAILER_NON_MONTH = {"A13.Agg", "A13.5", "A13.6", "A13", "A12"}
+_MONTH_ABBRS = {
+    "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
+    "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12,
+}
 
 
-def _mailer_sort_key(result) -> tuple[int, str]:
-    """Sort key for mailer slides: monthly summaries -> aggregate -> trends -> age -> insights -> impact."""
-    sid = getattr(result, "slide_id", "")
-    # A13.{month} monthly summaries first (not Agg, .5, .6)
-    if sid.startswith("A13.") and sid not in _MAILER_FIXED_IDS and not sid.startswith("A13.5") and not sid.startswith("A13.6"):
-        return (0, sid)
-    if sid in _MAILER_FIXED_IDS:
-        return (_MAILER_FIXED_IDS[sid], sid)
-    if sid.startswith("A14"):
-        return (4, sid)
-    if sid.startswith("A12"):
-        return (5, sid)
-    if sid.startswith("A15"):
-        return (6, sid)
-    return (9, sid)
+def _parse_mailer_month(slide_id: str) -> tuple[int, int] | None:
+    """Extract (year, month_num) from slide IDs like A13.Jan26, A12.Feb26.Swipes."""
+    import re
+    m = re.search(r"\.([A-Z][a-z]{2})(\d{2})", slide_id)
+    if m:
+        abbr, yr = m.group(1), int(m.group(2))
+        if abbr in _MONTH_ABBRS:
+            return (2000 + yr, _MONTH_ABBRS[abbr])
+    return None
+
+
+def _consolidate_mailer(results: list) -> tuple[list, list]:
+    """Split mailer results into main deck + appendix.
+
+    Per-month groups: summary (A13.{month}) + swipes (A12.{month}.Swipes) + spend (A12.{month}.Spend).
+    Most recent 2 months -> main. Older months -> appendix.
+    A14.2 (mailer revisit) goes with most recent month.
+    Aggregate and impact slides stay in main.
+    """
+    # Bucket slides
+    month_slides: dict[tuple[int, int], list] = {}  # (year, month) -> [results]
+    aggregate = []   # A13.Agg, A13.5, A13.6
+    revisit = []     # A14.x
+    impact = []      # A15.x
+    other = []       # A12 or A13 without month suffix, etc.
+
+    for r in results:
+        sid = getattr(r, "slide_id", "")
+        ym = _parse_mailer_month(sid)
+        if ym:
+            month_slides.setdefault(ym, []).append(r)
+        elif sid.startswith("A13.Agg") or sid == "A13.5" or sid == "A13.6":
+            aggregate.append(r)
+        elif sid.startswith("A14"):
+            revisit.append(r)
+        elif sid.startswith("A15"):
+            impact.append(r)
+        else:
+            other.append(r)
+
+    # Sort months chronologically (most recent first)
+    sorted_months = sorted(month_slides.keys(), reverse=True)
+
+    # Within each month group, order: summary (A13) -> swipes (A12.Swipes) -> spend (A12.Spend) -> rest
+    def _intra_month_key(r) -> int:
+        sid = getattr(r, "slide_id", "")
+        if sid.startswith("A13."):
+            return 0  # summary first
+        if "Swipes" in sid:
+            return 1
+        if "Spend" in sid:
+            return 2
+        return 3
+
+    main_slides: list = []
+    appendix_slides: list = []
+
+    for i, ym in enumerate(sorted_months):
+        group = sorted(month_slides[ym], key=_intra_month_key)
+        if i < 2:
+            # Most recent 2 months -> main
+            main_slides.extend(group)
+            if i == 0:
+                # Mailer revisit goes after the most recent month
+                main_slides.extend(revisit)
+        else:
+            appendix_slides.extend(group)
+
+    # Aggregate summaries after monthly groups
+    main_slides.extend(aggregate)
+    # Impact slides last in main
+    main_slides.extend(impact)
+    # Other (catch-all)
+    main_slides.extend(other)
+
+    return main_slides, appendix_slides
 
 
 # =============================================================================
@@ -1119,9 +1184,10 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     # Build ordered analysis slides
     analysis_slides: list[SlideContent] = []
 
-    # Recent mailer slides first -- sorted by logical section order
-    mailer_results.sort(key=_mailer_sort_key)
-    mailer_slides = _convert_list(mailer_results)
+    # Mailer slides: per-month groups, most recent 2 in main, rest in appendix
+    mailer_main, mailer_appendix = _consolidate_mailer(mailer_results)
+    mailer_slides = _convert_list(mailer_main)
+    mailer_app_slides = _convert_list(mailer_appendix)
     if mailer_slides:
         analysis_slides.extend(mailer_slides)
 
@@ -1162,11 +1228,12 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     insights_slides = _convert_list(insights_results)
     other_slides = _convert_list(other_results)
 
-    has_appendix = dctr_app or rege_app or attrition_app or overview_slides
+    has_appendix = dctr_app or rege_app or attrition_app or overview_slides or mailer_app_slides
     if has_appendix:
         analysis_slides.append(
             _section_divider("Appendix", subtitle=section_subtitle))
         analysis_slides.extend(overview_slides)
+        analysis_slides.extend(mailer_app_slides)
         analysis_slides.extend(dctr_app)
         analysis_slides.extend(rege_app)
         analysis_slides.extend(attrition_app)

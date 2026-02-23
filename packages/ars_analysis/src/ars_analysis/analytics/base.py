@@ -61,13 +61,24 @@ class AnalysisModule(ABC):
     def run(self, ctx: PipelineContext) -> list[AnalysisResult]:
         """Execute all analyses. Return ordered results."""
 
+    # Columns with auto-detection equivalents (don't fail validation for these)
+    _FLEXIBLE_COLUMNS: dict[str, tuple[str, ...]] = {
+        "Debit?": ("Debit?", "Debit", "DC Indicator", "DC_Indicator"),
+    }
+
     def validate(self, ctx: PipelineContext) -> list[str]:
         """Check prerequisites. Return error messages (empty = OK)."""
         errors: list[str] = []
         if ctx.data is None:
             errors.append("No data loaded in context")
             return errors
-        missing_cols = set(self.required_columns) - set(ctx.data.columns)
-        if missing_cols:
-            errors.append(f"Missing columns: {', '.join(sorted(missing_cols))}")
+        data_cols = set(ctx.data.columns)
+        for req_col in self.required_columns:
+            if req_col in data_cols:
+                continue
+            # Check if any equivalent column exists
+            equivalents = self._FLEXIBLE_COLUMNS.get(req_col, ())
+            if equivalents and any(eq in data_cols for eq in equivalents):
+                continue
+            errors.append(f"Missing column: {req_col}")
         return errors

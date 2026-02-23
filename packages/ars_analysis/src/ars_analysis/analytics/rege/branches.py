@@ -35,17 +35,23 @@ def _safe(fn, label: str, ctx: PipelineContext) -> list[AnalysisResult]:
         ]
 
 
-def _branch_rates(df: pd.DataFrame, col: str, opts: list[str]) -> pd.DataFrame:
+def _branch_rates(
+    df: pd.DataFrame,
+    col: str,
+    opts: list[str],
+    branch_mapping: dict | None = None,
+) -> pd.DataFrame:
     """Calculate Reg E rates by branch for a DataFrame."""
     if df is None or df.empty or "Branch" not in df.columns:
         return pd.DataFrame()
+    bm = branch_mapping or {}
     rows = []
     for br in sorted(df["Branch"].dropna().unique()):
         bd = df[df["Branch"] == br]
         t, oi, r = rege(bd, col, opts)
         rows.append(
             {
-                "Branch": br,
+                "Branch": bm.get(str(br), br),
                 "Total Accounts": t,
                 "Opted In": oi,
                 "Opted Out": t - oi,
@@ -79,9 +85,10 @@ class RegEBranches(AnalysisModule):
     def _branch_comparison(self, ctx: PipelineContext) -> list[AnalysisResult]:
         logger.info("A8.4a: Reg E by Branch (horizontal)")
         base, base_l12m, col, opts = reg_e_base(ctx)
+        bm = getattr(ctx.settings, "branch_mapping", None) if ctx.settings else None
 
-        hist = _branch_rates(base, col, opts)
-        l12m = _branch_rates(base_l12m, col, opts) if base_l12m is not None else pd.DataFrame()
+        hist = _branch_rates(base, col, opts, bm)
+        l12m = _branch_rates(base_l12m, col, opts, bm) if base_l12m is not None else pd.DataFrame()
 
         # Build comparison table
         comparison = []
@@ -180,7 +187,8 @@ class RegEBranches(AnalysisModule):
         hist = ctx.results.get("reg_e_4", {}).get("historical")
         if hist is None or hist.empty:
             base, _, col, opts = reg_e_base(ctx)
-            hist = _branch_rates(base, col, opts)
+            bm = getattr(ctx.settings, "branch_mapping", None) if ctx.settings else None
+            hist = _branch_rates(base, col, opts, bm)
 
         scatter = hist[hist["Branch"] != "TOTAL"].copy() if not hist.empty else pd.DataFrame()
         if scatter.empty or len(scatter) < 2:
@@ -344,6 +352,7 @@ class RegEBranches(AnalysisModule):
     def _branch_pivot(self, ctx: PipelineContext) -> list[AnalysisResult]:
         logger.info("A8.13: Branch x Month Pivot")
         base, base_l12m, col, opts = reg_e_base(ctx)
+        bm = getattr(ctx.settings, "branch_mapping", None) if ctx.settings else None
 
         if base_l12m is None or base_l12m.empty:
             return [
@@ -358,6 +367,10 @@ class RegEBranches(AnalysisModule):
         l12m_labels = l12m_month_labels(ctx.end_date)
         df = base_l12m.copy()
         df["Month_Year"] = pd.to_datetime(df["Date Opened"], errors="coerce").dt.strftime("%b%y")
+
+        # Apply branch mapping
+        if bm:
+            df["Branch"] = df["Branch"].astype(str).map(lambda b, _bm=bm: _bm.get(b, b))
 
         branches = sorted(df["Branch"].dropna().unique())
         pivot_rows = []

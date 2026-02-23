@@ -16,6 +16,7 @@ from ars_analysis.analytics.dctr._helpers import (
     branch_dctr,
     categorize_account_age,
     dctr,
+    debit_mask,
     filter_l12m,
     l12m_month_labels,
     simplify_account_age,
@@ -208,7 +209,7 @@ class DCTRBranches(AnalysisModule):
             for month in months:
                 md = bd[bd["Month_Year"] == month]
                 elig = len(md)
-                debits = len(md[md["Debit?"] == "Yes"])
+                debits = int(debit_mask(md).sum())
                 te += elig
                 td += debits
                 row[month] = f"{(debits / elig * 100):.1f}%" if elig > 0 else ""
@@ -446,7 +447,7 @@ class DCTRBranches(AnalysisModule):
             for month in months:
                 md = bd[bd["Month_Year"] == month]
                 t = len(md)
-                w = len(md[md["Debit?"] == "Yes"])
+                w = int(debit_mask(md).sum())
                 row[month] = (w / t * 100) if t > 0 else np.nan
             heat_data.append(row)
 

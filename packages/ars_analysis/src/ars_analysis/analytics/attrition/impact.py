@@ -24,6 +24,7 @@ from ars_analysis.analytics.attrition._helpers import (
     product_col,
 )
 from ars_analysis.analytics.base import AnalysisModule, AnalysisResult
+from ars_analysis.analytics.dctr._helpers import debit_mask, detect_debit_col
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
 from ars_analysis.charts.style import (
@@ -47,20 +48,23 @@ from ars_analysis.pipeline.context import PipelineContext
 def _debit_retention(ctx: PipelineContext) -> list[AnalysisResult]:
     """Do accounts with debit cards close less often?"""
     all_data, _, closed = prepare_attrition_data(ctx)
-    if closed.empty or "Debit?" not in all_data.columns:
+    _dc = detect_debit_col(all_data)
+    if closed.empty or _dc is None:
         return [
             AnalysisResult(
                 slide_id="A9.9",
                 title="Debit Card Retention",
                 success=False,
-                error="No closed accounts or no Debit? column",
+                error="No closed accounts or no debit card column",
             )
         ]
 
     rows = []
-    for debit_val, label in [("Yes", "With Debit Card"), ("No", "Without Debit Card")]:
-        total = len(all_data[all_data["Debit?"] == debit_val])
-        n_closed = len(closed[closed["Debit?"] == debit_val])
+    _dm_all = debit_mask(all_data, _dc)
+    _dm_closed = debit_mask(closed, _dc)
+    for has_debit, label in [(True, "With Debit Card"), (False, "Without Debit Card")]:
+        total = int(_dm_all.sum()) if has_debit else int((~_dm_all).sum())
+        n_closed = int(_dm_closed.sum()) if has_debit else int((~_dm_closed).sum())
         rate = n_closed / total if total > 0 else 0
         rows.append(
             {

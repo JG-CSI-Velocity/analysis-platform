@@ -12,7 +12,7 @@ from loguru import logger
 from matplotlib.ticker import FuncFormatter
 
 from ars_analysis.analytics.base import AnalysisModule, AnalysisResult
-from ars_analysis.analytics.dctr._helpers import filter_l12m
+from ars_analysis.analytics.dctr._helpers import debit_mask, filter_l12m
 from ars_analysis.analytics.rege._helpers import (
     ACCT_AGE_ORDER,
     HOLDER_AGE_ORDER,
@@ -583,19 +583,21 @@ class RegEDimensions(AnalysisModule):
 
         # With debit in L12M
         wd_l12m = 0
-        if not el12m_df.empty and "Debit?" in el12m_df.columns:
-            wd_l12m = int((el12m_df["Debit?"] == "Yes").sum())
+        if not el12m_df.empty:
+            wd_l12m = int(debit_mask(el12m_df).sum())
 
         # Personal with debit in L12M
         p_wd_l12m = 0
-        if not el12m_df.empty and "Debit?" in el12m_df.columns and "Business?" in el12m_df.columns:
-            mask = (el12m_df["Debit?"] == "Yes") & (el12m_df["Business?"] == "No")
+        if not el12m_df.empty and "Business?" in el12m_df.columns:
+            _dm = debit_mask(el12m_df)
+            mask = _dm & (el12m_df["Business?"].astype(str).str.strip().str.upper().isin(("NO", "N")))
             p_wd_l12m = int(mask.sum())
 
         # Reg E in L12M personal with debit
         rege_l12m = 0
         if col and p_wd_l12m > 0 and not el12m_df.empty:
-            mask = (el12m_df["Debit?"] == "Yes") & (el12m_df["Business?"] == "No")
+            _dm = debit_mask(el12m_df)
+            mask = _dm & (el12m_df["Business?"].astype(str).str.strip().str.upper().isin(("NO", "N")))
             p_debit_df = el12m_df[mask]
             if col in p_debit_df.columns:
                 rege_l12m = int(p_debit_df[col].astype(str).str.strip().isin(opts).sum())

@@ -212,8 +212,8 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
         reg_e_column=ccfg.get("RegEColumn", ""),
     )
 
-    # 2. Build OutputPaths
-    paths = OutputPaths.from_base(ctx.output_dir, ctx.client_id, month)
+    # 2. Build OutputPaths -- use output_dir directly (caller already scoped it)
+    paths = OutputPaths.from_dir(ctx.output_dir)
 
     # 3. Build ARS PipelineContext
     ars_ctx = ARSContext(
@@ -228,9 +228,16 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
         tpl_path = Path(_tpl)
     else:
         tpl_path = _resolve_template_path()
+    # Build settings namespace with template + branch mapping
+    _branch_map = ccfg.get("BranchMapping") or ccfg.get("branch_mapping")
+    ars_ctx.settings = SimpleNamespace(
+        paths=SimpleNamespace(template_path=tpl_path) if tpl_path else SimpleNamespace(template_path=None),
+        branch_mapping=_branch_map if isinstance(_branch_map, dict) else None,
+    )
     if tpl_path:
-        ars_ctx.settings = SimpleNamespace(paths=SimpleNamespace(template_path=tpl_path))
         logger.info("Using PPTX template: %s", tpl_path)
+    if _branch_map:
+        logger.info("Branch mapping: %d entries", len(_branch_map))
 
     # 4. Determine input file
     oddd_path = ctx.input_files.get("oddd")

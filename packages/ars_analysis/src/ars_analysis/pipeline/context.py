@@ -47,6 +47,16 @@ class OutputPaths:
             pptx_dir=run_dir,
         )
 
+    @classmethod
+    def from_dir(cls, directory: Path) -> OutputPaths:
+        """Use a directory directly as the output root (no extra nesting)."""
+        return cls(
+            base_dir=directory,
+            charts_dir=directory / "charts",
+            excel_dir=directory,
+            pptx_dir=directory,
+        )
+
 
 @dataclass
 class DataSubsets:
@@ -84,4 +94,5 @@ class PipelineContext:
     end_date: date | None = None
     txn_file_path: Path | None = None  # Transaction CSV for TXN module
     ics_dir: Path | None = None  # ICS data directory for ICS module
+    debit_column: str = ""  # Auto-detected debit column name (set by step_subsets)
     progress_callback: Callable[[str], None] | None = None

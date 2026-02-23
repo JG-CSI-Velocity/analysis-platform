@@ -36,13 +36,40 @@ BALANCE_ORDER = [
     "$100K+",
 ]
 
+# -- Debit column detection (shared by DCTR, Reg E, Value) -------------------
+
+_DEBIT_CANDIDATES = ("Debit?", "Debit", "DC Indicator", "DC_Indicator")
+_DEBIT_YES_VALUES = frozenset(("YES", "Y", "D", "DC", "DEBIT"))
+
+
+def detect_debit_col(df: pd.DataFrame) -> str | None:
+    """Auto-detect the debit card column name from a DataFrame."""
+    for c in _DEBIT_CANDIDATES:
+        if c in df.columns:
+            return c
+    return None
+
+
+def debit_mask(df: pd.DataFrame, col: str | None = None) -> pd.Series:
+    """Return boolean mask for 'has debit card' regardless of column name or coding convention."""
+    if col is None:
+        col = detect_debit_col(df)
+    if col is None or col not in df.columns:
+        return pd.Series(False, index=df.index)
+    return df[col].astype(str).str.strip().str.upper().isin(_DEBIT_YES_VALUES)
+
+
 # -- Core DCTR calculation ---------------------------------------------------
 
 
-def dctr(df: pd.DataFrame, debit_col: str = "Debit?", yes: str = "Yes") -> tuple[int, int, float]:
+def dctr(df: pd.DataFrame, debit_col: str | None = None, yes: str = "Yes") -> tuple[int, int, float]:
     """Return (total, with_debit, rate) for a DataFrame."""
     total = len(df)
-    with_debit = len(df[df[debit_col] == yes])
+    if debit_col is None:
+        debit_col = detect_debit_col(df)
+    if debit_col is None or debit_col not in df.columns:
+        return total, 0, 0.0
+    with_debit = int(debit_mask(df, debit_col).sum())
     return total, with_debit, (with_debit / total if total > 0 else 0.0)
 
 
@@ -197,10 +224,11 @@ def analyze_historical_dctr(
     valid["Decade"] = valid["Year"].apply(map_to_decade)
 
     # Yearly breakdown
+    _dc = detect_debit_col(valid)
     rows = []
     for yr in sorted(valid["Year"].dropna().unique()):
         yd = valid[valid["Year"] == yr]
-        t, w, d = dctr(yd)
+        t, w, d = dctr(yd, _dc)
         p = yd[yd["Business?"] == "No"]
         b = yd[yd["Business?"] == "Yes"]
         rows.append(
@@ -210,8 +238,8 @@ def analyze_historical_dctr(
                 "With Debit": w,
                 "Without Debit": t - w,
                 "DCTR %": d,
-                "Personal w/Debit": len(p[p["Debit?"] == "Yes"]),
-                "Business w/Debit": len(b[b["Debit?"] == "Yes"]),
+                "Personal w/Debit": int(debit_mask(p, _dc).sum()),
+                "Business w/Debit": int(debit_mask(b, _dc).sum()),
             }
         )
     yearly = pd.DataFrame(rows)
@@ -357,12 +385,13 @@ def by_dimension(
     dc[label] = dc[col].apply(cat_fn)
     valid = dc[dc[label] != "Unknown"]
 
+    _dc = detect_debit_col(valid) if not valid.empty else None
     rows = []
     for cat in order:
         seg = valid[valid[label] == cat]
         if len(seg) == 0:
             continue
-        t, w, d = dctr(seg)
+        t, w, d = dctr(seg, _dc)
         p = seg[seg["Business?"] == "No"]
         b = seg[seg["Business?"] == "Yes"]
         rows.append(
@@ -372,8 +401,8 @@ def by_dimension(
                 "With Debit": w,
                 "Without Debit": t - w,
                 "DCTR %": d,
-                "Personal w/Debit": len(p[p["Debit?"] == "Yes"]),
-                "Business w/Debit": len(b[b["Debit?"] == "Yes"]),
+                "Personal w/Debit": int(debit_mask(p, _dc).sum()),
+                "Business w/Debit": int(debit_mask(b, _dc).sum()),
             }
         )
     df = pd.DataFrame(rows)

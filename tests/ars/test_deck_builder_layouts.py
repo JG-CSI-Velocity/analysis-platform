@@ -11,16 +11,14 @@ from ars_analysis.output.deck_builder import (
     ATTRITION_MERGES,
     DCTR_APPENDIX_IDS,
     DCTR_MERGES,
-    REGE_APPENDIX_IDS,
-    REGE_MERGES,
     SLIDE_LAYOUT_MAP,
     DeckBuilder,
     SlideContent,
     _build_preamble_slides,
     _consolidate,
+    _consolidate_mailer,
     _get_section,
     _group_by_section,
-    _mailer_sort_key,
     _match_prefix,
     _result_to_slide,
     build_deck,
@@ -117,47 +115,76 @@ class TestMatchPrefix:
 # =============================================================================
 
 
-class TestMailerSortKey:
-    """Mailer slides should sort in logical section order."""
+class TestConsolidateMailer:
+    """Mailer consolidation: per-month groups, most recent 2 in main, rest in appendix."""
 
-    def test_monthly_summaries_first(self):
-        r = AnalysisResult(slide_id="A13.Sep24", title="Sep24 Summary")
-        assert _mailer_sort_key(r)[0] == 0
-
-    def test_aggregate_after_monthly(self):
-        r = AnalysisResult(slide_id="A13.Agg", title="Aggregate")
-        assert _mailer_sort_key(r)[0] == 1
-
-    def test_trends_after_aggregate(self):
-        r5 = AnalysisResult(slide_id="A13.5", title="Count Trend")
-        r6 = AnalysisResult(slide_id="A13.6", title="Rate Trend")
-        assert _mailer_sort_key(r5)[0] == 2
-        assert _mailer_sort_key(r6)[0] == 3
-
-    def test_account_age_after_trends(self):
-        r = AnalysisResult(slide_id="A14.2", title="Account Age")
-        assert _mailer_sort_key(r)[0] == 4
-
-    def test_insights_after_age(self):
-        r = AnalysisResult(slide_id="A12.Nov25.Swipes", title="Swipes")
-        assert _mailer_sort_key(r)[0] == 5
-
-    def test_impact_last(self):
-        r = AnalysisResult(slide_id="A15.1", title="Market Reach")
-        assert _mailer_sort_key(r)[0] == 6
-
-    def test_full_sort_order(self):
+    def test_monthly_groups_chronological(self):
         results = [
-            AnalysisResult(slide_id="A15.1", title="Impact"),
-            AnalysisResult(slide_id="A12.Nov25.Swipes", title="Swipes"),
-            AnalysisResult(slide_id="A13.Agg", title="Aggregate"),
-            AnalysisResult(slide_id="A13.Sep24", title="Sep24"),
-            AnalysisResult(slide_id="A13.5", title="Count Trend"),
-            AnalysisResult(slide_id="A14.2", title="Age"),
+            AnalysisResult(slide_id="A13.Jan26", title="Jan26 Summary"),
+            AnalysisResult(slide_id="A12.Jan26.Swipes", title="Jan26 Swipes"),
+            AnalysisResult(slide_id="A12.Jan26.Spend", title="Jan26 Spend"),
+            AnalysisResult(slide_id="A13.Feb26", title="Feb26 Summary"),
+            AnalysisResult(slide_id="A12.Feb26.Swipes", title="Feb26 Swipes"),
+            AnalysisResult(slide_id="A12.Feb26.Spend", title="Feb26 Spend"),
         ]
-        results.sort(key=_mailer_sort_key)
-        ids = [r.slide_id for r in results]
-        assert ids == ["A13.Sep24", "A13.Agg", "A13.5", "A14.2", "A12.Nov25.Swipes", "A15.1"]
+        main, appendix = _consolidate_mailer(results)
+        ids = [r.slide_id for r in main]
+        # Feb26 (most recent) first, then Jan26
+        assert ids[0] == "A13.Feb26"
+        assert ids[1] == "A12.Feb26.Swipes"
+        assert ids[2] == "A12.Feb26.Spend"
+        assert ids[3] == "A13.Jan26"
+
+    def test_most_recent_2_in_main(self):
+        results = [
+            AnalysisResult(slide_id="A13.Nov25", title="Nov"),
+            AnalysisResult(slide_id="A13.Dec25", title="Dec"),
+            AnalysisResult(slide_id="A13.Jan26", title="Jan"),
+        ]
+        main, appendix = _consolidate_mailer(results)
+        main_ids = {r.slide_id for r in main}
+        app_ids = {r.slide_id for r in appendix}
+        assert "A13.Jan26" in main_ids
+        assert "A13.Dec25" in main_ids
+        assert "A13.Nov25" in app_ids
+
+    def test_revisit_after_most_recent(self):
+        results = [
+            AnalysisResult(slide_id="A14.2", title="Revisit"),
+            AnalysisResult(slide_id="A13.Jan26", title="Jan"),
+            AnalysisResult(slide_id="A13.Feb26", title="Feb"),
+        ]
+        main, appendix = _consolidate_mailer(results)
+        ids = [r.slide_id for r in main]
+        feb_idx = ids.index("A13.Feb26")
+        rev_idx = ids.index("A14.2")
+        jan_idx = ids.index("A13.Jan26")
+        # Revisit should be after Feb26 group but before Jan26
+        assert rev_idx > feb_idx
+        assert rev_idx < jan_idx
+
+    def test_aggregate_and_impact_in_main(self):
+        results = [
+            AnalysisResult(slide_id="A13.Agg", title="Aggregate"),
+            AnalysisResult(slide_id="A13.5", title="Count Trend"),
+            AnalysisResult(slide_id="A15.1", title="Impact"),
+        ]
+        main, appendix = _consolidate_mailer(results)
+        main_ids = {r.slide_id for r in main}
+        assert "A13.Agg" in main_ids
+        assert "A13.5" in main_ids
+        assert "A15.1" in main_ids
+        assert len(appendix) == 0
+
+    def test_intra_month_order(self):
+        results = [
+            AnalysisResult(slide_id="A12.Jan26.Spend", title="Spend"),
+            AnalysisResult(slide_id="A13.Jan26", title="Summary"),
+            AnalysisResult(slide_id="A12.Jan26.Swipes", title="Swipes"),
+        ]
+        main, _ = _consolidate_mailer(results)
+        ids = [r.slide_id for r in main if "Jan26" in r.slide_id]
+        assert ids == ["A13.Jan26", "A12.Jan26.Swipes", "A12.Jan26.Spend"]
 
 
 # =============================================================================

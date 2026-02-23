@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from ars_analysis.analytics.dctr._helpers import filter_l12m
+from ars_analysis.analytics.dctr._helpers import debit_mask, detect_debit_col, filter_l12m
 from ars_analysis.pipeline.context import PipelineContext
 
 # -- Reg E-specific age buckets (differ from DCTR) ---------------------------
@@ -133,10 +133,11 @@ def reg_e_base(ctx: PipelineContext) -> tuple[pd.DataFrame, pd.DataFrame | None,
     ep = ctx.subsets.eligible_personal
     if ep is None or ep.empty:
         raise ValueError("No eligible personal accounts")
-    if "Debit?" not in ep.columns:
-        raise ValueError("No 'Debit?' column in eligible personal data")
+    dc_col = detect_debit_col(ep)
+    if dc_col is None:
+        raise ValueError("No debit card column found in eligible personal data")
 
-    base = ep[ep["Debit?"] == "Yes"].copy()
+    base = ep[debit_mask(ep, dc_col)].copy()
     if base.empty:
         raise ValueError("No personal accounts with debit cards")
 

@@ -35,15 +35,16 @@ def step_subsets(ctx: PipelineContext) -> None:
                 end=ctx.end_date,
             )
 
-    # Open accounts (Stat Code == "O" or starts with "O")
+    # Open accounts: Date Closed is blank OR Stat Code starts with "O"
     _stat_col = "Stat Code" if "Stat Code" in df.columns else None
     if not _stat_col:
-        # Auto-detect common alternatives
         for _alt in ("Status Code", "StatCode", "Stat_Code", "Account Status"):
             if _alt in df.columns:
                 _stat_col = _alt
                 logger.info("Auto-detected stat column: {col}", col=_stat_col)
                 break
+
+    _open_mask = pd.Series(False, index=df.index)
 
     if _stat_col:
         _stat_values = df[_stat_col].astype(str).str.strip()
@@ -54,21 +55,20 @@ def step_subsets(ctx: PipelineContext) -> None:
             col=_stat_col,
             vals=dict(_unique_stats),
         )
+        _open_mask = _open_mask | _stat_upper.str.startswith("O", na=False)
 
-        subs.open_accounts = df[_stat_upper.str.startswith("O", na=False)]
-        logger.info("Open accounts (via Stat Code): {n:,} rows", n=len(subs.open_accounts))
+    if "Date Closed" in df.columns:
+        _dc_parsed = pd.to_datetime(df["Date Closed"], errors="coerce")
+        _open_mask = _open_mask | _dc_parsed.isna()
 
-    # Fallback: if Stat Code detection yielded 0 rows, use Date Closed (NaT = open)
-    if (subs.open_accounts is None or subs.open_accounts.empty) and "Date Closed" in df.columns:
-        _dc_col = pd.to_datetime(df["Date Closed"], errors="coerce")
-        subs.open_accounts = df[_dc_col.isna()]
-        logger.info(
-            "Open accounts (via Date Closed NaT fallback): {n:,} rows",
-            n=len(subs.open_accounts),
+    subs.open_accounts = df[_open_mask]
+    logger.info("Open accounts: {n:,} rows", n=len(subs.open_accounts))
+
+    if not _stat_col and "Date Closed" not in df.columns:
+        logger.warning(
+            "No 'Stat Code' or 'Date Closed' column found. Columns: {cols}",
+            cols=list(df.columns)[:20],
         )
-
-    if subs.open_accounts is None:
-        logger.warning("No 'Stat Code' column found. Columns: {cols}", cols=list(df.columns)[:20])
 
     # Eligible accounts based on client config
     eligible_stats = ctx.client.eligible_stat_codes

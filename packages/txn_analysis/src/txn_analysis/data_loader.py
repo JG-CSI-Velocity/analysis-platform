@@ -122,16 +122,77 @@ def load_data(settings: Settings) -> pd.DataFrame:
 
 
 def _read_file(path: Path) -> pd.DataFrame:
-    """Read a CSV or Excel file into a DataFrame."""
+    """Read a CSV/TXT/Excel file into a DataFrame.
+
+    For CSV/TXT files, auto-detects delimiter and headerless transaction files.
+    If the initial read produces no recognizable columns, retries with
+    tab and pipe delimiters, and with skiprows=1 for metadata-prefixed files.
+    """
     suffix = path.suffix.lower()
     try:
-        if suffix == ".csv":
-            return pd.read_csv(path)
+        if suffix in (".csv", ".txt"):
+            return _read_csv_autodetect(path)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
             return pd.read_excel(path)
+    except DataLoadError:
+        raise
     except Exception as e:
         raise DataLoadError(f"Failed to read {path}: {e}") from e
+
+
+def _has_recognizable_columns(df: pd.DataFrame) -> bool:
+    """Check if any column names match known aliases or required columns."""
+    from txn_analysis.column_map import COLUMN_ALIASES, REQUIRED_COLUMNS
+
+    known = set(COLUMN_ALIASES.keys()) | REQUIRED_COLUMNS
+    for col in df.columns:
+        if str(col).strip().lower().replace("-", "_") in known:
+            return True
+    return False
+
+
+def _read_csv_autodetect(path: Path) -> pd.DataFrame:
+    """Read a CSV/TXT file, auto-detecting delimiter and header row.
+
+    Tries these strategies in order:
+    1. Default comma-delimited with header
+    2. Tab-delimited with header
+    3. Pipe-delimited with header
+    4. Tab-delimited, skip metadata row, assign TRANSACTION_COLUMNS
+    5. Pipe-delimited, skip metadata row, assign TRANSACTION_COLUMNS
+    """
+    # Strategy 1: comma-delimited with header (most common)
+    df = pd.read_csv(path, low_memory=False)
+    if _has_recognizable_columns(df):
+        return df
+
+    # Strategy 2: tab-delimited with header
+    df = pd.read_csv(path, sep="\t", low_memory=False)
+    if _has_recognizable_columns(df):
+        return df
+
+    # Strategy 3: pipe-delimited with header
+    df = pd.read_csv(path, sep="|", low_memory=False)
+    if _has_recognizable_columns(df):
+        return df
+
+    # Strategy 4: tab-delimited, skip metadata row, assign standard columns
+    df = pd.read_csv(path, sep="\t", skiprows=1, header=None, low_memory=False)
+    if len(df.columns) >= 4:
+        df.columns = TRANSACTION_COLUMNS[: len(df.columns)]
+        logger.info("Auto-detected tab-delimited headerless transaction file: %s", path.name)
+        return df
+
+    # Strategy 5: pipe-delimited, skip metadata row, assign standard columns
+    df = pd.read_csv(path, sep="|", skiprows=1, header=None, low_memory=False)
+    if len(df.columns) >= 4:
+        df.columns = TRANSACTION_COLUMNS[: len(df.columns)]
+        logger.info("Auto-detected pipe-delimited headerless transaction file: %s", path.name)
+        return df
+
+    # Fall back to original comma read and let resolve_columns raise a clear error
+    return pd.read_csv(path, low_memory=False)
 
 
 def _apply_merchant_consolidation(df: pd.DataFrame) -> pd.DataFrame:

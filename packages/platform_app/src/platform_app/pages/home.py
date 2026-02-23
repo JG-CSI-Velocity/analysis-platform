@@ -10,6 +10,7 @@ import traceback
 import warnings
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 from ics_toolkit.client_registry import (
@@ -89,6 +90,33 @@ def _make_status_line(msg: str, pipeline: str) -> str:
     return f"{pipeline.upper()} -- {short}"
 
 
+def _read_tran_file(p: Path) -> pd.DataFrame:
+    """Read a single transaction file, auto-detecting delimiter and header.
+
+    Handles comma, tab, and pipe delimiters. For headerless files (common with
+    monthly transaction exports), skips the metadata row and assigns standard
+    column names from the txn_analysis pipeline.
+    """
+    from txn_analysis.data_loader import TRANSACTION_COLUMNS
+
+    # Try common delimiters with header
+    for sep in (",", "\t", "|"):
+        df = pd.read_csv(p, sep=sep, low_memory=False)
+        col_lower = {str(c).strip().lower().replace("-", "_") for c in df.columns}
+        if col_lower & {"merchant_name", "amount", "transaction_date", "merchant", "amt", "date"}:
+            return df
+
+    # Headerless file: skip metadata row, assign standard columns
+    for sep in ("\t", "|", ","):
+        df = pd.read_csv(p, sep=sep, skiprows=1, header=None, low_memory=False)
+        if len(df.columns) >= 4:
+            df.columns = TRANSACTION_COLUMNS[: len(df.columns)]
+            return df
+
+    # Fallback: return comma read and let downstream handle the error
+    return pd.read_csv(p, low_memory=False)
+
+
 def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
     """Combine multiple transaction files into a single CSV for the pipeline.
 
@@ -107,7 +135,6 @@ def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
     if len(paths) == 1:
         return paths[0]
 
-    import pandas as pd
     from loguru import logger as _log
 
     # Check if combined file already exists and is newer than all source files
@@ -127,8 +154,7 @@ def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
     frames = []
     for p in sorted(paths):
         try:
-            sep = "\t" if p.suffix == ".txt" else ","
-            df = pd.read_csv(p, sep=sep, low_memory=False)
+            df = _read_tran_file(p)
             frames.append(df)
             _log.info("  Loaded {}: {:,} rows, {} cols", p.name, len(df), len(df.columns))
         except Exception as exc:
@@ -538,8 +564,6 @@ st.markdown(
 
 # Offer inline format if unformatted
 if oddd_path and not ars_formatted:
-    import pandas as pd
-
     if st.button("Format ODD Now", type="secondary", key="home_format_btn"):
         with st.spinner("Formatting..."), warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
@@ -960,8 +984,6 @@ _local_oddd: str = oddd_path
 _local_dir = Path(tempfile.mkdtemp(prefix="uap_run_"))
 _needs_odd = Product.ARS in needed_products or Product.ICS in needed_products
 if _needs_odd and oddd_path and Path(oddd_path).exists():
-    import pandas as pd
-
     _prep.write("Loading ODD data from Excel...")
     _render_exec_dashboard(_exec_plan, 0, "Loading ODD data...")
     with warnings.catch_warnings():

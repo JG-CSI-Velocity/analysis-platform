@@ -1,339 +1,311 @@
-"""Charts for activity analyses (ax22-ax26)."""
+"""Charts for activity analyses -- engagement, trends, interchange."""
 
+from io import BytesIO
+
+import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 
+from ics_toolkit.analysis.charts.guards import chart_figure
+from ics_toolkit.analysis.charts.style import (
+    ACQUISITION,
+    BAR_ALPHA,
+    BAR_EDGE,
+    BAR_EDGE_WIDTH,
+    DATA_LABEL_SIZE,
+    DOLLAR_FORMATTER,
+    INTERCHANGE,
+    LINE_WIDTH,
+    MARKER_SIZE,
+    NAVY,
+    SPEND,
+    TEAL,
+)
 from ics_toolkit.settings import ChartConfig
 
-LAYOUT_DEFAULTS = dict(
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    margin=dict(t=60, b=40),
-)
+
+def _dual_axis_setup(ax, ax2):
+    """Standard dual-axis formatting."""
+    ax.grid(axis="y", alpha=0.15, linestyle="--")
+    ax.set_axisbelow(True)
+    ax2.grid(False)
 
 
-def chart_activity_by_source(df, config: ChartConfig) -> go.Figure:
-    """ax23: Grouped bar of activation rate + avg swipes by Source."""
-    data = df[df["Source"] != "Total"].copy()
-    colors = config.colors
+def chart_activity_by_source(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Grouped bar of count + activation rate by Source."""
+    buf = BytesIO()
+    with chart_figure(save_path=buf) as (fig, ax):
+        data = df[df["Source"] != "Total"].copy()
 
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Bar(
-            x=data["Source"],
-            y=data["Count"],
-            name="Count",
-            marker_color=colors[0],
-            yaxis="y",
+        bars = ax.bar(
+            data["Source"], data["Count"], color=NAVY,
+            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
+            width=0.5, label="Count",
         )
-    )
 
-    if "Activation Rate" in data.columns:
-        fig.add_trace(
-            go.Scatter(
-                x=data["Source"],
-                y=pd.to_numeric(data["Activation Rate"], errors="coerce"),
-                name="Activation Rate",
-                mode="lines+markers",
-                marker=dict(color=colors[3], size=8),
-                line=dict(color=colors[3], width=2),
-                yaxis="y2",
+        for bar, val in zip(bars, data["Count"]):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                f"{val:,}", ha="center", va="bottom",
+                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
             )
-        )
 
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Source",
-        yaxis=dict(title="Count", side="left"),
-        yaxis2=dict(
-            title="Activation Rate",
-            side="right",
-            overlaying="y",
-            range=[0, 1.1],
-            tickformat=".0%",
-        ),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
-
-
-def chart_activity_by_balance(df, config: ChartConfig) -> go.Figure:
-    """ax24: Grouped bar of count + activation rate by Balance Tier."""
-    colors = config.colors
-
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Bar(
-            x=df["Balance Tier"],
-            y=df["Count"],
-            name="Count",
-            marker_color=colors[0],
-            yaxis="y",
-        )
-    )
-
-    if "Activation Rate" in df.columns:
-        fig.add_trace(
-            go.Scatter(
-                x=df["Balance Tier"],
-                y=pd.to_numeric(df["Activation Rate"], errors="coerce"),
-                name="Activation Rate",
-                mode="lines+markers",
-                marker=dict(color=colors[2], size=8),
-                line=dict(color=colors[2], width=2),
-                yaxis="y2",
+        if "Activation Rate" in data.columns:
+            ax2 = ax.twinx()
+            rates = pd.to_numeric(data["Activation Rate"], errors="coerce")
+            ax2.plot(
+                data["Source"], rates, color=ACQUISITION,
+                marker="D", markersize=MARKER_SIZE + 2, linewidth=LINE_WIDTH,
+                label="Activation Rate", zorder=5,
             )
+            for x, y in zip(data["Source"], rates):
+                if pd.notna(y):
+                    ax2.text(x, y, f" {y:.0%}", fontsize=DATA_LABEL_SIZE - 2,
+                             color=ACQUISITION, fontweight="bold", va="bottom")
+            ax2.set_ylabel("Activation Rate")
+            ax2.set_ylim(0, 1.15)
+            ax2.yaxis.set_major_formatter(lambda x, _: f"{x:.0%}")
+            _dual_axis_setup(ax, ax2)
+            lines1, labels1 = ax.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax.legend(lines1 + lines2, labels1 + labels2, loc="upper left")
+
+        ax.set_xlabel("Source")
+        ax.set_ylabel("Account Count")
+        ax.set_title("Activity by Source")
+        ax.grid(axis="y", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
+
+    buf.seek(0)
+    return buf.read()
+
+
+def chart_activity_by_balance(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Grouped bar of count + activation rate by Balance Tier."""
+    buf = BytesIO()
+    with chart_figure(save_path=buf) as (fig, ax):
+        bars = ax.bar(
+            df["Balance Tier"], df["Count"], color=NAVY,
+            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA,
+            width=0.55, label="Count",
         )
 
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Balance Tier",
-        yaxis=dict(title="Count", side="left"),
-        yaxis2=dict(
-            title="Activation Rate",
-            side="right",
-            overlaying="y",
-            range=[0, 1.1],
-            tickformat=".0%",
-        ),
-        xaxis=dict(tickangle=-45),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+        for bar, val in zip(bars, df["Count"]):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                f"{val:,}", ha="center", va="bottom",
+                fontsize=DATA_LABEL_SIZE - 3, fontweight="bold", color=NAVY,
+            )
+
+        if "Activation Rate" in df.columns:
+            ax2 = ax.twinx()
+            rates = pd.to_numeric(df["Activation Rate"], errors="coerce")
+            ax2.plot(
+                df["Balance Tier"], rates, color=ACQUISITION,
+                marker="D", markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
+                label="Activation Rate", zorder=5,
+            )
+            ax2.set_ylabel("Activation Rate")
+            ax2.set_ylim(0, 1.15)
+            ax2.yaxis.set_major_formatter(lambda x, _: f"{x:.0%}")
+            _dual_axis_setup(ax, ax2)
+            lines1, labels1 = ax.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
+
+        ax.set_xlabel("Balance Tier")
+        ax.set_ylabel("Account Count")
+        ax.set_title("Activity by Balance Tier")
+        ax.tick_params(axis="x", rotation=-30)
+        ax.grid(axis="y", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
+
+    buf.seek(0)
+    return buf.read()
 
 
-def chart_activity_by_branch(df, config: ChartConfig) -> go.Figure:
-    """ax25: Horizontal bar of activation rate by Branch."""
-    data = df[df["Branch"] != "Total"].copy()
-    colors = config.colors
+def chart_activity_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Horizontal bar of activation rate by Branch."""
+    buf = BytesIO()
+    with chart_figure(figsize=(14, 9), save_path=buf) as (_fig, ax):
+        data = df[df["Branch"] != "Total"].copy()
+        if "Activation %" not in data.columns:
+            data["Activation %"] = 0
+        data = data.sort_values("Activation %", ascending=True)
 
-    if "Activation %" not in data.columns:
-        data["Activation %"] = 0
+        rates = pd.to_numeric(data["Activation %"], errors="coerce")
+        n = len(data)
+        colors = [ACQUISITION if r >= rates.median() else NAVY for r in rates]
 
-    data = data.sort_values("Activation %", ascending=True)
-
-    fig = go.Figure(
-        go.Bar(
-            y=data["Branch"].astype(str),
-            x=pd.to_numeric(data["Activation %"], errors="coerce"),
-            orientation="h",
-            marker_color=colors[2],
-            text=data["Activation %"].apply(
-                lambda v: f"{v:.1%}" if isinstance(v, (int, float)) else str(v)
-            ),
-            textposition="outside",
+        bars = ax.barh(
+            range(n), rates, color=colors,
+            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
         )
-    )
+        ax.set_yticks(range(n))
+        ax.set_yticklabels(data["Branch"].astype(str))
 
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Activation %",
-        xaxis=dict(tickformat=".0%"),
-        yaxis_title="Branch",
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+        for bar, val in zip(bars, rates):
+            label = f"{val:.1%}" if isinstance(val, float) else str(val)
+            ax.text(
+                bar.get_width(), bar.get_y() + bar.get_height() / 2,
+                f"  {label}", va="center", ha="left",
+                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
+            )
 
+        ax.set_xlabel("Activation Rate")
+        ax.set_title("Activation Rate by Branch")
+        ax.xaxis.set_major_formatter(lambda x, _: f"{x:.0%}")
+        ax.grid(axis="x", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
 
-def chart_monthly_trends(df, config: ChartConfig) -> go.Figure:
-    """ax26: Line chart of monthly swipes, spend, and active accounts."""
-    colors = config.colors
-
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Scatter(
-            x=df["Month"],
-            y=df["Total Swipes"],
-            name="Total Swipes",
-            mode="lines+markers",
-            marker=dict(color=colors[0], size=6),
-            line=dict(color=colors[0], width=2),
-            yaxis="y",
-        )
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=df["Month"],
-            y=df["Active Accounts"],
-            name="Active Accounts",
-            mode="lines+markers",
-            marker=dict(color=colors[2], size=6),
-            line=dict(color=colors[2], width=2),
-            yaxis="y",
-        )
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=df["Month"],
-            y=df["Total Spend"],
-            name="Total Spend",
-            mode="lines+markers",
-            marker=dict(color=colors[3], size=6),
-            line=dict(color=colors[3], width=2, dash="dash"),
-            yaxis="y2",
-        )
-    )
-
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Month",
-        yaxis=dict(title="Swipes / Active Accounts", side="left"),
-        yaxis2=dict(title="Total Spend ($)", side="right", overlaying="y"),
-        xaxis=dict(tickangle=-45),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+    buf.seek(0)
+    return buf.read()
 
 
-def chart_activity_source_comparison(df, config: ChartConfig) -> go.Figure:
-    """ax63: Grouped horizontal bars comparing DM vs Referral KPIs."""
-    # Select numeric metrics for chart (skip Total Accounts row)
-    chart_metrics = [
-        "% Active",
-        "Avg Swipes / Account",
-        "Avg Spend / Account",
-        "Avg Swipes / Active",
-        "Avg Spend / Active",
-    ]
-    data = df[df["Metric"].isin(chart_metrics)].copy()
+def chart_monthly_trends(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Multi-line of monthly swipes, active accounts, and spend."""
+    buf = BytesIO()
+    with chart_figure(figsize=(16, 8), save_path=buf) as (fig, ax):
+        x = range(len(df))
+        months = list(df["Month"])
 
-    if data.empty:
-        return go.Figure()
+        ax.plot(x, df["Total Swipes"], color=NAVY, marker="o",
+                markersize=MARKER_SIZE, linewidth=LINE_WIDTH, label="Total Swipes")
+        ax.plot(x, df["Active Accounts"], color=TEAL, marker="s",
+                markersize=MARKER_SIZE, linewidth=LINE_WIDTH, label="Active Accounts")
 
-    dm_navy = "#1B365D"
-    ref_teal = "#1ABC9C"
+        ax2 = ax.twinx()
+        ax2.plot(x, df["Total Spend"], color=SPEND, marker="^",
+                 markersize=MARKER_SIZE, linewidth=LINE_WIDTH, linestyle="--",
+                 label="Total Spend")
+        ax2.set_ylabel("Total Spend ($)")
+        ax2.yaxis.set_major_formatter(DOLLAR_FORMATTER)
+        ax2.grid(False)
 
-    fig = go.Figure()
+        ax.set_xticks(x)
+        ax.set_xticklabels(months, rotation=45, ha="right")
+        ax.set_ylabel("Swipes / Active Accounts")
+        ax.set_title("Monthly Activity Trends")
+        ax.grid(axis="y", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
 
-    fig.add_trace(
-        go.Bar(
-            y=data["Metric"],
-            x=pd.to_numeric(data["DM"], errors="coerce"),
-            name="DM",
-            orientation="h",
-            marker_color=dm_navy,
-        )
-    )
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax.legend(lines1 + lines2, labels1 + labels2, loc="upper left")
 
-    fig.add_trace(
-        go.Bar(
-            y=data["Metric"],
-            x=pd.to_numeric(data["Referral"], errors="coerce"),
-            name="Referral",
-            orientation="h",
-            marker_color=ref_teal,
-        )
-    )
-
-    fig.update_layout(
-        template=config.theme,
-        barmode="group",
-        xaxis_title="Value",
-        yaxis=dict(
-            categoryorder="array",
-            categoryarray=list(reversed(chart_metrics)),
-        ),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+    buf.seek(0)
+    return buf.read()
 
 
-def chart_monthly_interchange(df, config: ChartConfig) -> go.Figure:
-    """ax71: Line chart of monthly interchange revenue."""
-    colors = config.colors
+def chart_activity_source_comparison(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Grouped horizontal bars comparing DM vs Referral KPIs."""
+    buf = BytesIO()
+    with chart_figure(figsize=(14, 8), save_path=buf) as (_fig, ax):
+        chart_metrics = [
+            "% Active", "Avg Swipes / Account", "Avg Spend / Account",
+            "Avg Swipes / Active", "Avg Spend / Active",
+        ]
+        data = df[df["Metric"].isin(chart_metrics)].copy()
+        if data.empty:
+            ax.text(0.5, 0.5, "No comparison data", transform=ax.transAxes,
+                    ha="center", va="center", fontsize=18)
+        else:
+            y = np.arange(len(data))
+            height = 0.35
 
-    fig = go.Figure()
+            dm_vals = pd.to_numeric(data["DM"], errors="coerce")
+            ref_vals = pd.to_numeric(data["Referral"], errors="coerce")
 
-    fig.add_trace(
-        go.Bar(
-            x=df["Month"],
-            y=df["Total Spend"],
-            name="Total Spend",
-            marker_color=colors[1],
-            opacity=0.4,
-            yaxis="y",
-        )
-    )
+            ax.barh(y - height / 2, dm_vals, height, label="DM",
+                    color=NAVY, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+            ax.barh(y + height / 2, ref_vals, height, label="Referral",
+                    color=TEAL, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
 
-    fig.add_trace(
-        go.Scatter(
-            x=df["Month"],
-            y=df["Est. Interchange"],
-            name="Est. Interchange",
-            mode="lines+markers",
-            marker=dict(color=colors[0], size=8),
-            line=dict(color=colors[0], width=3),
-            yaxis="y2",
-        )
-    )
+            ax.set_yticks(y)
+            ax.set_yticklabels(list(reversed(chart_metrics)))
+            ax.set_xlabel("Value")
+            ax.set_title("DM vs Referral: Source Comparison")
+            ax.legend(loc="lower right", fontsize=14)
+            ax.grid(axis="x", alpha=0.15, linestyle="--")
+            ax.set_axisbelow(True)
 
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Month",
-        yaxis=dict(title="Total Spend ($)", side="left", tickprefix="$", tickformat=",.0f"),
-        yaxis2=dict(
-            title="Est. Interchange ($)",
-            side="right",
-            overlaying="y",
-            tickprefix="$",
-            tickformat=",.0f",
-        ),
-        xaxis=dict(tickangle=-45),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+    buf.seek(0)
+    return buf.read()
 
 
-def chart_business_vs_personal(df, config: ChartConfig) -> go.Figure:
-    """ax72: Grouped bars comparing Business vs Personal KPIs."""
-    chart_metrics = [
-        "% Active",
-        "Avg Swipes / Account",
-        "Avg Spend / Account",
-        "Avg Swipes / Active",
-        "Avg Spend / Active",
-    ]
-    data = df[df["Metric"].isin(chart_metrics)].copy()
+def chart_monthly_interchange(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Dual-axis: spend bars + interchange line."""
+    buf = BytesIO()
+    with chart_figure(figsize=(16, 8), save_path=buf) as (fig, ax):
+        x = np.arange(len(df))
+        months = list(df["Month"])
 
-    if data.empty:
-        return go.Figure()
+        ax.bar(x, df["Total Spend"], color=SPEND, alpha=0.35,
+               edgecolor="none", width=0.7, label="Total Spend")
+        ax.set_ylabel("Total Spend ($)")
+        ax.yaxis.set_major_formatter(DOLLAR_FORMATTER)
 
-    colors = config.colors
+        ax2 = ax.twinx()
+        ax2.plot(x, df["Est. Interchange"], color=INTERCHANGE,
+                 marker="o", markersize=MARKER_SIZE + 2, linewidth=LINE_WIDTH + 0.5,
+                 label="Est. Interchange", zorder=5)
+        ax2.set_ylabel("Est. Interchange ($)")
+        ax2.yaxis.set_major_formatter(DOLLAR_FORMATTER)
+        ax2.grid(False)
 
-    fig = go.Figure()
+        # Endpoint annotation
+        if len(df) > 0:
+            last_ic = df["Est. Interchange"].iloc[-1]
+            ax2.annotate(
+                f"${last_ic:,.0f}", xy=(x[-1], last_ic),
+                xytext=(10, 10), textcoords="offset points",
+                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=INTERCHANGE,
+            )
 
-    fig.add_trace(
-        go.Bar(
-            y=data["Metric"],
-            x=pd.to_numeric(data["Business"], errors="coerce"),
-            name="Business",
-            orientation="h",
-            marker_color=colors[0],
-        )
-    )
+        ax.set_xticks(x)
+        ax.set_xticklabels(months, rotation=45, ha="right")
+        ax.set_title("Monthly Interchange Trend")
+        ax.grid(axis="y", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
 
-    fig.add_trace(
-        go.Bar(
-            y=data["Metric"],
-            x=pd.to_numeric(data["Personal"], errors="coerce"),
-            name="Personal",
-            orientation="h",
-            marker_color=colors[2],
-        )
-    )
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax.legend(lines1 + lines2, labels1 + labels2, loc="upper left")
 
-    fig.update_layout(
-        template=config.theme,
-        barmode="group",
-        xaxis_title="Value",
-        yaxis=dict(
-            categoryorder="array",
-            categoryarray=list(reversed(chart_metrics)),
-        ),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+    buf.seek(0)
+    return buf.read()
+
+
+def chart_business_vs_personal(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Grouped bars comparing Business vs Personal KPIs."""
+    buf = BytesIO()
+    with chart_figure(figsize=(14, 8), save_path=buf) as (_fig, ax):
+        chart_metrics = [
+            "% Active", "Avg Swipes / Account", "Avg Spend / Account",
+            "Avg Swipes / Active", "Avg Spend / Active",
+        ]
+        data = df[df["Metric"].isin(chart_metrics)].copy()
+        if data.empty:
+            ax.text(0.5, 0.5, "No comparison data", transform=ax.transAxes,
+                    ha="center", va="center", fontsize=18)
+        else:
+            y = np.arange(len(data))
+            height = 0.35
+
+            biz_vals = pd.to_numeric(data["Business"], errors="coerce")
+            per_vals = pd.to_numeric(data["Personal"], errors="coerce")
+
+            ax.barh(y - height / 2, biz_vals, height, label="Business",
+                    color=NAVY, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+            ax.barh(y + height / 2, per_vals, height, label="Personal",
+                    color=TEAL, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+
+            ax.set_yticks(y)
+            ax.set_yticklabels(list(reversed(chart_metrics)))
+            ax.set_xlabel("Value")
+            ax.set_title("Business vs Personal Accounts")
+            ax.legend(loc="lower right", fontsize=14)
+            ax.grid(axis="x", alpha=0.15, linestyle="--")
+            ax.set_axisbelow(True)
+
+    buf.seek(0)
+    return buf.read()

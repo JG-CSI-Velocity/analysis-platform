@@ -14,7 +14,7 @@ class TestPipelineResult:
             df=pd.DataFrame(),
         )
         assert result.analyses == []
-        assert result.charts == {}
+        assert result.chart_pngs == {}
 
     def test_stores_data(self, sample_settings, sample_df):
         result = PipelineResult(
@@ -46,10 +46,10 @@ class TestRunPipeline:
         run_pipeline(sample_settings, on_progress=track)
         assert len(calls) >= 4
 
-    def test_charts_created(self, sample_settings):
+    def test_chart_pngs_created(self, sample_settings):
         result = run_pipeline(sample_settings)
-        # At least some charts should be created
-        assert isinstance(result.charts, dict)
+        # At least some chart PNGs should be created
+        assert isinstance(result.chart_pngs, dict)
 
 
 class TestExportOutputs:

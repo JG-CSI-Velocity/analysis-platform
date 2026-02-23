@@ -2,9 +2,6 @@
 
 import logging
 from collections.abc import Callable
-from pathlib import Path
-
-import plotly.graph_objects as go
 
 from ics_toolkit.analysis.analyses.base import AnalysisResult
 from ics_toolkit.analysis.charts.activity import (
@@ -65,7 +62,6 @@ from ics_toolkit.analysis.charts.portfolio import (
     chart_net_growth_by_source,
     chart_net_portfolio_growth,
 )
-from ics_toolkit.analysis.charts.renderer import render_all_chart_pngs as render_all_chart_pngs
 from ics_toolkit.analysis.charts.source import (
     chart_account_type,
     chart_source_acquisition_mix,
@@ -95,8 +91,8 @@ from ics_toolkit.settings import AnalysisSettings as Settings
 logger = logging.getLogger(__name__)
 
 # Maps analysis name -> chart builder function.
-# Signature: (df: pd.DataFrame, config: ChartConfig) -> go.Figure
-CHART_REGISTRY: dict[str, Callable] = {
+# Signature: (df: pd.DataFrame, config: ChartConfig) -> bytes (PNG)
+CHART_REGISTRY: dict[str, Callable[..., bytes]] = {
     # Summary
     "Total ICS Accounts": chart_total_ics,
     "ICS by Stat Code": chart_stat_code,
@@ -180,12 +176,13 @@ CHART_REGISTRY: dict[str, Callable] = {
 def create_charts(
     analyses: list[AnalysisResult],
     settings: Settings,
-) -> dict[str, go.Figure]:
-    """Build Plotly figures for all successful analyses."""
-    charts = {}
+) -> dict[str, bytes]:
+    """Render charts to PNG bytes for all successful analyses."""
+    chart_pngs: dict[str, bytes] = {}
     config = settings.charts
+    total = len(analyses)
 
-    for analysis in analyses:
+    for i, analysis in enumerate(analyses, start=1):
         if analysis.error is not None or analysis.df.empty:
             continue
 
@@ -195,42 +192,10 @@ def create_charts(
             continue
 
         try:
-            fig = builder(analysis.df, config)
-            fig.update_layout(title_text=analysis.title)
-            # Hide legend for single-trace charts (Pie handles its own labels)
-            if len(fig.data) == 1 and not isinstance(fig.data[0], go.Pie):
-                fig.update_layout(showlegend=False)
-            charts[analysis.name] = fig
+            png_bytes = builder(analysis.df, config)
+            chart_pngs[analysis.name] = png_bytes
+            logger.info("  Chart [%d/%d] %s", i, total, analysis.name)
         except Exception as e:
             logger.warning("Chart for '%s' failed: %s", analysis.name, e)
 
-    return charts
-
-
-def save_charts_html(
-    charts: dict[str, go.Figure],
-    output_dir: Path,
-) -> list[Path]:
-    """Save all charts as standalone interactive HTML files.
-
-    Returns list of generated file paths.
-    """
-    if not charts:
-        return []
-
-    charts_dir = output_dir / "charts"
-    charts_dir.mkdir(parents=True, exist_ok=True)
-    paths: list[Path] = []
-    total = len(charts)
-
-    for i, (name, fig) in enumerate(charts.items(), start=1):
-        try:
-            safe_name = name.replace(" ", "_").replace("/", "_").replace("+", "")
-            path = charts_dir / f"{safe_name}.html"
-            fig.write_html(str(path), include_plotlyjs="cdn")
-            paths.append(path)
-            logger.info("  Chart [%d/%d] %s", i, total, name)
-        except Exception as e:
-            logger.warning("  Chart HTML for '%s' failed: %s", name, e)
-
-    return paths
+    return chart_pngs

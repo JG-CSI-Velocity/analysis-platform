@@ -1,10 +1,11 @@
 # Analysis Platform -- Claude Code Instructions
 
-## Current State (2026-02-20)
+## Current State (2026-02-23)
 
-**Monorepo health:** CI green, 2,358 tests, 94% coverage, 0 open PRs, 0 open issues.
+**Monorepo health:** CI green, 2,536 tests, 94% coverage, 0 open PRs, 0 open issues.
 
 ### Recent milestones
+- **ICS chart overhaul**: Rewrote all 58 ICS chart functions from Plotly->matplotlib converter to direct matplotlib rendering with professional styling, semantic colors, and business-priority color system
 - **PR #21**: CLI E2E tests -- 14 integration tests exercising all 3 pipeline CLIs with synthetic data
 - **PR #20**: Synthetic E2E data fixtures + pipeline validation (TXN 35/35, ICS 80/80, ARS 20/20)
 - **PR #19**: Unified AnalysisResult (4 definitions -> 1 canonical in shared.types), deduplicated helpers
@@ -33,7 +34,7 @@ analysis_platform/
     shared/           Shared types, context, config, helpers (81 tests)
     ars_analysis/     ARS pipeline (70+ analyses, PPTX deck, 545 tests)
     txn_analysis/     Transaction pipeline (35 analyses: M1-M14 + scorecard, 597 tests)
-    ics_toolkit/      ICS pipeline (37 analyses + append + referral, 1049 tests)
+    ics_toolkit/      ICS pipeline (37 analyses + append + referral, 1013 tests)
     platform_app/     Orchestrator, CLI, Streamlit UI (60 tests)
   tests/
     ars/              ARS tests (545)

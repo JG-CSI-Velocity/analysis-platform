@@ -1,11 +1,9 @@
-"""Tests for persona chart builders (ax55-ax62)."""
+"""Tests for persona chart builders."""
 
 import pandas as pd
-import plotly.graph_objects as go
 import pytest
 
 from ics_toolkit.analysis.charts.persona import (
-    PERSONA_ORDER,
     chart_persona_by_branch,
     chart_persona_by_source,
     chart_persona_cohort_trend,
@@ -13,11 +11,13 @@ from ics_toolkit.analysis.charts.persona import (
     chart_persona_map,
     chart_persona_revenue,
 )
+from ics_toolkit.analysis.charts.style import PERSONA_ORDER
+
+PNG_HEADER = b"\x89PNG\r\n\x1a\n"
 
 
 @pytest.fixture
 def persona_overview_df():
-    """Sample persona overview data for bubble chart."""
     return pd.DataFrame(
         {
             "Persona": PERSONA_ORDER,
@@ -35,7 +35,6 @@ def persona_overview_df():
 
 @pytest.fixture
 def persona_contrib_df():
-    """Sample contribution data."""
     return pd.DataFrame(
         {
             "Persona": PERSONA_ORDER,
@@ -50,7 +49,6 @@ def persona_contrib_df():
 
 @pytest.fixture
 def persona_branch_df():
-    """Sample persona by branch pivot."""
     return pd.DataFrame(
         {
             "Branch": ["Main", "North", "South", "Total"],
@@ -66,7 +64,6 @@ def persona_branch_df():
 
 @pytest.fixture
 def persona_source_df():
-    """Sample persona by source pivot."""
     return pd.DataFrame(
         {
             "Source": ["DM", "REF", "Web", "Total"],
@@ -82,7 +79,6 @@ def persona_source_df():
 
 @pytest.fixture
 def persona_revenue_df():
-    """Sample revenue KPI data."""
     return pd.DataFrame(
         {
             "Metric": [
@@ -102,7 +98,6 @@ def persona_revenue_df():
 
 @pytest.fixture
 def persona_cohort_df():
-    """Sample cohort trend data."""
     return pd.DataFrame(
         {
             "Opening Month": ["2025-02", "2025-03", "2025-04"],
@@ -116,93 +111,42 @@ def persona_cohort_df():
 
 
 class TestChartPersonaMap:
-    """ax55: Bubble scatter quadrant."""
-
-    def test_returns_figure(self, persona_overview_df, chart_config):
-        fig = chart_persona_map(persona_overview_df, chart_config)
-        assert isinstance(fig, go.Figure)
-
-    def test_has_traces_for_personas(self, persona_overview_df, chart_config):
-        fig = chart_persona_map(persona_overview_df, chart_config)
-        assert len(fig.data) == 4
-
-    def test_scatter_mode(self, persona_overview_df, chart_config):
-        fig = chart_persona_map(persona_overview_df, chart_config)
-        for trace in fig.data:
-            assert trace.mode == "markers+text"
+    def test_returns_png_bytes(self, persona_overview_df, chart_config):
+        result = chart_persona_map(persona_overview_df, chart_config)
+        assert isinstance(result, bytes)
+        assert result[:8] == PNG_HEADER
 
 
 class TestChartPersonaContribution:
-    """ax56: Grouped horizontal bars."""
-
-    def test_returns_figure(self, persona_contrib_df, chart_config):
-        fig = chart_persona_contribution(persona_contrib_df, chart_config)
-        assert isinstance(fig, go.Figure)
-
-    def test_has_two_bar_groups(self, persona_contrib_df, chart_config):
-        fig = chart_persona_contribution(persona_contrib_df, chart_config)
-        assert len(fig.data) == 2
-
-    def test_grouped_layout(self, persona_contrib_df, chart_config):
-        fig = chart_persona_contribution(persona_contrib_df, chart_config)
-        assert fig.layout.barmode == "group"
+    def test_returns_png_bytes(self, persona_contrib_df, chart_config):
+        result = chart_persona_contribution(persona_contrib_df, chart_config)
+        assert isinstance(result, bytes)
+        assert result[:8] == PNG_HEADER
 
 
 class TestChartPersonaByBranch:
-    """ax57: Stacked 100% bar per branch."""
-
-    def test_returns_figure(self, persona_branch_df, chart_config):
-        fig = chart_persona_by_branch(persona_branch_df, chart_config)
-        assert isinstance(fig, go.Figure)
-
-    def test_stacked_layout(self, persona_branch_df, chart_config):
-        fig = chart_persona_by_branch(persona_branch_df, chart_config)
-        assert fig.layout.barmode == "stack"
-
-    def test_excludes_total_row(self, persona_branch_df, chart_config):
-        fig = chart_persona_by_branch(persona_branch_df, chart_config)
-        # Total row should be excluded; only Main, North, South
-        if fig.data:
-            x_vals = list(fig.data[0].x)
-            assert "Total" not in x_vals
+    def test_returns_png_bytes(self, persona_branch_df, chart_config):
+        result = chart_persona_by_branch(persona_branch_df, chart_config)
+        assert isinstance(result, bytes)
+        assert result[:8] == PNG_HEADER
 
 
 class TestChartPersonaBySource:
-    """ax58: Stacked 100% bar per source."""
-
-    def test_returns_figure(self, persona_source_df, chart_config):
-        fig = chart_persona_by_source(persona_source_df, chart_config)
-        assert isinstance(fig, go.Figure)
-
-    def test_stacked_layout(self, persona_source_df, chart_config):
-        fig = chart_persona_by_source(persona_source_df, chart_config)
-        assert fig.layout.barmode == "stack"
+    def test_returns_png_bytes(self, persona_source_df, chart_config):
+        result = chart_persona_by_source(persona_source_df, chart_config)
+        assert isinstance(result, bytes)
+        assert result[:8] == PNG_HEADER
 
 
 class TestChartPersonaRevenue:
-    """ax59: Horizontal bar of interchange."""
-
-    def test_returns_figure(self, persona_revenue_df, chart_config):
-        fig = chart_persona_revenue(persona_revenue_df, chart_config)
-        assert isinstance(fig, go.Figure)
-
-    def test_has_bars(self, persona_revenue_df, chart_config):
-        fig = chart_persona_revenue(persona_revenue_df, chart_config)
-        assert len(fig.data) >= 1
+    def test_returns_png_bytes(self, persona_revenue_df, chart_config):
+        result = chart_persona_revenue(persona_revenue_df, chart_config)
+        assert isinstance(result, bytes)
+        assert result[:8] == PNG_HEADER
 
 
 class TestChartPersonaCohortTrend:
-    """ax62: Stacked area of persona % over cohorts."""
-
-    def test_returns_figure(self, persona_cohort_df, chart_config):
-        fig = chart_persona_cohort_trend(persona_cohort_df, chart_config)
-        assert isinstance(fig, go.Figure)
-
-    def test_has_four_traces(self, persona_cohort_df, chart_config):
-        fig = chart_persona_cohort_trend(persona_cohort_df, chart_config)
-        assert len(fig.data) == 4
-
-    def test_stacked_mode(self, persona_cohort_df, chart_config):
-        fig = chart_persona_cohort_trend(persona_cohort_df, chart_config)
-        for trace in fig.data:
-            assert trace.stackgroup == "one"
+    def test_returns_png_bytes(self, persona_cohort_df, chart_config):
+        result = chart_persona_cohort_trend(persona_cohort_df, chart_config)
+        assert isinstance(result, bytes)
+        assert result[:8] == PNG_HEADER

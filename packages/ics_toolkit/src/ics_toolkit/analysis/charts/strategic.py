@@ -1,121 +1,175 @@
 """Charts for strategic analyses: Activation Funnel and Revenue Impact."""
 
-import plotly.graph_objects as go
+from io import BytesIO
 
+import numpy as np
+import pandas as pd
+
+from ics_toolkit.analysis.charts.guards import chart_figure
+from ics_toolkit.analysis.charts.style import (
+    ACQUISITION,
+    BAR_ALPHA,
+    BAR_EDGE,
+    BAR_EDGE_WIDTH,
+    DATA_LABEL_SIZE,
+    DOLLAR_FORMATTER,
+    INTERCHANGE,
+    NAVY,
+    SPEND,
+    TEAL,
+    VALUE,
+)
 from ics_toolkit.settings import ChartConfig
 
-LAYOUT_DEFAULTS = dict(
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    margin=dict(t=60, b=40),
-)
 
+def chart_activation_funnel(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Horizontal funnel showing account activation pipeline."""
+    buf = BytesIO()
+    with chart_figure(figsize=(14, 8), save_path=buf) as (_fig, ax):
+        stages = list(df["Stage"])
+        counts = list(df["Count"])
+        total = counts[0] if counts else 1
 
-def chart_activation_funnel(df, config: ChartConfig) -> go.Figure:
-    """Funnel chart showing account activation pipeline."""
-    fig = go.Figure(
-        go.Funnel(
-            y=df["Stage"],
-            x=df["Count"],
-            textinfo="value+percent initial",
-            marker=dict(color=config.colors[: len(df)]),
+        # Gradient from strong to muted as funnel narrows
+        n = len(stages)
+        colors = []
+        for i in range(n):
+            frac = 1.0 - (i / max(n - 1, 1)) * 0.6
+            r, g, b = int(0x1B * frac + 0xFF * (1 - frac)), int(0x36 * frac + 0xFF * (1 - frac)), int(0x5D * frac + 0xFF * (1 - frac))
+            colors.append(f"#{r:02X}{g:02X}{b:02X}")
+
+        bars = ax.barh(
+            range(n), counts, color=colors, edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, height=0.65,
         )
-    )
 
-    fig.update_layout(
-        template=config.theme,
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+        ax.set_yticks(range(n))
+        ax.set_yticklabels(stages)
+        ax.invert_yaxis()
+
+        for i, (bar, val) in enumerate(zip(bars, counts)):
+            pct = val / total * 100 if total > 0 else 0
+            label = f"{val:,}  ({pct:.0f}%)" if i > 0 else f"{val:,}"
+            ax.text(
+                bar.get_width(), bar.get_y() + bar.get_height() / 2,
+                f"  {label}", va="center", ha="left",
+                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+            )
+
+        ax.set_xlabel("Accounts")
+        ax.set_title("Activation Funnel")
+        ax.xaxis.set_major_formatter(lambda x, _: f"{x:,.0f}")
+        ax.grid(axis="x", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
+        ax.spines["left"].set_visible(False)
+
+    buf.seek(0)
+    return buf.read()
 
 
-def chart_revenue_impact(df, config: ChartConfig) -> go.Figure:
+def chart_revenue_impact(df: pd.DataFrame, config: ChartConfig) -> bytes:
     """Bar chart of key revenue KPIs."""
-    colors = config.colors
+    buf = BytesIO()
+    with chart_figure(figsize=(14, 8), save_path=buf) as (_fig, ax):
+        revenue_metrics = []
+        for _, row in df.iterrows():
+            metric = str(row["Metric"])
+            value = row["Value"]
+            if "Count" not in metric and isinstance(value, (int, float)):
+                revenue_metrics.append((metric, float(value)))
 
-    # Extract numeric metrics (skip count)
-    revenue_metrics = []
-    for _, row in df.iterrows():
-        metric = str(row["Metric"])
-        value = row["Value"]
-        if "Count" not in metric and isinstance(value, (int, float)):
-            revenue_metrics.append((metric, float(value)))
+        if not revenue_metrics:
+            ax.text(0.5, 0.5, "No revenue data available",
+                    transform=ax.transAxes, ha="center", va="center", fontsize=18)
+        else:
+            labels = [m[0] for m in revenue_metrics]
+            values = [m[1] for m in revenue_metrics]
 
-    if not revenue_metrics:
-        fig = go.Figure()
-        fig.add_annotation(text="No revenue data available", showarrow=False)
-        return fig
+            colors = [INTERCHANGE, VALUE, SPEND, TEAL, ACQUISITION][:len(values)]
+            bars = ax.bar(
+                labels, values, color=colors, edgecolor=BAR_EDGE,
+                linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.55,
+            )
 
-    labels = [m[0] for m in revenue_metrics]
-    values = [m[1] for m in revenue_metrics]
+            for bar, val in zip(bars, values):
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                    f"${val:,.0f}", ha="center", va="bottom",
+                    fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+                )
 
-    fig = go.Figure(
-        go.Bar(
-            x=labels,
-            y=values,
-            marker_color=colors[: len(values)],
-            text=[f"${v:,.0f}" for v in values],
-            textposition="outside",
+            ax.set_ylabel("USD ($)")
+            ax.set_title("Revenue Impact")
+            ax.yaxis.set_major_formatter(DOLLAR_FORMATTER)
+            ax.grid(axis="y", alpha=0.15, linestyle="--")
+            ax.set_axisbelow(True)
+            ax.tick_params(axis="x", rotation=-15)
+
+    buf.seek(0)
+    return buf.read()
+
+
+def chart_revenue_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Horizontal bar chart of interchange by branch."""
+    buf = BytesIO()
+    with chart_figure(figsize=(14, 9), save_path=buf) as (_fig, ax):
+        data = df[df["Branch"] != "Total"].copy() if "Branch" in df.columns else df
+        data = data.sort_values("Est. Interchange", ascending=True)
+
+        n = len(data)
+        # Color gradient: lighter for low, darker for high
+        base = np.array([0x1B, 0x36, 0x5D]) / 255
+        colors = [(*base, 0.4 + 0.6 * i / max(n - 1, 1)) for i in range(n)]
+
+        bars = ax.barh(
+            range(n), data["Est. Interchange"], color=colors,
+            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
         )
-    )
+        ax.set_yticks(range(n))
+        ax.set_yticklabels(data["Branch"].astype(str))
 
-    fig.update_layout(
-        template=config.theme,
-        yaxis_title="USD",
-        yaxis=dict(tickprefix="$", tickformat=",.0f"),
-        xaxis=dict(tickangle=-25),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+        for bar, val in zip(bars, data["Est. Interchange"]):
+            ax.text(
+                bar.get_width(), bar.get_y() + bar.get_height() / 2,
+                f"  ${val:,.0f}", va="center", ha="left",
+                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
+            )
+
+        ax.set_xlabel("Estimated Interchange ($)")
+        ax.set_title("Revenue by Branch")
+        ax.xaxis.set_major_formatter(DOLLAR_FORMATTER)
+        ax.grid(axis="x", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
+
+    buf.seek(0)
+    return buf.read()
 
 
-def chart_revenue_by_branch(df, config: ChartConfig) -> go.Figure:
-    """ax65: Horizontal bar chart of interchange by branch."""
-    data = df[df["Branch"] != "Total"].copy() if "Branch" in df.columns else df
-    colors = config.colors
+def chart_revenue_by_source(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Bar chart of interchange by source channel."""
+    buf = BytesIO()
+    with chart_figure(figsize=(12, 8), save_path=buf) as (_fig, ax):
+        data = df[df["Source"] != "Total"].copy() if "Source" in df.columns else df
+        colors = [NAVY, TEAL, ACQUISITION, SPEND][:len(data)]
 
-    data = data.sort_values("Est. Interchange", ascending=True)
-
-    fig = go.Figure(
-        go.Bar(
-            y=data["Branch"].astype(str),
-            x=data["Est. Interchange"],
-            orientation="h",
-            marker_color=colors[0],
-            text=data["Est. Interchange"].apply(lambda v: f"${v:,.0f}"),
-            textposition="outside",
+        bars = ax.bar(
+            data["Source"], data["Est. Interchange"], color=colors,
+            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.5,
         )
-    )
 
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Estimated Interchange ($)",
-        xaxis=dict(tickprefix="$", tickformat=",.0f"),
-        yaxis_title="Branch",
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+        for bar, val in zip(bars, data["Est. Interchange"]):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                f"${val:,.0f}", ha="center", va="bottom",
+                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
+            )
 
+        ax.set_xlabel("Source")
+        ax.set_ylabel("Estimated Interchange ($)")
+        ax.set_title("Revenue by Source Channel")
+        ax.yaxis.set_major_formatter(DOLLAR_FORMATTER)
+        ax.grid(axis="y", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
 
-def chart_revenue_by_source(df, config: ChartConfig) -> go.Figure:
-    """ax66: Bar chart of interchange by source channel."""
-    data = df[df["Source"] != "Total"].copy() if "Source" in df.columns else df
-    colors = config.colors
-
-    fig = go.Figure(
-        go.Bar(
-            x=data["Source"],
-            y=data["Est. Interchange"],
-            marker_color=colors[: len(data)],
-            text=data["Est. Interchange"].apply(lambda v: f"${v:,.0f}"),
-            textposition="outside",
-        )
-    )
-
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Source",
-        yaxis_title="Estimated Interchange ($)",
-        yaxis=dict(tickprefix="$", tickformat=",.0f"),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+    buf.seek(0)
+    return buf.read()

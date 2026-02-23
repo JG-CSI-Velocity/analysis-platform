@@ -1,217 +1,272 @@
-"""Charts for summary analyses (ax01-ax07, ax64)."""
+"""Charts for summary analyses -- ICS overview, stat codes, products, debit, penetration."""
 
+from io import BytesIO
+
+import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 
+from ics_toolkit.analysis.charts.guards import chart_figure
+from ics_toolkit.analysis.charts.style import (
+    ACQUISITION,
+    BAR_ALPHA,
+    BAR_EDGE,
+    BAR_EDGE_WIDTH,
+    DATA_LABEL_SIZE,
+    LINE_WIDTH,
+    MARKER_SIZE,
+    NAVY,
+    TEAL,
+)
 from ics_toolkit.settings import ChartConfig
 
-LAYOUT_DEFAULTS = dict(
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    margin=dict(t=60, b=40),
-)
 
+def chart_total_ics(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Donut chart of ICS vs Non-ICS accounts."""
+    buf = BytesIO()
+    with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
+        data = df[df["Category"] != "Total Accounts"].copy()
+        colors = [NAVY, TEAL][:len(data)]
 
-def chart_total_ics(df, config: ChartConfig) -> go.Figure:
-    """ax01: Pie chart of ICS vs Non-ICS accounts."""
-    data = df[df["Category"] != "Total Accounts"].copy()
-    colors = config.colors
-
-    fig = go.Figure(
-        go.Pie(
-            labels=data["Category"],
-            values=data["Count"],
-            marker=dict(colors=colors[: len(data)]),
-            textinfo="label+percent+value",
-            hole=0.35,
+        wedges, _, autotexts = ax.pie(
+            data["Count"], colors=colors,
+            autopct=lambda pct: f"{pct:.1f}%",
+            startangle=90, pctdistance=0.78,
+            wedgeprops={"edgecolor": "white", "linewidth": 2},
         )
-    )
-
-    fig.update_layout(template=config.theme, **LAYOUT_DEFAULTS)
-    return fig
-
-
-def chart_stat_code(df, config: ChartConfig) -> go.Figure:
-    """ax03: Bar chart of ICS accounts by Stat Code."""
-    data = df[df["Stat Code"] != "Total"].copy()
-    colors = config.colors
-
-    fig = go.Figure(
-        go.Bar(
-            x=data["Stat Code"],
-            y=data["Count"],
-            marker_color=colors[0],
-            text=data["Count"],
-            textposition="outside",
+        centre = __import__("matplotlib.patches", fromlist=["Circle"]).Circle(
+            (0, 0), 0.35, fc="white"
         )
-    )
+        ax.add_patch(centre)
 
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Stat Code",
-        yaxis_title="Count",
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+        for t in autotexts:
+            t.set_fontsize(14)
+            t.set_fontweight("bold")
+
+        legend_labels = [
+            f"{cat}  ({count:,})"
+            for cat, count in zip(data["Category"], data["Count"])
+        ]
+        ax.legend(wedges, legend_labels, loc="center left",
+                  bbox_to_anchor=(0.85, 0.5), fontsize=13, frameon=False)
+
+        ax.set_title("Total ICS Accounts", fontsize=22, fontweight="bold", pad=20)
+        ax.set_aspect("equal")
+
+    buf.seek(0)
+    return buf.read()
 
 
-def chart_prod_code(df, config: ChartConfig) -> go.Figure:
-    """ax04: Horizontal bar of ICS accounts by Product Code."""
-    data = df[df["Prod Code"] != "Total"].copy()
-    colors = config.colors
+def chart_stat_code(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Bar chart of ICS accounts by Stat Code."""
+    buf = BytesIO()
+    with chart_figure(figsize=(12, 8), save_path=buf) as (_fig, ax):
+        data = df[df["Stat Code"] != "Total"].copy()
 
-    fig = go.Figure(
-        go.Bar(
-            y=data["Prod Code"],
-            x=data["Account Count"],
-            orientation="h",
-            marker_color=colors[1],
-            text=data["Account Count"],
-            textposition="outside",
+        bars = ax.bar(
+            data["Stat Code"], data["Count"], color=NAVY,
+            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=BAR_ALPHA, width=0.5,
         )
-    )
 
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Account Count",
-        yaxis_title="Product Code",
-        yaxis=dict(autorange="reversed"),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
-
-
-def chart_debit_dist(df, config: ChartConfig) -> go.Figure:
-    """ax05: Pie chart of Debit Card distribution."""
-    data = df[df["Debit?"] != "Total"].copy()
-    colors = config.colors
-
-    fig = go.Figure(
-        go.Pie(
-            labels=data["Debit?"],
-            values=data["Count"],
-            marker=dict(colors=[colors[2], colors[4]]),
-            textinfo="label+percent+value",
-            hole=0.35,
-        )
-    )
-
-    fig.update_layout(template=config.theme, **LAYOUT_DEFAULTS)
-    return fig
-
-
-def chart_debit_by_prod(df, config: ChartConfig) -> go.Figure:
-    """ax06: Grouped bar of Debit by Product Code."""
-    data = df[df["Prod Code"] != "Total"].copy()
-    colors = config.colors
-
-    fig = go.Figure()
-
-    if "Yes" in data.columns:
-        fig.add_trace(
-            go.Bar(
-                x=data["Prod Code"],
-                y=data["Yes"],
-                name="Debit Yes",
-                marker_color=colors[2],
+        for bar, val in zip(bars, data["Count"]):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                f"{val:,}", ha="center", va="bottom",
+                fontsize=DATA_LABEL_SIZE, fontweight="bold", color=NAVY,
             )
-        )
 
-    if "No" in data.columns:
-        fig.add_trace(
-            go.Bar(
-                x=data["Prod Code"],
-                y=data["No"],
-                name="Debit No",
-                marker_color=colors[4],
+        ax.set_xlabel("Stat Code")
+        ax.set_ylabel("Account Count")
+        ax.set_title("ICS Accounts by Stat Code")
+        ax.grid(axis="y", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
+
+    buf.seek(0)
+    return buf.read()
+
+
+def chart_prod_code(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Horizontal bar of ICS accounts by Product Code."""
+    buf = BytesIO()
+    with chart_figure(figsize=(14, 9), save_path=buf) as (_fig, ax):
+        data = df[df["Prod Code"] != "Total"].copy()
+        data = data.sort_values("Account Count", ascending=True)
+        n = len(data)
+
+        base = np.array([0x1B, 0x36, 0x5D]) / 255
+        colors = [(*base, 0.4 + 0.6 * i / max(n - 1, 1)) for i in range(n)]
+
+        bars = ax.barh(
+            range(n), data["Account Count"], color=colors,
+            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
+        )
+        ax.set_yticks(range(n))
+        ax.set_yticklabels(data["Prod Code"])
+
+        for bar, val in zip(bars, data["Account Count"]):
+            ax.text(
+                bar.get_width(), bar.get_y() + bar.get_height() / 2,
+                f"  {val:,}", va="center", ha="left",
+                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold", color=NAVY,
             )
-        )
 
-    if "% with Debit" in data.columns:
-        fig.add_trace(
-            go.Scatter(
-                x=data["Prod Code"],
-                y=data["% with Debit"],
-                name="% with Debit",
-                mode="lines+markers",
-                marker=dict(color=colors[3], size=8),
-                line=dict(color=colors[3], width=2),
-                yaxis="y2",
+        ax.set_xlabel("Account Count")
+        ax.set_title("ICS Accounts by Product Code")
+        ax.grid(axis="x", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
+
+    buf.seek(0)
+    return buf.read()
+
+
+def chart_debit_dist(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Donut chart of Debit Card distribution."""
+    buf = BytesIO()
+    with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
+        data = df[df["Debit?"] != "Total"].copy()
+        colors = [ACQUISITION, "#E74C3C"][:len(data)]
+
+        wedges, _, autotexts = ax.pie(
+            data["Count"], colors=colors,
+            autopct=lambda pct: f"{pct:.1f}%",
+            startangle=90, pctdistance=0.78,
+            wedgeprops={"edgecolor": "white", "linewidth": 2},
+        )
+        centre = __import__("matplotlib.patches", fromlist=["Circle"]).Circle(
+            (0, 0), 0.35, fc="white"
+        )
+        ax.add_patch(centre)
+
+        for t in autotexts:
+            t.set_fontsize(14)
+            t.set_fontweight("bold")
+
+        legend_labels = [
+            f"{lbl}  ({val:,})" for lbl, val in zip(data["Debit?"], data["Count"])
+        ]
+        ax.legend(wedges, legend_labels, loc="center left",
+                  bbox_to_anchor=(0.85, 0.5), fontsize=13, frameon=False)
+
+        ax.set_title("Debit Card Distribution", fontsize=22, fontweight="bold", pad=20)
+        ax.set_aspect("equal")
+
+    buf.seek(0)
+    return buf.read()
+
+
+def chart_debit_by_prod(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Grouped bar of Debit Yes/No by Product Code with % line."""
+    buf = BytesIO()
+    with chart_figure(save_path=buf) as (fig, ax):
+        data = df[df["Prod Code"] != "Total"].copy()
+        x = np.arange(len(data))
+        width = 0.3
+
+        if "Yes" in data.columns:
+            ax.bar(x - width / 2, data["Yes"], width, label="Debit Yes",
+                   color=ACQUISITION, edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH)
+        if "No" in data.columns:
+            ax.bar(x + width / 2, data["No"], width, label="Debit No",
+                   color="#E74C3C", edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, alpha=0.7)
+
+        if "% with Debit" in data.columns:
+            ax2 = ax.twinx()
+            ax2.plot(x, data["% with Debit"], color=NAVY,
+                     marker="D", markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
+                     label="% with Debit", zorder=5)
+            ax2.set_ylabel("% with Debit")
+            ax2.set_ylim(0, 1.15)
+            ax2.yaxis.set_major_formatter(lambda x, _: f"{x:.0%}")
+            ax2.grid(False)
+            lines1, labels1 = ax.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(data["Prod Code"])
+        ax.set_xlabel("Product Code")
+        ax.set_ylabel("Count")
+        ax.set_title("Debit Distribution by Product Code")
+        ax.grid(axis="y", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
+
+    buf.seek(0)
+    return buf.read()
+
+
+def chart_debit_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Horizontal bar of Debit rate by Branch."""
+    buf = BytesIO()
+    with chart_figure(figsize=(14, 9), save_path=buf) as (_fig, ax):
+        data = df[df["Branch"] != "Total"].copy()
+        if "% with Debit" not in data.columns:
+            data["% with Debit"] = 0
+        data = data.sort_values("% with Debit", ascending=True)
+
+        n = len(data)
+        rates = data["% with Debit"]
+        med = rates.median()
+        colors = [ACQUISITION if r >= med else NAVY for r in rates]
+
+        bars = ax.barh(
+            range(n), rates, color=colors,
+            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
+        )
+        ax.set_yticks(range(n))
+        ax.set_yticklabels(data["Branch"].astype(str))
+
+        for bar, val in zip(bars, rates):
+            label = f"{val:.1%}" if isinstance(val, float) else str(val)
+            ax.text(
+                bar.get_width(), bar.get_y() + bar.get_height() / 2,
+                f"  {label}", va="center", ha="left",
+                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
             )
+
+        ax.set_xlabel("% with Debit Card")
+        ax.set_title("Debit Rate by Branch")
+        ax.xaxis.set_major_formatter(lambda x, _: f"{x:.0%}")
+        ax.grid(axis="x", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
+
+    buf.seek(0)
+    return buf.read()
+
+
+def chart_penetration_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
+    """Horizontal bar chart of ICS penetration rate by branch."""
+    buf = BytesIO()
+    with chart_figure(figsize=(14, 9), save_path=buf) as (_fig, ax):
+        data = df[df["Branch"] != "Total"].copy() if "Branch" in df.columns else df
+        data["Penetration %"] = pd.to_numeric(data["Penetration %"], errors="coerce")
+        data = data.sort_values("Penetration %", ascending=True)
+
+        n = len(data)
+        med = data["Penetration %"].median()
+        colors = [TEAL if r >= med else NAVY for r in data["Penetration %"]]
+
+        bars = ax.barh(
+            range(n), data["Penetration %"], color=colors,
+            edgecolor=BAR_EDGE, linewidth=BAR_EDGE_WIDTH, height=0.65,
         )
+        ax.set_yticks(range(n))
+        ax.set_yticklabels(data["Branch"].astype(str))
 
-    fig.update_layout(
-        template=config.theme,
-        barmode="group",
-        xaxis_title="Product Code",
-        yaxis=dict(title="Count", side="left"),
-        yaxis2=dict(
-            title="% with Debit",
-            side="right",
-            overlaying="y",
-            range=[0, 1.1],
-            tickformat=".0%",
-        ),
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+        for bar, val in zip(bars, data["Penetration %"]):
+            ax.text(
+                bar.get_width(), bar.get_y() + bar.get_height() / 2,
+                f"  {val:.1f}%", va="center", ha="left",
+                fontsize=DATA_LABEL_SIZE - 2, fontweight="bold",
+            )
 
+        # Median line
+        ax.axvline(med, color="#E74C3C", linestyle="--", linewidth=1.5, alpha=0.6)
+        ax.text(med, n - 0.5, f" Median: {med:.1f}%",
+                fontsize=12, color="#E74C3C", va="bottom")
 
-def chart_debit_by_branch(df, config: ChartConfig) -> go.Figure:
-    """ax07: Horizontal bar of Debit rate by Branch."""
-    data = df[df["Branch"] != "Total"].copy()
-    colors = config.colors
+        ax.set_xlabel("ICS Penetration Rate (%)")
+        ax.set_title("ICS Penetration by Branch")
+        ax.grid(axis="x", alpha=0.15, linestyle="--")
+        ax.set_axisbelow(True)
 
-    if "% with Debit" not in data.columns:
-        data["% with Debit"] = 0
-
-    data = data.sort_values("% with Debit", ascending=True)
-
-    fig = go.Figure(
-        go.Bar(
-            y=data["Branch"].astype(str),
-            x=data["% with Debit"],
-            orientation="h",
-            marker_color=colors[1],
-            text=data["% with Debit"].apply(
-                lambda v: f"{v:.1%}" if isinstance(v, float) else str(v)
-            ),
-            textposition="outside",
-        )
-    )
-
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="% with Debit Card",
-        xaxis=dict(tickformat=".0%"),
-        yaxis_title="Branch",
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
-
-
-def chart_penetration_by_branch(df, config: ChartConfig) -> go.Figure:
-    """ax64: Horizontal bar chart of ICS penetration rate by branch."""
-    data = df[df["Branch"] != "Total"].copy() if "Branch" in df.columns else df
-    colors = config.colors
-
-    data["Penetration %"] = pd.to_numeric(data["Penetration %"], errors="coerce")
-    data = data.sort_values("Penetration %", ascending=True)
-
-    fig = go.Figure(
-        go.Bar(
-            y=data["Branch"].astype(str),
-            x=data["Penetration %"],
-            orientation="h",
-            marker_color=colors[0],
-            text=data["Penetration %"].apply(lambda v: f"{v:.1f}%"),
-            textposition="outside",
-        )
-    )
-
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="ICS Penetration Rate (%)",
-        yaxis_title="Branch",
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+    buf.seek(0)
+    return buf.read()

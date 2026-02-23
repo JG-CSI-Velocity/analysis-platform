@@ -7,11 +7,10 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-import plotly.graph_objects as go
 
 from ics_toolkit.analysis.analyses import run_all_analyses
 from ics_toolkit.analysis.analyses.base import AnalysisResult
-from ics_toolkit.analysis.charts import create_charts, render_all_chart_pngs, save_charts_html
+from ics_toolkit.analysis.charts import create_charts
 from ics_toolkit.analysis.data_loader import load_data
 from ics_toolkit.analysis.utils import get_ics_accounts, get_ics_stat_o, get_ics_stat_o_debit
 from ics_toolkit.settings import AnalysisSettings as Settings
@@ -26,7 +25,6 @@ class AnalysisPipelineResult:
     settings: Settings
     df: pd.DataFrame
     analyses: list[AnalysisResult] = field(default_factory=list)
-    charts: dict[str, go.Figure] = field(default_factory=dict)
     chart_pngs: dict[str, bytes] = field(default_factory=dict)
 
 
@@ -128,37 +126,24 @@ def run_pipeline(
             logger.warning("Skipped: %s (%s)", a.name, a.error)
     logger.info("%d/%d analyses completed", len(successful), len(analyses))
 
-    # Step 4: Build charts
-    charts: dict[str, go.Figure] = {}
+    # Step 4: Render chart PNGs
+    chart_pngs: dict[str, bytes] = {}
     if skip_charts:
         logger.info("[4/5] Skipping charts (--no-charts)")
     else:
-        logger.info("[4/5] Building charts...")
+        logger.info("[4/5] Rendering charts...")
         if on_progress:
-            on_progress(3, 5, "Building charts...")
+            on_progress(3, 5, "Rendering charts...")
         try:
-            charts = create_charts(analyses, settings)
-            logger.info("Built %d charts", len(charts))
-        except Exception as e:
-            logger.error("Chart generation failed: %s", e, exc_info=True)
-
-    # Step 4b: Render chart PNGs via matplotlib
-    chart_pngs: dict[str, bytes] = {}
-    if not skip_charts and charts:
-        logger.info("[4b/5] Rendering %d chart PNGs...", len(charts))
-        if on_progress:
-            on_progress(3, 5, "Rendering chart PNGs...")
-        try:
-            chart_pngs = render_all_chart_pngs(charts)
+            chart_pngs = create_charts(analyses, settings)
             logger.info("Rendered %d chart PNGs", len(chart_pngs))
         except Exception as e:
-            logger.error("Chart PNG rendering failed: %s", e, exc_info=True)
+            logger.error("Chart rendering failed: %s", e, exc_info=True)
 
     return AnalysisPipelineResult(
         settings=settings,
         df=df,
         analyses=analyses,
-        charts=charts,
         chart_pngs=chart_pngs,
     )
 
@@ -179,12 +164,6 @@ def export_outputs(
     client_id = settings.client_id or "unknown"
 
     logger.info("[5/5] Exporting reports...")
-
-    # Save charts as interactive HTML files
-    if not skip_charts and result.charts:
-        logger.info("Saving %d charts as HTML...", len(result.charts))
-        html_paths = save_charts_html(result.charts, settings.output_dir)
-        logger.info("Saved %d chart HTML files to charts/", len(html_paths))
 
     if settings.outputs.excel:
         try:

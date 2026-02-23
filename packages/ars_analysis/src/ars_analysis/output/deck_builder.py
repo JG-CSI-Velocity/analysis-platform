@@ -720,6 +720,13 @@ SLIDE_LAYOUT_MAP: dict[str, tuple[int, str]] = {
     "A15.2": (13, "screenshot"),
     "A15.3": (13, "screenshot"),
     "A15.4": (13, "screenshot"),
+    # Mailer -- cohort trajectories
+    "A16.1": (9, "screenshot"),
+    "A16.2": (9, "screenshot"),
+    "A16.3": (9, "screenshot"),
+    "A16.4": (9, "screenshot"),
+    "A16.5": (9, "screenshot"),
+    "A16.6": (9, "screenshot"),
     # Overview
     "A1": (9, "screenshot"),
     "A1b": (9, "screenshot"),
@@ -743,6 +750,8 @@ def _match_prefix(slide_id: str) -> tuple[int, str]:
         return (13, "screenshot")
     if sid.startswith("a13") and sid not in ("a13.5", "a13.6"):
         return (13, "mailer_summary")
+    if sid.startswith("a16"):
+        return (9, "screenshot")
     return (9, "screenshot")
 
 
@@ -861,6 +870,7 @@ _SECTION_MAP = {
     "a13": "mailer",
     "a14": "mailer",
     "a15": "mailer",
+    "a16": "mailer",
     "mail": "mailer",
     "ics": "ics",
     "txn": "transaction",
@@ -1117,6 +1127,8 @@ def _consolidate_mailer(results: list) -> tuple[list, list]:
             revisit.append(r)
         elif sid.startswith("A15"):
             impact.append(r)
+        elif sid.startswith("A16"):
+            impact.append(r)  # Cohort trajectories grouped with impact
         else:
             other.append(r)
 

@@ -32,6 +32,7 @@ MODULE_ORDER: list[str] = [
     "mailer.insights",
     "mailer.response",
     "mailer.impact",
+    "mailer.cohort",
     "insights.synthesis",
     "insights.conclusions",
 ]

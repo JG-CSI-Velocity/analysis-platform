@@ -188,7 +188,7 @@ class TestModuleRegistry:
         from platform_app.core.module_registry import Product, get_modules_by_product
 
         ars = get_modules_by_product(Product.ARS)
-        assert len(ars) == 8
+        assert len(ars) == 9
         assert all(m.product == Product.ARS for m in ars)
 
     def test_get_categories_returns_sorted(self):

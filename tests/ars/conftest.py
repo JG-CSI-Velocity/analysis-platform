@@ -390,6 +390,119 @@ def mailer_ctx(mailer_df, tmp_output_dir):
     )
 
 
+# -- Cohort trajectory fixtures --------------------------------------------
+
+
+@pytest.fixture
+def cohort_mailer_df():
+    """DataFrame with 8 metric months for cohort trajectory analysis.
+
+    60 accounts: 25 NU-mailed, 15 TH-10-mailed, 20 not mailed.
+    Mail months: Apr24, May24.  Metric months: Feb24-Sep24.
+    Responders trend UP after response; non-responders trend DOWN.
+    """
+    n = 60
+
+    # Mail segments
+    mail_seg = ["NU"] * 25 + ["TH-10"] * 15 + [None] * 20
+
+    # Apr24: 10 NU respond, 8 TH-10 respond
+    apr_resp = (
+        ["NU 5+"] * 10 + ["NU 1-4"] * 5 + [None] * 10  # 25 NU
+        + ["TH-10"] * 8 + [None] * 7  # 15 TH-10
+        + [None] * 20  # 20 not mailed
+    )
+    # May24: 5 more NU respond (some are re-responders), 3 TH-10
+    may_resp = (
+        ["NU 5+"] * 5 + [None] * 20  # 25 NU
+        + ["TH-10"] * 3 + [None] * 12  # 15 TH-10
+        + [None] * 20  # 20 not mailed
+    )
+
+    # Build spend/swipe columns: 8 months Feb24-Sep24
+    # Responders (first 10 NU + first 8 TH-10 = rows 0-9, 25-32) trend UP after Apr24
+    # Non-responders and non-mailed trend DOWN
+    months = ["Feb24", "Mar24", "Apr24", "May24", "Jun24", "Jul24", "Aug24", "Sep24"]
+    data: dict = {
+        "Date Opened": pd.date_range("2020-01-01", periods=n, freq="ME"),
+        "Stat Code": ["O"] * 55 + ["C"] * 5,
+        "Product Code": ["DDA"] * n,
+        "Debit?": ["Yes"] * 40 + ["No"] * 20,
+        "Business?": ["No"] * 50 + ["Yes"] * 10,
+        "Branch": ["Main"] * 30 + ["North"] * 30,
+        "Apr24 Mail": mail_seg,
+        "Apr24 Resp": apr_resp,
+        "May24 Mail": mail_seg,
+        "May24 Resp": may_resp,
+    }
+
+    # Responder indices: NU 5+ in Apr24 = rows 0-9, TH-10 in Apr24 = rows 25-32
+    resp_idx = set(range(10)) | set(range(25, 33))  # 18 total
+    # Mailed non-responders: rows 10-24 (NU non-resp) + 33-39 (TH-10 non-resp)
+    mailed_non_resp_idx = set(range(10, 25)) | set(range(33, 40))
+    # Not mailed: rows 40-59
+
+    for mi, month in enumerate(months):
+        spend_vals = []
+        swipe_vals = []
+        for i in range(n):
+            base_spend = 400.0 + i * 10
+            base_swipe = 8.0 + i * 0.5
+            if i in resp_idx:
+                # Before Apr24 (mi<2): declining.  Apr24+ (mi>=2): rising
+                if mi < 2:
+                    spend_vals.append(base_spend - mi * 15)
+                    swipe_vals.append(base_swipe - mi * 1)
+                else:
+                    spend_vals.append(base_spend + (mi - 2) * 30)
+                    swipe_vals.append(base_swipe + (mi - 2) * 2)
+            elif i in mailed_non_resp_idx:
+                # Steady decline throughout
+                spend_vals.append(base_spend - mi * 20)
+                swipe_vals.append(base_swipe - mi * 1.5)
+            else:
+                # Not mailed: flat/slight decline
+                spend_vals.append(base_spend - mi * 10)
+                swipe_vals.append(base_swipe - mi * 0.5)
+        data[f"{month} Spend"] = spend_vals
+        data[f"{month} Swipes"] = swipe_vals
+
+    return pd.DataFrame(data)
+
+
+@pytest.fixture
+def cohort_mailer_ctx(cohort_mailer_df, tmp_output_dir):
+    """PipelineContext for cohort trajectory tests."""
+    paths = OutputPaths(
+        base_dir=tmp_output_dir,
+        charts_dir=tmp_output_dir / "charts",
+        excel_dir=tmp_output_dir,
+        pptx_dir=tmp_output_dir,
+    )
+    df = cohort_mailer_df
+    open_accts = df[df["Stat Code"] == "O"]
+    return PipelineContext(
+        client=ClientInfo(
+            client_id="9999",
+            client_name="Test CU",
+            month="2024.09",
+            eligible_stat_codes=["O"],
+            ic_rate=0.0015,
+        ),
+        paths=paths,
+        data=df,
+        subsets=DataSubsets(
+            open_accounts=open_accts,
+            eligible_data=open_accts.copy(),
+            eligible_personal=open_accts[open_accts["Business?"] == "No"],
+            eligible_business=open_accts[open_accts["Business?"] == "Yes"],
+            eligible_with_debit=open_accts[open_accts["Debit?"] == "Yes"],
+        ),
+        start_date=date(2024, 2, 1),
+        end_date=date(2024, 9, 30),
+    )
+
+
 # -- Attrition fixtures ----------------------------------------------------
 
 

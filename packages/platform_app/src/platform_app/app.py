@@ -5,9 +5,42 @@ Run with: streamlit run packages/platform_app/src/platform_app/app.py
 
 from __future__ import annotations
 
+import logging
+import sys
+from pathlib import Path
+
 import streamlit as st
 
 from platform_app.brand import PAGE_TITLE, TAGLINE
+
+# ---------------------------------------------------------------------------
+# File logging -- captures ALL output to logs/app.log so you never lose it
+# ---------------------------------------------------------------------------
+_LOG_DIR = Path("logs")
+_LOG_DIR.mkdir(exist_ok=True)
+_LOG_FILE = _LOG_DIR / "app.log"
+
+# Configure root logger to write to file + stderr
+_root = logging.getLogger()
+if not any(isinstance(h, logging.FileHandler) and getattr(h, "_uap_marker", False) for h in _root.handlers):
+    _fh = logging.FileHandler(_LOG_FILE, encoding="utf-8")
+    _fh._uap_marker = True  # type: ignore[attr-defined]
+    _fh.setLevel(logging.DEBUG)
+    _fh.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    ))
+    _root.addHandler(_fh)
+    _root.setLevel(logging.DEBUG)
+
+    # Also capture uncaught exceptions to the log file
+    def _exception_hook(exc_type, exc_value, exc_tb):
+        logging.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+    sys.excepthook = _exception_hook
+
+logging.getLogger("platform_app").info("App startup -- logging to %s", _LOG_FILE)
 
 st.set_page_config(
     page_title=PAGE_TITLE,
@@ -454,12 +487,14 @@ data_ingest = st.Page(
 modules = st.Page("pages/module_library.py", title="Module Library", icon=":material/apps:")
 run_page = st.Page("pages/run_analysis.py", title="Run (Advanced)", icon=":material/tune:")
 batch = st.Page("pages/batch_workflow.py", title="Batch Run", icon=":material/playlist_play:")
+logs = st.Page("pages/logs.py", title="View Logs", icon=":material/description:")
 
 pg = st.navigation(
     {
         "": [home],
         "OUTPUTS": [outputs, history],
         "ADVANCED": [workspace, data_ingest, modules, run_page, batch],
+        "DIAGNOSTICS": [logs],
     }
 )
 

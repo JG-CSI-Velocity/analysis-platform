@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json as _json
+import logging
 import shutil
 import tempfile
 import time
@@ -29,6 +30,8 @@ from platform_app.core.session_manager import (
 from platform_app.core.templates import load_templates
 from platform_app.orchestrator import run_pipeline
 from shared.format_odd import check_ics_ready, check_odd_formatted, format_odd
+
+logger = logging.getLogger("platform_app.home")
 
 # Execution state -- must be initialized before any widget renders
 if "uap_running" not in st.session_state:
@@ -1036,11 +1039,13 @@ for idx, step in enumerate(_exec_plan):
     except OSError as exc:
         step["status"] = "failed"
         step["elapsed"] = 0.0
-        pipeline_errors[pipeline_name] = (
+        _err_msg = (
             f"Cannot create output directory: {out}\n\n"
             f"If this is a network path (M: drive), check that the drive is connected.\n\n"
             f"{type(exc).__name__}: {exc}"
         )
+        pipeline_errors[pipeline_name] = _err_msg
+        logger.error("Output dir creation failed for %s: %s", pipeline_name, exc)
         _render_exec_dashboard(_exec_plan, (idx + 1) / total_pipelines, "")
         continue
 
@@ -1076,10 +1081,12 @@ for idx, step in enumerate(_exec_plan):
         step["status"] = "done"
         step["elapsed"] = time.time() - step_t0
         step["results"] = len(results)
+        logger.info("Pipeline %s complete: %d results in %.1fs", pipeline_name, len(results), step["elapsed"])
     except Exception:
         step["status"] = "failed"
         step["elapsed"] = time.time() - step_t0
         pipeline_errors[pipeline_name] = traceback.format_exc()
+        logger.error("Pipeline %s failed for client %s:\n%s", pipeline_name, client_id, traceback.format_exc())
 
     _render_exec_dashboard(_exec_plan, (idx + 1) / total_pipelines, "")
 

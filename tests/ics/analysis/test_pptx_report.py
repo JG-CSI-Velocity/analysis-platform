@@ -123,7 +123,7 @@ class TestWritePptxReport:
         sample_settings.output_dir.mkdir(parents=True, exist_ok=True)
         result = write_pptx_report(sample_settings, mock_analyses)
         assert result.exists()
-        assert "ICS_Analysis" in result.name
+        assert "ICS_Secondary" in result.name
 
     def test_no_analyses(self, sample_settings, tmp_path):
         path = tmp_path / "no_analyses.pptx"

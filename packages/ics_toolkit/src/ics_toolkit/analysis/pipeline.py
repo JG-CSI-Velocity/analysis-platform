@@ -205,17 +205,17 @@ def export_outputs(
 
     if settings.outputs.powerpoint:
         try:
-            from ics_toolkit.analysis.exports.pptx import write_pptx_report
+            from ics_toolkit.analysis.exports.pptx import write_ics_reports
 
-            logger.info("Writing PowerPoint report...")
-            path = settings.output_dir / f"{client_id}_ICS_Presentation_{date_str}.pptx"
-            write_pptx_report(
+            logger.info("Writing PowerPoint reports (Primary + Secondary)...")
+            primary_path, secondary_path = write_ics_reports(
                 settings,
                 result.analyses,
-                output_path=path,
                 chart_pngs=result.chart_pngs,
+                output_dir=settings.output_dir,
             )
-            generated.append(path)
+            generated.append(primary_path)
+            generated.append(secondary_path)
         except Exception as e:
             logger.error("PowerPoint report failed: %s", e, exc_info=True)
 

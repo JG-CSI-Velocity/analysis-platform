@@ -1,4 +1,11 @@
-"""PPTX report generator with data tables and chart images."""
+"""PPTX report generator with data tables and chart images.
+
+Produces two decks:
+- **Primary** (~27 slides): Storyline-driven client-facing deck with merged
+  charts, KPI panels, and ARS-style dark section dividers.
+- **Secondary** (~70 slides): Full detail reference deck with table + chart
+  for every analysis (the original 159-slide layout).
+"""
 
 import logging
 from datetime import datetime
@@ -22,6 +29,7 @@ WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 DARK_TEXT = RGBColor(0x33, 0x33, 0x33)
 ZEBRA_GRAY = RGBColor(0xF2, 0xF2, 0xF2)
 TOTAL_BG = RGBColor(0xE0, 0xE0, 0xE0)
+LIGHT_GRAY = RGBColor(0x99, 0x99, 0x99)
 
 # -- Table constraints -----------------------------------------------------
 MAX_TABLE_ROWS = 12
@@ -44,6 +52,21 @@ CHART_LEFT = Inches(1.5)
 CHART_TOP = Inches(1.1)
 CHART_WIDTH = Inches(10.0)
 CHART_MAX_HEIGHT = Inches(5.5)
+
+# -- Merged slide positioning (two charts side-by-side) --------------------
+MERGE_LEFT_X = Inches(0.3)
+MERGE_RIGHT_X = Inches(6.8)
+MERGE_IMG_Y = Inches(1.1)
+MERGE_IMG_W = Inches(6.2)
+MERGE_IMG_H = Inches(5.2)
+
+# -- KPI panel positioning -------------------------------------------------
+KPI_GRID_LEFT = Inches(0.5)
+KPI_GRID_TOP = Inches(1.2)
+KPI_BOX_W = Inches(3.8)
+KPI_BOX_H = Inches(1.6)
+KPI_COL_SPACING = Inches(4.1)
+KPI_ROW_SPACING = Inches(1.8)
 
 # Maps analysis name -> section grouping for slide organization.
 SECTION_MAP = {
@@ -160,6 +183,73 @@ for _names in SECTION_MAP.values():
 
 # Strings that mark a row as a "total" row.
 _TOTAL_MARKERS = {"total", "grand total"}
+
+# =========================================================================
+# PRIMARY DECK: Storyline-driven layout
+# =========================================================================
+
+# Each section answers a business question.  Entries are either:
+#   str             -> single chart-only slide
+#   tuple[str, str] -> merged (side-by-side) slide from two analyses
+# Analyses listed here appear in the Primary deck; everything else goes
+# to the Secondary (detail/appendix) deck.
+
+PRIMARY_STORYLINE: dict[str, list[str | tuple[str, str]]] = {
+    "How Big Is This Program?": [
+        "Executive Summary",
+        "ICS Penetration by Branch",
+        ("ICS by Stat Code", "Product Code Distribution"),
+        "Activation Funnel",
+    ],
+    "Where Do ICS Accounts Come From?": [
+        ("Source Distribution", "Source Acquisition Mix"),
+        ("DM Overview", "REF Overview"),
+        ("DM Activity Summary", "REF Activity Summary"),
+    ],
+    "How Engaged Are ICS Members?": [
+        "Activity Summary",
+        ("Monthly Trends", "Monthly Interchange Trend"),
+        "Business vs Personal",
+        "Spend Concentration",
+    ],
+    "How Fast Do Accounts Activate?": [
+        "Cohort Heatmap",
+        "Days to First Use",
+        ("Persona Overview", "Persona Revenue Impact"),
+        "Persona Swipe Contribution",
+    ],
+    "Which Branches Lead?": [
+        "Branch Performance Index",
+        ("Revenue by Branch", "Revenue by Source"),
+    ],
+    "What Are the Opportunities?": [
+        "Dormant High-Balance",
+        ("Closure by Source", "Closure by Branch"),
+        "Closure Rate Trend",
+        ("Age Comparison", "Balance Tiers"),
+    ],
+}
+
+# Analyses whose hero_kpis metadata should render as a visual KPI panel
+# instead of a data table in the primary deck.
+KPI_PANEL_ANALYSES: set[str] = {
+    "Executive Summary",
+    "Activity Summary",
+    "Dormant High-Balance",
+    "DM Overview",
+    "REF Overview",
+    "DM Activity Summary",
+    "REF Activity Summary",
+}
+
+# Flat set of all analysis names that appear in the primary storyline.
+_PRIMARY_NAMES: set[str] = set()
+for _entries in PRIMARY_STORYLINE.values():
+    for _entry in _entries:
+        if isinstance(_entry, tuple):
+            _PRIMARY_NAMES.update(_entry)
+        else:
+            _PRIMARY_NAMES.add(_entry)
 
 
 def _build_analysis_lookup(analyses: list[AnalysisResult]) -> dict[str, AnalysisResult]:
@@ -278,20 +368,50 @@ def write_chart_catalog(
     return output_path
 
 
-def write_pptx_report(
+def write_ics_reports(
+    settings: Settings,
+    analyses: list[AnalysisResult],
+    chart_pngs: dict[str, bytes] | None = None,
+    output_dir: Path | None = None,
+) -> tuple[Path, Path]:
+    """Generate both Primary (storyline) and Secondary (detail) PPTX decks.
+
+    Returns (primary_path, secondary_path).
+    """
+    out = output_dir or settings.output_dir
+    out.mkdir(parents=True, exist_ok=True)
+
+    date_str = datetime.now().strftime("%Y%m%d")
+    client_id = settings.client_id or "unknown"
+
+    primary_path = out / f"{client_id}_ICS_Primary_{date_str}.pptx"
+    secondary_path = out / f"{client_id}_ICS_Secondary_{date_str}.pptx"
+
+    primary = write_pptx_primary(
+        settings, analyses, output_path=primary_path, chart_pngs=chart_pngs,
+    )
+    secondary = write_pptx_secondary(
+        settings, analyses, output_path=secondary_path, chart_pngs=chart_pngs,
+    )
+    return primary, secondary
+
+
+def write_pptx_primary(
     settings: Settings,
     analyses: list[AnalysisResult],
     output_path: Path | None = None,
     chart_pngs: dict[str, bytes] | None = None,
 ) -> Path:
-    """Build and save a PPTX presentation with tables and charts.
+    """Build storyline-driven primary deck (~27 slides).
 
-    Every successful analysis gets a data-table slide.
-    Analyses with chart PNGs get an additional chart slide.
+    - Charts only (no data tables -- those live in the Secondary deck).
+    - Merge pairs render two charts side-by-side.
+    - KPI-panel analyses render as visual KPI grids.
+    - ARS-style dark section dividers.
     """
     if output_path is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = settings.output_dir / f"ICS_Analysis_{timestamp}.pptx"
+        output_path = settings.output_dir / f"ICS_Primary_{timestamp}.pptx"
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -301,7 +421,76 @@ def write_pptx_report(
     prs = _create_presentation(settings)
 
     # Title slide
-    _add_title_slide(prs, settings)
+    _add_title_slide(prs, settings, title_text="ICS Analysis")
+
+    for section_title, entries in PRIMARY_STORYLINE.items():
+        # Check if any entry has data before adding divider
+        has_content = False
+        for entry in entries:
+            if isinstance(entry, tuple):
+                if entry[0] in lookup or entry[1] in lookup:
+                    has_content = True
+                    break
+            elif entry in lookup:
+                has_content = True
+                break
+
+        if not has_content:
+            continue
+
+        _add_styled_section_divider(prs, section_title)
+
+        for entry in entries:
+            if isinstance(entry, tuple):
+                left_name, right_name = entry
+                left_png = pngs.get(left_name)
+                right_png = pngs.get(right_name)
+                if left_png and right_png:
+                    title = f"{left_name}  |  {right_name}"
+                    _add_merged_slide(prs, title, left_png, right_png)
+                elif left_png:
+                    _add_chart_slide(prs, left_name, left_png)
+                elif right_png:
+                    _add_chart_slide(prs, right_name, right_png)
+                else:
+                    # Fall back to KPI panel or table for each
+                    for name in (left_name, right_name):
+                        if name in lookup:
+                            _add_primary_analysis_slide(prs, name, lookup[name], pngs)
+            else:
+                if entry in lookup:
+                    _add_primary_analysis_slide(prs, entry, lookup[entry], pngs)
+
+    prs.save(str(output_path))
+    logger.info(
+        "Primary PPTX saved: %s (%d slides)", output_path, len(prs.slides),
+    )
+    return output_path
+
+
+def write_pptx_secondary(
+    settings: Settings,
+    analyses: list[AnalysisResult],
+    output_path: Path | None = None,
+    chart_pngs: dict[str, bytes] | None = None,
+) -> Path:
+    """Build full detail/appendix deck (table + chart for every analysis).
+
+    This is the original write_pptx_report behaviour with all 80 analyses.
+    """
+    if output_path is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = settings.output_dir / f"ICS_Secondary_{timestamp}.pptx"
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    lookup = _build_analysis_lookup(analyses)
+    pngs = chart_pngs or {}
+
+    prs = _create_presentation(settings)
+
+    # Title slide
+    _add_title_slide(prs, settings, title_text="ICS Analysis -- Detail Appendix")
 
     # Walk SECTION_MAP in order
     for section_name, analysis_names in SECTION_MAP.items():
@@ -312,14 +501,11 @@ def write_pptx_report(
         _add_section_divider(prs, section_name)
 
         for name, analysis in section_analyses:
-            # Table slide for every analysis (shows the actual data)
             _add_table_slide(prs, analysis)
-
-            # Chart slide if PNG available
             if name in pngs:
                 _add_chart_slide(prs, analysis.title, pngs[name])
 
-    # Catch any analyses NOT in SECTION_MAP (shouldn't lose data)
+    # Catch unmapped analyses
     unmapped = [(a.name, a) for a in analyses if a.error is None and a.name not in _MAPPED_NAMES]
     if unmapped:
         _add_section_divider(prs, "Additional Analyses")
@@ -329,8 +515,30 @@ def write_pptx_report(
                 _add_chart_slide(prs, analysis.title, pngs[name])
 
     prs.save(str(output_path))
-    logger.info("PPTX report saved: %s (%d slides)", output_path, len(prs.slides))
+    logger.info(
+        "Secondary PPTX saved: %s (%d slides)", output_path, len(prs.slides),
+    )
     return output_path
+
+
+def write_pptx_report(
+    settings: Settings,
+    analyses: list[AnalysisResult],
+    output_path: Path | None = None,
+    chart_pngs: dict[str, bytes] | None = None,
+) -> Path:
+    """Build and save a PPTX presentation with tables and charts.
+
+    Every successful analysis gets a data-table slide.
+    Analyses with chart PNGs get an additional chart slide.
+
+    .. deprecated::
+        Use :func:`write_ics_reports` for Primary + Secondary decks,
+        or :func:`write_pptx_secondary` for the full detail deck.
+    """
+    return write_pptx_secondary(
+        settings, analyses, output_path=output_path, chart_pngs=chart_pngs,
+    )
 
 
 # =========================================================================
@@ -368,13 +576,15 @@ def _get_layout(prs: Presentation, preferred: int, fallback: int = 6):
 # =========================================================================
 
 
-def _add_title_slide(prs: Presentation, settings: Settings) -> None:
+def _add_title_slide(
+    prs: Presentation, settings: Settings, title_text: str = "ICS Accounts Analysis",
+) -> None:
     """Add branded title slide."""
     layout = _get_layout(prs, preferred=1, fallback=0)
     slide = prs.slides.add_slide(layout)
 
     if slide.shapes.title:
-        slide.shapes.title.text = "ICS Accounts Analysis"
+        slide.shapes.title.text = title_text
 
     subtitle = settings.client_name or f"Client {settings.client_id}"
     for ph_idx in [1, 13, 14]:
@@ -386,11 +596,137 @@ def _add_title_slide(prs: Presentation, settings: Settings) -> None:
 
 
 def _add_section_divider(prs: Presentation, title: str) -> None:
-    """Add section divider slide."""
+    """Add section divider slide (template-based, simple)."""
     layout = _get_layout(prs, preferred=2, fallback=5)
     slide = prs.slides.add_slide(layout)
     if slide.shapes.title:
         slide.shapes.title.text = title
+
+
+def _add_styled_section_divider(prs: Presentation, title: str) -> None:
+    """Add ARS-style dark section divider with navy background and white text."""
+    layout = _get_layout(prs, preferred=2, fallback=6)
+    slide = prs.slides.add_slide(layout)
+
+    # Set the slide background to navy
+    bg = slide.background
+    fill = bg.fill
+    fill.solid()
+    fill.fore_color.rgb = NAVY
+
+    # Clear any existing placeholder text
+    if slide.shapes.title:
+        slide.shapes.title.text = ""
+
+    # Add large centered title
+    txbox = slide.shapes.add_textbox(
+        Inches(1.5), Inches(2.5), Inches(10.33), Inches(2.0),
+    )
+    tf = txbox.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.text = title
+    p.font.size = Pt(36)
+    p.font.bold = True
+    p.font.color.rgb = WHITE
+    p.alignment = PP_ALIGN.CENTER
+
+    # Decorative line below title
+    p2 = tf.add_paragraph()
+    p2.text = "\u2500" * 30
+    p2.font.size = Pt(14)
+    p2.font.color.rgb = LIGHT_GRAY
+    p2.alignment = PP_ALIGN.CENTER
+
+
+def _add_merged_slide(
+    prs: Presentation, title: str, left_png: bytes, right_png: bytes,
+) -> None:
+    """Add slide with two chart images side by side."""
+    layout = _get_layout(prs, preferred=11, fallback=6)
+    slide = prs.slides.add_slide(layout)
+
+    _add_slide_title(slide, title)
+
+    slide.shapes.add_picture(
+        BytesIO(left_png), MERGE_LEFT_X, MERGE_IMG_Y,
+        width=MERGE_IMG_W, height=MERGE_IMG_H,
+    )
+    slide.shapes.add_picture(
+        BytesIO(right_png), MERGE_RIGHT_X, MERGE_IMG_Y,
+        width=MERGE_IMG_W, height=MERGE_IMG_H,
+    )
+
+
+def _add_kpi_slide(prs: Presentation, analysis: AnalysisResult) -> None:
+    """Add a KPI panel slide from hero_kpis metadata (2x3 grid)."""
+    hero_kpis = analysis.metadata.get("hero_kpis", {}) if analysis.metadata else {}
+    if not hero_kpis:
+        return
+
+    layout = _get_layout(prs, preferred=11, fallback=6)
+    slide = prs.slides.add_slide(layout)
+    _add_slide_title(slide, analysis.title)
+
+    traffic_lights = analysis.metadata.get("traffic_lights", {}) if analysis.metadata else {}
+
+    items = list(hero_kpis.items())
+    for idx, (key, value) in enumerate(items[:6]):
+        col = idx % 3
+        row = idx // 3
+
+        left = KPI_GRID_LEFT + Inches(col * 4.1)
+        top = KPI_GRID_TOP + Inches(row * 2.5)
+
+        # KPI value box
+        txbox = slide.shapes.add_textbox(left, top, KPI_BOX_W, Inches(0.6))
+        tf = txbox.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = _format_kpi_display(key, value)
+        p.font.size = Pt(28)
+        p.font.bold = True
+        p.font.color.rgb = NAVY
+        p.alignment = PP_ALIGN.CENTER
+
+        # KPI label
+        label_box = slide.shapes.add_textbox(left, top + Inches(0.7), KPI_BOX_W, Inches(0.4))
+        lf = label_box.text_frame
+        lf.word_wrap = True
+        lp = lf.paragraphs[0]
+        lp.text = key
+        lp.font.size = Pt(12)
+        lp.font.color.rgb = DARK_TEXT
+        lp.alignment = PP_ALIGN.CENTER
+
+        # Traffic light indicator
+        light = traffic_lights.get(key, "")
+        if light and light != "gray":
+            ind_box = slide.shapes.add_textbox(
+                left, top + Inches(1.1), KPI_BOX_W, Inches(0.3),
+            )
+            ip = ind_box.text_frame.paragraphs[0]
+            ip.text = f"[{light.upper()}]"
+            ip.font.size = Pt(10)
+            ip.font.color.rgb = _traffic_light_color(light)
+            ip.alignment = PP_ALIGN.CENTER
+
+
+def _add_primary_analysis_slide(
+    prs: Presentation,
+    name: str,
+    analysis: AnalysisResult,
+    pngs: dict[str, bytes],
+) -> None:
+    """Add the best available slide for a single analysis in the primary deck.
+
+    Priority: chart PNG > KPI panel > skip (no tables in primary).
+    """
+    if name in pngs:
+        _add_chart_slide(prs, analysis.title, pngs[name])
+    elif name in KPI_PANEL_ANALYSES:
+        _add_kpi_slide(prs, analysis)
+    # No table fallback in primary deck -- tables go to secondary only
 
 
 def _add_table_slide(prs: Presentation, analysis: AnalysisResult) -> None:
@@ -511,6 +847,34 @@ def _add_footnote(slide, text: str, top) -> None:
     p.font.size = Pt(8)
     p.font.italic = True
     p.font.color.rgb = RGBColor(0x99, 0x99, 0x99)
+
+
+# =========================================================================
+# KPI formatting helpers
+# =========================================================================
+
+
+def _format_kpi_display(key: str, value: object) -> str:
+    """Format a KPI value for large-font display on a slide."""
+    if isinstance(value, float) and ("Rate" in key or "%" in key):
+        return f"{value:.1f}%"
+    if isinstance(value, (int, float)) and any(
+        kw in key for kw in ("Interchange", "Revenue", "Balance", "Spend")
+    ):
+        return f"${value:,.0f}"
+    if isinstance(value, (int, float)):
+        return f"{value:,}"
+    return str(value)
+
+
+def _traffic_light_color(light: str) -> RGBColor:
+    """Map a traffic-light string to an RGB color."""
+    _map = {
+        "green": RGBColor(0x22, 0x8B, 0x22),
+        "yellow": RGBColor(0xCC, 0xAA, 0x00),
+        "red": RGBColor(0xCC, 0x33, 0x33),
+    }
+    return _map.get(light.lower(), DARK_TEXT)
 
 
 # =========================================================================

@@ -157,7 +157,8 @@ def write_referral_pptx(
         except (KeyError, IndexError):
             continue
 
-    # Walk section map
+    # Walk section map -- chart-first: if chart exists, show chart only;
+    # table only for analyses without charts.
     for section_name, analysis_names in REFERRAL_SECTION_MAP.items():
         section_analyses = [(name, lookup[name]) for name in analysis_names if name in lookup]
         if not section_analyses:
@@ -166,18 +167,20 @@ def write_referral_pptx(
         _add_section_divider(prs, section_name)
 
         for name, analysis in section_analyses:
-            _add_table_slide(prs, analysis)
             if name in pngs:
                 _add_chart_slide(prs, analysis.title, pngs[name])
+            else:
+                _add_table_slide(prs, analysis)
 
     # Catch unmapped analyses
     unmapped = [(a.name, a) for a in analyses if a.error is None and a.name not in _MAPPED_NAMES]
     if unmapped:
         _add_section_divider(prs, "Additional Analyses")
         for name, analysis in unmapped:
-            _add_table_slide(prs, analysis)
             if name in pngs:
                 _add_chart_slide(prs, analysis.title, pngs[name])
+            else:
+                _add_table_slide(prs, analysis)
 
     prs.save(str(output_path))
     logger.info(

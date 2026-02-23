@@ -727,6 +727,10 @@ SLIDE_LAYOUT_MAP: dict[str, tuple[int, str]] = {
     "A16.4": (9, "screenshot"),
     "A16.5": (9, "screenshot"),
     "A16.6": (9, "screenshot"),
+    # Mailer -- cumulative reach
+    "A17.1": (9, "screenshot"),
+    "A17.2": (9, "screenshot"),
+    "A17.3": (9, "screenshot"),
     # Overview
     "A1": (9, "screenshot"),
     "A1b": (9, "screenshot"),
@@ -740,6 +744,17 @@ SLIDE_LAYOUT_MAP: dict[str, tuple[int, str]] = {
     "S6": (9, "screenshot"),
     "S7": (9, "screenshot"),
     "S8": (9, "screenshot"),
+    # Insights -- effectiveness proof
+    "A18.1": (9, "screenshot"),
+    "A18.2": (9, "screenshot"),
+    "A18.3": (9, "screenshot"),
+    # Insights -- branch scorecard
+    "A19.1": (13, "screenshot"),
+    "A19.2": (9, "screenshot"),
+    # Insights -- dormant opportunity
+    "A20.1": (9, "screenshot"),
+    "A20.2": (9, "screenshot"),
+    "A20.3": (9, "screenshot"),
 }
 
 
@@ -751,6 +766,14 @@ def _match_prefix(slide_id: str) -> tuple[int, str]:
     if sid.startswith("a13") and sid not in ("a13.5", "a13.6"):
         return (13, "mailer_summary")
     if sid.startswith("a16"):
+        return (9, "screenshot")
+    if sid.startswith("a17"):
+        return (9, "screenshot")
+    if sid.startswith("a18"):
+        return (9, "screenshot")
+    if sid.startswith("a19"):
+        return (9, "screenshot")
+    if sid.startswith("a20"):
         return (9, "screenshot")
     return (9, "screenshot")
 
@@ -871,6 +894,7 @@ _SECTION_MAP = {
     "a14": "mailer",
     "a15": "mailer",
     "a16": "mailer",
+    "a17": "mailer",
     "mail": "mailer",
     "ics": "ics",
     "txn": "transaction",
@@ -889,6 +913,9 @@ _SECTION_MAP = {
     "s6": "insights",
     "s7": "insights",
     "s8": "insights",
+    "a18": "insights",
+    "a19": "insights",
+    "a20": "insights",
 }
 
 _SECTION_LABELS = {
@@ -1129,6 +1156,8 @@ def _consolidate_mailer(results: list) -> tuple[list, list]:
             impact.append(r)
         elif sid.startswith("A16"):
             impact.append(r)  # Cohort trajectories grouped with impact
+        elif sid.startswith("A17"):
+            impact.append(r)  # Cumulative reach grouped with impact
         else:
             other.append(r)
 

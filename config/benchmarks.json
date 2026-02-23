@@ -1,0 +1,10 @@
+{
+  "debit_penetration_rate": 0.805,
+  "active_card_rate": 0.663,
+  "avg_annual_spend_per_card": 17274,
+  "avg_monthly_transactions": 34.6,
+  "member_acquisition_cost": 562.50,
+  "direct_mail_response_rate": 0.045,
+  "source": "PULSE 2024 Debit Issuer Study",
+  "last_updated": "2025-06-01"
+}

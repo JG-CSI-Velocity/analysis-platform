@@ -427,7 +427,7 @@ def cohort_mailer_df():
         "Date Opened": pd.date_range("2020-01-01", periods=n, freq="ME"),
         "Stat Code": ["O"] * 55 + ["C"] * 5,
         "Product Code": ["DDA"] * n,
-        "Debit?": ["Yes"] * 40 + ["No"] * 20,
+        "Debit?": ["Yes"] * 40 + ["Yes"] * 10 + ["No"] * 10,
         "Business?": ["No"] * 50 + ["Yes"] * 10,
         "Branch": ["Main"] * 30 + ["North"] * 30,
         "Apr24 Mail": mail_seg,

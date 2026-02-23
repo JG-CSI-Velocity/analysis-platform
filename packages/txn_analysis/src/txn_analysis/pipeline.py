@@ -14,6 +14,8 @@ import plotly.graph_objects as go
 from txn_analysis.analyses import run_all_analyses
 from txn_analysis.analyses.base import AnalysisResult
 from txn_analysis.data_loader import load_data, load_odd
+from txn_analysis.segment_runner import SegmentedResult, run_segmented_analyses
+from txn_analysis.segments import build_segment_filters
 from txn_analysis.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,7 @@ class PipelineResult:
     analyses: list[AnalysisResult] = field(default_factory=list)
     charts: dict[str, go.Figure] = field(default_factory=dict)
     chart_pngs: dict[str, bytes] = field(default_factory=dict)
+    segmented_results: list[SegmentedResult] = field(default_factory=list)
 
 
 def run_pipeline(
@@ -46,10 +49,28 @@ def run_pipeline(
     df = load_data(settings)
     odd_df = load_odd(settings)
 
-    # Step 2: Run analyses
+    # Step 2: Run analyses (segmented if configured and ODD available)
     if on_progress:
         on_progress(1, 3, "Running analyses...")
-    analyses = run_all_analyses(df, settings, odd_df=odd_df)
+
+    seg_cfg = settings.segments
+    seg_filters = []
+    segmented_results: list[SegmentedResult] = []
+
+    if (seg_cfg.ars_responders or seg_cfg.ics_accounts) and odd_df is not None:
+        seg_filters = build_segment_filters(
+            odd_df,
+            ars_responders=seg_cfg.ars_responders,
+            ics_accounts=seg_cfg.ics_accounts,
+        )
+
+    if seg_filters:
+        segmented_results = run_segmented_analyses(df, settings, odd_df, seg_filters)
+        # Use full-population analyses as the primary result set
+        analyses = segmented_results[0].analyses if segmented_results else []
+    else:
+        analyses = run_all_analyses(df, settings, odd_df=odd_df)
+
     successful = [a for a in analyses if a.error is None]
     failed = [a for a in analyses if a.error is not None]
     if failed:
@@ -81,7 +102,13 @@ def run_pipeline(
     except Exception as e:
         logger.error("Chart generation failed: %s", e, exc_info=True)
 
-    return PipelineResult(settings=settings, df=df, analyses=analyses, charts=charts)
+    return PipelineResult(
+        settings=settings,
+        df=df,
+        analyses=analyses,
+        charts=charts,
+        segmented_results=segmented_results,
+    )
 
 
 def _render_chart_pngs(result: PipelineResult) -> dict[str, bytes]:

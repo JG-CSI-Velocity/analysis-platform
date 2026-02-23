@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import time
 import traceback
+import warnings
 from pathlib import Path
 
 import streamlit as st
@@ -27,6 +28,10 @@ from platform_app.core.session_manager import (
 from platform_app.core.templates import load_templates
 from platform_app.orchestrator import run_pipeline
 from shared.format_odd import check_ics_ready, check_odd_formatted, format_odd
+
+# Execution state -- must be initialized before any widget renders
+if "uap_running" not in st.session_state:
+    st.session_state["uap_running"] = False
 
 
 def _format_list(value: object) -> str:
@@ -138,6 +143,122 @@ def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
     output_dir.mkdir(parents=True, exist_ok=True)
     combined.to_csv(out_path, index=False)
     return out_path
+
+
+# ---------------------------------------------------------------------------
+# Results dashboard (reusable -- called after execution AND on page rerun)
+# ---------------------------------------------------------------------------
+def _render_results_dashboard() -> None:
+    """Render the post-run results dashboard from session state."""
+    all_results = st.session_state.get("uap_last_results", {})
+    pipeline_errors = st.session_state.get("uap_last_errors", {})
+    all_output_dirs = st.session_state.get("uap_last_output_dirs", {})
+    run_id = st.session_state.get("uap_last_run_id", "")
+    total_elapsed = st.session_state.get("uap_last_elapsed", 0)
+    _client_label = st.session_state.get("uap_last_client", "")
+
+    if not all_results and not pipeline_errors:
+        return
+
+    st.divider()
+    st.markdown('<p class="uap-label">LAST RUN RESULTS</p>', unsafe_allow_html=True)
+    st.markdown('<div style="height:0.5rem;"></div>', unsafe_allow_html=True)
+
+    _total_results = sum(len(r) for r in all_results.values())
+    _ok_count = len(all_results)
+    _fail_count = len(pipeline_errors)
+
+    # Result KPI cards
+    _result_cols = st.columns(4)
+    with _result_cols[0]:
+        _color = "#16A34A" if _fail_count == 0 else "#F59E0B"
+        st.markdown(
+            f'<div class="uap-result-card">'
+            f'<div class="rc-num" style="color:{_color};">{_total_results}</div>'
+            f'<div class="rc-label">Analyses Generated</div></div>',
+            unsafe_allow_html=True,
+        )
+    with _result_cols[1]:
+        st.markdown(
+            f'<div class="uap-result-card">'
+            f'<div class="rc-num" style="color:#1E293B;">{_ok_count}</div>'
+            f'<div class="rc-label">Pipelines Complete</div></div>',
+            unsafe_allow_html=True,
+        )
+    with _result_cols[2]:
+        _fc = "#DC2626" if _fail_count else "#16A34A"
+        st.markdown(
+            f'<div class="uap-result-card">'
+            f'<div class="rc-num" style="color:{_fc};">{_fail_count}</div>'
+            f'<div class="rc-label">Errors</div></div>',
+            unsafe_allow_html=True,
+        )
+    with _result_cols[3]:
+        st.markdown(
+            f'<div class="uap-result-card">'
+            f'<div class="rc-num" style="color:#1E293B;">{total_elapsed}s</div>'
+            f'<div class="rc-label">Total Runtime</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    # Status message
+    if _fail_count == 0:
+        st.success(
+            f"**{_client_label}** -- {_total_results} analyses across "
+            f"{_ok_count} pipeline{'s' if _ok_count > 1 else ''} in {total_elapsed}s"
+        )
+    else:
+        st.warning(
+            f"**{_client_label}** -- {_ok_count} passed, {_fail_count} failed in {total_elapsed}s"
+        )
+
+    # Error details
+    if pipeline_errors:
+        with st.expander("Error Details", expanded=True):
+            for name, tb in pipeline_errors.items():
+                st.markdown(f"**{name.upper()}**")
+                st.code(tb)
+
+    # Deliverables
+    _DELIVERABLE_EXTS = {".pptx", ".xlsx"}
+    _MIME = {
+        ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }
+    deliverables: list[Path] = []
+    for out_dir in all_output_dirs.values():
+        if out_dir and Path(out_dir).is_dir():
+            deliverables.extend(
+                f for f in Path(out_dir).rglob("*") if f.is_file() and f.suffix in _DELIVERABLE_EXTS
+            )
+
+    if deliverables:
+        st.markdown(
+            '<p class="uap-label" style="margin-top:1rem;">DELIVERABLES</p>',
+            unsafe_allow_html=True,
+        )
+        for f in sorted(deliverables, key=lambda p: p.name):
+            _ext = f.suffix.lstrip(".")
+            _icon_cls = "dl-pptx" if _ext == "pptx" else "dl-xlsx"
+            _size_kb = f.stat().st_size / 1024
+
+            dl_cols = st.columns([5, 1])
+            dl_cols[0].markdown(
+                f'<div class="uap-dl-card">'
+                f'<div class="uap-dl-icon {_icon_cls}">{_ext.upper()}</div>'
+                f'<div class="uap-dl-info">'
+                f'<div class="dl-name">{f.name}</div>'
+                f'<div class="dl-path">{f.parent} -- {_size_kb:.0f} KB</div>'
+                f"</div></div>",
+                unsafe_allow_html=True,
+            )
+            dl_cols[1].download_button(
+                "Download",
+                f.read_bytes(),
+                file_name=f.name,
+                mime=_MIME.get(f.suffix, "application/octet-stream"),
+                key=f"home_dl_{f.parent.name}_{f.name}",
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +541,8 @@ if oddd_path and not ars_formatted:
     import pandas as pd
 
     if st.button("Format ODD Now", type="secondary", key="home_format_btn"):
-        with st.spinner("Formatting..."):
+        with st.spinner("Formatting..."), warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
             df = pd.read_excel(oddd_path)
             df = format_odd(df)
             p = Path(oddd_path)
@@ -714,21 +836,41 @@ else:
 # ---------------------------------------------------------------------------
 # Run button -- NO form (avoids Streamlit's blue progress bar)
 # ---------------------------------------------------------------------------
+_is_running = st.session_state.get("uap_running", False)
+
+
+def _on_run_click() -> None:
+    """Callback fires BEFORE the page reruns -- disables button immediately."""
+    st.session_state["uap_running"] = True
+
+
 st.markdown('<div class="uap-run-btn">', unsafe_allow_html=True)
 run_btn = st.button(
-    f"Run {len(selected_modules)} Modules",
+    "Running..." if _is_running else f"Run {len(selected_modules)} Modules",
     type="primary",
     width="stretch",
     key="home_run_btn",
+    disabled=_is_running,
+    on_click=_on_run_click,
 )
 st.markdown("</div>", unsafe_allow_html=True)
 
-if not run_btn:
+if not run_btn and not _is_running:
+    _render_results_dashboard()
     st.stop()
 
 # ---------------------------------------------------------------------------
 # Execution -- full analytics dashboard
 # ---------------------------------------------------------------------------
+
+# Immediate feedback: visible as soon as the rerun reaches this line
+_pipelines_label = " + ".join(
+    p.value.upper() for p in sorted(needed_products, key=lambda x: x.value)
+)
+_prep = st.status("Preparing analysis...", expanded=True)
+_prep.write(f"Client **{client_id}** -- {_pipelines_label}")
+_prep.write(f"Modules: {len(selected_modules)}")
+
 run_id = generate_run_id()
 all_results: dict[str, dict] = {}
 all_output_dirs: dict[str, Path] = {}
@@ -820,8 +962,11 @@ _needs_odd = Product.ARS in needed_products or Product.ICS in needed_products
 if _needs_odd and oddd_path and Path(oddd_path).exists():
     import pandas as pd
 
+    _prep.write("Loading ODD data from Excel...")
     _render_exec_dashboard(_exec_plan, 0, "Loading ODD data...")
-    _oddd_df = pd.read_excel(oddd_path)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+        _oddd_df = pd.read_excel(oddd_path)
     _local_csv = _local_dir / (Path(oddd_path).stem + ".csv")
     _oddd_df.to_csv(_local_csv, index=False)
     _local_oddd = str(_local_csv)
@@ -830,12 +975,15 @@ if _needs_odd and oddd_path and Path(oddd_path).exists():
 # Pre-combine transaction files (cached if already combined)
 _effective_tran: Path | None = None
 if Product.TXN in needed_products:
+    _prep.write("Preparing transaction data...")
     _render_exec_dashboard(_exec_plan, 0, "Preparing transaction data...")
     _effective_tran = _combine_tran_files(
         _all_tran_paths, Path(oddd_path).parent if oddd_path else Path(".")
     )
     if not _effective_tran and tran_path:
         _effective_tran = Path(tran_path)
+
+_prep.update(label="Data prepared", state="complete", expanded=False)
 
 for idx, step in enumerate(_exec_plan):
     product = step["product"]
@@ -918,6 +1066,9 @@ _render_exec_dashboard(_exec_plan, 1.0, "")
 _progress_bar.empty()
 _status_line.empty()
 
+# Re-enable the run button
+st.session_state["uap_running"] = False
+
 # Clean up local copy
 shutil.rmtree(_local_dir, ignore_errors=True)
 
@@ -952,66 +1103,13 @@ st.session_state["uap_last_results"] = all_results
 st.session_state["uap_last_output_dirs"] = all_output_dirs
 st.session_state["uap_last_errors"] = pipeline_errors
 st.session_state["uap_last_run_id"] = run_id
+st.session_state["uap_last_elapsed"] = total_elapsed
+st.session_state["uap_last_client"] = client_name or client_id
 
 # ---------------------------------------------------------------------------
-# Results Dashboard
+# Results Dashboard (KPI cards + deliverables from session state)
 # ---------------------------------------------------------------------------
-st.markdown('<div style="height:1rem;"></div>', unsafe_allow_html=True)
-
-_total_results = sum(len(r) for r in all_results.values())
-_ok_count = len(all_results)
-_fail_count = len(pipeline_errors)
-
-# Result KPI cards
-_result_cols = st.columns(4)
-with _result_cols[0]:
-    _color = "#16A34A" if _fail_count == 0 else "#F59E0B"
-    st.markdown(
-        f'<div class="uap-result-card">'
-        f'<div class="rc-num" style="color:{_color};">{_total_results}</div>'
-        f'<div class="rc-label">Analyses Generated</div></div>',
-        unsafe_allow_html=True,
-    )
-with _result_cols[1]:
-    st.markdown(
-        f'<div class="uap-result-card">'
-        f'<div class="rc-num" style="color:#1E293B;">{_ok_count}</div>'
-        f'<div class="rc-label">Pipelines Complete</div></div>',
-        unsafe_allow_html=True,
-    )
-with _result_cols[2]:
-    _fc = "#DC2626" if _fail_count else "#16A34A"
-    st.markdown(
-        f'<div class="uap-result-card">'
-        f'<div class="rc-num" style="color:{_fc};">{_fail_count}</div>'
-        f'<div class="rc-label">Errors</div></div>',
-        unsafe_allow_html=True,
-    )
-with _result_cols[3]:
-    st.markdown(
-        f'<div class="uap-result-card">'
-        f'<div class="rc-num" style="color:#1E293B;">{total_elapsed}s</div>'
-        f'<div class="rc-label">Total Runtime</div></div>',
-        unsafe_allow_html=True,
-    )
-
-# Status message
-if _fail_count == 0:
-    st.success(
-        f"**{client_name or client_id}** -- {_total_results} analyses across "
-        f"{_ok_count} pipeline{'s' if _ok_count > 1 else ''} in {total_elapsed}s"
-    )
-else:
-    st.warning(
-        f"**{client_name or client_id}** -- {_ok_count} passed, {_fail_count} failed in {total_elapsed}s"
-    )
-
-# Error details
-if pipeline_errors:
-    with st.expander("Error Details", expanded=True):
-        for name, tb in pipeline_errors.items():
-            st.markdown(f"**{name.upper()}**")
-            st.code(tb)
+_render_results_dashboard()
 
 # ---------------------------------------------------------------------------
 # Run report (slide-level diagnostics from JSON)
@@ -1113,49 +1211,3 @@ if _run_reports:
                         "error": st.column_config.TextColumn("Error", width="large"),
                     },
                 )
-
-# ---------------------------------------------------------------------------
-# Deliverables -- styled download cards
-# ---------------------------------------------------------------------------
-if all_results:
-    _DELIVERABLE_EXTS = {".pptx", ".xlsx"}
-    _MIME = {
-        ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    }
-    deliverables: list[Path] = []
-    for out_dir in all_output_dirs.values():
-        if out_dir and Path(out_dir).is_dir():
-            deliverables.extend(
-                f for f in Path(out_dir).rglob("*") if f.is_file() and f.suffix in _DELIVERABLE_EXTS
-            )
-
-    if deliverables:
-        st.markdown(
-            '<p class="uap-label" style="margin-top:1rem;">DELIVERABLES</p>',
-            unsafe_allow_html=True,
-        )
-        for f in sorted(deliverables, key=lambda p: p.name):
-            _ext = f.suffix.lstrip(".")
-            _icon_cls = "dl-pptx" if _ext == "pptx" else "dl-xlsx"
-            _size_kb = f.stat().st_size / 1024
-
-            dl_cols = st.columns([5, 1])
-            dl_cols[0].markdown(
-                f'<div class="uap-dl-card">'
-                f'<div class="uap-dl-icon {_icon_cls}">{_ext.upper()}</div>'
-                f'<div class="uap-dl-info">'
-                f'<div class="dl-name">{f.name}</div>'
-                f'<div class="dl-path">{f.parent} -- {_size_kb:.0f} KB</div>'
-                f"</div></div>",
-                unsafe_allow_html=True,
-            )
-            dl_cols[1].download_button(
-                "Download",
-                f.read_bytes(),
-                file_name=f.name,
-                mime=_MIME.get(f.suffix, "application/octet-stream"),
-                key=f"home_dl_{f.parent.name}_{f.name}",
-            )
-    else:
-        st.info("No PPTX or Excel files generated. Check View Outputs for charts.")

@@ -11,6 +11,7 @@ from __future__ import annotations
 import calendar
 import logging
 import re
+import warnings
 from datetime import datetime
 from pathlib import Path
 
@@ -126,7 +127,9 @@ def _read_file(path: Path) -> pd.DataFrame:
     try:
         if suffix == ".csv":
             return pd.read_csv(path)
-        return pd.read_excel(path)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+            return pd.read_excel(path)
     except Exception as e:
         raise DataLoadError(f"Failed to read {path}: {e}") from e
 
@@ -386,7 +389,9 @@ def load_odd(settings: Settings) -> pd.DataFrame | None:
 
     odd_path = settings.odd_file
     logger.info("Loading ODD file: %s", odd_path.name)
-    odd_df = pd.read_excel(odd_path, engine="openpyxl")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+        odd_df = pd.read_excel(odd_path, engine="openpyxl")
     odd_df.columns = odd_df.columns.str.strip()
 
     # Parse date columns

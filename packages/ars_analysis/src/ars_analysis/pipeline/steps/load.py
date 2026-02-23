@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -167,7 +168,9 @@ def _read_file(path: Path) -> pd.DataFrame:
 
     if suffix in (".xlsx", ".xls"):
         try:
-            return pd.read_excel(path)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+                return pd.read_excel(path)
         except ValueError as exc:
             raise DataError(
                 f"Cannot read Excel file: {exc}",

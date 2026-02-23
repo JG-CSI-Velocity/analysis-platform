@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -61,7 +62,9 @@ def _read_file(path: Path) -> pd.DataFrame:
     """Read a file, auto-detecting format from extension."""
     suffix = path.suffix.lower()
     if suffix in (".xlsx", ".xls"):
-        return pd.read_excel(path)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+            return pd.read_excel(path)
     elif suffix == ".csv":
         return pd.read_csv(path)
     else:

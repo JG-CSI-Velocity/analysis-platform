@@ -1,6 +1,8 @@
-"""RPE Run History -- view past pipeline executions."""
+"""RPE Run History -- visual timeline of pipeline executions with charts."""
 
 from __future__ import annotations
+
+from collections import Counter
 
 import pandas as pd
 import streamlit as st
@@ -31,13 +33,51 @@ successes = sum(1 for r in history if r.status == "success")
 failures = sum(1 for r in history if r.status == "error")
 partials = sum(1 for r in history if r.status == "partial")
 avg_time = sum(r.runtime_seconds for r in history) / total if total else 0
+success_rate = (successes / total * 100) if total else 0
 
-m1, m2, m3, m4, m5 = st.columns(5)
+m1, m2, m3, m4, m5, m6 = st.columns(6)
 m1.metric("Total Runs", total)
 m2.metric("Success", successes)
 m3.metric("Partial", partials)
 m4.metric("Failed", failures)
 m5.metric("Avg Time", f"{avg_time:.1f}s")
+m6.metric("Success Rate", f"{success_rate:.0f}%")
+
+# ---------------------------------------------------------------------------
+# Visual charts (only if enough data)
+# ---------------------------------------------------------------------------
+if total >= 3:
+    st.divider()
+    st.markdown('<p class="uap-label">TRENDS</p>', unsafe_allow_html=True)
+
+    chart_col1, chart_col2 = st.columns(2)
+
+    # Status breakdown bar chart
+    with chart_col1:
+        status_counts = Counter(r.status for r in history)
+        status_df = pd.DataFrame(
+            {"Status": list(status_counts.keys()), "Count": list(status_counts.values())}
+        )
+        st.bar_chart(status_df, x="Status", y="Count", color="#16A34A")
+
+    # Runtime over time (line chart of last 20 runs)
+    with chart_col2:
+        recent = history[:20]
+        runtime_df = pd.DataFrame(
+            {
+                "Run": [r.run_id[:8] for r in recent],
+                "Runtime (s)": [r.runtime_seconds for r in recent],
+            }
+        )
+        st.line_chart(runtime_df, x="Run", y="Runtime (s)", color="#0090D4")
+
+    # Pipeline breakdown
+    pipeline_counts = Counter(r.pipeline for r in history)
+    if len(pipeline_counts) > 1:
+        pipeline_df = pd.DataFrame(
+            {"Pipeline": list(pipeline_counts.keys()), "Runs": list(pipeline_counts.values())}
+        )
+        st.bar_chart(pipeline_df, x="Pipeline", y="Runs", color="#F59E0B")
 
 st.divider()
 
@@ -67,7 +107,6 @@ if not filtered:
     st.info("No matching runs.")
     st.stop()
 
-# Build DataFrame for display
 rows = []
 for r in filtered:
     rows.append(
@@ -85,7 +124,7 @@ for r in filtered:
     )
 
 df = pd.DataFrame(rows)
-st.dataframe(df, width="stretch", hide_index=True)
+st.dataframe(df, use_container_width=True, hide_index=True)
 
 # ---------------------------------------------------------------------------
 # Detailed view
@@ -94,13 +133,9 @@ st.divider()
 st.markdown('<p class="uap-label">DETAILS</p>', unsafe_allow_html=True)
 
 for record in filtered[:10]:
-    status_class = {
-        "success": "uap-badge-ready",
-        "partial": "uap-badge-active",
-        "error": "uap-badge-error",
-    }.get(record.status, "uap-badge-muted")
-
-    with st.expander(f"{record.run_id} -- {record.client_id} / {record.pipeline}", expanded=False):
+    with st.expander(
+        f"{record.run_id} -- {record.client_id} / {record.pipeline}", expanded=False
+    ):
         d1, d2, d3 = st.columns(3)
         d1.markdown(f"**CSM:** {record.csm or '--'}")
         d2.markdown(f"**Client:** {record.client_id} - {record.client_name}")

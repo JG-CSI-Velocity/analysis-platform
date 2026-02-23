@@ -1,6 +1,7 @@
 """Data loading, cleaning, and validation for ICS analysis."""
 
 import logging
+import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -69,7 +70,9 @@ def _read_file(path: Path) -> pd.DataFrame:
         if suffix == ".csv":
             return pd.read_csv(path)
         elif suffix in (".xlsx", ".xls"):
-            return pd.read_excel(path, engine="openpyxl")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+                return pd.read_excel(path, engine="openpyxl")
         else:
             raise DataError(f"Unsupported file type: {suffix}")
     except DataError:

@@ -44,6 +44,15 @@ class OutputConfig(BaseModel):
     html_charts: bool = False
 
 
+class SegmentConfig(BaseModel):
+    """Cross-pipeline segment filter toggles."""
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    ars_responders: bool = False
+    ics_accounts: bool = False
+
+
 class Settings(BaseModel):
     """Application configuration -- immutable after creation."""
 
@@ -57,6 +66,7 @@ class Settings(BaseModel):
     output_dir: Path = Path("output/")
     outputs: OutputConfig = OutputConfig()
     charts: ChartConfig = ChartConfig()
+    segments: SegmentConfig = SegmentConfig()
     top_n: int = 50
     growth_min_threshold: float = 1000.0
     consistency_min_spend: float = 10000.0

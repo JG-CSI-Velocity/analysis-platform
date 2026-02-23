@@ -45,6 +45,7 @@ from txn_analysis.analyses.personal import (
     analyze_personal_top_by_spend,
     analyze_personal_top_by_transactions,
 )
+from txn_analysis.analyses.recurring import analyze_recurring_payments
 from txn_analysis.analyses.scorecard import analyze_portfolio_scorecard
 from txn_analysis.analyses.storyline_adapters import (
     analyze_campaigns,
@@ -52,6 +53,7 @@ from txn_analysis.analyses.storyline_adapters import (
     analyze_lifecycle,
     analyze_payroll,
 )
+from txn_analysis.analyses.time_patterns import analyze_time_patterns
 from txn_analysis.analyses.trends_cohort import analyze_new_vs_declining
 from txn_analysis.analyses.trends_consistency import analyze_spending_consistency
 from txn_analysis.analyses.trends_growth import analyze_growth_leaders_decliners
@@ -120,6 +122,10 @@ ANALYSIS_REGISTRY: list[tuple[str, AnalysisFunc]] = [
     ("payroll", analyze_payroll),
     # M14: Lifecycle Management (requires ODD)
     ("lifecycle", analyze_lifecycle),
+    # M15: Recurring Payments (pure TXN, no ODD needed)
+    ("recurring_payments", analyze_recurring_payments),
+    # M16: Time-of-Day / Day-of-Week Patterns (pure TXN, no ODD needed)
+    ("time_patterns", analyze_time_patterns),
     # M9: Scorecard (MUST be last -- reads completed_results from all prior analyses)
     ("portfolio_scorecard", analyze_portfolio_scorecard),
 ]

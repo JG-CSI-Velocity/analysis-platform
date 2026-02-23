@@ -422,10 +422,17 @@ div[data-testid="stProgress"] > div > div {
     box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
     transition: all 0.2s;
 }
-.uap-run-btn button:hover {
+.uap-run-btn button:hover:not(:disabled) {
     background: linear-gradient(135deg, #15803D 0%, #166534 100%) !important;
     box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35) !important;
     transform: translateY(-1px);
+}
+.uap-run-btn button:disabled {
+    background: #94A3B8 !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+    transform: none !important;
 }
 </style>
 """,

@@ -42,6 +42,14 @@ def run_txn(ctx: PipelineContext) -> dict[str, SharedResult]:
     if odd_file:
         kwargs["odd_file"] = Path(odd_file)
 
+    # Pass segment config from client_config if present
+    client_cfg = ctx.client_config or {}
+    seg_cfg = client_cfg.get("segments", {})
+    if seg_cfg:
+        from txn_analysis.settings import SegmentConfig
+
+        kwargs["segments"] = SegmentConfig(**seg_cfg)
+
     settings = Settings(**kwargs)
 
     def _progress_bridge(step: int, total: int, msg: str) -> None:

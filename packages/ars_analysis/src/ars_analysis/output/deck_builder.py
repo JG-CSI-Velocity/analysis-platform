@@ -119,9 +119,23 @@ class DeckBuilder:
     def build(self, slides: list[SlideContent], output_path: str) -> str:
         """Build complete PowerPoint deck from slide definitions."""
         self.prs = Presentation(self.template_path)
+        n_layouts = len(self.prs.slide_layouts)
 
-        for slide_content in slides:
-            self._add_slide(slide_content)
+        for i, slide_content in enumerate(slides):
+            if slide_content.layout_index >= n_layouts:
+                logger.warning(
+                    "Slide {i} '{title}' has layout_index={idx} but template only has {n} layouts, using 0",
+                    i=i, title=slide_content.title[:40], idx=slide_content.layout_index, n=n_layouts,
+                )
+                slide_content.layout_index = 0
+            try:
+                self._add_slide(slide_content)
+            except Exception as exc:
+                logger.error(
+                    "Slide {i} '{title}' (type={t}, layout={l}) failed: {err}",
+                    i=i, title=slide_content.title[:40], t=slide_content.slide_type,
+                    l=slide_content.layout_index, err=exc,
+                )
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         self.prs.save(output_path)
@@ -728,9 +742,7 @@ def _match_prefix(slide_id: str) -> tuple[int, str]:
     if sid.startswith("a12"):
         return (13, "screenshot")
     if sid.startswith("a13") and sid not in ("a13.5", "a13.6"):
-        # A13.{month} and A13.Agg produce a combined donut+hbar PNG;
-        # display as screenshot (mailer_summary expects separate images)
-        return (13, "screenshot")
+        return (13, "mailer_summary")
     return (9, "screenshot")
 
 
@@ -980,10 +992,19 @@ def _result_to_slide(result) -> SlideContent | None:
         else:
             layout_idx, slide_type = _match_prefix(slide_id)
 
+    # Build image list (primary + extras)
+    images = [str(chart_path)]
+    extra = getattr(result, "extra_charts", None)
+    if extra:
+        images.extend(str(p) for p in extra if p and Path(p).exists())
+
+    bullets = getattr(result, "bullets", None)
+
     return SlideContent(
         slide_type=slide_type,
         title=title,
-        images=[str(chart_path)],
+        images=images,
+        bullets=bullets,
         kpis=kpis,
         layout_index=layout_idx,
     )
@@ -1155,6 +1176,31 @@ def build_deck(ctx: PipelineContext) -> Path | None:
 
     # Build preamble
     preamble = _build_preamble_slides(client_name, month)
+
+    # Wire preamble placeholders to actual results:
+    # P08 (index 7) -> most recent A12.*.Swipes
+    # P09 (index 8) -> most recent A12.*.Spend
+    # P13 (index 12) -> A13.5 (count trend)
+    _mailer_by_id = {getattr(r, "slide_id", ""): r for r in mailer_results}
+
+    # Find most recent Swipes and Spend from A12 results
+    _swipes = next(
+        (_mailer_by_id[k] for k in sorted(_mailer_by_id, reverse=True)
+         if k.startswith("A12.") and "swipe" in k.lower()),
+        None,
+    )
+    _spend = next(
+        (_mailer_by_id[k] for k in sorted(_mailer_by_id, reverse=True)
+         if k.startswith("A12.") and "spend" in k.lower()),
+        None,
+    )
+    _count_trend = _mailer_by_id.get("A13.5")
+
+    for idx, result in [(7, _swipes), (8, _spend), (12, _count_trend)]:
+        if result and idx < len(preamble):
+            sc = _result_to_slide(result)
+            if sc:
+                preamble[idx] = sc
 
     # Combine
     final_slides = preamble + analysis_slides

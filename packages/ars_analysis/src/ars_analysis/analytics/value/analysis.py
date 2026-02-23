@@ -34,6 +34,22 @@ def _find_col(df: pd.DataFrame, keyword: str, period_hint: str = "12") -> str | 
     return None
 
 
+def _detect_debit_col(df: pd.DataFrame, ctx_indicator: str = "") -> str | None:
+    """Auto-detect the debit card column name."""
+    if ctx_indicator and ctx_indicator in df.columns:
+        return ctx_indicator
+    for candidate in ("Debit?", "Debit", "DC Indicator", "DC_Indicator"):
+        if candidate in df.columns:
+            return candidate
+    return None
+
+
+def _is_debit_yes(series: pd.Series) -> pd.Series:
+    """Return boolean mask for 'has debit card' regardless of coding convention."""
+    upper = series.astype(str).str.strip().str.upper()
+    return upper.isin(("YES", "Y", "D", "DC", "DEBIT"))
+
+
 # -- Comparison table chart --------------------------------------------------
 
 COL1_COLOR = "#6B7F99"
@@ -184,7 +200,16 @@ class ValueAnalysis(AnalysisModule):
     module_id = "value.analysis"
     display_name = "Value Analysis"
     section = "value"
-    required_columns = ("Date Opened", "Debit?", "Business?")
+    required_columns = ("Date Opened",)
+
+    def validate(self, ctx: PipelineContext) -> list[str]:
+        errors = super().validate(ctx)
+        if errors:
+            return errors
+        dc = _detect_debit_col(ctx.data, ctx.client.dc_indicator)
+        if not dc:
+            errors.append("Missing debit column (tried Debit?, DC Indicator, etc.)")
+        return errors
 
     def run(self, ctx: PipelineContext) -> list[AnalysisResult]:
         logger.info("Value Analysis for {client}", client=ctx.client.client_id)
@@ -212,6 +237,17 @@ class ValueAnalysis(AnalysisModule):
                 )
             ]
 
+        dc_col = _detect_debit_col(ep, ctx.client.dc_indicator)
+        if not dc_col:
+            return [
+                AnalysisResult(
+                    slide_id="A11.1",
+                    title="Value of a Debit Card",
+                    success=False,
+                    error="No debit column found",
+                )
+            ]
+
         # L12M-active personal accounts
         df = ep.copy()
         if "Date Closed" in df.columns:
@@ -236,38 +272,41 @@ class ValueAnalysis(AnalysisModule):
                 )
             ]
 
+        # Flag debit status (normalize to Yes/No for groupby)
+        active["_has_debit"] = _is_debit_yes(active[dc_col])
+
         # Revenue calculation
         active["NSF/OD Revenue"] = active[items_col].fillna(0) * fee_amount
         active["Interchange Revenue"] = active[spend_col].fillna(0) * rate_amount
         active["Total Revenue"] = active["NSF/OD Revenue"] + active["Interchange Revenue"]
 
-        rev = active.groupby("Debit?").agg(
-            Accounts=("Debit?", "count"),
+        rev = active.groupby("_has_debit").agg(
+            Accounts=("_has_debit", "count"),
             NSF_OD=("NSF/OD Revenue", "sum"),
             IC=("Interchange Revenue", "sum"),
             Total=("Total Revenue", "sum"),
         )
 
-        if "Yes" not in rev.index or "No" not in rev.index:
+        if True not in rev.index or False not in rev.index:
             return [
                 AnalysisResult(
                     slide_id="A11.1",
                     title="Value of a Debit Card",
                     success=False,
-                    error="Need both Yes and No debit groups",
+                    error="Need both with-debit and without-debit groups",
                 )
             ]
 
-        aw = int(rev.loc["Yes", "Accounts"])
-        awo = int(rev.loc["No", "Accounts"])
-        rw = rev.loc["Yes", "Total"]
-        rwo = rev.loc["No", "Total"]
+        aw = int(rev.loc[True, "Accounts"])
+        awo = int(rev.loc[False, "Accounts"])
+        rw = rev.loc[True, "Total"]
+        rwo = rev.loc[False, "Total"]
         rpw = rw / aw if aw else 0
         rpwo = rwo / awo if awo else 0
-        nsf_w = rev.loc["Yes", "NSF_OD"]
-        nsf_wo = rev.loc["No", "NSF_OD"]
-        ic_w = rev.loc["Yes", "IC"]
-        ic_wo = rev.loc["No", "IC"]
+        nsf_w = rev.loc[True, "NSF_OD"]
+        nsf_wo = rev.loc[False, "NSF_OD"]
+        ic_w = rev.loc[True, "IC"]
+        ic_wo = rev.loc[False, "IC"]
         delta = round(rpw - rpwo, 2)
 
         # DCTR rates from earlier results
@@ -275,7 +314,7 @@ class ValueAnalysis(AnalysisModule):
         hist_dctr = dctr_1.get("insights", {}).get("overall_dctr", None)
         if hist_dctr is None:
             t_ep = len(ep)
-            w_ep = len(ep[ep["Debit?"] == "Yes"])
+            w_ep = int(_is_debit_yes(ep[dc_col]).sum())
             hist_dctr = w_ep / t_ep if t_ep > 0 else 0.80
 
         dctr_3 = ctx.results.get("dctr_3", {})
@@ -364,17 +403,28 @@ class ValueAnalysis(AnalysisModule):
 
         # Get Reg E eligible base (personal + debit)
         ep = ctx.subsets.eligible_personal
-        if ep is None or ep.empty or "Debit?" not in ep.columns:
+        if ep is None or ep.empty:
             return [
                 AnalysisResult(
                     slide_id="A11.2",
                     title="Value of Reg E Opt-In",
                     success=False,
-                    error="No eligible personal accounts with debit data",
+                    error="No eligible personal accounts",
                 )
             ]
 
-        base = ep[ep["Debit?"] == "Yes"].copy()
+        dc_col = _detect_debit_col(ep, ctx.client.dc_indicator)
+        if not dc_col:
+            return [
+                AnalysisResult(
+                    slide_id="A11.2",
+                    title="Value of Reg E Opt-In",
+                    success=False,
+                    error="No debit column found",
+                )
+            ]
+
+        base = ep[_is_debit_yes(ep[dc_col])].copy()
         if base.empty:
             return [
                 AnalysisResult(

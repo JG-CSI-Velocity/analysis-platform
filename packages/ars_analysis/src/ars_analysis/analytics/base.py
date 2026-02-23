@@ -36,6 +36,8 @@ class AnalysisResult:
     layout_index: int = 5
     slide_type: str = "screenshot"
     kpis: dict[str, str] | None = None
+    extra_charts: list[Path] | None = None
+    bullets: list[str] | None = None
 
 
 class AnalysisModule(ABC):

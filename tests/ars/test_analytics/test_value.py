@@ -42,8 +42,7 @@ class TestModuleAttributes:
 
     def test_required_columns(self):
         m = ValueAnalysis()
-        assert "Debit?" in m.required_columns
-        assert "Business?" in m.required_columns
+        assert "Date Opened" in m.required_columns
 
 
 # ---------------------------------------------------------------------------

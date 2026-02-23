@@ -99,9 +99,9 @@ class TestMatchPrefix:
     def test_a12_prefix(self):
         assert _match_prefix("A12.Nov25.Swipes") == (13, "screenshot")
 
-    def test_a13_monthly_screenshot(self):
-        # A13.{month} uses screenshot (combined donut+hbar PNG)
-        assert _match_prefix("A13.Sep24") == (13, "screenshot")
+    def test_a13_monthly_mailer_summary(self):
+        # A13.{month} uses mailer_summary (3-column: donut + hbar + inside numbers)
+        assert _match_prefix("A13.Sep24") == (13, "mailer_summary")
 
     def test_a13_5_not_mailer(self):
         # A13.5 and A13.6 are excluded from the monthly prefix match

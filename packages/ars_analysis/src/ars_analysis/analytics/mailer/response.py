@@ -42,30 +42,19 @@ BAR_COLORS = ["#E74C3C", "#3498DB", "#2ECC71", "#F39C12", "#9B59B6"]
 # ---------------------------------------------------------------------------
 
 
-def _render_summary_chart(
-    seg_details: dict,
-    save_path,
-    month_title: str,
-) -> bool:
-    """Render combined donut + hbar chart for one month. Returns success."""
+def _render_donut_chart(seg_details: dict, save_path, title: str) -> bool:
+    """Render donut chart (Response Share) for one month. Returns success."""
     active = [s for s in RESPONSE_SEGMENTS if s in seg_details]
     if not active:
         return False
 
     resp_counts = [seg_details[s]["responders"] for s in active]
-    rates = [seg_details[s]["rate"] for s in active]
-    mailed_counts = [seg_details[s]["mailed"] for s in active]
     colors = [SEGMENT_COLORS.get(s, "#888") for s in active]
     total = sum(resp_counts)
 
-    with chart_figure(figsize=(18, 8), save_path=save_path) as (fig, ax):
-        ax.remove()
-        ax1 = fig.add_subplot(1, 2, 1)
-        ax2 = fig.add_subplot(1, 2, 2)
-
-        # -- Left: Donut --
+    with chart_figure(figsize=(8, 7), save_path=save_path) as (fig, ax):
         if total > 0:
-            wedges, texts, autotexts = ax1.pie(
+            wedges, texts, autotexts = ax.pie(
                 resp_counts,
                 labels=active,
                 autopct="%1.0f%%",
@@ -80,84 +69,51 @@ def _render_summary_chart(
             import matplotlib.pyplot as plt
 
             centre = plt.Circle((0, 0), 0.50, fc="white")
-            ax1.add_artist(centre)
-            ax1.text(
-                0,
-                0,
-                f"{total:,}\nTotal",
-                ha="center",
-                va="center",
-                fontsize=16,
-                fontweight="bold",
-            )
+            ax.add_artist(centre)
+            ax.text(0, 0, f"{total:,}\nTotal", ha="center", va="center",
+                    fontsize=16, fontweight="bold")
         else:
-            ax1.text(
-                0.5,
-                0.5,
-                "No Responders",
-                ha="center",
-                va="center",
-                fontsize=16,
-                transform=ax1.transAxes,
-            )
-            ax1.axis("off")
-        ax1.set_title("Response Share", fontsize=18, fontweight="bold", pad=15)
+            ax.text(0.5, 0.5, "No Responders", ha="center", va="center",
+                    fontsize=16, transform=ax.transAxes)
+            ax.axis("off")
+        ax.set_title(title, fontsize=18, fontweight="bold", pad=15)
+    return True
 
-        # -- Right: Horizontal bar (response rates) --
+
+def _render_hbar_chart(seg_details: dict, save_path, title: str) -> bool:
+    """Render horizontal bar chart (Response Rate) for one month. Returns success."""
+    active = [s for s in RESPONSE_SEGMENTS if s in seg_details]
+    if not active:
+        return False
+
+    rates = [seg_details[s]["rate"] for s in active]
+    resp_counts = [seg_details[s]["responders"] for s in active]
+    mailed_counts = [seg_details[s]["mailed"] for s in active]
+    colors = [SEGMENT_COLORS.get(s, "#888") for s in active]
+
+    with chart_figure(figsize=(8, 7), save_path=save_path) as (fig, ax):
         y = np.arange(len(active))
-        bars = ax2.barh(
-            y,
-            rates,
-            color=colors,
-            edgecolor="none",
-            height=0.65,
-            alpha=0.90,
-        )
+        bars = ax.barh(y, rates, color=colors, edgecolor="none", height=0.65, alpha=0.90)
         max_rate = max(rates) if rates else 1
         for bar, rate, resp, mailed in zip(bars, rates, resp_counts, mailed_counts):
             bar_cy = bar.get_y() + bar.get_height() / 2
             if bar.get_width() > max_rate * 0.25:
-                ax2.text(
-                    bar.get_width() * 0.5,
-                    bar_cy,
-                    f"{resp}/{mailed}",
-                    ha="center",
-                    va="center",
-                    fontsize=14,
-                    fontweight="bold",
-                    color="white",
-                )
-                ax2.text(
-                    bar.get_width() + max_rate * 0.02,
-                    bar_cy,
-                    f"{rate:.1f}%",
-                    ha="left",
-                    va="center",
-                    fontsize=14,
-                    fontweight="bold",
-                )
+                ax.text(bar.get_width() * 0.5, bar_cy, f"{resp}/{mailed}",
+                        ha="center", va="center", fontsize=14, fontweight="bold", color="white")
+                ax.text(bar.get_width() + max_rate * 0.02, bar_cy, f"{rate:.1f}%",
+                        ha="left", va="center", fontsize=14, fontweight="bold")
             else:
-                x_off = bar.get_width() + max_rate * 0.02
-                ax2.text(
-                    x_off,
-                    bar_cy,
-                    f"{resp}/{mailed} ({rate:.1f}%)",
-                    ha="left",
-                    va="center",
-                    fontsize=12,
-                    fontweight="bold",
-                )
-        ax2.set_yticks(y)
-        ax2.set_yticklabels(active, fontsize=14, fontweight="bold")
-        ax2.set_xlabel("Response Rate (%)", fontsize=14, fontweight="bold")
-        ax2.set_xlim(0, max_rate * 1.45 if max_rate > 0 else 1)
-        ax2.invert_yaxis()
-        ax2.spines["top"].set_visible(False)
-        ax2.spines["right"].set_visible(False)
-
-        fig.suptitle(month_title, fontsize=20, fontweight="bold", y=0.98)
-        fig.tight_layout(rect=[0, 0, 1, 0.93])
-
+                ax.text(bar.get_width() + max_rate * 0.02, bar_cy,
+                        f"{resp}/{mailed} ({rate:.1f}%)",
+                        ha="left", va="center", fontsize=12, fontweight="bold")
+        ax.set_yticks(y)
+        ax.set_yticklabels(active, fontsize=14, fontweight="bold")
+        ax.set_xlabel("Response Rate (%)", fontsize=14, fontweight="bold")
+        ax.set_xlim(0, max_rate * 1.45 if max_rate > 0 else 1)
+        ax.invert_yaxis()
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.set_title(title, fontsize=18, fontweight="bold", pad=15)
     return True
 
 
@@ -202,10 +158,30 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
             continue
 
         month_title = f"ARS Response -- {format_title(month)} Mailer Summary"
-        save_to = ctx.paths.charts_dir / f"a13_{month.lower()}_summary.png"
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
-        ok = _render_summary_chart(seg_details, save_to, month_title)
+        # Save donut and hbar as SEPARATE PNGs for 3-column mailer_summary layout
+        donut_path = ctx.paths.charts_dir / f"a13_{month.lower()}_donut.png"
+        hbar_path = ctx.paths.charts_dir / f"a13_{month.lower()}_hbar.png"
+        ok_donut = _render_donut_chart(seg_details, donut_path, "Response Share")
+        ok_hbar = _render_hbar_chart(seg_details, hbar_path, "Response Rate")
+
+        # Build "Inside the Numbers" bullets
+        active = [s for s in RESPONSE_SEGMENTS if s in seg_details]
+        inside_bullets: list[str] = [
+            f"{overall_rate:.1f}%|Overall response rate"
+        ]
+        for s in active[:3]:
+            d = seg_details[s]
+            lbl = "NU 5+" if s == "NU" else s
+            inside_bullets.append(f"{d['rate']:.1f}%|{lbl} response rate")
+
+        # Build KPIs
+        kpis = {
+            "Mailed": f"{total_mailed:,}",
+            "Responded": f"{total_resp:,}",
+            "Rate": f"{overall_rate:.1f}%",
+        }
 
         # Build Excel data
         rows = [
@@ -222,8 +198,13 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
             AnalysisResult(
                 slide_id=f"A13.{month}",
                 title=month_title,
-                chart_path=save_to if ok else None,
+                chart_path=donut_path if ok_donut else None,
+                extra_charts=[hbar_path] if ok_hbar else None,
+                bullets=[f"Mailed {total_mailed:,}, {total_resp:,} responded ({overall_rate:.1f}%)"] + inside_bullets,
+                kpis=kpis,
                 excel_data={"Response": pd.DataFrame(rows)},
+                slide_type="mailer_summary",
+                layout_index=13,
                 notes=(
                     f"Mailed: {total_mailed:,} | Responded: {total_resp:,} | "
                     f"Rate: {overall_rate:.1f}%"
@@ -280,10 +261,25 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
     overall = total_r / total_m * 100 if total_m > 0 else 0
 
     title = "ARS Response -- All-Time Mailer Summary"
-    save_to = ctx.paths.charts_dir / "a13_aggregate_summary.png"
     ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
-    ok = _render_summary_chart(combined, save_to, title)
+    donut_path = ctx.paths.charts_dir / "a13_agg_donut.png"
+    hbar_path = ctx.paths.charts_dir / "a13_agg_hbar.png"
+    ok_donut = _render_donut_chart(combined, donut_path, "Response Share")
+    ok_hbar = _render_hbar_chart(combined, hbar_path, "Response Rate")
+
+    active = [s for s in RESPONSE_SEGMENTS if s in combined]
+    inside_bullets: list[str] = [f"{overall:.1f}%|Overall response rate"]
+    for s in active[:3]:
+        d = combined[s]
+        lbl = "NU 5+" if s == "NU" else s
+        inside_bullets.append(f"{d['rate']:.1f}%|{lbl} response rate")
+
+    kpis = {
+        "Mailed": f"{total_m:,}",
+        "Responded": f"{total_r:,}",
+        "Rate": f"{overall:.1f}%",
+    }
 
     rows = [
         {
@@ -306,8 +302,13 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
         AnalysisResult(
             slide_id="A13.Agg",
             title=title,
-            chart_path=save_to if ok else None,
+            chart_path=donut_path if ok_donut else None,
+            extra_charts=[hbar_path] if ok_hbar else None,
+            bullets=[f"{len(pairs)} campaigns, {total_m:,} mailed, {total_r:,} responded ({overall:.1f}%)"] + inside_bullets,
+            kpis=kpis,
             excel_data={"AllTime": pd.DataFrame(rows)},
+            slide_type="mailer_summary",
+            layout_index=13,
             notes=(
                 f"{len(pairs)} campaigns | Mailed: {total_m:,} | "
                 f"Responded: {total_r:,} | Rate: {overall:.1f}%"

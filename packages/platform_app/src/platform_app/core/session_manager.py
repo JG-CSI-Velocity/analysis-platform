@@ -107,7 +107,7 @@ def auto_detect_files(
     client_dir: Path,
     client_id: str = "",
     incoming_root: Path | None = None,
-) -> dict[str, Path | None]:
+) -> dict:
     """Scan a client directory for known data file patterns.
 
     Parameters
@@ -121,7 +121,9 @@ def auto_detect_files(
         The ``Incoming`` root (parent of "ODDD Files" and "Transaction Files").
         If None, auto-resolved from client_dir.
 
-    Returns dict with keys: oddd, tran, ics, config -- each Path or None.
+    Returns dict with keys:
+        oddd, tran, ics, config -- each Path or None
+        tran_files -- list[Path] of ALL transaction files found (all months)
     """
     oddd = _find_by_patterns(client_dir, ["*ODD*.xlsx", "*ODDD*.xlsx", "*odd*.xlsx"])
     ics = _find_by_patterns(client_dir, ["*ICS*.xlsx", "*ics*.xlsx", "*ICS*.csv"])
@@ -132,46 +134,76 @@ def auto_detect_files(
     tran = _find_by_patterns(
         client_dir,
         [
-            "*tran*.csv", "*Tran*.csv", "*TRAN*.csv",
-            "*txn*.csv", "*TXN*.csv",
-            "*transaction*.csv", "*Transaction*.csv",
+            "*tran*.csv",
+            "*Tran*.csv",
+            "*TRAN*.csv",
+            "*txn*.csv",
+            "*TXN*.csv",
+            "*transaction*.csv",
+            "*Transaction*.csv",
         ],
     )
+    tran_files: list[Path] = [tran] if tran else []
 
     # If not found locally, look in Incoming/Transaction Files/{ClientID}*/
     if tran is None and client_id:
-        tran = _find_tran_file(client_dir, client_id, incoming_root)
+        tran_files = _find_all_tran_files(client_dir, client_id, incoming_root)
+        tran = tran_files[0] if tran_files else None
 
-    return {"oddd": oddd, "tran": tran, "ics": ics, "config": config}
+    return {"oddd": oddd, "tran": tran, "tran_files": tran_files, "ics": ics, "config": config}
 
 
-def _find_tran_file(
+def _find_all_tran_files(
     client_dir: Path,
     client_id: str,
     incoming_root: Path | None = None,
-) -> Path | None:
-    """Locate transaction files in Incoming/Transaction Files/{ClientID}*/.
+) -> list[Path]:
+    """Locate ALL transaction files in Incoming/Transaction Files/{ClientID}*/.
 
-    The M: drive layout puts ODD files under ``Incoming/ODDD Files/...``
-    and transaction files under ``Incoming/Transaction Files/{ClientID - Name}/``.
-    We walk up from the client_dir to find the "Incoming" parent, then look
-    for a matching transaction folder by client ID prefix.
+    Supports two layouts:
+      - Flat:   Transaction Files/1759/file.txt
+      - Nested: Transaction Files/1759/2025/*.txt + 1759/2026/*.txt
+
+    Returns all files sorted by name (most recent last) so the caller can
+    combine them. The pipeline will handle L12M filtering from the data.
     """
     if incoming_root is None:
         incoming_root = _resolve_incoming_root(client_dir)
     if incoming_root is None:
-        return None
+        return []
 
     tran_root = incoming_root / "Transaction Files"
     if not tran_root.is_dir():
-        return None
+        return []
 
-    # Find folder starting with the client ID (e.g. "1234 - Connex CU")
     tran_dir = _find_client_tran_dir(tran_root, client_id)
     if tran_dir is None:
-        return None
+        return []
 
-    return _find_by_patterns(tran_dir, ["*.csv", "*.txt"])
+    all_files: list[Path] = []
+
+    # Collect files directly in the client folder (flat layout)
+    all_files.extend(_find_all_by_patterns(tran_dir, ["*.csv", "*.txt"]))
+
+    # Collect files from year subfolders (nested layout)
+    _year_re = re.compile(r"^\d{4}$")
+    try:
+        year_dirs = sorted(d for d in tran_dir.iterdir() if d.is_dir() and _year_re.match(d.name))
+    except PermissionError:
+        year_dirs = []
+
+    for yd in year_dirs:
+        all_files.extend(_find_all_by_patterns(yd, ["*.csv", "*.txt"]))
+
+    if all_files:
+        logger.info(
+            "Found %d transaction files for client %s across %s",
+            len(all_files),
+            client_id,
+            tran_dir,
+        )
+
+    return all_files
 
 
 def _find_client_tran_dir(tran_root: Path, client_id: str) -> Path | None:
@@ -244,3 +276,14 @@ def _find_by_patterns(directory: Path, patterns: list[str]) -> Path | None:
         if matches:
             return matches[-1]  # most recent
     return None
+
+
+def _find_all_by_patterns(directory: Path, patterns: list[str]) -> list[Path]:
+    """Return ALL files matching any of the glob patterns."""
+    found: list[Path] = []
+    for pattern in patterns:
+        try:
+            found.extend(sorted(directory.glob(pattern)))
+        except PermissionError:
+            logger.warning("Permission denied scanning %s for %s", directory, pattern)
+    return found

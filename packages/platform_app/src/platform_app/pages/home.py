@@ -74,6 +74,48 @@ def _make_status_line(msg: str, pipeline: str) -> str:
     return f"{pipeline.upper()} -- {short}"
 
 
+def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
+    """Combine multiple transaction files into a single CSV for the pipeline.
+
+    Reads all .txt/.csv files, concatenates them, and writes a combined file.
+    Returns the path to the combined file, or None if no files found.
+    If only one file, returns it directly (no combine needed).
+    """
+    if not file_paths:
+        return None
+
+    paths = [Path(p) for p in file_paths if Path(p).exists()]
+    if not paths:
+        return None
+
+    if len(paths) == 1:
+        return paths[0]
+
+    import pandas as pd
+    from loguru import logger as _log
+
+    _log.info("Combining {} transaction files into one", len(paths))
+    frames = []
+    for p in sorted(paths):
+        try:
+            sep = "\t" if p.suffix == ".txt" else ","
+            df = pd.read_csv(p, sep=sep, low_memory=False)
+            frames.append(df)
+            _log.info("  Loaded {}: {:,} rows, {} cols", p.name, len(df), len(df.columns))
+        except Exception as exc:
+            _log.warning("  Skipping {}: {}", p.name, exc)
+
+    if not frames:
+        return None
+
+    combined = pd.concat(frames, ignore_index=True)
+    _log.info("Combined: {:,} total rows from {} files", len(combined), len(frames))
+
+    out_path = output_dir / f"_combined_transactions_{len(frames)}files.csv"
+    combined.to_csv(out_path, index=False)
+    return out_path
+
+
 # ---------------------------------------------------------------------------
 # Cached helpers -- avoid re-reading Excel / disk on every rerun
 # ---------------------------------------------------------------------------
@@ -302,6 +344,13 @@ for key in ("oddd", "tran", "ics"):
     elif f"uap_file_{key}" in st.session_state:
         del st.session_state[f"uap_file_{key}"]
 
+# Store all transaction file paths for multi-file combine
+_tran_files: list[Path] = detected.get("tran_files", [])
+if _tran_files:
+    st.session_state["uap_tran_files"] = [str(p) for p in _tran_files]
+else:
+    st.session_state.pop("uap_tran_files", None)
+
 # ---------------------------------------------------------------------------
 # File status badges (compact single row)
 # ---------------------------------------------------------------------------
@@ -314,7 +363,10 @@ file_checks = [
 badge_html_parts = []
 for key, label in file_checks:
     path = detected.get(key)
-    if path and path.exists():
+    if key == "tran" and _tran_files:
+        cls = "uap-badge-ready"
+        txt = f"{len(_tran_files)} files"
+    elif path and path.exists():
         cls = "uap-badge-ready"
         if key == "ics" and detected.get("ics") == detected.get("oddd") and ics_ready:
             txt = f"{path.name} (in ODD)"
@@ -530,7 +582,8 @@ if Product.ARS in needed_products:
         errors.append("ODD file is unformatted. Click **Format ODD Now** above.")
 if Product.TXN in needed_products:
     tran_path = st.session_state.get("uap_file_tran", "")
-    if not tran_path or not Path(tran_path).exists():
+    _tran_file_list = st.session_state.get("uap_tran_files", [])
+    if not tran_path and not _tran_file_list:
         errors.append("Transaction file not found.")
 if Product.ICS in needed_products:
     if not oddd_path or not Path(oddd_path).exists():
@@ -766,6 +819,7 @@ def _render_exec_dashboard(plan: list[dict], pct: float, status_text: str) -> No
 _render_exec_dashboard(_exec_plan, 0, "Initializing...")
 
 tran_path = st.session_state.get("uap_file_tran", "")
+_all_tran_paths = st.session_state.get("uap_tran_files", [])
 ics_path = st.session_state.get("uap_file_ics", "")
 odd_path = st.session_state.get("uap_file_odd", "")
 t0 = time.time()
@@ -784,10 +838,17 @@ for idx, step in enumerate(_exec_plan):
         input_files["oddd"] = Path(oddd_path)
         out = Path(oddd_path).parent / "output"
     elif product == Product.TXN:
-        input_files["tran"] = Path(tran_path)
+        # Combine all transaction files into one if multiple found
+        _effective_tran = _combine_tran_files(
+            _all_tran_paths, Path(oddd_path).parent if oddd_path else Path(".")
+        )
+        if not _effective_tran and tran_path:
+            _effective_tran = Path(tran_path)
+        if _effective_tran:
+            input_files["tran"] = _effective_tran
         if odd_path and Path(odd_path).exists():
             input_files["odd"] = Path(odd_path)
-        out = Path(tran_path).parent / "output_txn"
+        out = (_effective_tran.parent if _effective_tran else Path(".")) / "output_txn"
     elif product == Product.ICS:
         input_files["ics"] = Path(ics_path) if ics_path else Path(oddd_path)
         out = Path(oddd_path).parent / "output_ics"

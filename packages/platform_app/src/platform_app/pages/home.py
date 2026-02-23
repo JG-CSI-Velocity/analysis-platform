@@ -861,7 +861,18 @@ for idx, step in enumerate(_exec_plan):
     else:
         continue
 
-    out.mkdir(parents=True, exist_ok=True)
+    try:
+        out.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        step["status"] = "failed"
+        step["elapsed"] = 0.0
+        pipeline_errors[pipeline_name] = (
+            f"Cannot create output directory: {out}\n\n"
+            f"If this is a network path (M: drive), check that the drive is connected.\n\n"
+            f"{type(exc).__name__}: {exc}"
+        )
+        _render_exec_dashboard(_exec_plan, (idx + 1) / total_pipelines, "")
+        continue
 
     def _on_progress(
         msg: str,

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import shutil
+from dataclasses import asdict, dataclass
 
 import openpyxl
 from loguru import logger
@@ -14,15 +16,89 @@ from ars_analysis.output.excel_formatter import (
 from ars_analysis.pipeline.context import PipelineContext
 
 
+@dataclass
+class SlideStatus:
+    """Diagnostic status for a single slide in the run report."""
+
+    slide_id: str
+    module_id: str
+    success: bool
+    has_chart: bool
+    has_excel: bool
+    error: str = ""
+    title: str = ""
+
+
+def _build_run_report(ctx: PipelineContext) -> list[SlideStatus]:
+    """Build a diagnostic report of all slide statuses after analysis."""
+    report: list[SlideStatus] = []
+    for result in ctx.all_slides:
+        module_id = ""
+        # Determine module_id from ctx.results mapping
+        for mid, results_list in ctx.results.items():
+            if isinstance(results_list, list) and result in results_list:
+                module_id = mid
+                break
+
+        report.append(
+            SlideStatus(
+                slide_id=result.slide_id,
+                module_id=module_id,
+                success=result.success,
+                has_chart=bool(result.chart_path and result.chart_path.exists()),
+                has_excel=bool(result.excel_data),
+                error=result.error or "",
+                title=result.title,
+            )
+        )
+    return report
+
+
+def _save_run_report(ctx: PipelineContext, report: list[SlideStatus]) -> None:
+    """Save run report as JSON next to output files."""
+    report_path = ctx.paths.base_dir / f"{ctx.client.client_id}_{ctx.client.month}_run_report.json"
+    ctx.paths.base_dir.mkdir(parents=True, exist_ok=True)
+
+    ok = sum(1 for s in report if s.success and s.has_chart)
+    failed = sum(1 for s in report if not s.success)
+    no_chart = sum(1 for s in report if s.success and not s.has_chart)
+
+    report_data = {
+        "client_id": ctx.client.client_id,
+        "month": ctx.client.month,
+        "summary": {
+            "total": len(report),
+            "ok": ok,
+            "failed": failed,
+            "no_chart": no_chart,
+        },
+        "slides": [asdict(s) for s in report],
+    }
+    report_path.write_text(json.dumps(report_data, indent=2))
+    ctx.export_log.append(str(report_path))
+    logger.info(
+        "Run report: {ok}/{total} slides OK, {failed} failed, {no_chart} no chart",
+        ok=ok,
+        total=len(report),
+        failed=failed,
+        no_chart=no_chart,
+    )
+
+
 def step_generate(ctx: PipelineContext) -> None:
     """Generate all output deliverables from analysis results.
 
-    Order: Excel workbook -> PowerPoint deck -> archive copy.
+    Order: run report -> Excel workbook -> PowerPoint deck -> archive copy.
     Uses single-write pattern: build Excel once, then shutil.copy2 for master.
     """
     if not ctx.all_slides:
         logger.warning("No analysis results to generate deliverables from")
         return
+
+    # Build and save run report before deck build (diagnostics first)
+    report = _build_run_report(ctx)
+    _save_run_report(ctx, report)
+    ctx.results["_run_report"] = report
 
     _write_excel(ctx)
     _build_deck(ctx)

@@ -52,14 +52,42 @@ class DCTRFunnel(AnalysisModule):
         ed = ctx.subsets.eligible_data
         ewd = ctx.subsets.eligible_with_debit
         if data is None or oa is None or ed is None or ewd is None:
-            return []
+            missing = []
+            if data is None:
+                missing.append("data")
+            if oa is None:
+                missing.append("open_accounts")
+            if ed is None:
+                missing.append("eligible_data")
+            if ewd is None:
+                missing.append("eligible_with_debit")
+            logger.warning("A7.7: missing subsets: {m}", m=missing)
+            return [
+                AnalysisResult(
+                    slide_id="A7.7",
+                    title="Historical Account & Debit Card Funnel",
+                    success=False,
+                    error=f"Missing subsets: {', '.join(missing)}",
+                )
+            ]
 
         ta = len(data)
         to_ = len(oa)
         te = len(ed)
         td = len(ewd)
+        logger.info(
+            "A7.7 funnel: Total={ta}, Open={to}, Eligible={te}, Debit={td}",
+            ta=ta, to=to_, te=te, td=td,
+        )
         if ta == 0:
-            return []
+            return [
+                AnalysisResult(
+                    slide_id="A7.7",
+                    title="Historical Account & Debit Card Funnel",
+                    success=False,
+                    error="0 total accounts",
+                )
+            ]
         through = td / ta * 100
         dctr_e = td / te * 100 if te else 0
 
@@ -113,9 +141,27 @@ class DCTRFunnel(AnalysisModule):
         oa = ctx.subsets.open_accounts
         ed = ctx.subsets.eligible_data
         if data is None or ed is None or ctx.start_date is None or ctx.end_date is None:
-            return []
+            missing = []
+            if data is None:
+                missing.append("data")
+            if ed is None:
+                missing.append("eligible_data")
+            if ctx.start_date is None:
+                missing.append("start_date")
+            if ctx.end_date is None:
+                missing.append("end_date")
+            logger.warning("A7.8: missing prerequisites: {m}", m=missing)
+            return [
+                AnalysisResult(
+                    slide_id="A7.8",
+                    title="TTM Account & Debit Card Funnel",
+                    success=False,
+                    error=f"Missing: {', '.join(missing)}",
+                )
+            ]
 
         sd, ed_date = ctx.start_date, ctx.end_date
+        logger.info("A7.8 L12M date range: {sd} to {ed}", sd=sd, ed=ed_date)
 
         dc = data.copy()
         dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
@@ -131,8 +177,20 @@ class DCTRFunnel(AnalysisModule):
         to_ = len(l12m_open)
         te = len(l12m_elig)
         td = len(l12m_debit)
+        logger.info(
+            "A7.8 L12M funnel: Total={ta}, Open={to}, Eligible={te}, Debit={td}",
+            ta=ta, to=to_, te=te, td=td,
+        )
         if ta == 0:
-            return []
+            logger.warning("A7.8: 0 accounts in L12M range {sd} - {ed}", sd=sd, ed=ed_date)
+            return [
+                AnalysisResult(
+                    slide_id="A7.8",
+                    title="TTM Account & Debit Card Funnel",
+                    success=False,
+                    error=f"0 accounts in L12M range {sd} - {ed_date}",
+                )
+            ]
         through = td / ta * 100
         dctr_e = td / te * 100 if te else 0
 
@@ -185,9 +243,25 @@ class DCTRFunnel(AnalysisModule):
         oa = ctx.subsets.open_accounts
         ed = ctx.subsets.eligible_data
         if oa is None or ed is None or oa.empty or ed.empty:
-            return []
+            logger.warning("A7.9: missing or empty open_accounts/eligible_data subsets")
+            return [
+                AnalysisResult(
+                    slide_id="A7.9",
+                    title="Eligible vs Non-Eligible DCTR",
+                    success=False,
+                    error="Missing or empty open_accounts/eligible_data subsets",
+                )
+            ]
         if ctx.start_date is None or ctx.end_date is None:
-            return []
+            logger.warning("A7.9: start_date or end_date not set")
+            return [
+                AnalysisResult(
+                    slide_id="A7.9",
+                    title="Eligible vs Non-Eligible DCTR",
+                    success=False,
+                    error="start_date or end_date not set",
+                )
+            ]
 
         sd, ed_date = ctx.start_date, ctx.end_date
         l12m_open = filter_l12m(oa, sd, ed_date)
@@ -366,11 +440,13 @@ class DCTRFunnel(AnalysisModule):
             stage_gap = 0.02
             current_y = y_start
 
+            min_width = 0.08  # Minimum box width to prevent invisible stages
+
             for i, stage in enumerate(stages):
                 width = (
-                    max_width * (stage["total"] / stages[0]["total"])
+                    max(min_width, max_width * (stage["total"] / stages[0]["total"]))
                     if stages[0]["total"] > 0
-                    else 0.1
+                    else min_width
                 )
 
                 if has_biz and stage["total"] > 0:

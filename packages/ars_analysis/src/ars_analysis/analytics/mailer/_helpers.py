@@ -87,32 +87,72 @@ def discover_pairs(ctx: PipelineContext) -> list[tuple[str, str, str]]:
     """Return sorted list of (month, resp_col, mail_col) tuples.
 
     Caches result in ctx.results['_mailer_pairs'].
+    Tries exact pattern first, then case-insensitive fallback.
     """
     cached = ctx.results.get("_mailer_pairs")
     if cached:
         return cached
 
     if ctx.data is None:
+        logger.warning("discover_pairs: no data loaded")
         return []
 
     cols = list(ctx.data.columns)
+    logger.info("discover_pairs: {n} columns in ODD", n=len(cols))
+
+    # Exact match: "Aug25 Mail" pattern
     mail_cols = sorted(
         [c for c in cols if re.match(r"^[A-Z][a-z]{2}\d{2} Mail$", c)],
         key=parse_month,
     )
 
+    # Fallback: case-insensitive, flexible spacing
+    if not mail_cols:
+        mail_cols = sorted(
+            [c for c in cols if re.match(r"^[A-Za-z]{3}\d{2}\s*Mail\s*$", c, re.IGNORECASE)],
+            key=lambda c: parse_month(c.strip()),
+        )
+        if mail_cols:
+            logger.info("discover_pairs: found {n} mail columns via fuzzy match", n=len(mail_cols))
+
+    if not mail_cols:
+        # Log near-matches for debugging
+        near = [c for c in cols if "mail" in c.lower() or "resp" in c.lower()]
+        if near:
+            logger.warning(
+                "discover_pairs: 0 mail columns matched. Near-matches: {cols}",
+                cols=near,
+            )
+        else:
+            logger.warning("discover_pairs: 0 mail columns. No mail-like columns found at all.")
+        ctx.results["_mailer_pairs"] = []
+        return []
+
+    logger.info("discover_pairs: {n} mail columns found: {cols}", n=len(mail_cols), cols=mail_cols)
+
     pairs: list[tuple[str, str, str]] = []
     for mc in mail_cols:
-        month = mc.replace(" Mail", "")
+        # Extract month portion (strip trailing " Mail" or " mail")
+        month = re.sub(r"\s*[Mm]ail\s*$", "", mc).strip()
+        # Try exact resp column, then case-insensitive
         rc = f"{month} Resp"
-        if rc in cols and ctx.data[rc].notna().any():
+        if rc not in cols:
+            # Fuzzy: look for case-insensitive resp match
+            rc_matches = [c for c in cols if re.match(rf"^{re.escape(month)}\s*Resp\s*$", c, re.IGNORECASE)]
+            rc = rc_matches[0] if rc_matches else None
+        if rc and rc in cols and ctx.data[rc].notna().any():
             pairs.append((month, rc, mc))
+        elif rc and rc in cols:
+            logger.info("discover_pairs: {mc} has Resp column but all NaN, skipping", mc=mc)
+        else:
+            logger.info("discover_pairs: {mc} has no matching Resp column", mc=mc)
 
     # Client-specific cutoff for client 1200
     if ctx.client.client_id == "1200" and pairs:
         cutoff = pd.to_datetime("Apr24", format="%b%y")
         pairs = [(m, r, ml) for m, r, ml in pairs if parse_month(m) >= cutoff]
 
+    logger.info("discover_pairs: {n} valid pairs found", n=len(pairs))
     ctx.results["_mailer_pairs"] = pairs
     return pairs
 
@@ -132,6 +172,19 @@ def discover_metric_cols(
         cutoff = pd.to_datetime("Apr24", format="%b%y")
         spend_cols = [c for c in spend_cols if parse_month(c) >= cutoff]
         swipe_cols = [c for c in swipe_cols if parse_month(c) >= cutoff]
+
+    if not spend_cols and not swipe_cols:
+        near = [c for c in cols if "spend" in c.lower() or "swipe" in c.lower()]
+        if near:
+            logger.warning("discover_metric_cols: 0 matches. Near-matches: {cols}", cols=near)
+        else:
+            logger.info("discover_metric_cols: no Spend/Swipes columns in ODD")
+    else:
+        logger.info(
+            "discover_metric_cols: {s} spend, {w} swipe columns",
+            s=len(spend_cols),
+            w=len(swipe_cols),
+        )
 
     return spend_cols, swipe_cols
 

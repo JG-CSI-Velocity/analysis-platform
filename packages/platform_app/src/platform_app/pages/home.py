@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json as _json
 import time
 import traceback
 from pathlib import Path
@@ -171,7 +172,11 @@ if not data_root.is_dir():
 st.session_state["uap_data_root"] = str(data_root)
 
 # CSM / Month / Client -- three dropdowns in one row
-csm_folders = discover_csm_folders(data_root)
+@st.cache_data(ttl=60, show_spinner=False)
+def _cached_csm_folders(root: str) -> list[str]:
+    return discover_csm_folders(Path(root))
+
+csm_folders = _cached_csm_folders(str(data_root))
 if not csm_folders:
     st.warning(f"No CSM folders found in `{data_root}`")
     st.stop()
@@ -189,7 +194,12 @@ with col_csm:
     st.session_state["uap_csm"] = csm
 
 csm_dir = data_root / csm
-months = discover_months(csm_dir)
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _cached_months(csm_path: str) -> list[str]:
+    return discover_months(Path(csm_path))
+
+months = _cached_months(str(csm_dir))
 
 with col_month:
     if not months:
@@ -205,7 +215,12 @@ with col_month:
     st.session_state["uap_month"] = month
 
 month_dir = csm_dir / month
-clients = discover_clients(month_dir)
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _cached_clients(month_path: str) -> list[str]:
+    return discover_clients(Path(month_path))
+
+clients = _cached_clients(str(month_dir))
 
 with col_client:
     if not clients:
@@ -347,7 +362,11 @@ st.divider()
 # =========================================================================
 st.markdown('<p class="uap-label">STEP 2 / SELECT ANALYSIS</p>', unsafe_allow_html=True)
 
-templates = load_templates()
+@st.cache_data(show_spinner=False)
+def _cached_templates():
+    return load_templates()
+
+templates = _cached_templates()
 registry = get_registry()
 module_map = {m.key: m for m in registry}
 
@@ -427,20 +446,22 @@ if _products_with_modules:
         with tab:
             if not avail:
                 st.caption("No data file detected for this pipeline.")
+            # Batch all module lines into a single HTML block
+            _lines = []
             for m in sorted(modules, key=lambda x: x.run_order):
                 is_selected = m.key in selected_modules
                 if is_selected:
-                    st.markdown(
-                        f"**{m.name}** "
-                        f'<span style="color:#64748B;font-size:0.82rem;">{m.description}</span>',
-                        unsafe_allow_html=True,
+                    _lines.append(
+                        f'<div style="padding:1px 0;"><b>{m.name}</b> '
+                        f'<span style="color:#64748B;font-size:0.82rem;">{m.description}</span></div>'
                     )
                 else:
-                    st.markdown(
-                        f'<span style="color:#94A3B8;">{m.name}</span> '
-                        f'<span style="color:#CBD5E1;font-size:0.82rem;">{m.description}</span>',
-                        unsafe_allow_html=True,
+                    _lines.append(
+                        f'<div style="padding:1px 0;"><span style="color:#94A3B8;">{m.name}</span> '
+                        f'<span style="color:#CBD5E1;font-size:0.82rem;">{m.description}</span></div>'
                     )
+            if _lines:
+                st.markdown("".join(_lines), unsafe_allow_html=True)
 
 if not selected_modules:
     st.info("Pick an analysis template above to continue.")
@@ -708,6 +729,54 @@ if pipeline_errors:
         for name, tb in pipeline_errors.items():
             st.markdown(f"**{name.upper()}**")
             st.code(tb)
+
+# ---------------------------------------------------------------------------
+# Run report (slide-level diagnostics from JSON)
+# ---------------------------------------------------------------------------
+_run_reports: list[dict] = []
+for out_dir in all_output_dirs.values():
+    if out_dir and Path(out_dir).is_dir():
+        for rpt in Path(out_dir).rglob("*_run_report.json"):
+            try:
+                _run_reports.append(_json.loads(rpt.read_text()))
+            except Exception:
+                pass
+
+if _run_reports:
+    with st.expander("Run Report (slide diagnostics)", expanded=bool(pipeline_errors)):
+        for rpt in _run_reports:
+            _s = rpt.get("summary", {})
+            _total = _s.get("total", 0)
+            _ok = _s.get("ok", 0)
+            _failed = _s.get("failed", 0)
+            _no_chart = _s.get("no_chart", 0)
+
+            st.markdown(
+                f"**{rpt.get('client_id', '')}** {rpt.get('month', '')} -- "
+                f"{_ok}/{_total} OK, {_failed} failed, {_no_chart} no chart"
+            )
+
+            slides = rpt.get("slides", [])
+            if slides:
+                import pandas as _pd
+
+                _df = _pd.DataFrame(slides)
+                _df["status"] = _df.apply(
+                    lambda r: "OK" if r["success"] and r["has_chart"] else ("FAIL" if not r["success"] else "NO CHART"),
+                    axis=1,
+                )
+                _display_cols = ["slide_id", "status", "title", "has_chart", "has_excel", "error"]
+                _display_cols = [c for c in _display_cols if c in _df.columns]
+                st.dataframe(
+                    _df[_display_cols],
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "status": st.column_config.TextColumn("Status", width="small"),
+                        "slide_id": st.column_config.TextColumn("Slide", width="small"),
+                        "error": st.column_config.TextColumn("Error", width="large"),
+                    },
+                )
 
 if all_results:
     _DELIVERABLE_EXTS = {".pptx", ".xlsx"}

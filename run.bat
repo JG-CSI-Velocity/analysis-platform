@@ -57,6 +57,13 @@ echo.
 echo [3/3] Launching Streamlit dashboard...
 echo   Close this window or press Ctrl+C to stop.
 echo.
+
+REM Kill any stale Streamlit process holding port 8501
+for /f "tokens=5" %%p in ('netstat -aon ^| findstr :8501 ^| findstr LISTENING') do (
+    echo   Stopping previous Streamlit (PID %%p)...
+    taskkill /PID %%p /F >nul 2>&1
+)
+
 %ST% run "%APP%" --server.port 8501 --server.headless true
 
 endlocal

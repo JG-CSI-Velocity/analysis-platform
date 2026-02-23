@@ -10,6 +10,12 @@ if "%REAL_DIR:~-1%"=="\" set "REAL_DIR=%REAL_DIR:~0,-1%"
 
 set "APP=%REAL_DIR%\packages\platform_app\src\platform_app\app.py"
 
+REM Kill any stale Streamlit process holding port 8501
+for /f "tokens=5" %%p in ('netstat -aon ^| findstr :8501 ^| findstr LISTENING') do (
+    echo   Stopping previous Streamlit (PID %%p)...
+    taskkill /PID %%p /F >nul 2>&1
+)
+
 REM Try uv first, fall back to .venv
 where uv >nul 2>&1
 if errorlevel 1 (
@@ -31,7 +37,7 @@ if errorlevel 1 (
     echo   Opening browser at http://localhost:8501
     echo   Close this window or press Ctrl+C to stop.
     echo.
-    uv run streamlit run "%APP%" --server.port 8501
+    uv run streamlit run "%APP%" --server.port 8501 --server.headless true
 )
 
 endlocal

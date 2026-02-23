@@ -31,8 +31,8 @@ st.markdown(
     --uap-muted: #94A3B8;
     --uap-surface: #F8FAFC;
     --uap-border: #E2E8F0;
-    --uap-accent: #3B82F6;
-    --uap-accent-dim: #1D4ED8;
+    --uap-accent: #16A34A;
+    --uap-accent-dim: #15803D;
     --uap-success: #10B981;
     --uap-warn: #F59E0B;
     --uap-error: #EF4444;
@@ -68,7 +68,7 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNav"] li a {
     letter-spacing: 0 !important;
 }
 section[data-testid="stSidebar"] [data-testid="stSidebarNav"] li a[aria-current="page"] {
-    background: rgba(59, 130, 246, 0.15) !important;
+    background: rgba(22, 163, 74, 0.15) !important;
     border-left: 2px solid var(--uap-accent) !important;
     color: #FFFFFF !important;
 }
@@ -215,6 +215,214 @@ button[data-baseweb="tab"] {
     font-size: 0.62rem;
     color: #475569;
     letter-spacing: 0.05em;
+}
+
+/* ---- Executive Run Dashboard ---- */
+
+/* Command Center panel */
+.uap-command-center {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    margin: 0.5rem 0 1rem;
+}
+.uap-command-center .cc-label {
+    font-family: var(--uap-mono);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #64748B;
+    margin: 0 0 0.15rem;
+}
+.uap-command-center .cc-value {
+    font-family: var(--uap-sans);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #F8FAFC;
+    line-height: 1.2;
+}
+.uap-command-center .cc-value-sm {
+    font-family: var(--uap-sans);
+    font-size: 1rem;
+    font-weight: 600;
+    color: #CBD5E1;
+    line-height: 1.2;
+}
+.uap-command-center .cc-sub {
+    font-family: var(--uap-mono);
+    font-size: 0.68rem;
+    color: #475569;
+    margin-top: 0.1rem;
+}
+
+/* Config grid */
+.uap-cfg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+    margin: 0.5rem 0;
+}
+.uap-cfg-item {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+}
+.uap-cfg-item .cfg-label {
+    font-family: var(--uap-mono);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94A3B8;
+    margin: 0 0 0.15rem;
+}
+.uap-cfg-item .cfg-val {
+    font-family: var(--uap-sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1E293B;
+}
+
+/* Code pills for status/product codes */
+.uap-pill {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: var(--uap-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin: 1px;
+    background: #E2E8F0;
+    color: #334155;
+}
+.uap-pill-green { background: #DCFCE7; color: #166534; }
+.uap-pill-red { background: #FEE2E2; color: #991B1B; }
+.uap-pill-blue { background: #DBEAFE; color: #1E40AF; }
+
+/* Execution tracker */
+.uap-exec-track {
+    background: #FAFBFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 0.5rem 0;
+}
+.uap-exec-row {
+    display: flex;
+    align-items: center;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid #F1F5F9;
+}
+.uap-exec-row:last-child { border-bottom: none; }
+.uap-exec-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 0.6rem;
+    flex-shrink: 0;
+}
+.dot-pending { background: #CBD5E1; }
+.dot-running { background: #F59E0B; animation: pulse 1s infinite; }
+.dot-done { background: #16A34A; }
+.dot-fail { background: #DC2626; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+.uap-exec-name {
+    font-family: var(--uap-sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #334155;
+    flex: 1;
+}
+.uap-exec-time {
+    font-family: var(--uap-mono);
+    font-size: 0.72rem;
+    color: #94A3B8;
+}
+
+/* Result cards */
+.uap-result-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 1.25rem;
+    text-align: center;
+}
+.uap-result-card .rc-num {
+    font-family: var(--uap-sans);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.uap-result-card .rc-label {
+    font-family: var(--uap-mono);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94A3B8;
+    margin-top: 0.3rem;
+}
+
+/* Download cards */
+.uap-dl-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    margin: 0.35rem 0;
+    transition: border-color 0.15s;
+}
+.uap-dl-card:hover { border-color: #16A34A; }
+.uap-dl-icon {
+    width: 36px; height: 36px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700;
+    font-family: var(--uap-mono);
+}
+.dl-pptx { background: #FEF3C7; color: #92400E; }
+.dl-xlsx { background: #DCFCE7; color: #166534; }
+.uap-dl-info {
+    flex: 1;
+}
+.uap-dl-info .dl-name {
+    font-family: var(--uap-mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #1E293B;
+}
+.uap-dl-info .dl-path {
+    font-family: var(--uap-mono);
+    font-size: 0.65rem;
+    color: #94A3B8;
+}
+
+/* Progress bar override -- kill Streamlit blue */
+div[data-testid="stProgress"] > div > div {
+    background-color: #16A34A !important;
+}
+
+/* Run button -- make it pop */
+.uap-run-btn button {
+    background: linear-gradient(135deg, #16A34A 0%, #15803D 100%) !important;
+    border: none !important;
+    font-family: var(--uap-sans) !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    letter-spacing: 0.02em;
+    padding: 0.65rem 2rem !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+    transition: all 0.2s;
+}
+.uap-run-btn button:hover {
+    background: linear-gradient(135deg, #15803D 0%, #166534 100%) !important;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35) !important;
+    transform: translateY(-1px);
 }
 </style>
 """,

@@ -171,10 +171,12 @@ if not data_root.is_dir():
 
 st.session_state["uap_data_root"] = str(data_root)
 
+
 # CSM / Month / Client -- three dropdowns in one row
 @st.cache_data(ttl=60, show_spinner=False)
 def _cached_csm_folders(root: str) -> list[str]:
     return discover_csm_folders(Path(root))
+
 
 csm_folders = _cached_csm_folders(str(data_root))
 if not csm_folders:
@@ -195,9 +197,11 @@ with col_csm:
 
 csm_dir = data_root / csm
 
+
 @st.cache_data(ttl=60, show_spinner=False)
 def _cached_months(csm_path: str) -> list[str]:
     return discover_months(Path(csm_path))
+
 
 months = _cached_months(str(csm_dir))
 
@@ -216,9 +220,11 @@ with col_month:
 
 month_dir = csm_dir / month
 
+
 @st.cache_data(ttl=60, show_spinner=False)
 def _cached_clients(month_path: str) -> list[str]:
     return discover_clients(Path(month_path))
+
 
 clients = _cached_clients(str(month_dir))
 
@@ -325,13 +331,17 @@ for key, label in file_checks:
 # Add format badges inline
 if oddd_path:
     if ars_formatted:
-        badge_html_parts.append('<span class="uap-badge uap-badge-ready" style="margin-right:4px;">FORMATTED</span>')
+        badge_html_parts.append(
+            '<span class="uap-badge uap-badge-ready" style="margin-right:4px;">FORMATTED</span>'
+        )
     else:
         badge_html_parts.append(
             '<span class="uap-badge" style="background:#FEE2E2;color:#991B1B;margin-right:4px;">UNFORMATTED</span>'
         )
     if ics_ready:
-        badge_html_parts.append('<span class="uap-badge uap-badge-ready" style="margin-right:4px;">ICS READY</span>')
+        badge_html_parts.append(
+            '<span class="uap-badge uap-badge-ready" style="margin-right:4px;">ICS READY</span>'
+        )
 
 st.markdown(
     f'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:0.4rem 0;">{"".join(badge_html_parts)}</div>',
@@ -362,9 +372,11 @@ st.divider()
 # =========================================================================
 st.markdown('<p class="uap-label">STEP 2 / SELECT ANALYSIS</p>', unsafe_allow_html=True)
 
+
 @st.cache_data(show_spinner=False)
 def _cached_templates():
     return load_templates()
+
 
 templates = _cached_templates()
 registry = get_registry()
@@ -428,7 +440,9 @@ _modules_by_product: dict[Product, list] = {}
 for m in registry:
     _modules_by_product.setdefault(m.product, []).append(m)
 
-_products_with_modules = [p for p in (Product.ARS, Product.ICS, Product.TXN) if _modules_by_product.get(p)]
+_products_with_modules = [
+    p for p in (Product.ARS, Product.ICS, Product.TXN) if _modules_by_product.get(p)
+]
 
 if _products_with_modules:
     tab_labels = []
@@ -455,7 +469,7 @@ if _products_with_modules:
             _n_total = len(modules)
             _count_line = (
                 f'<div style="font-size:0.75rem;color:#64748B;margin-bottom:0.3rem;">'
-                f'{_n_selected}/{_n_total} modules selected</div>'
+                f"{_n_selected}/{_n_total} modules selected</div>"
             )
 
             _lines: list[str] = [_count_line, '<div style="column-count:2;column-gap:2rem;">']
@@ -479,8 +493,8 @@ if _products_with_modules:
                             f'<div style="padding:2px 0 2px 10px;border-left:3px solid transparent;">'
                             f'<span style="color:#CBD5E1;">{m.name}</span></div>'
                         )
-                _lines.append('</div>')
-            _lines.append('</div>')
+                _lines.append("</div>")
+            _lines.append("</div>")
             if _lines:
                 st.markdown("".join(_lines), unsafe_allow_html=True)
 
@@ -491,7 +505,7 @@ if not selected_modules:
 st.divider()
 
 # =========================================================================
-# STEP 3 -- Run
+# STEP 3 -- Run (Executive Analytics Dashboard)
 # =========================================================================
 st.markdown('<p class="uap-label">STEP 3 / RUN</p>', unsafe_allow_html=True)
 
@@ -529,123 +543,241 @@ if errors:
         st.error(e)
     st.stop()
 
-# Pre-flight summary (styled markdown instead of st.metric to avoid blue labels)
-_pipelines_str = ", ".join(p.value.upper() for p in sorted(needed_products, key=lambda x: x.value))
-st.markdown(
-    f'<div style="display:flex;gap:2rem;padding:0.5rem 0;">'
-    f'<div><span style="color:#64748B;font-size:0.75rem;">CLIENT</span><br>'
-    f'<span style="font-size:1.1rem;font-weight:600;">{client_id}</span></div>'
-    f'<div><span style="color:#64748B;font-size:0.75rem;">PIPELINES</span><br>'
-    f'<span style="font-size:1.1rem;font-weight:600;">{_pipelines_str}</span></div>'
-    f'<div><span style="color:#64748B;font-size:0.75rem;">MODULES</span><br>'
-    f'<span style="font-size:1.1rem;font-weight:600;">{len(selected_modules)}</span></div>'
-    f'</div>',
-    unsafe_allow_html=True,
-)
-
 # ---------------------------------------------------------------------------
-# Config preview
+# Command Center -- dark panel with KPI numbers
 # ---------------------------------------------------------------------------
 _raw_entry: dict = {}
 if _config_path:
     _raw_entry = load_raw_client_entry(_config_path, client_id)
 
-with st.expander("Client Configuration", expanded=False):
+_pipelines_str = " + ".join(p.value.upper() for p in sorted(needed_products, key=lambda x: x.value))
+_n_prods = len(_raw_entry.get("EligibleProductCodes", []))
+_n_branches = len(_raw_entry.get("BranchMapping", {}))
+_ic = _raw_entry.get("ICRate", "--")
+_fee = _raw_entry.get("NSF_OD_Fee", "--")
+
+st.markdown(
+    f'<div class="uap-command-center">'
+    f'<div style="display:flex;gap:2.5rem;align-items:flex-end;flex-wrap:wrap;">'
+    # Client ID (hero)
+    f"<div>"
+    f'<div class="cc-label">Client</div>'
+    f'<div class="cc-value">{client_id}</div>'
+    f'<div class="cc-sub">{client_name}</div>'
+    f"</div>"
+    # Pipelines
+    f"<div>"
+    f'<div class="cc-label">Pipelines</div>'
+    f'<div class="cc-value">{_pipelines_str}</div>'
+    f"</div>"
+    # Modules
+    f"<div>"
+    f'<div class="cc-label">Modules</div>'
+    f'<div class="cc-value">{len(selected_modules)}</div>'
+    f'<div class="cc-sub">{selected_template or "Custom"}</div>'
+    f"</div>"
+    # Separator
+    f'<div style="width:1px;height:48px;background:#334155;margin:0 0.5rem;"></div>'
+    # IC Rate
+    f"<div>"
+    f'<div class="cc-label">IC Rate</div>'
+    f'<div class="cc-value-sm">{_ic}</div>'
+    f"</div>"
+    # NSF/OD Fee
+    f"<div>"
+    f'<div class="cc-label">NSF/OD Fee</div>'
+    f'<div class="cc-value-sm">${_fee}</div>'
+    f"</div>"
+    # Products
+    f"<div>"
+    f'<div class="cc-label">Products</div>'
+    f'<div class="cc-value-sm">{_n_prods}</div>'
+    f"</div>"
+    # Branches
+    f"<div>"
+    f'<div class="cc-label">Branches</div>'
+    f'<div class="cc-value-sm">{_n_branches}</div>'
+    f"</div>"
+    f"</div>"
+    f"</div>",
+    unsafe_allow_html=True,
+)
+
+# ---------------------------------------------------------------------------
+# Config detail -- compact grid with pills (expandable)
+# ---------------------------------------------------------------------------
+with st.expander("Configuration Detail", expanded=False):
     if not _raw_entry:
         st.warning(f"Client {client_id} not found in config. Analysis will use defaults.")
     else:
-        # Key metrics as styled HTML (no blue st.metric labels)
-        _ic = _raw_entry.get("ICRate", "--")
-        _fee = _raw_entry.get("NSF_OD_Fee", "--")
-        _n_prods = len(_raw_entry.get("EligibleProductCodes", []))
-        _n_branches = len(_raw_entry.get("BranchMapping", {}))
-        st.markdown(
-            f'<div style="display:flex;gap:2rem;padding:0.3rem 0 0.6rem;">'
-            f'<div><span style="color:#64748B;font-size:0.72rem;">IC RATE</span><br>'
-            f'<span style="font-weight:600;">{_ic}</span></div>'
-            f'<div><span style="color:#64748B;font-size:0.72rem;">NSF/OD FEE</span><br>'
-            f'<span style="font-weight:600;">${_fee}</span></div>'
-            f'<div><span style="color:#64748B;font-size:0.72rem;">ELIGIBLE PRODUCTS</span><br>'
-            f'<span style="font-weight:600;">{_n_prods}</span></div>'
-            f'<div><span style="color:#64748B;font-size:0.72rem;">BRANCHES</span><br>'
-            f'<span style="font-weight:600;">{_n_branches}</span></div>'
-            f'</div>',
-            unsafe_allow_html=True,
+        _cfg_html = '<div class="uap-cfg-grid">'
+
+        # Eligible Status Codes
+        _esc = _raw_entry.get("EligibleStatusCodes", [])
+        _esc_pills = " ".join(
+            f'<span class="uap-pill uap-pill-green">{c}</span>'
+            for c in (_esc if isinstance(_esc, list) else [_esc] if _esc else [])
         )
+        _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Eligible Status</div><div>{_esc_pills or "--"}</div></div>'
 
-        _detail_rows = [
-            ("Eligible Status Codes", _format_list(_raw_entry.get("EligibleStatusCodes", []))),
-            ("Ineligible Status Codes", _format_list(_raw_entry.get("IneligibleStatusCodes", []))),
-            ("Eligible Product Codes", _format_list(_raw_entry.get("EligibleProductCodes", []))),
-            ("Ineligible Product Codes", _format_list(_raw_entry.get("IneligibleProductCodes", []))),
-            ("Eligible Mail Code", str(_raw_entry.get("EligibleMailCode", "--"))),
-            ("Reg E Opt-In Code", _format_list(_raw_entry.get("RegEOptInCode", []))),
-        ]
-        for label, value in _detail_rows:
-            st.markdown(f"**{label}**: {value or '--'}")
+        # Ineligible Status Codes
+        _isc = _raw_entry.get("IneligibleStatusCodes", [])
+        _isc_pills = " ".join(
+            f'<span class="uap-pill uap-pill-red">{c}</span>'
+            for c in (_isc if isinstance(_isc, list) else [_isc] if _isc else [])
+        )
+        _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Ineligible Status</div><div>{_isc_pills or "--"}</div></div>'
 
+        # Eligible Product Codes
+        _epc = _raw_entry.get("EligibleProductCodes", [])
+        _epc_pills = " ".join(
+            f'<span class="uap-pill uap-pill-green">{c}</span>'
+            for c in (_epc if isinstance(_epc, list) else [_epc] if _epc else [])
+        )
+        _cfg_html += f'<div class="uap-cfg-item" style="grid-column:span 2;"><div class="cfg-label">Eligible Products</div><div>{_epc_pills or "--"}</div></div>'
+
+        # Ineligible Product Codes
+        _ipc = _raw_entry.get("IneligibleProductCodes", [])
+        _ipc_pills = " ".join(
+            f'<span class="uap-pill uap-pill-red">{c}</span>'
+            for c in (_ipc if isinstance(_ipc, list) else [_ipc] if _ipc else [])
+        )
+        if _ipc_pills:
+            _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Ineligible Products</div><div>{_ipc_pills}</div></div>'
+
+        # Mail Code
+        _mc = _raw_entry.get("EligibleMailCode", "--")
+        _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Mail Code</div><div class="cfg-val">{_mc}</div></div>'
+
+        # Reg E
+        _re = _raw_entry.get("RegEOptInCode", [])
+        _re_pills = " ".join(
+            f'<span class="uap-pill uap-pill-blue">{c}</span>'
+            for c in (_re if isinstance(_re, list) else [_re] if _re else [])
+        )
+        _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Reg E Opt-In</div><div>{_re_pills or "--"}</div></div>'
+
+        # Branch Mapping
         _branches = _raw_entry.get("BranchMapping", {})
         if _branches:
-            st.markdown("**Branch Mapping**:")
-            _branch_str = " / ".join(f"{k} = {v}" for k, v in _branches.items())
-            st.caption(_branch_str)
+            _br_pills = " ".join(
+                f'<span class="uap-pill">{k}={v}</span>' for k, v in _branches.items()
+            )
+            _cfg_html += f'<div class="uap-cfg-item" style="grid-column:span 2;"><div class="cfg-label">Branch Mapping</div><div>{_br_pills}</div></div>'
 
-    # Show resolved config path for debugging
+        _cfg_html += "</div>"
+        st.markdown(_cfg_html, unsafe_allow_html=True)
+
     if _config_path:
         st.caption(f"Config: {_config_path}")
-    else:
-        st.caption("Config: no config file found (ARS runner will attempt auto-resolve)")
 
 # ---------------------------------------------------------------------------
-# Run button (inside a form to prevent accidental reruns)
+# Run button -- NO form (avoids Streamlit's blue progress bar)
 # ---------------------------------------------------------------------------
-with st.form("run_form", border=False):
-    run_btn = st.form_submit_button(
-        f"Run {len(selected_modules)} Modules",
-        type="primary",
-        use_container_width=True,
-    )
+st.markdown('<div class="uap-run-btn">', unsafe_allow_html=True)
+run_btn = st.button(
+    f"Run {len(selected_modules)} Modules",
+    type="primary",
+    use_container_width=True,
+    key="home_run_btn",
+)
+st.markdown("</div>", unsafe_allow_html=True)
 
 if not run_btn:
     st.stop()
 
 # ---------------------------------------------------------------------------
-# Execution
+# Execution -- full analytics dashboard
 # ---------------------------------------------------------------------------
 run_id = generate_run_id()
 all_results: dict[str, dict] = {}
 all_output_dirs: dict[str, Path] = {}
 pipeline_errors: dict[str, str] = {}
 
-_progress_container = st.empty()
+# Build pipeline execution plan for the tracker
+_exec_plan: list[dict] = []
+for product in sorted(needed_products, key=lambda p: p.value):
+    _product_keys = [
+        k for k in selected_modules if module_map.get(k) and module_map[k].product == product
+    ]
+    _exec_plan.append(
+        {
+            "product": product,
+            "name": product.value.upper(),
+            "modules": len(_product_keys),
+            "status": "pending",
+            "elapsed": 0.0,
+            "results": 0,
+        }
+    )
+
+# Progress area
+_exec_container = st.empty()
+_progress_bar = st.empty()
 _status_line = st.empty()
-total_pipelines = len(needed_products)
-completed = 0
 
 
-def _render_progress(pct: float, text: str) -> None:
-    """Render a custom green/gray progress bar (avoids Streamlit's blue)."""
+def _render_exec_dashboard(plan: list[dict], pct: float, status_text: str) -> None:
+    """Render the full execution tracker with progress bar and module status."""
     w = max(0, min(100, pct * 100))
-    _progress_container.markdown(
-        f'<div style="background:#E2E8F0;border-radius:4px;height:8px;margin:0.5rem 0;">'
-        f'<div style="background:#16A34A;height:100%;border-radius:4px;width:{w:.0f}%;'
-        f'transition:width 0.3s;"></div></div>'
-        f'<p style="font-size:0.85rem;color:#64748B;margin:0.2rem 0;">{text}</p>',
+
+    # Progress bar
+    _progress_bar.markdown(
+        f'<div style="background:#E2E8F0;border-radius:6px;height:6px;margin:0.75rem 0 0.25rem;">'
+        f'<div style="background:linear-gradient(90deg,#16A34A,#22C55E);height:100%;'
+        f'border-radius:6px;width:{w:.0f}%;transition:width 0.4s ease;"></div></div>',
+        unsafe_allow_html=True,
+    )
+
+    # Pipeline tracker
+    rows = []
+    for p in plan:
+        if p["status"] == "done":
+            dot = "dot-done"
+            time_str = f"{p['elapsed']:.1f}s  --  {p['results']} results"
+            name_style = "color:#16A34A;font-weight:600;"
+        elif p["status"] == "running":
+            dot = "dot-running"
+            time_str = status_text
+            name_style = "color:#1E293B;font-weight:600;"
+        elif p["status"] == "failed":
+            dot = "dot-fail"
+            time_str = f"{p['elapsed']:.1f}s  --  FAILED"
+            name_style = "color:#DC2626;font-weight:600;"
+        else:
+            dot = "dot-pending"
+            time_str = f"{p['modules']} modules queued"
+            name_style = "color:#94A3B8;"
+
+        rows.append(
+            f'<div class="uap-exec-row">'
+            f'<div class="uap-exec-dot {dot}"></div>'
+            f'<div class="uap-exec-name" style="{name_style}">{p["name"]}</div>'
+            f'<div class="uap-exec-time">{time_str}</div>'
+            f"</div>"
+        )
+
+    _exec_container.markdown(
+        f'<div class="uap-exec-track">{"".join(rows)}</div>',
         unsafe_allow_html=True,
     )
 
 
-_render_progress(0, "Warming up the engines...")
+_render_exec_dashboard(_exec_plan, 0, "Initializing...")
 
 tran_path = st.session_state.get("uap_file_tran", "")
 ics_path = st.session_state.get("uap_file_ics", "")
 odd_path = st.session_state.get("uap_file_odd", "")
 t0 = time.time()
+total_pipelines = len(needed_products)
 
-for product in sorted(needed_products, key=lambda p: p.value):
+for idx, step in enumerate(_exec_plan):
+    product = step["product"]
     pipeline_name = product.value
-    completed += 1
-    pct = completed / (total_pipelines + 1)
+    step["status"] = "running"
+    pct = idx / total_pipelines
+
+    _render_exec_dashboard(_exec_plan, pct, _flavor_text(pipeline_name, "start"))
 
     input_files: dict[str, Path] = {}
     if product == Product.ARS:
@@ -663,26 +795,24 @@ for product in sorted(needed_products, key=lambda p: p.value):
         continue
 
     out.mkdir(parents=True, exist_ok=True)
-    _render_progress(pct, _flavor_text(pipeline_name, "start"))
 
     def _on_progress(
         msg: str,
-        _line=_status_line,
+        _plan=_exec_plan,
         _pct=pct,
         _pipe=pipeline_name,
     ) -> None:
         _short = _make_status_line(msg, _pipe)
-        _line.markdown(
-            f'<p style="font-size:1rem;color:#334155;margin:0.3rem 0;">{_short}</p>',
-            unsafe_allow_html=True,
-        )
+        _render_exec_dashboard(_plan, _pct, _short)
 
-    # Pass selected module keys so the runner only executes chosen modules
-    _product_keys = [k for k in selected_modules if module_map.get(k) and module_map[k].product == product]
+    _product_keys = [
+        k for k in selected_modules if module_map.get(k) and module_map[k].product == product
+    ]
     _pipeline_config = {**_client_config}
     if _product_keys:
         _pipeline_config["module_ids"] = _product_keys
 
+    step_t0 = time.time()
     try:
         results = run_pipeline(
             pipeline_name,
@@ -695,23 +825,19 @@ for product in sorted(needed_products, key=lambda p: p.value):
         )
         all_results[pipeline_name] = results
         all_output_dirs[pipeline_name] = out
-        elapsed = time.time() - t0
-        _status_line.markdown(
-            f'<p style="font-size:1rem;color:#16A34A;margin:0.3rem 0;">'
-            f'{pipeline_name.upper()} done -- {len(results)} results in {elapsed:.1f}s</p>',
-            unsafe_allow_html=True,
-        )
+        step["status"] = "done"
+        step["elapsed"] = time.time() - step_t0
+        step["results"] = len(results)
     except Exception:
-        elapsed = time.time() - t0
+        step["status"] = "failed"
+        step["elapsed"] = time.time() - step_t0
         pipeline_errors[pipeline_name] = traceback.format_exc()
-        _status_line.markdown(
-            f'<p style="font-size:1rem;color:#DC2626;margin:0.3rem 0;">'
-            f'{pipeline_name.upper()} failed after {elapsed:.1f}s</p>',
-            unsafe_allow_html=True,
-        )
+
+    _render_exec_dashboard(_exec_plan, (idx + 1) / total_pipelines, "")
 
 total_elapsed = round(time.time() - t0, 1)
-_render_progress(1.0, f"All done in {total_elapsed}s")
+_render_exec_dashboard(_exec_plan, 1.0, "")
+_progress_bar.empty()
 _status_line.empty()
 
 # ---------------------------------------------------------------------------
@@ -747,14 +873,48 @@ st.session_state["uap_last_errors"] = pipeline_errors
 st.session_state["uap_last_run_id"] = run_id
 
 # ---------------------------------------------------------------------------
-# Summary
+# Results Dashboard
 # ---------------------------------------------------------------------------
-st.divider()
+st.markdown('<div style="height:1rem;"></div>', unsafe_allow_html=True)
 
 _total_results = sum(len(r) for r in all_results.values())
 _ok_count = len(all_results)
 _fail_count = len(pipeline_errors)
 
+# Result KPI cards
+_result_cols = st.columns(4)
+with _result_cols[0]:
+    _color = "#16A34A" if _fail_count == 0 else "#F59E0B"
+    st.markdown(
+        f'<div class="uap-result-card">'
+        f'<div class="rc-num" style="color:{_color};">{_total_results}</div>'
+        f'<div class="rc-label">Analyses Generated</div></div>',
+        unsafe_allow_html=True,
+    )
+with _result_cols[1]:
+    st.markdown(
+        f'<div class="uap-result-card">'
+        f'<div class="rc-num" style="color:#1E293B;">{_ok_count}</div>'
+        f'<div class="rc-label">Pipelines Complete</div></div>',
+        unsafe_allow_html=True,
+    )
+with _result_cols[2]:
+    _fc = "#DC2626" if _fail_count else "#16A34A"
+    st.markdown(
+        f'<div class="uap-result-card">'
+        f'<div class="rc-num" style="color:{_fc};">{_fail_count}</div>'
+        f'<div class="rc-label">Errors</div></div>',
+        unsafe_allow_html=True,
+    )
+with _result_cols[3]:
+    st.markdown(
+        f'<div class="uap-result-card">'
+        f'<div class="rc-num" style="color:#1E293B;">{total_elapsed}s</div>'
+        f'<div class="rc-label">Total Runtime</div></div>',
+        unsafe_allow_html=True,
+    )
+
+# Status message
 if _fail_count == 0:
     st.success(
         f"**{client_name or client_id}** -- {_total_results} analyses across "
@@ -765,8 +925,9 @@ else:
         f"**{client_name or client_id}** -- {_ok_count} passed, {_fail_count} failed in {total_elapsed}s"
     )
 
+# Error details
 if pipeline_errors:
-    with st.expander("Error details", expanded=False):
+    with st.expander("Error Details", expanded=True):
         for name, tb in pipeline_errors.items():
             st.markdown(f"**{name.upper()}**")
             st.code(tb)
@@ -784,7 +945,7 @@ for out_dir in all_output_dirs.values():
                 pass
 
 if _run_reports:
-    with st.expander("Run Report (slide diagnostics)", expanded=bool(pipeline_errors)):
+    with st.expander("Slide Diagnostics", expanded=bool(pipeline_errors)):
         for rpt in _run_reports:
             _s = rpt.get("summary", {})
             _total = _s.get("total", 0)
@@ -792,9 +953,22 @@ if _run_reports:
             _failed = _s.get("failed", 0)
             _no_chart = _s.get("no_chart", 0)
 
+            # Compact summary badges
+            _fail_badge = (
+                f'<span class="uap-badge uap-badge-error">{_failed} FAIL</span> ' if _failed else ""
+            )
+            _nochart_badge = (
+                f'<span class="uap-badge uap-badge-muted">{_no_chart} NO CHART</span>'
+                if _no_chart
+                else ""
+            )
             st.markdown(
-                f"**{rpt.get('client_id', '')}** {rpt.get('month', '')} -- "
-                f"{_ok}/{_total} OK, {_failed} failed, {_no_chart} no chart"
+                f'<div style="margin-bottom:0.5rem;">'
+                f'<span style="font-weight:600;">{rpt.get("client_id", "")} {rpt.get("month", "")}</span> '
+                f'<span class="uap-badge uap-badge-ready">{_ok} OK</span> '
+                f"{_fail_badge}{_nochart_badge}"
+                f"</div>",
+                unsafe_allow_html=True,
             )
 
             slides = rpt.get("slides", [])
@@ -803,7 +977,11 @@ if _run_reports:
 
                 _df = _pd.DataFrame(slides)
                 _df["status"] = _df.apply(
-                    lambda r: "OK" if r["success"] and r["has_chart"] else ("FAIL" if not r["success"] else "NO CHART"),
+                    lambda r: (
+                        "OK"
+                        if r["success"] and r["has_chart"]
+                        else ("FAIL" if not r["success"] else "NO CHART")
+                    ),
                     axis=1,
                 )
                 _display_cols = ["slide_id", "status", "title", "has_chart", "has_excel", "error"]
@@ -819,6 +997,9 @@ if _run_reports:
                     },
                 )
 
+# ---------------------------------------------------------------------------
+# Deliverables -- styled download cards
+# ---------------------------------------------------------------------------
 if all_results:
     _DELIVERABLE_EXTS = {".pptx", ".xlsx"}
     _MIME = {
@@ -833,11 +1014,23 @@ if all_results:
             )
 
     if deliverables:
+        st.markdown(
+            '<p class="uap-label" style="margin-top:1rem;">DELIVERABLES</p>',
+            unsafe_allow_html=True,
+        )
         for f in sorted(deliverables, key=lambda p: p.name):
-            dl_cols = st.columns([4, 1])
+            _ext = f.suffix.lstrip(".")
+            _icon_cls = "dl-pptx" if _ext == "pptx" else "dl-xlsx"
+            _size_kb = f.stat().st_size / 1024
+
+            dl_cols = st.columns([5, 1])
             dl_cols[0].markdown(
-                f'<span style="font-family:var(--uap-mono);font-size:0.82rem;">{f.name}</span>'
-                f'<br><span style="font-size:0.7rem;color:#94A3B8;">{f.parent}</span>',
+                f'<div class="uap-dl-card">'
+                f'<div class="uap-dl-icon {_icon_cls}">{_ext.upper()}</div>'
+                f'<div class="uap-dl-info">'
+                f'<div class="dl-name">{f.name}</div>'
+                f'<div class="dl-path">{f.parent} -- {_size_kb:.0f} KB</div>'
+                f"</div></div>",
                 unsafe_allow_html=True,
             )
             dl_cols[1].download_button(

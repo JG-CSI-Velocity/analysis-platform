@@ -330,7 +330,6 @@ def _stage4_early_engagement(odd, df, ctx, sections, sheets):
 
     # Early engagement metrics
     early_accts = early["primary_account_num"].nunique()
-    early_txn = len(early)
     early_spend = early["amount"].sum()
     avg_ticket = early["amount"].mean()
     merch_col = (
@@ -415,7 +414,6 @@ def _stage5_daily_banking(odd, df, sections, sheets):
     )
 
     if "year_month" in df.columns:
-        max_months = df["year_month"].nunique()
         acct_metrics["txns_per_month"] = (
             acct_metrics["txn_count"] / acct_metrics["months_active"]
         ).round(1)
@@ -794,7 +792,6 @@ def _stage8_attrition(odd, df, sections, sheets):
         row = class_dist[class_dist["Lifecycle Stage"] == l]
         values.append(int(row["Accounts"].iloc[0]) if not row.empty else 0)
 
-    wf_df = pd.DataFrame({"Stage": labels, "Accounts": values})
     wf_fig = apply_theme(waterfall_chart(labels, values, "Lifecycle Classification Waterfall"))
 
     # Attrition by generation heatmap

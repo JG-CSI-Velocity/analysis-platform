@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import pandas as pd
-import pytest
 
-from ars_analysis.analytics.mailer._helpers import RESPONSE_SEGMENTS, discover_pairs
+from ars_analysis.analytics.mailer._helpers import discover_pairs
 from ars_analysis.analytics.mailer.cohort import (
     ResponderCohort,
     _compute_slopes,
@@ -14,7 +13,6 @@ from ars_analysis.analytics.mailer.cohort import (
     _month_offset,
     build_cohort_trajectory,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helper unit tests

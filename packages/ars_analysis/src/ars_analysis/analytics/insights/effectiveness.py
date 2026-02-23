@@ -218,7 +218,6 @@ def _draw_benchmarks(
 
     cu_dctr = dctr_3.get("dctr", dctr_1.get("overall_dctr", 0))
     cu_rege = reg_e.get("opt_in_rate", 0)
-    bench_penetration = benchmarks.get("debit_penetration_rate", 0.805)
     bench_active = benchmarks.get("active_card_rate", 0.663)
 
     # Build comparison data

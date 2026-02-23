@@ -1,7 +1,6 @@
 """Tests for config wiring through orchestrator to ARS and ICS runners."""
 
 import json
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest

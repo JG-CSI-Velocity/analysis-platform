@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import pandas as pd
-import pytest
-
 from ars_analysis.analytics.mailer._helpers import discover_pairs
 from ars_analysis.analytics.mailer.reach import (
     CumulativeReach,
     _cumulative_reach,
     _organic_activation,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helper unit tests

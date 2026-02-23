@@ -8,8 +8,8 @@ import pandas as pd
 import pytest
 
 from ars_analysis.analytics.insights.branch_scorecard import (
-    BranchScorecard,
     MIN_BRANCHES,
+    BranchScorecard,
     _build_branch_data,
 )
 from ars_analysis.pipeline.context import (

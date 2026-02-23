@@ -222,7 +222,7 @@ def _draw_priority_matrix(ax, df: pd.DataFrame) -> str:
         unique_branches = branches.unique()
         cmap = {b: i for i, b in enumerate(unique_branches)}
         colors = [cmap[b] for b in branches]
-        scatter = ax.scatter(
+        ax.scatter(
             x, y, s=sizes, c=colors, cmap="tab10", alpha=0.7, edgecolors="white", linewidth=0.5
         )
         # Legend
@@ -230,7 +230,7 @@ def _draw_priority_matrix(ax, df: pd.DataFrame) -> str:
             ax.scatter([], [], c=f"C{cmap[b]}", label=b, s=50)
         ax.legend(fontsize=11, loc="upper left", title="Branch", frameon=True)
     else:
-        scatter = ax.scatter(
+        ax.scatter(
             x, y, s=sizes, c=NEGATIVE, alpha=0.6, edgecolors="white", linewidth=0.5
         )
 

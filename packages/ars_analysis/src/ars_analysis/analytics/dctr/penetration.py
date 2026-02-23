@@ -120,7 +120,7 @@ def _render_dctr_narrative(
 
             # -- 4-bar horizontal chart --
             y = np.arange(len(labels))
-            bars = ax_bar.barh(
+            ax_bar.barh(
                 y,
                 values,
                 color=colors,

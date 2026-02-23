@@ -106,7 +106,7 @@ if results:
                     unsafe_allow_html=True,
                 )
                 for _sheet_name, df in ar.data.items():
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.dataframe(df, width="stretch", hide_index=True)
 
 # ---------------------------------------------------------------------------
 # Charts -- lazy load behind expander (avoids 75+ PNG network reads)
@@ -125,7 +125,7 @@ if chart_paths:
             chart_cols = st.columns(2)
             for i, img_path in enumerate(charts_sorted):
                 with chart_cols[i % 2]:
-                    st.image(str(img_path), caption=img_path.stem, use_container_width=True)
+                    st.image(str(img_path), caption=img_path.stem, width="stretch")
 
 # ---------------------------------------------------------------------------
 # Errors

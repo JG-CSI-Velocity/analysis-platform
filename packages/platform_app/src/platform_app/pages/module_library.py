@@ -156,13 +156,13 @@ st.markdown('<p class="uap-label">QUICK START</p>', unsafe_allow_html=True)
 tpl_cols = st.columns(len(templates) + 1)
 for i, (tpl_name, tpl_keys) in enumerate(templates.items()):
     with tpl_cols[i]:
-        if st.button(tpl_name, key=f"tpl_{i}", use_container_width=True):
+        if st.button(tpl_name, key=f"tpl_{i}", width="stretch"):
             st.session_state["uap_selected_modules"] = set(tpl_keys)
             _sync_checkboxes(ALL_MOD_KEYS, False)
             _sync_checkboxes(tpl_keys, True)
             st.rerun()
 with tpl_cols[-1]:
-    if st.button("Clear All", key="tpl_clear", use_container_width=True):
+    if st.button("Clear All", key="tpl_clear", width="stretch"):
         st.session_state["uap_selected_modules"] = set()
         _sync_checkboxes(ALL_MOD_KEYS, False)
         st.rerun()
@@ -204,14 +204,14 @@ for tab, product in zip(tabs, Product):
                 if st.button(
                     "Deselect All",
                     key=f"prod_tog_{product.value}",
-                    use_container_width=True,
+                    width="stretch",
                 ):
                     _deselect_keys(prod_keys)
             else:
                 if st.button(
                     "Select All",
                     key=f"prod_tog_{product.value}",
-                    use_container_width=True,
+                    width="stretch",
                     type="primary" if prod_sel == 0 else "secondary",
                 ):
                     _select_keys(prod_keys)
@@ -242,14 +242,14 @@ for tab, product in zip(tabs, Product):
                         if st.button(
                             "Deselect",
                             key=f"cat_{product.value}_{cat_name}",
-                            use_container_width=True,
+                            width="stretch",
                         ):
                             _deselect_keys(cat_keys)
                     else:
                         if st.button(
                             "Select",
                             key=f"cat_{product.value}_{cat_name}",
-                            use_container_width=True,
+                            width="stretch",
                         ):
                             _select_keys(cat_keys)
 

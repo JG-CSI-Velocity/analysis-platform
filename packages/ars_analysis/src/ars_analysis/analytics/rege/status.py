@@ -5,6 +5,7 @@ Slide IDs: A8.1, A8.2, A8.3, A8.12.
 
 from __future__ import annotations
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from loguru import logger
@@ -15,7 +16,7 @@ from ars_analysis.analytics.dctr._helpers import l12m_month_labels
 from ars_analysis.analytics.rege._helpers import reg_e_base, rege, total_row
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
-from ars_analysis.charts.style import ELIGIBLE, HISTORICAL, TEAL
+from ars_analysis.charts.style import ELIGIBLE, HISTORICAL, NEUTRAL, SILVER, TEAL
 from ars_analysis.pipeline.context import PipelineContext
 
 
@@ -92,71 +93,63 @@ class RegEStatus(AnalysisModule):
             "opted_out": t_all - oi_all,
         }
 
-        # Grouped bar chart (All-Time vs L12M)
+        # Side-by-side donut charts (All-Time vs L12M)
         chart_path = None
         save_to = ctx.paths.charts_dir / "a8_1_reg_e_status.png"
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
-        with chart_figure(figsize=(12, 7), save_path=save_to) as (fig, ax):
-            categories = ["Opted In", "Opted Out"]
-            x = np.arange(len(categories))
-            w = 0.3
+        with chart_figure(figsize=(14, 7), save_path=save_to) as (fig, _):
+            fig.clf()
+            ax1 = fig.add_subplot(1, 2, 1)
+            ax2 = fig.add_subplot(1, 2, 2)
 
-            alltime_vals = [oi_all, t_all - oi_all]
-            l12m_vals = [oi_l12m, max(t_l12m - oi_l12m, 0)]
+            donut_data = [
+                (ax1, [oi_all, t_all - oi_all], "All-Time", r_all, t_all),
+                (ax2, [oi_l12m, max(t_l12m - oi_l12m, 0)], "Last 12 Months", r_l12m, t_l12m),
+            ]
 
-            bars1 = ax.bar(
-                x - w / 2,
-                alltime_vals,
-                w,
-                label=f"All-Time ({r_all:.1%})",
-                color=HISTORICAL,
-                edgecolor="none",
+            for ax_d, sizes, label, rate, total in donut_data:
+                colors = [ELIGIBLE, SILVER]
+                wedges, texts = ax_d.pie(
+                    sizes,
+                    startangle=90,
+                    colors=colors,
+                    wedgeprops={"edgecolor": "white", "linewidth": 2},
+                )
+                # Inner circle for donut effect
+                centre = plt.Circle((0, 0), 0.55, fc="white")
+                ax_d.add_patch(centre)
+
+                # Rate in center
+                ax_d.text(
+                    0, 0.05, f"{rate:.1%}",
+                    ha="center", va="center",
+                    fontsize=28, fontweight="bold", color="#1B2A4A",
+                )
+                ax_d.text(
+                    0, -0.18, "opt-in rate",
+                    ha="center", va="center",
+                    fontsize=12, color=NEUTRAL,
+                )
+
+                ax_d.set_title(label, fontsize=20, fontweight="bold", pad=15)
+                ax_d.set_aspect("equal")
+
+                # Legend below with counts
+                legend_labels = [
+                    f"Opted In: {sizes[0]:,}",
+                    f"Opted Out: {sizes[1]:,}",
+                ]
+                ax_d.legend(
+                    wedges, legend_labels,
+                    loc="upper center", bbox_to_anchor=(0.5, -0.02),
+                    fontsize=14, frameon=False, ncol=1,
+                )
+
+            fig.suptitle(
+                f"Reg E Opt-In Status -- {ctx.client.client_name}",
+                fontsize=22, fontweight="bold", y=1.0,
             )
-            bars2 = ax.bar(
-                x + w / 2,
-                l12m_vals,
-                w,
-                label=f"L12M ({r_l12m:.1%})",
-                color=ELIGIBLE,
-                edgecolor="none",
-            )
-
-            for bar in bars1:
-                h = bar.get_height()
-                if h > 0:
-                    ax.text(
-                        bar.get_x() + bar.get_width() / 2,
-                        h,
-                        f"{int(h):,}",
-                        ha="center",
-                        va="bottom",
-                        fontsize=12,
-                        fontweight="bold",
-                    )
-            for bar in bars2:
-                h = bar.get_height()
-                if h > 0:
-                    ax.text(
-                        bar.get_x() + bar.get_width() / 2,
-                        h,
-                        f"{int(h):,}",
-                        ha="center",
-                        va="bottom",
-                        fontsize=12,
-                        fontweight="bold",
-                    )
-
-            ax.set_xticks(x)
-            ax.set_xticklabels(categories, fontsize=16)
-            ax.set_ylabel("Accounts", fontsize=16)
-            ax.set_title(
-                f"Reg E Opt-In Status -- {ctx.client.client_name}", fontsize=20, fontweight="bold"
-            )
-            ax.legend(fontsize=14)
-            ax.set_axisbelow(True)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
         chart_path = save_to
 
         change = r_l12m - r_all

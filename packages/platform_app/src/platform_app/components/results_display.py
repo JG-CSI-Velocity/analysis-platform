@@ -48,14 +48,14 @@ def render_results(
         for name, ar in results.items():
             with st.expander(ar.summary or name, expanded=False):
                 for sheet_name, df in ar.data.items():
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.dataframe(df, width="stretch", hide_index=True)
     tab_idx += 1
 
     # Charts tab
     if chart_images:
         with tabs[tab_idx]:
             for img_path in chart_images:
-                st.image(str(img_path), caption=img_path.stem, use_container_width=True)
+                st.image(str(img_path), caption=img_path.stem, width="stretch")
         tab_idx += 1
 
     # Downloads tab

@@ -35,6 +35,7 @@ _ARS_KEY_MAP: dict[str, str] = {
     "BranchMapping": "branch_mapping",
     "ICRate": "interchange_rate",
     "NSF_OD_Fee": "nsf_od_fee",
+    "EligibleStatusCodes": "open_stat_codes",
 }
 
 
@@ -61,12 +62,20 @@ class MasterClientConfig(BaseModel):
 
         Uses copy (not pop) so the original ARS keys remain available
         in model_extra for downstream consumers like the ARS runner.
+        Coerces non-numeric interchange_rate to None instead of failing.
         """
         if not isinstance(data, dict):
             return data
         for ars_key, canon_key in _ARS_KEY_MAP.items():
             if ars_key in data and canon_key not in data:
                 data[canon_key] = data[ars_key]
+        # Coerce non-numeric interchange_rate to None
+        ic = data.get("interchange_rate")
+        if ic is not None:
+            try:
+                float(ic)
+            except (ValueError, TypeError):
+                data["interchange_rate"] = None
         return data
 
 

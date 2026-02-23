@@ -134,9 +134,25 @@ def _draw_nu_chart(
     for lbl in ax.xaxis.get_majorticklabels():
         lbl.set_rotation(45)
         lbl.set_ha("right")
-    ax.legend(fontsize=14, loc="upper left", frameon=True, fancybox=True)
+    ax.legend(fontsize=16, loc="upper left", frameon=True, fancybox=True)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    ax.grid(axis="y", alpha=0.2, linestyle="--")
+    ax.set_axisbelow(True)
+
+    # Final-point data labels
+    if len(avg_r) > 0:
+        last_val = avg_r.iloc[-1]
+        fmt = f"${last_val:,.0f}" if metric_type == "Spend" else f"{last_val:,.0f}"
+        ax.annotate(
+            fmt,
+            xy=(dates[-1], last_val),
+            xytext=(10, 8),
+            textcoords="offset points",
+            fontsize=12,
+            fontweight="bold",
+            color=SEGMENT_COLORS["NU 5+"],
+        )
 
     latest_r = avg_r.iloc[-1] if len(avg_r) > 0 else 0
     latest_n = avg_n.iloc[-1] if len(avg_n) > 0 else 0
@@ -201,9 +217,32 @@ def _draw_th_chart(
     for lbl in ax.xaxis.get_majorticklabels():
         lbl.set_rotation(45)
         lbl.set_ha("right")
-    ax.legend(fontsize=14, loc="upper left", frameon=True, fancybox=True)
+    ax.legend(fontsize=16, loc="upper left", frameon=True, fancybox=True)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    ax.grid(axis="y", alpha=0.2, linestyle="--")
+    ax.set_axisbelow(True)
+
+    # Final-point data labels on best segment
+    best_final = None
+    best_seg_name = None
+    for seg in TH_SEGMENTS:
+        if seg in th_metrics:
+            val = th_metrics[seg]["avg"].iloc[-1]
+            if best_final is None or val > best_final:
+                best_final = val
+                best_seg_name = seg
+    if best_final is not None and best_seg_name is not None:
+        fmt = f"${best_final:,.0f}" if metric_type == "Spend" else f"{best_final:,.0f}"
+        ax.annotate(
+            fmt,
+            xy=(dates[-1], best_final),
+            xytext=(10, 8),
+            textcoords="offset points",
+            fontsize=12,
+            fontweight="bold",
+            color=SEGMENT_COLORS.get(best_seg_name, "black"),
+        )
 
     latest_vals = {}
     for seg in TH_SEGMENTS:

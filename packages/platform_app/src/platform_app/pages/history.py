@@ -95,7 +95,7 @@ def _render_inner() -> None:
                     "Timestamp": r.get("timestamp", "")[:19],
                 }
             )
-        st.dataframe(display_data, use_container_width=True, hide_index=True)
+        st.dataframe(display_data, width="stretch", hide_index=True)
         st.caption(f"Showing {len(filtered)} of {len(history)} runs")
     else:
         st.info("No runs match your filters.")

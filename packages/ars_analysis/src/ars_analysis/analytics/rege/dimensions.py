@@ -24,7 +24,7 @@ from ars_analysis.analytics.rege._helpers import (
 )
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
-from ars_analysis.charts.style import ELIGIBLE, HISTORICAL, NEGATIVE, POSITIVE
+from ars_analysis.charts.style import ELIGIBLE, HISTORICAL, NEGATIVE, POSITIVE, TEAL
 from ars_analysis.pipeline.context import PipelineContext
 
 
@@ -46,7 +46,7 @@ def _safe(fn, label: str, ctx: PipelineContext) -> list[AnalysisResult]:
 
 # -- Funnel renderer (matches DCTR funnel style) ----------------------------
 
-_FUNNEL_COLORS = ["#2c7fb8", "#ff7f0e", "#41b6c4", "#2ca02c", "#9467bd"]
+_FUNNEL_COLORS = [HISTORICAL, ELIGIBLE, TEAL, POSITIVE, "#9467bd"]
 
 
 def _render_funnel(
@@ -96,7 +96,7 @@ def _render_funnel(
             stage["name"],
             ha="right",
             va="center",
-            fontsize=14,
+            fontsize=18,
             fontweight="600",
             color="#2c3e50",
         )
@@ -108,7 +108,7 @@ def _render_funnel(
                 "",
                 xy=(0.5, arrow_y - stage_gap + 0.01),
                 xytext=(0.5, arrow_y - 0.01),
-                arrowprops={"arrowstyle": "->", "lw": 2, "color": "#e74c3c"},
+                arrowprops={"arrowstyle": "->", "lw": 2, "color": NEGATIVE},
             )
             ax.text(
                 0.45,
@@ -116,13 +116,13 @@ def _render_funnel(
                 f"{conv:.1f}%",
                 ha="center",
                 va="center",
-                fontsize=14,
+                fontsize=18,
                 fontweight="bold",
-                color="#e74c3c",
+                color=NEGATIVE,
                 bbox={
                     "boxstyle": "round,pad=0.3",
                     "facecolor": "white",
-                    "edgecolor": "#e74c3c",
+                    "edgecolor": NEGATIVE,
                     "alpha": 0.9,
                 },
             )
@@ -158,7 +158,7 @@ def _render_funnel(
 
     ax.text(
         0.02,
-        0.02,
+        0.12,
         metrics_text,
         transform=ax.transAxes,
         fontsize=12,
@@ -171,6 +171,32 @@ def _render_funnel(
             "linewidth": 1.5,
         },
     )
+
+    # Through-rate badge at bottom center
+    if len(stages) >= 2 and stages[0]["total"] > 0:
+        end_pct = stages[-1]["total"] / stages[0]["total"] * 100
+        badge = mpatches.FancyBboxPatch(
+            (0.25, 0.01),
+            0.50,
+            0.06,
+            boxstyle="round,pad=0.02",
+            facecolor=POSITIVE,
+            alpha=0.15,
+            edgecolor=POSITIVE,
+            linewidth=2,
+        )
+        ax.add_patch(badge)
+        ax.text(
+            0.5,
+            0.04,
+            f"End-to-End Through Rate: {end_pct:.1f}%",
+            ha="center",
+            va="center",
+            fontsize=16,
+            fontweight="bold",
+            color=POSITIVE,
+        )
+
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
@@ -243,7 +269,7 @@ class RegEDimensions(AnalysisModule):
                     bar.get_height() + 0.3,
                     f"{rate:.1f}%",
                     ha="center",
-                    fontsize=10,
+                    fontsize=18,
                     fontweight="bold",
                 )
 
@@ -255,11 +281,15 @@ class RegEDimensions(AnalysisModule):
                 ha="right",
                 color="red",
                 fontweight="bold",
+                fontsize=14,
             )
             ax.set_xticks(list(x))
-            ax.set_xticklabels(chart["Account Age"].tolist(), rotation=30, ha="right")
-            ax.set_ylabel("Opt-In Rate (%)")
-            ax.set_title("Reg E Opt-In by Account Age", fontweight="bold")
+            ax.set_xticklabels(
+                chart["Account Age"].tolist(), rotation=30, ha="right", fontsize=16
+            )
+            ax.set_ylabel("Opt-In Rate (%)", fontsize=20)
+            ax.set_title("Reg E Opt-In by Account Age", fontweight="bold", fontsize=24, pad=15)
+            ax.tick_params(axis="y", labelsize=18)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
         chart_path = save_to
 
@@ -353,7 +383,7 @@ class RegEDimensions(AnalysisModule):
                     bar.get_height() + 0.3,
                     f"{rate:.1f}%",
                     ha="center",
-                    fontsize=9,
+                    fontsize=16,
                     fontweight="bold",
                 )
 
@@ -365,16 +395,30 @@ class RegEDimensions(AnalysisModule):
                 bars_l = ax.bar(
                     x + w / 2, l12m_rates, w, label="L12M", color=ELIGIBLE, edgecolor="none"
                 )
-                for bar, rate in zip(bars_l, l12m_rates):
+                for bar, rate, h_rate in zip(bars_l, l12m_rates, hist_rates):
                     if rate > 0:
                         ax.text(
                             bar.get_x() + bar.get_width() / 2,
                             bar.get_height() + 0.3,
                             f"{rate:.1f}%",
                             ha="center",
-                            fontsize=9,
+                            fontsize=16,
                             fontweight="bold",
                         )
+                        # pp change annotation
+                        pp = rate - h_rate
+                        if abs(pp) > 0.1:
+                            sign = "+" if pp > 0 else ""
+                            color = POSITIVE if pp > 0 else NEGATIVE
+                            ax.text(
+                                bar.get_x() + bar.get_width() / 2,
+                                bar.get_height() + 2.5,
+                                f"{sign}{pp:.1f}pp",
+                                ha="center",
+                                fontsize=11,
+                                fontweight="bold",
+                                color=color,
+                            )
 
             # Reference line for overall rate
             overall_row = ch if ch.empty else hist[hist["Age Group"] == "TOTAL"]
@@ -388,14 +432,17 @@ class RegEDimensions(AnalysisModule):
                     ha="right",
                     color="red",
                     fontweight="bold",
-                    fontsize=9,
+                    fontsize=14,
                 )
 
             ax.set_xticks(x)
-            ax.set_xticklabels(ch["Age Group"].tolist(), rotation=30, ha="right")
-            ax.set_ylabel("Opt-In Rate (%)")
-            ax.set_title("Reg E Opt-In by Account Holder Age", fontweight="bold")
-            ax.legend()
+            ax.set_xticklabels(ch["Age Group"].tolist(), rotation=30, ha="right", fontsize=16)
+            ax.set_ylabel("Opt-In Rate (%)", fontsize=20)
+            ax.set_title(
+                "Reg E Opt-In by Account Holder Age", fontweight="bold", fontsize=24, pad=15
+            )
+            ax.tick_params(axis="y", labelsize=18)
+            ax.legend(fontsize=16)
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
         chart_path = save_to
 
@@ -470,13 +517,26 @@ class RegEDimensions(AnalysisModule):
                 range(len(chart)), chart["Opt-In Rate"] * 100, color=HISTORICAL, edgecolor="none"
             )
             for i, (rate, vol) in enumerate(zip(chart["Opt-In Rate"], chart["Total Accounts"])):
-                ax.text(rate * 100 + 0.3, i, f"{rate:.1%} (n={int(vol):,})", va="center")
+                ax.text(
+                    rate * 100 + 0.3,
+                    i,
+                    f"{rate:.1%} (n={int(vol):,})",
+                    va="center",
+                    fontsize=14,
+                    fontweight="bold",
+                )
             ax.axvline(x=overall, color="red", linestyle="--", linewidth=2, alpha=0.7)
             ax.set_yticks(range(len(chart)))
-            ax.set_yticklabels(chart["Product Code"].tolist())
-            ax.set_xlabel("Opt-In Rate (%)")
+            ax.set_yticklabels(chart["Product Code"].tolist(), fontsize=14)
+            ax.set_xlabel("Opt-In Rate (%)", fontsize=20)
+            ax.tick_params(axis="x", labelsize=18)
             ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
-            ax.set_title("Reg E Opt-In by Product Code (Top 15 by Volume)", fontweight="bold")
+            ax.set_title(
+                "Reg E Opt-In by Product Code (Top 15 by Volume)",
+                fontweight="bold",
+                fontsize=24,
+                pad=15,
+            )
         chart_path = save_to
 
         notes = f"{len(rows)} products. Overall: {overall:.1f}%"

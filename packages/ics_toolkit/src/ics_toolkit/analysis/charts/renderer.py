@@ -103,7 +103,8 @@ def plotly_to_png(fig: go.Figure) -> bytes:
                 fontsize=11,
             )
 
-    mpl_fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    if not is_pie:
+        mpl_fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     buf = BytesIO()
     mpl_fig.savefig(buf, format="png", dpi=DPI, bbox_inches="tight")
@@ -180,7 +181,7 @@ def _render_scatter(ax, trace, color, label):
 
 
 def _render_pie(ax, trace, mpl_fig):
-    """Render a Pie trace."""
+    """Render a Pie trace as a clean donut/pie chart."""
     ax.clear()
     labels = list(trace.labels) if trace.labels is not None else []
     values = list(trace.values) if trace.values is not None else []
@@ -194,13 +195,14 @@ def _render_pie(ax, trace, mpl_fig):
     if mc is not None:
         colors = list(mc)
 
-    wedges, texts, autotexts = ax.pie(
+    # Move labels to legend to avoid overlap; show only % on wedges
+    wedges, _, autotexts = ax.pie(
         values,
-        labels=labels,
         colors=colors,
         autopct="%1.1f%%",
         startangle=90,
-        pctdistance=0.75,
+        pctdistance=0.80 if hole > 0 else 0.65,
+        wedgeprops={"edgecolor": "white", "linewidth": 1.5},
     )
 
     ax.set_aspect("equal")
@@ -209,10 +211,24 @@ def _render_pie(ax, trace, mpl_fig):
         centre = plt.Circle((0, 0), hole, fc="white")
         ax.add_patch(centre)
 
-    for t in texts:
-        t.set_fontsize(12)
     for t in autotexts:
-        t.set_fontsize(11)
+        t.set_fontsize(12)
+        t.set_fontweight("bold")
+
+    # Legend below the chart with labels + counts
+    legend_labels = [
+        f"{lbl}  ({val:,})" if isinstance(val, int) else f"{lbl}  ({val:,.1f})"
+        for lbl, val in zip(labels, values)
+    ]
+    ax.legend(
+        wedges,
+        legend_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.04),
+        ncol=min(len(labels), 3),
+        fontsize=11,
+        frameon=False,
+    )
 
 
 def _render_heatmap(ax, trace, mpl_fig):

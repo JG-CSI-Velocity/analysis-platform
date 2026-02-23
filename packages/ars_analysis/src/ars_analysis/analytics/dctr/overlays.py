@@ -23,7 +23,7 @@ from ars_analysis.analytics.dctr._helpers import (
 )
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
-from ars_analysis.charts.style import TEAL
+from ars_analysis.charts.style import SILVER, TEAL
 from ars_analysis.pipeline.context import PipelineContext
 
 
@@ -176,14 +176,15 @@ class DCTROverlays(AnalysisModule):
             try:
                 dr = df[df["Age Group"] != "TOTAL"]
                 if not dr.empty:
-                    import matplotlib.pyplot as plt
+                    from matplotlib.colors import LinearSegmentedColormap
 
                     with chart_figure(figsize=(14, 7), save_path=save_to) as (fig, ax):
                         x = np.arange(len(dr))
                         vals = dr["DCTR %"].values * 100
-                        colors = plt.cm.Blues(np.linspace(0.5, 0.9, len(dr)))
+                        gradient = LinearSegmentedColormap.from_list("teal_grad", [SILVER, TEAL])
+                        colors = gradient(np.linspace(0.2, 1.0, len(dr)))
                         bars = ax.bar(
-                            x, vals, color=colors, edgecolor="black", linewidth=2, alpha=0.9
+                            x, vals, color=colors, edgecolor="black", linewidth=1.5, alpha=0.9
                         )
                         for bar, v in zip(bars, vals):
                             ax.text(
@@ -191,14 +192,35 @@ class DCTROverlays(AnalysisModule):
                                 v + 1,
                                 f"{v:.1f}%",
                                 ha="center",
-                                fontsize=24,
+                                fontsize=22,
                                 fontweight="bold",
                             )
+
+                        # Overall average reference line
+                        overall_row = df[df["Age Group"] == "TOTAL"]
+                        if not overall_row.empty:
+                            avg = overall_row["DCTR %"].iloc[0] * 100
+                            ax.axhline(y=avg, color="red", linestyle="--", linewidth=2, alpha=0.7)
+                            ax.text(
+                                len(dr) - 0.5, avg + 0.8,
+                                f"Avg: {avg:.1f}%",
+                                ha="right", color="red", fontweight="bold", fontsize=16,
+                            )
+
+                        # Peak annotation
+                        peak_idx = np.argmax(vals)
+                        peak_label = dr["Age Group"].values[peak_idx]
+                        ax.text(
+                            0.98, 0.95,
+                            f"Peak: {peak_label} at {vals[peak_idx]:.1f}%",
+                            transform=ax.transAxes, ha="right", va="top",
+                            fontsize=14, fontweight="bold", color="#1E3D59",
+                            bbox={"boxstyle": "round,pad=0.4", "facecolor": "#E8F4FD", "edgecolor": TEAL},
+                        )
+
                         ax.set_title(
                             "Eligible Accounts DCTR by Account Holder Age",
-                            fontsize=24,
-                            fontweight="bold",
-                            pad=25,
+                            fontsize=24, fontweight="bold", pad=25,
                         )
                         ax.set_xlabel("Age Group", fontsize=20, fontweight="bold")
                         ax.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")

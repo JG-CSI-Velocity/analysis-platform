@@ -134,6 +134,26 @@ class DCTRTrends(AnalysisModule):
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
                     ax.set_axisbelow(True)
+
+                    # Summary badge
+                    sign = "+" if p_trend >= 0 else ""
+                    badge_color = TEAL if p_trend >= 0 else "#E74C3C"
+                    ax.text(
+                        0.98,
+                        0.95,
+                        f"Personal {sign}{p_trend:.1f}pp vs Historical",
+                        transform=ax.transAxes,
+                        ha="right",
+                        va="top",
+                        fontsize=14,
+                        fontweight="bold",
+                        color=badge_color,
+                        bbox={
+                            "boxstyle": "round,pad=0.4",
+                            "facecolor": "#E8F4FD",
+                            "edgecolor": badge_color,
+                        },
+                    )
                 chart_path = save_to
             except Exception as exc:
                 logger.warning("A7.4 chart failed: {err}", err=exc)
@@ -238,6 +258,21 @@ class DCTRTrends(AnalysisModule):
                     ax.set_axisbelow(True)
                     ax.spines["top"].set_visible(False)
                     ax2.spines["top"].set_visible(False)
+
+                    # Highlight decade with biggest growth
+                    if len(overall) >= 2:
+                        diffs = np.diff(overall)
+                        best_idx = int(np.argmax(diffs)) + 1
+                        ax.annotate(
+                            f"+{diffs[best_idx - 1]:.1f}pp",
+                            xy=(best_idx, overall[best_idx]),
+                            xytext=(best_idx, overall[best_idx] + 5),
+                            fontsize=14,
+                            fontweight="bold",
+                            color=TEAL,
+                            ha="center",
+                            arrowprops={"arrowstyle": "->", "color": TEAL, "lw": 2},
+                        )
                 chart_path = save_to
             except Exception as exc:
                 logger.warning("A7.5 chart failed: {err}", err=exc)
@@ -362,6 +397,20 @@ class DCTRTrends(AnalysisModule):
                     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, fontsize=18)
                     ax.set_axisbelow(True)
                     ax.spines["top"].set_visible(False)
+
+                    # Endpoint label on last month
+                    last_valid = mask.nonzero()[0]
+                    if len(last_valid) > 0:
+                        li = last_valid[-1]
+                        ax.annotate(
+                            f"{ov[li]:.1f}%",
+                            xy=(x[li], ov[li]),
+                            xytext=(x[li] + 0.3, ov[li] + 2),
+                            fontsize=16,
+                            fontweight="bold",
+                            color="black",
+                            arrowprops={"arrowstyle": "->", "color": "black", "lw": 1.5},
+                        )
                 chart_path = save_to
             except Exception as exc:
                 logger.warning("A7.6a chart failed: {err}", err=exc)

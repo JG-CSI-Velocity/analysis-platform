@@ -121,7 +121,7 @@ run_btn = st.button(
     type="primary",
     disabled=not selected,
     key="batch_run",
-    use_container_width=True,
+    width="stretch",
 )
 
 if selected and not run_btn and "batch_results" not in st.session_state:

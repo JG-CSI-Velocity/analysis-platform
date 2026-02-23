@@ -133,7 +133,8 @@ class DCTRBranches(AnalysisModule):
         dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
         dc["Account Age Days"] = (pd.Timestamp.now() - dc["Date Opened"]).dt.days
         if bm:
-            dc["Branch Name"] = dc["Branch"].map(bm).fillna(dc["Branch"])
+            mapped = dc["Branch"].map(bm)
+            dc["Branch Name"] = mapped.where(mapped.notna(), dc["Branch"])
         else:
             dc["Branch Name"] = dc["Branch"]
         valid = dc[dc["Account Age Days"].notna()].copy()
@@ -196,7 +197,8 @@ class DCTRBranches(AnalysisModule):
         dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
         dc["Month_Year"] = dc["Date Opened"].dt.strftime("%b%y")
         if bm:
-            dc["Branch Name"] = dc["Branch"].map(bm).fillna(dc["Branch"])
+            mapped = dc["Branch"].map(bm)
+            dc["Branch Name"] = mapped.where(mapped.notna(), dc["Branch"])
         else:
             dc["Branch Name"] = dc["Branch"]
 
@@ -432,7 +434,8 @@ class DCTRBranches(AnalysisModule):
         dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
         dc["Month_Year"] = dc["Date Opened"].dt.strftime("%b%y")
         if bm:
-            dc["Branch Name"] = dc["Branch"].map(bm).fillna(dc["Branch"])
+            mapped = dc["Branch"].map(bm)
+            dc["Branch Name"] = mapped.where(mapped.notna(), dc["Branch"])
         else:
             dc["Branch Name"] = dc["Branch"]
 
@@ -466,39 +469,49 @@ class DCTRBranches(AnalysisModule):
                     fig,
                     ax,
                 ):
+                    from matplotlib.colors import TwoSlopeNorm
+
                     cmap = LinearSegmentedColormap.from_list(
-                        "dctr", ["#E74C3C", "#F39C12", "#F1C40F", "#2ECC71", "#27AE60"]
+                        "dctr_div", [NEGATIVE, "#FADBD8", "white", "#D5F5E3", POSITIVE]
                     )
                     data_vals = heat_df.values
                     valid_vals = data_vals[~np.isnan(data_vals)]
-                    vmin = np.percentile(valid_vals, 5) if len(valid_vals) else 0
-                    vmax = np.percentile(valid_vals, 95) if len(valid_vals) else 100
+                    avg_dctr = np.nanmean(valid_vals) if len(valid_vals) else 50
+                    vmin = max(0, np.nanmin(valid_vals) - 2) if len(valid_vals) else 0
+                    vmax = min(100, np.nanmax(valid_vals) + 2) if len(valid_vals) else 100
+                    # Ensure avg is strictly between vmin and vmax for TwoSlopeNorm
+                    avg_clamped = max(vmin + 0.01, min(avg_dctr, vmax - 0.01))
+                    norm = TwoSlopeNorm(vmin=vmin, vcenter=avg_clamped, vmax=vmax)
 
-                    im = ax.imshow(data_vals, cmap=cmap, aspect="auto", vmin=vmin, vmax=vmax)
+                    im = ax.imshow(data_vals, cmap=cmap, aspect="auto", norm=norm)
                     ax.set_xticks(range(n_m))
-                    ax.set_xticklabels(months, rotation=45, ha="right", fontsize=14)
+                    ax.set_xticklabels(months, rotation=45, ha="right", fontsize=16)
                     ax.set_yticks(range(n_b))
-                    ax.set_yticklabels(branches, fontsize=14)
+                    ax.set_yticklabels(branches, fontsize=16)
+
+                    # Find global min/max for emphasis
+                    global_max = np.nanmax(valid_vals) if len(valid_vals) else 0
+                    global_min = np.nanmin(valid_vals) if len(valid_vals) else 0
 
                     for i in range(n_b):
                         for j in range(n_m):
                             v = data_vals[i, j]
                             if not np.isnan(v):
-                                txt_color = "white" if v < (vmin + vmax) / 2 else "black"
+                                txt_color = "black" if abs(v - avg_dctr) < (vmax - vmin) * 0.3 else "white"
+                                fw = "900" if v == global_max or v == global_min else "bold"
                                 ax.text(
-                                    j,
-                                    i,
+                                    j, i,
                                     f"{v:.0f}",
-                                    ha="center",
-                                    va="center",
-                                    fontsize=12,
-                                    fontweight="bold",
-                                    color=txt_color,
+                                    ha="center", va="center",
+                                    fontsize=14, fontweight=fw, color=txt_color,
                                 )
 
-                    fig.colorbar(im, ax=ax, label="DCTR %", shrink=0.8)
+                    cbar = fig.colorbar(im, ax=ax, shrink=0.8)
+                    cbar.set_label("DCTR %", fontsize=16, fontweight="bold")
+                    cbar.ax.axhline(y=avg_dctr, color="black", linewidth=2)
                     ax.set_title(
-                        "Monthly DCTR Heatmap by Branch (TTM)", fontsize=20, fontweight="bold"
+                        "Monthly DCTR Heatmap by Branch (TTM)",
+                        fontsize=22, fontweight="bold", pad=15,
                     )
                 chart_path = save_to
             except Exception as exc:

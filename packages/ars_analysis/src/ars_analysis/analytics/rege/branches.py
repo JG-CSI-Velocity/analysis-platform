@@ -15,7 +15,15 @@ from ars_analysis.analytics.dctr._helpers import l12m_month_labels
 from ars_analysis.analytics.rege._helpers import reg_e_base, rege, total_row
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
-from ars_analysis.charts.style import ELIGIBLE, HISTORICAL, NEUTRAL
+from ars_analysis.charts.style import (
+    ELIGIBLE,
+    HISTORICAL,
+    NEGATIVE,
+    NEUTRAL,
+    POSITIVE,
+    SILVER,
+    TEAL,
+)
 from ars_analysis.pipeline.context import PipelineContext
 
 
@@ -125,46 +133,64 @@ class RegEBranches(AnalysisModule):
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
         if not comp_df.empty:
+            n = len(comp_df)
+            fig_h = max(10, n * 0.6 + 2)
             with chart_figure(
-                figsize=(18, max(10, len(comp_df) * 0.8)),
+                figsize=(14, fig_h),
                 save_path=save_to,
             ) as (fig, ax):
-                y_pos = np.arange(len(comp_df))
-                w = 0.35
+                y = np.arange(n)
+                h = 0.35
 
                 ax.barh(
-                    y_pos + w / 2,
+                    y + h / 2,
                     comp_df["Historical Rate"] * 100,
-                    w,
+                    h,
                     label="Historical",
-                    color=HISTORICAL,
-                    alpha=0.8,
+                    color=SILVER,
+                    edgecolor="black",
+                    linewidth=1.5,
                 )
                 ax.barh(
-                    y_pos - w / 2,
+                    y - h / 2,
                     comp_df["L12M Rate"] * 100,
-                    w,
-                    label="L12M",
-                    color=ELIGIBLE,
-                    alpha=0.8,
+                    h,
+                    label="TTM",
+                    color=TEAL,
+                    edgecolor="black",
+                    linewidth=1.5,
                 )
 
-                for i in range(len(comp_df)):
-                    hr = comp_df.iloc[i]["Historical Rate"] * 100
-                    lr = comp_df.iloc[i]["L12M Rate"] * 100
-                    if hr > 0:
-                        ax.text(hr + 0.3, y_pos[i] + w / 2, f"{hr:.1f}%", va="center")
-                    if lr > 0:
-                        ax.text(lr + 0.3, y_pos[i] - w / 2, f"{lr:.1f}%", va="center")
-
-                ax.set_yticks(y_pos)
-                ax.set_yticklabels(comp_df["Branch"].tolist())
-                ax.set_xlabel("Opt-In Rate (%)")
+                ax.set_yticks(y)
+                ax.set_yticklabels(comp_df["Branch"].values, fontsize=18, fontweight="bold")
+                ax.set_xlabel("Opt-In Rate (%)", fontsize=20, fontweight="bold")
                 ax.set_title(
-                    f"Reg E Opt-In by Branch -- {ctx.client.client_name}", fontweight="bold"
+                    "Reg E Opt-In by Branch: Historical vs TTM",
+                    fontsize=24,
+                    fontweight="bold",
+                    pad=20,
                 )
-                ax.legend()
                 ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
+                ax.tick_params(axis="x", labelsize=18)
+                ax.legend(loc="lower right", fontsize=18)
+                ax.spines["top"].set_visible(False)
+                ax.spines["right"].set_visible(False)
+                ax.set_axisbelow(True)
+
+                # Change indicators (+/- pp)
+                for i, (_, row) in enumerate(comp_df.iterrows()):
+                    chg = row["Change"] * 100
+                    color = POSITIVE if chg > 0 else NEGATIVE if chg < 0 else NEUTRAL
+                    marker = "+" if chg > 0 else ""
+                    ax.text(
+                        max(row["Historical Rate"] * 100, row["L12M Rate"] * 100) + 1,
+                        i,
+                        f"{marker}{chg:.1f}pp",
+                        va="center",
+                        fontsize=18,
+                        color=color,
+                        fontweight="bold",
+                    )
             chart_path = save_to
 
         improving = len(comp_df[comp_df["Change"] > 0]) if not comp_df.empty else 0

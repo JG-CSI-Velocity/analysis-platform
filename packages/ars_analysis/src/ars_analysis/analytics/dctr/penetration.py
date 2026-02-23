@@ -5,6 +5,11 @@ Slide IDs: DCTR-1 through DCTR-8, A7.1, A7.2, A7.3, A7 combo.
 
 from __future__ import annotations
 
+import textwrap
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from loguru import logger
 from matplotlib.ticker import FuncFormatter
@@ -23,7 +28,8 @@ from ars_analysis.charts.style import (
     ELIGIBLE,
     HISTORICAL,
     PERSONAL,
-    TTM,
+    SILVER,
+    TEAL,
 )
 from ars_analysis.pipeline.context import PipelineContext
 
@@ -42,6 +48,165 @@ def _safe(fn, label: str, ctx: PipelineContext) -> list[AnalysisResult]:
                 error=str(exc),
             )
         ]
+
+
+def _render_dctr_narrative(
+    ctx: PipelineContext,
+    l12m_ins: dict,
+    overall_dctr: float,
+    comp: float,
+    save_path: Path,
+) -> Path | None:
+    """Render combined DCTR narrative: 4 horizontal bars + insight text.
+
+    Bars (top to bottom): All Open -> Eligible -> Historical DCTR -> TTM DCTR.
+    """
+    d2 = ctx.results.get("dctr_2", {}).get("insights", {})
+    d1 = ctx.results.get("dctr_1", {}).get("insights", {})
+
+    open_dctr = d2.get("open_dctr", 0) * 100
+    open_total = d2.get("open_total", 0)
+    elig_dctr = d2.get("eligible_dctr", overall_dctr) * 100
+    elig_total = d2.get("eligible_total", d1.get("total_accounts", 0))
+    hist_dctr = overall_dctr * 100
+    hist_total = d1.get("total_accounts", 0)
+    ttm_dctr = l12m_ins["dctr"] * 100
+    ttm_total = l12m_ins["total_accounts"]
+
+    labels = ["TTM (L12M)", "Historical", "Eligible", "All Open"]
+    values = [ttm_dctr, hist_dctr, elig_dctr, open_dctr]
+    counts = [ttm_total, hist_total, elig_total, open_total]
+    colors = [TEAL, HISTORICAL, ELIGIBLE, SILVER]
+
+    # Build insight text
+    elig_pct = elig_total / open_total * 100 if open_total > 0 else 0
+    direction = "higher" if comp > 0 else "lower"
+    trend_word = "accelerating" if comp > 0 else "decelerating"
+    insight_parts = [
+        f"{elig_pct:.0f}% of open accounts pass eligibility filters "
+        f"({elig_total:,} of {open_total:,}).",
+        f"TTM DCTR is {abs(comp) * 100:.1f}pp {direction} than historical, "
+        f"indicating {trend_word} debit adoption among recent account openings.",
+    ]
+    if ttm_dctr > hist_dctr:
+        insight_parts.append(
+            "Recent cohorts are adopting debit cards at a stronger rate, "
+            "signaling positive program momentum."
+        )
+    else:
+        insight_parts.append(
+            "Recent cohorts show softer debit adoption -- "
+            "targeted campaigns may help close the gap."
+        )
+    insight = "  ".join(insight_parts)
+
+    style_path = str(Path(__file__).parent.parent.parent / "charts" / "ars.mplstyle")
+    fig = None
+    try:
+        with plt.style.context(style_path):
+            fig = plt.figure(figsize=(18, 9), dpi=150)
+            gs = fig.add_gridspec(
+                1,
+                5,
+                width_ratios=[3, 0, 2, 0, 0],
+                left=0.06,
+                right=0.96,
+                top=0.90,
+                bottom=0.08,
+                wspace=0.15,
+            )
+            ax_bar = fig.add_subplot(gs[0, 0])
+            ax_text = fig.add_subplot(gs[0, 2])
+
+            # -- 4-bar horizontal chart --
+            y = np.arange(len(labels))
+            bars = ax_bar.barh(
+                y,
+                values,
+                color=colors,
+                edgecolor="black",
+                linewidth=1.5,
+                height=0.6,
+            )
+            # Rate + count labels
+            for i, (val, cnt) in enumerate(zip(values, counts)):
+                ax_bar.text(
+                    val + max(values) * 0.015,
+                    i,
+                    f"{val:.1f}%",
+                    va="center",
+                    fontsize=20,
+                    fontweight="bold",
+                )
+                ax_bar.text(
+                    val / 2,
+                    i,
+                    f"{cnt:,}",
+                    va="center",
+                    ha="center",
+                    fontsize=16,
+                    fontweight="bold",
+                    color="white",
+                )
+
+            # pp change annotation between Historical and TTM
+            from ars_analysis.charts.style import NEGATIVE, POSITIVE
+
+            pp = comp * 100
+            arrow_color = POSITIVE if pp > 0 else NEGATIVE if pp < 0 else "#94A3B8"
+            marker = "+" if pp > 0 else ""
+            mid_y = (0 + 1) / 2  # between TTM (y=0) and Historical (y=1)
+            ax_bar.annotate(
+                f"{marker}{pp:.1f}pp",
+                xy=(max(ttm_dctr, hist_dctr) + max(values) * 0.10, mid_y),
+                fontsize=18,
+                fontweight="bold",
+                color=arrow_color,
+                ha="center",
+                va="center",
+                bbox={
+                    "boxstyle": "round,pad=0.3",
+                    "facecolor": "#F8FAFC",
+                    "edgecolor": arrow_color,
+                },
+            )
+
+            ax_bar.set_yticks(y)
+            ax_bar.set_yticklabels(labels, fontsize=18, fontweight="bold")
+            ax_bar.set_xlabel("DCTR (%)", fontsize=18, fontweight="bold")
+            ax_bar.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
+            ax_bar.tick_params(axis="x", labelsize=14)
+            ax_bar.spines["top"].set_visible(False)
+            ax_bar.spines["right"].set_visible(False)
+            ax_bar.set_axisbelow(True)
+
+            # -- Insight text panel --
+            ax_text.axis("off")
+            wrapped = textwrap.fill(insight, width=42)
+            ax_text.text(
+                0.05,
+                0.55,
+                wrapped,
+                transform=ax_text.transAxes,
+                fontsize=13,
+                color="#334155",
+                va="center",
+                ha="left",
+                linespacing=1.7,
+            )
+
+            fig.suptitle(
+                "DCTR Snapshot: From Open Accounts to Recent Adoption",
+                fontsize=22,
+                fontweight="bold",
+                y=0.96,
+            )
+            fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor="white")
+        fig = None
+        return save_path
+    finally:
+        if fig is not None:
+            plt.close(fig)
 
 
 @register
@@ -116,59 +281,7 @@ class DCTRPenetration(AnalysisModule):
         )
         diff = hist_ins["overall_dctr"] - open_ins["overall_dctr"]
 
-        chart_path = None
-        charts_dir = ctx.paths.charts_dir
-        if charts_dir != ctx.paths.base_dir:
-            charts_dir.mkdir(parents=True, exist_ok=True)
-            save_to = charts_dir / "dctr_open_vs_eligible.png"
-            try:
-                od = open_ins["overall_dctr"] * 100
-                ed_v = hist_ins["overall_dctr"] * 100
-                with chart_figure(figsize=(10, 6), save_path=save_to) as (fig, ax):
-                    bars = ax.bar(
-                        ["All Open\nAccounts", "Eligible\nAccounts"],
-                        [od, ed_v],
-                        color=[ELIGIBLE, PERSONAL],
-                        width=0.5,
-                        edgecolor="black",
-                        linewidth=2,
-                        alpha=0.8,
-                    )
-                    for bar, v, c in zip(
-                        bars,
-                        [od, ed_v],
-                        [open_ins["with_debit_count"], hist_ins["with_debit_count"]],
-                    ):
-                        ax.text(
-                            bar.get_x() + bar.get_width() / 2,
-                            v + 1,
-                            f"{v:.1f}%",
-                            ha="center",
-                            fontweight="bold",
-                            fontsize=22,
-                        )
-                        ax.text(
-                            bar.get_x() + bar.get_width() / 2,
-                            v / 2,
-                            f"{c:,}\naccounts",
-                            ha="center",
-                            fontweight="bold",
-                            fontsize=18,
-                            color="white",
-                        )
-                    ax.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")
-                    ax.set_title(
-                        "DCTR: Open vs Eligible Accounts", fontsize=24, fontweight="bold", pad=20
-                    )
-                    ax.set_ylim(0, max(od, ed_v) * 1.15)
-                    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-                    ax.tick_params(axis="both", labelsize=18)
-                    ax.spines["top"].set_visible(False)
-                    ax.spines["right"].set_visible(False)
-                chart_path = save_to
-            except Exception as exc:
-                logger.warning("A7.1 chart failed: {err}", err=exc)
-
+        # No chart here -- combined narrative chart is built in _l12m()
         ctx.results["dctr_2"] = {
             "comparison": comparison,
             "insights": {
@@ -178,13 +291,11 @@ class DCTRPenetration(AnalysisModule):
                 "open_total": len(oa),
                 "eligible_total": hist_ins["total_accounts"],
             },
-            "chart_path": str(chart_path) if chart_path else None,
         }
         return [
             AnalysisResult(
                 slide_id="DCTR-2",
                 title="DCTR: Open vs Eligible",
-                chart_path=chart_path,
                 excel_data={"Comparison": comparison},
                 notes=f"Open: {open_ins['overall_dctr']:.1%} | Eligible: {hist_ins['overall_dctr']:.1%} | Gap: {diff:+.1%}",
             )
@@ -207,67 +318,26 @@ class DCTRPenetration(AnalysisModule):
         overall = ctx.results.get("dctr_1", {}).get("insights", {}).get("overall_dctr", 0)
         comp = l12m_ins["dctr"] - overall
 
+        # Combined narrative chart: Open -> Eligible -> Historical -> TTM
         chart_path = None
         charts_dir = ctx.paths.charts_dir
         if charts_dir != ctx.paths.base_dir:
             charts_dir.mkdir(parents=True, exist_ok=True)
-            save_to = charts_dir / "dctr_hist_vs_l12m.png"
+            save_to = charts_dir / "dctr_narrative_snapshot.png"
             try:
-                hd = overall * 100
-                ld = l12m_ins["dctr"] * 100
-                ht = ctx.results.get("dctr_1", {}).get("insights", {}).get("total_accounts", 0)
-                lt = l12m_ins["total_accounts"]
-                with chart_figure(figsize=(10, 6), save_path=save_to) as (fig, ax):
-                    bars = ax.bar(
-                        ["Historical\n(All Time)", "Trailing Twelve Months"],
-                        [hd, ld],
-                        color=[HISTORICAL, TTM],
-                        width=0.5,
-                        edgecolor="black",
-                        linewidth=2,
-                        alpha=0.8,
-                    )
-                    for bar, v, c in zip(bars, [hd, ld], [ht, lt]):
-                        ax.text(
-                            bar.get_x() + bar.get_width() / 2,
-                            v + 1,
-                            f"{v:.1f}%",
-                            ha="center",
-                            fontweight="bold",
-                            fontsize=22,
-                        )
-                        ax.text(
-                            bar.get_x() + bar.get_width() / 2,
-                            v / 2,
-                            f"{c:,}\naccounts",
-                            ha="center",
-                            fontweight="bold",
-                            fontsize=18,
-                            color="white",
-                        )
-                    ax.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")
-                    ax.set_title(
-                        "Historical vs Recent DCTR", fontsize=24, fontweight="bold", pad=20
-                    )
-                    ax.set_ylim(0, max(hd, ld) * 1.15)
-                    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-                    ax.tick_params(axis="both", labelsize=18)
-                    ax.spines["top"].set_visible(False)
-                    ax.spines["right"].set_visible(False)
-                chart_path = save_to
+                chart_path = _render_dctr_narrative(ctx, l12m_ins, overall, comp, save_to)
             except Exception as exc:
-                logger.warning("A7.3 chart failed: {err}", err=exc)
+                logger.warning("DCTR narrative chart failed: {err}", err=exc)
 
         l12m_ins["comparison_to_overall"] = comp
         ctx.results["dctr_3"] = {
             "monthly": monthly,
             "insights": l12m_ins,
-            "chart_path": str(chart_path) if chart_path else None,
         }
         return [
             AnalysisResult(
                 slide_id="DCTR-3",
-                title="Last 12 Months DCTR",
+                title="DCTR Snapshot: Open to TTM",
                 chart_path=chart_path,
                 excel_data={"Monthly": monthly},
                 notes=f"L12M: {l12m_ins['dctr']:.1%} ({l12m_ins['total_accounts']:,} accts) | vs Overall: {comp:+.1%}",

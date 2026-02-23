@@ -32,6 +32,7 @@ _FALLBACK_TEMPLATE = Path(__file__).parent / "template" / "Template12.25.pptx"
 # SLIDE CONTENT DEFINITION
 # =============================================================================
 
+
 @dataclass
 class SlideContent:
     """Container for all information needed to build a single slide.
@@ -58,6 +59,7 @@ class SlideContent:
 # =============================================================================
 # DECK BUILDER CLASS -- ported from original ars_analysis-jupyter/deck_builder.py
 # =============================================================================
+
 
 class DeckBuilder:
     """Assembles SlideContent objects into a PowerPoint presentation."""
@@ -125,7 +127,10 @@ class DeckBuilder:
             if slide_content.layout_index >= n_layouts:
                 logger.warning(
                     "Slide {i} '{title}' has layout_index={idx} but template only has {n} layouts, using 0",
-                    i=i, title=slide_content.title[:40], idx=slide_content.layout_index, n=n_layouts,
+                    i=i,
+                    title=slide_content.title[:40],
+                    idx=slide_content.layout_index,
+                    n=n_layouts,
                 )
                 slide_content.layout_index = 0
             try:
@@ -133,8 +138,11 @@ class DeckBuilder:
             except Exception as exc:
                 logger.error(
                     "Slide {i} '{title}' (type={t}, layout={l}) failed: {err}",
-                    i=i, title=slide_content.title[:40], t=slide_content.slide_type,
-                    l=slide_content.layout_index, err=exc,
+                    i=i,
+                    title=slide_content.title[:40],
+                    t=slide_content.slide_type,
+                    l=slide_content.layout_index,
+                    err=exc,
                 )
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -143,9 +151,7 @@ class DeckBuilder:
 
     def _add_slide(self, content: SlideContent) -> None:
         """Create single slide and dispatch to appropriate builder method."""
-        slide = self.prs.slides.add_slide(
-            self.prs.slide_layouts[content.layout_index]
-        )
+        slide = self.prs.slides.add_slide(self.prs.slide_layouts[content.layout_index])
 
         builders = {
             "title": self._build_title_slide,
@@ -172,8 +178,7 @@ class DeckBuilder:
         """Set slide title, adding custom text box for header-only layouts."""
         if content.layout_index in self.HEADERONLY_LAYOUTS:
             title_top = Inches(0.30) if content.layout_index == 13 else Inches(0.10)
-            tb = slide.shapes.add_textbox(
-                Inches(0.5), title_top, Inches(9.0), Inches(0.6))
+            tb = slide.shapes.add_textbox(Inches(0.5), title_top, Inches(9.0), Inches(0.6))
             tf = tb.text_frame
             tf.word_wrap = True
             p = tf.paragraphs[0]
@@ -220,16 +225,15 @@ class DeckBuilder:
         effective_max_h = max_height or self.MAX_CHART_HEIGHT
         try:
             from PIL import Image
+
             with Image.open(img_path) as img:
                 native_w, native_h = img.size
             aspect = native_h / native_w
             height_at_width = int(max_width * aspect)
             if height_at_width > effective_max_h:
-                slide.shapes.add_picture(
-                    img_path, left, top, height=effective_max_h)
+                slide.shapes.add_picture(img_path, left, top, height=effective_max_h)
             else:
-                slide.shapes.add_picture(
-                    img_path, left, top, width=max_width)
+                slide.shapes.add_picture(img_path, left, top, width=max_width)
         except ImportError:
             slide.shapes.add_picture(img_path, left, top, width=max_width)
 
@@ -250,8 +254,7 @@ class DeckBuilder:
                     pass
 
             title_lines = content.title.split("\n") if "\n" in content.title else [content.title]
-            text_box = slide.shapes.add_textbox(
-                Inches(1.0), Inches(2.5), Inches(11.0), Inches(3.0))
+            text_box = slide.shapes.add_textbox(Inches(1.0), Inches(2.5), Inches(11.0), Inches(3.0))
             tf = text_box.text_frame
             tf.word_wrap = True
 
@@ -280,8 +283,7 @@ class DeckBuilder:
             elif subtitle:
                 full_text += f"\n{'─' * 20}\n{subtitle}"
 
-            text_box = slide.shapes.add_textbox(
-                Inches(1.0), Inches(3.0), Inches(6.0), Inches(2.0))
+            text_box = slide.shapes.add_textbox(Inches(1.0), Inches(3.0), Inches(6.0), Inches(2.0))
             tf = text_box.text_frame
             tf.word_wrap = True
 
@@ -351,10 +353,7 @@ class DeckBuilder:
                 pass
 
         if content.layout_index == 8:
-            to_remove = [
-                ph for ph in slide.placeholders
-                if ph.placeholder_format.idx != 0
-            ]
+            to_remove = [ph for ph in slide.placeholders if ph.placeholder_format.idx != 0]
             for ph in to_remove:
                 ph.element.getparent().remove(ph.element)
 
@@ -381,8 +380,7 @@ class DeckBuilder:
             subtitle_text = parts[1] if len(parts) > 1 else None
 
         if content.layout_index == 8:
-            to_remove = [ph for ph in slide.placeholders
-                         if ph.placeholder_format.idx != 0]
+            to_remove = [ph for ph in slide.placeholders if ph.placeholder_format.idx != 0]
             for ph in to_remove:
                 ph.element.getparent().remove(ph.element)
 
@@ -405,8 +403,7 @@ class DeckBuilder:
             subtitle_text = parts[1] if len(parts) > 1 else None
 
         if content.layout_index == 8:
-            to_remove = [ph for ph in slide.placeholders
-                         if ph.placeholder_format.idx != 0]
+            to_remove = [ph for ph in slide.placeholders if ph.placeholder_format.idx != 0]
             for ph in to_remove:
                 ph.element.getparent().remove(ph.element)
 
@@ -461,8 +458,8 @@ class DeckBuilder:
                 if Path(img_path).exists():
                     left, img_top, img_width = positions[i]
                     self._add_fitted_picture(
-                        slide, img_path, left, img_top, img_width,
-                        max_height=Inches(5.5))
+                        slide, img_path, left, img_top, img_width, max_height=Inches(5.5)
+                    )
 
     def _build_summary_slide(self, slide, content: SlideContent) -> None:
         """Build summary slide with bullets in 3x3 grid."""
@@ -476,8 +473,8 @@ class DeckBuilder:
                 left = self.SUMMARY_COL_POSITIONS[col]
                 top = self.SUMMARY_ROW_START + (row * self.SUMMARY_ROW_SPACING)
                 text_box = slide.shapes.add_textbox(
-                    left, top,
-                    self.SUMMARY_BOX_WIDTH, self.SUMMARY_BOX_HEIGHT)
+                    left, top, self.SUMMARY_BOX_WIDTH, self.SUMMARY_BOX_HEIGHT
+                )
                 tf = text_box.text_frame
                 tf.word_wrap = True
                 p = tf.paragraphs[0]
@@ -506,8 +503,7 @@ class DeckBuilder:
         CHART_TOP = Inches(3.5)
 
         # Title
-        tb = slide.shapes.add_textbox(
-            Inches(0.5), Inches(0.38), Inches(9.0), Inches(0.6))
+        tb = slide.shapes.add_textbox(Inches(0.5), Inches(0.38), Inches(9.0), Inches(0.6))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -525,8 +521,7 @@ class DeckBuilder:
 
         # Insight text (upper-left)
         if insight_text:
-            tb = slide.shapes.add_textbox(
-                Inches(0.5), ROW1_TOP, Inches(5.0), Inches(1.0))
+            tb = slide.shapes.add_textbox(Inches(0.5), ROW1_TOP, Inches(5.0), Inches(1.0))
             tf = tb.text_frame
             tf.word_wrap = True
             p = tf.paragraphs[0]
@@ -538,8 +533,7 @@ class DeckBuilder:
         if content.kpis:
             kpi_left = Inches(7.8)
             kpi_block_w = Inches(5.2)
-            tb = slide.shapes.add_textbox(
-                kpi_left, ROW1_TOP, kpi_block_w, Inches(0.4))
+            tb = slide.shapes.add_textbox(kpi_left, ROW1_TOP, kpi_block_w, Inches(0.4))
             tf = tb.text_frame
             p = tf.paragraphs[0]
             p.text = "Mailer KPIs"
@@ -555,7 +549,8 @@ class DeckBuilder:
                 x = 7.8 + i * kpi_each_w
 
                 tb = slide.shapes.add_textbox(
-                    Inches(x), KPI_VAL_TOP, Inches(kpi_each_w), Inches(0.5))
+                    Inches(x), KPI_VAL_TOP, Inches(kpi_each_w), Inches(0.5)
+                )
                 tf = tb.text_frame
                 p = tf.paragraphs[0]
                 p.text = str(value)
@@ -565,7 +560,8 @@ class DeckBuilder:
                 p.alignment = PP_ALIGN.CENTER
 
                 tb = slide.shapes.add_textbox(
-                    Inches(x), KPI_LBL_TOP, Inches(kpi_each_w), Inches(0.3))
+                    Inches(x), KPI_LBL_TOP, Inches(kpi_each_w), Inches(0.3)
+                )
                 tf = tb.text_frame
                 p = tf.paragraphs[0]
                 p.text = label_text
@@ -579,8 +575,7 @@ class DeckBuilder:
             (COL2_L, "Response Rate"),
             (COL3_L, "Inside the Numbers"),
         ]:
-            tb = slide.shapes.add_textbox(
-                col_left, SECT_TOP, COL_W, Inches(0.3))
+            tb = slide.shapes.add_textbox(col_left, SECT_TOP, COL_W, Inches(0.3))
             tf = tb.text_frame
             p = tf.paragraphs[0]
             p.text = header_text
@@ -591,26 +586,30 @@ class DeckBuilder:
 
         # Donut chart (column 1)
         if content.images and len(content.images) > 0 and Path(content.images[0]).exists():
-            slide.shapes.add_picture(
-                content.images[0], COL1_L, CHART_TOP, width=COL_W)
+            slide.shapes.add_picture(content.images[0], COL1_L, CHART_TOP, width=COL_W)
 
         # Horizontal bar chart (column 2)
         if content.images and len(content.images) > 1 and Path(content.images[1]).exists():
-            slide.shapes.add_picture(
-                content.images[1], COL2_L, CHART_TOP, width=COL_W)
+            slide.shapes.add_picture(content.images[1], COL2_L, CHART_TOP, width=COL_W)
 
         # Inside the Numbers (column 3)
         if inside_numbers:
+            # Dynamic spacing: compress to fit all items (up to 6)
+            n_items = len(inside_numbers)
+            row_h = min(1.2, 3.3 / max(n_items, 1))
+            pct_size = Pt(22) if n_items > 4 else Pt(26)
+            desc_size = Pt(11) if n_items > 4 else Pt(13)
+            row_box_h = Inches(row_h * 0.85)
+
             for i, item in enumerate(inside_numbers):
                 if "|" in item:
                     pct, desc = item.split("|", 1)
                 else:
                     pct, desc = item, ""
 
-                y_pos = 3.9 + i * 1.2
+                y_pos = 3.9 + i * row_h
 
-                tb = slide.shapes.add_textbox(
-                    COL3_L, Inches(y_pos), Inches(1.4), Inches(0.9))
+                tb = slide.shapes.add_textbox(COL3_L, Inches(y_pos), Inches(1.4), row_box_h)
                 tf = tb.text_frame
                 tf.auto_size = None
                 tf.word_wrap = False
@@ -622,13 +621,14 @@ class DeckBuilder:
                     pass
                 p = tf.paragraphs[0]
                 p.text = pct.strip()
-                p.font.size = Pt(26)
+                p.font.size = pct_size
                 p.font.bold = True
                 p.font.color.rgb = RGBColor(0, 80, 114)
 
                 if desc:
                     tb = slide.shapes.add_textbox(
-                        Inches(10.2), Inches(y_pos), Inches(2.6), Inches(0.9))
+                        Inches(10.2), Inches(y_pos), Inches(2.6), row_box_h
+                    )
                     tf = tb.text_frame
                     tf.auto_size = None
                     tf.word_wrap = True
@@ -639,7 +639,7 @@ class DeckBuilder:
                         pass
                     p = tf.paragraphs[0]
                     p.text = desc.strip()
-                    p.font.size = Pt(13)
+                    p.font.size = desc_size
                     p.font.color.rgb = RGBColor(0, 0, 0)
 
 
@@ -757,8 +757,14 @@ DCTR_MERGES = [
 ]
 
 DCTR_APPENDIX_IDS = {
-    "A7.5", "A7.6b", "A7.13", "A7.14", "A7.15",
-    "A7.9", "A7.10b", "A7.10c",
+    "A7.5",
+    "A7.6b",
+    "A7.13",
+    "A7.14",
+    "A7.15",
+    "A7.9",
+    "A7.10b",
+    "A7.10c",
 }
 
 REGE_MERGES = [
@@ -767,7 +773,12 @@ REGE_MERGES = [
 ]
 
 REGE_APPENDIX_IDS = {
-    "A8.7", "A8.4c", "A8.2", "A8.1", "A8.12", "A8.4b",
+    "A8.7",
+    "A8.4c",
+    "A8.2",
+    "A8.1",
+    "A8.12",
+    "A8.4b",
 }
 
 ATTRITION_MERGES = [
@@ -775,7 +786,12 @@ ATTRITION_MERGES = [
 ]
 
 ATTRITION_APPENDIX_IDS = {
-    "A9.2", "A9.4", "A9.5", "A9.7", "A9.8", "A9.13",
+    "A9.2",
+    "A9.4",
+    "A9.5",
+    "A9.7",
+    "A9.8",
+    "A9.13",
 }
 
 
@@ -829,19 +845,40 @@ def _consolidate(slides, merges, appendix_ids):
 # =============================================================================
 
 _SECTION_MAP = {
-    "a1": "overview", "a1b": "overview", "a3": "overview",
-    "a7": "dctr", "dctr": "dctr",
-    "a8": "rege", "rege": "rege",
-    "a9": "attrition", "att": "attrition",
-    "a10": "value", "a11": "value", "val": "value",
-    "a12": "mailer", "a13": "mailer", "a14": "mailer", "a15": "mailer", "mail": "mailer",
+    "a1": "overview",
+    "a1b": "overview",
+    "a3": "overview",
+    "a7": "dctr",
+    "dctr": "dctr",
+    "a8": "rege",
+    "rege": "rege",
+    "a9": "attrition",
+    "att": "attrition",
+    "a10": "value",
+    "a11": "value",
+    "val": "value",
+    "a12": "mailer",
+    "a13": "mailer",
+    "a14": "mailer",
+    "a15": "mailer",
+    "mail": "mailer",
     "ics": "ics",
-    "txn": "transaction", "m1": "transaction", "m2": "transaction",
-    "m3": "transaction", "m4": "transaction", "m5": "transaction",
-    "m6": "transaction", "m7": "transaction",
-    "s1": "insights", "s2": "insights", "s3": "insights",
-    "s4": "insights", "s5": "insights", "s6": "insights",
-    "s7": "insights", "s8": "insights",
+    "txn": "transaction",
+    "m1": "transaction",
+    "m2": "transaction",
+    "m3": "transaction",
+    "m4": "transaction",
+    "m5": "transaction",
+    "m6": "transaction",
+    "m7": "transaction",
+    "s1": "insights",
+    "s2": "insights",
+    "s3": "insights",
+    "s4": "insights",
+    "s5": "insights",
+    "s6": "insights",
+    "s7": "insights",
+    "s8": "insights",
 }
 
 _SECTION_LABELS = {
@@ -877,6 +914,7 @@ def _group_by_section(results: list) -> dict[str, list]:
 # PREAMBLE BUILDER
 # =============================================================================
 
+
 def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
     """Build the 13 preamble slides that precede analysis content.
 
@@ -900,8 +938,8 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
             title=f"{client_name}\nAccount Revenue Solution | {title_date}",
             layout_index=1,
         ),
-        # P02: Agenda
-        SlideContent(slide_type="blank", title="Agenda", layout_index=11),
+        # P02: Agenda (layout 13 = dark header)
+        SlideContent(slide_type="blank", title="Agenda", layout_index=13),
         # P03: Program Performance divider
         SlideContent(
             slide_type="title",
@@ -910,7 +948,9 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
         ),
         # P04: Financial Performance -- blank for manual table
         SlideContent(
-            slide_type="blank", title="Financial Performance", layout_index=0,
+            slide_type="blank",
+            title="Financial Performance",
+            layout_index=0,
         ),
         # P05: Monthly Revenue -- blank
         SlideContent(
@@ -920,7 +960,9 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
         ),
         # P06: ARS Lift Matrix -- blank
         SlideContent(
-            slide_type="blank", title="ARS Lift Matrix", layout_index=8,
+            slide_type="blank",
+            title="ARS Lift Matrix",
+            layout_index=8,
         ),
         # P07: ARS Mailer Revisit divider
         SlideContent(
@@ -954,7 +996,9 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
         ),
         # P12: All Program Results -- blank
         SlideContent(
-            slide_type="blank", title="All Program Results", layout_index=2,
+            slide_type="blank",
+            title="All Program Results",
+            layout_index=2,
         ),
         # P13: Program Responses to Date (will be wired to A13.5)
         SlideContent(
@@ -968,6 +1012,7 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
 # =============================================================================
 # RESULT -> SLIDE CONTENT CONVERSION
 # =============================================================================
+
 
 def _result_to_slide(result) -> SlideContent | None:
     """Convert an AnalysisResult to a SlideContent for the deck builder."""
@@ -1016,14 +1061,25 @@ def _result_to_slide(result) -> SlideContent | None:
 
 _MAILER_NON_MONTH = {"A13.Agg", "A13.5", "A13.6", "A13", "A12"}
 _MONTH_ABBRS = {
-    "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
-    "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12,
+    "Jan": 1,
+    "Feb": 2,
+    "Mar": 3,
+    "Apr": 4,
+    "May": 5,
+    "Jun": 6,
+    "Jul": 7,
+    "Aug": 8,
+    "Sep": 9,
+    "Oct": 10,
+    "Nov": 11,
+    "Dec": 12,
 }
 
 
 def _parse_mailer_month(slide_id: str) -> tuple[int, int] | None:
     """Extract (year, month_num) from slide IDs like A13.Jan26, A12.Feb26.Swipes."""
     import re
+
     m = re.search(r"\.([A-Z][a-z]{2})(\d{2})", slide_id)
     if m:
         abbr, yr = m.group(1), int(m.group(2))
@@ -1042,18 +1098,21 @@ def _consolidate_mailer(results: list) -> tuple[list, list]:
     """
     # Bucket slides
     month_slides: dict[tuple[int, int], list] = {}  # (year, month) -> [results]
-    aggregate = []   # A13.Agg, A13.5, A13.6
-    revisit = []     # A14.x
-    impact = []      # A15.x
-    other = []       # A12 or A13 without month suffix, etc.
+    aggregate = []  # A13.Agg, A13.5
+    revisit = []  # A14.x
+    impact = []  # A15.x
+    mailer_app = []  # A13.6 (rate trend) -> appendix
+    other = []  # A12 or A13 without month suffix, etc.
 
     for r in results:
         sid = getattr(r, "slide_id", "")
         ym = _parse_mailer_month(sid)
         if ym:
             month_slides.setdefault(ym, []).append(r)
-        elif sid.startswith("A13.Agg") or sid == "A13.5" or sid == "A13.6":
+        elif sid.startswith("A13.Agg") or sid == "A13.5":
             aggregate.append(r)
+        elif sid == "A13.6":
+            mailer_app.append(r)
         elif sid.startswith("A14"):
             revisit.append(r)
         elif sid.startswith("A15"):
@@ -1095,6 +1154,8 @@ def _consolidate_mailer(results: list) -> tuple[list, list]:
     main_slides.extend(impact)
     # Other (catch-all)
     main_slides.extend(other)
+    # Rate trend etc. to appendix
+    appendix_slides.extend(mailer_app)
 
     return main_slides, appendix_slides
 
@@ -1102,6 +1163,7 @@ def _consolidate_mailer(results: list) -> tuple[list, list]:
 # =============================================================================
 # BUILD DECK -- main entry point
 # =============================================================================
+
 
 def build_deck(ctx: PipelineContext) -> Path | None:
     """Build a PowerPoint deck from analysis results.
@@ -1148,7 +1210,8 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     dctr_main, dctr_appendix = _consolidate(dctr_results, DCTR_MERGES, DCTR_APPENDIX_IDS)
     rege_main, rege_appendix = _consolidate(rege_results, REGE_MERGES, REGE_APPENDIX_IDS)
     attrition_main, attrition_appendix = _consolidate(
-        attrition_results, ATTRITION_MERGES, ATTRITION_APPENDIX_IDS)
+        attrition_results, ATTRITION_MERGES, ATTRITION_APPENDIX_IDS
+    )
 
     # Separate value slides for DCTR and Reg E sections
     value_dctr = [r for r in value_results if getattr(r, "slide_id", "") == "A11.1"]
@@ -1195,8 +1258,7 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     dctr_slides = _convert_list(dctr_main)
     value_dctr_slides = _convert_list(value_dctr)
     if dctr_slides or value_dctr_slides:
-        analysis_slides.append(
-            _section_divider("Debit Card Take Rate", subtitle=section_subtitle))
+        analysis_slides.append(_section_divider("Debit Card Take Rate", subtitle=section_subtitle))
         analysis_slides.extend(dctr_slides)
         analysis_slides.extend(value_dctr_slides)
 
@@ -1204,21 +1266,20 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     rege_slides = _convert_list(rege_main)
     value_rege_slides = _convert_list(value_rege)
     if rege_slides or value_rege_slides:
-        analysis_slides.append(
-            _section_divider("Reg E Analysis", subtitle=section_subtitle))
+        analysis_slides.append(_section_divider("Reg E Analysis", subtitle=section_subtitle))
         analysis_slides.extend(rege_slides)
         analysis_slides.extend(value_rege_slides)
 
     # Attrition
     attrition_slides = _convert_list(attrition_main)
     if attrition_slides:
-        analysis_slides.append(
-            _section_divider("Account Attrition", subtitle=section_subtitle))
+        analysis_slides.append(_section_divider("Account Attrition", subtitle=section_subtitle))
         analysis_slides.extend(attrition_slides)
 
     # Summary placeholder
     analysis_slides.append(
-        _section_divider("Summary & Key Takeaways", layout_index=12, slide_type="blank"))
+        _section_divider("Summary & Key Takeaways", layout_index=12, slide_type="blank")
+    )
 
     # Appendix
     dctr_app = _convert_list(dctr_appendix)
@@ -1230,8 +1291,7 @@ def build_deck(ctx: PipelineContext) -> Path | None:
 
     has_appendix = dctr_app or rege_app or attrition_app or overview_slides or mailer_app_slides
     if has_appendix:
-        analysis_slides.append(
-            _section_divider("Appendix", subtitle=section_subtitle))
+        analysis_slides.append(_section_divider("Appendix", subtitle=section_subtitle))
         analysis_slides.extend(overview_slides)
         analysis_slides.extend(mailer_app_slides)
         analysis_slides.extend(dctr_app)
@@ -1252,13 +1312,19 @@ def build_deck(ctx: PipelineContext) -> Path | None:
 
     # Find most recent Swipes and Spend from A12 results
     _swipes = next(
-        (_mailer_by_id[k] for k in sorted(_mailer_by_id, reverse=True)
-         if k.startswith("A12.") and "swipe" in k.lower()),
+        (
+            _mailer_by_id[k]
+            for k in sorted(_mailer_by_id, reverse=True)
+            if k.startswith("A12.") and "swipe" in k.lower()
+        ),
         None,
     )
     _spend = next(
-        (_mailer_by_id[k] for k in sorted(_mailer_by_id, reverse=True)
-         if k.startswith("A12.") and "spend" in k.lower()),
+        (
+            _mailer_by_id[k]
+            for k in sorted(_mailer_by_id, reverse=True)
+            if k.startswith("A12.") and "spend" in k.lower()
+        ),
         None,
     )
     _count_trend = _mailer_by_id.get("A13.5")

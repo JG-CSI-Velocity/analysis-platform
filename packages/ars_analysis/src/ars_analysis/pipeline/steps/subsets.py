@@ -22,6 +22,8 @@ def step_subsets(ctx: PipelineContext) -> None:
     subs = DataSubsets()
 
     # Auto-compute date range from data (enables L12M everywhere).
+    # Snap to LAST 12 COMPLETED calendar months: if the most recent Date Opened
+    # is in Feb 2026, the L12M window is Feb 1, 2025 - Jan 31, 2026.
     # Store as pd.Timestamp so downstream comparisons against datetime64 columns work.
     if "Date Opened" in df.columns and ctx.end_date is None:
         date_col = pd.to_datetime(df["Date Opened"], errors="coerce").dropna()
@@ -29,10 +31,16 @@ def step_subsets(ctx: PipelineContext) -> None:
             from dateutil.relativedelta import relativedelta
 
             _max = date_col.max()
-            ctx.end_date = _max.normalize()
-            ctx.start_date = pd.Timestamp(ctx.end_date.date() - relativedelta(months=12))
+            # First day of the max date's month = start of current (incomplete) month
+            _first_of_current = _max.normalize().replace(day=1)
+            # End of previous complete month
+            ctx.end_date = _first_of_current - pd.Timedelta(days=1)
+            # Start = first of month, 12 months before end_date's month
+            ctx.start_date = pd.Timestamp(
+                ctx.end_date.replace(day=1) - relativedelta(months=11)
+            )
             logger.info(
-                "Auto-computed date range: {start} to {end}",
+                "Auto-computed date range: {start} to {end} (last 12 completed months)",
                 start=ctx.start_date,
                 end=ctx.end_date,
             )

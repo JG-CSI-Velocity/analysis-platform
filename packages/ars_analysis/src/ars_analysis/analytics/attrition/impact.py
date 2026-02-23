@@ -238,6 +238,17 @@ def _mailer_retention(ctx: PipelineContext) -> list[AnalysisResult]:
             FuncFormatter(lambda x, p: f"{x:.0f}%"),
         )
         ax.tick_params(labelsize=TICK_SIZE)
+        if lift > 0:
+            ax.annotate(
+                f"{lift:.1%} lower attrition\nfor responders",
+                xy=(0, resp_rate * 100),
+                fontsize=18,
+                xytext=(1, (resp_rate + never_rate) / 2 * 100),
+                ha="center",
+                fontweight="bold",
+                color=POSITIVE,
+                arrowprops={"arrowstyle": "->", "color": POSITIVE, "lw": 2},
+            )
         fig.tight_layout()
 
     ctx.results["attrition_10"] = {"lift": lift}
@@ -340,6 +351,18 @@ def _revenue_impact(ctx: PipelineContext) -> list[AnalysisResult]:
             FuncFormatter(lambda v, p: f"${v:,.0f}"),
         )
         ax.tick_params(labelsize=TICK_SIZE - 2)
+        ax.text(
+            0.98,
+            0.95,
+            f"Closed accounts represent\n${total_lost:,.0f} in est. annual revenue",
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=14,
+            fontweight="bold",
+            color="#1E3D59",
+            bbox={"boxstyle": "round,pad=0.4", "facecolor": "#FDE8E8", "edgecolor": NEGATIVE},
+        )
         fig.tight_layout()
 
     ctx.results["attrition_11"] = {
@@ -470,6 +493,8 @@ def _velocity(ctx: PipelineContext) -> list[AnalysisResult]:
         )
         ax.set_ylabel("Closures", fontsize=20)
         ax.legend(fontsize=16)
+        ax.grid(axis="y", alpha=0.2, linestyle="--")
+        ax.set_axisbelow(True)
         fig.tight_layout()
 
     ctx.results["attrition_12"] = {

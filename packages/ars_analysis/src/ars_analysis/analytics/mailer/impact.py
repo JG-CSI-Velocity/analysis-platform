@@ -368,7 +368,7 @@ def _spend_share(ctx: PipelineContext) -> list[AnalysisResult]:
                 label,
                 ha="left",
                 va="center",
-                fontsize=12,
+                fontsize=14,
                 color="#555",
             )
             ax2.text(
@@ -377,10 +377,23 @@ def _spend_share(ctx: PipelineContext) -> list[AnalysisResult]:
                 val,
                 ha="left",
                 va="center",
-                fontsize=26,
+                fontsize=28,
                 fontweight="bold",
                 color=color,
             )
+
+        # Highlight box around responder share of eligible spend (key metric)
+        hl = mpatches.FancyBboxPatch(
+            (0.03, 1.15),
+            0.94,
+            0.50,
+            boxstyle="round,pad=0.02",
+            facecolor=COLOR_INNER,
+            alpha=0.08,
+            edgecolor=COLOR_INNER,
+            linewidth=2,
+        )
+        ax2.add_patch(hl)
 
         fig.tight_layout()
 
@@ -550,7 +563,7 @@ def _revenue_attribution(ctx: PipelineContext) -> list[AnalysisResult]:
                 label,
                 ha="left",
                 va="center",
-                fontsize=13,
+                fontsize=14,
                 color="#555",
             )
             color = "#1E3D59" if "Incremental" not in label else COLOR_RESP
@@ -560,7 +573,7 @@ def _revenue_attribution(ctx: PipelineContext) -> list[AnalysisResult]:
                 val,
                 ha="left",
                 va="center",
-                fontsize=20,
+                fontsize=24,
                 fontweight="bold",
                 color=color,
             )
@@ -720,7 +733,7 @@ def _pre_post_delta(ctx: PipelineContext) -> list[AnalysisResult]:
                 f"${h:,.0f}",
                 ha="center",
                 va="bottom",
-                fontsize=13,
+                fontsize=15,
                 fontweight="bold",
             )
 
@@ -734,7 +747,7 @@ def _pre_post_delta(ctx: PipelineContext) -> list[AnalysisResult]:
                 f"{sign}${delta:,.0f}/acct ({sign}{pct:.0f}%)",
                 ha="center",
                 va="center",
-                fontsize=14,
+                fontsize=16,
                 fontweight="bold",
                 color=color,
             )
@@ -747,10 +760,26 @@ def _pre_post_delta(ctx: PipelineContext) -> list[AnalysisResult]:
         )
         ax.set_ylabel("Avg Monthly Spend per Account", fontsize=14, fontweight="bold")
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"${v:,.0f}"))
-        ax.set_ylim(0, max(all_vals) * 1.30)
+        ax.set_ylim(0, max(all_vals) * 1.35)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.legend(fontsize=14, loc="upper right")
+
+        # Summary insight text below chart
+        r_sign = "+" if resp_pct > 0 else ""
+        insight = f"Responders generated {r_sign}{resp_pct:.0f}% more spend post-campaign"
+        ax.text(
+            0.5,
+            -0.12,
+            insight,
+            transform=ax.transAxes,
+            ha="center",
+            va="top",
+            fontsize=14,
+            fontweight="bold",
+            color="#1E3D59",
+            bbox={"boxstyle": "round,pad=0.4", "facecolor": "#E8F4FD", "edgecolor": "#3498DB"},
+        )
 
     ctx.results["pre_post_delta"] = {
         "resp_pre": resp_pre,

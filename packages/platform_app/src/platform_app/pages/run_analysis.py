@@ -160,7 +160,7 @@ st.divider()
 run_btn = st.button(
     f"Execute {len(selected_modules)} Modules",
     type="primary",
-    use_container_width=True,
+    width="stretch",
     key="run_execute",
 )
 

@@ -15,8 +15,8 @@ axes.labelsize     : 20
 axes.titlesize     : 24
 axes.titleweight   : bold
 
-grid.color         : white
-grid.linewidth     : 0
+grid.color         : #E2E8F0
+grid.linewidth     : 0.8
 
 xtick.labelsize    : 18
 ytick.labelsize    : 18

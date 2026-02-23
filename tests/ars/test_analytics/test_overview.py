@@ -73,22 +73,21 @@ class TestStatCodeDistribution:
         mod = StatCodeDistribution()
         results = mod.run(ctx_with_data)
         excel = results[0].excel_data
-        assert "Distribution" in excel
-        assert "Summary" in excel
+        assert "Stat Codes" in excel
 
     def test_run_summary_has_correct_stat_codes(self, ctx_with_data):
         mod = StatCodeDistribution()
         results = mod.run(ctx_with_data)
-        summary = results[0].excel_data["Summary"]
-        codes = set(summary["Stat Code"].tolist())
+        summary = results[0].excel_data["Stat Codes"]
+        codes = set(summary["Code"].tolist())
         assert codes == {"O", "C", "F"}
 
     def test_run_summary_counts_are_correct(self, ctx_with_data):
         mod = StatCodeDistribution()
         results = mod.run(ctx_with_data)
-        summary = results[0].excel_data["Summary"]
+        summary = results[0].excel_data["Stat Codes"]
         # O=6, C=3, F=1
-        o_row = summary[summary["Stat Code"] == "O"].iloc[0]
+        o_row = summary[summary["Code"] == "O"].iloc[0]
         assert o_row["Total Count"] == 6
         assert o_row["Business Count"] == 2
         assert o_row["Personal Count"] == 4
@@ -168,11 +167,11 @@ class TestProductCodeDistribution:
         dda_row = summary[summary["Product Code"] == "DDA"].iloc[0]
         assert dda_row["Total Count"] == 12
 
-    def test_run_generates_chart(self, overview_ctx):
+    def test_run_has_no_chart(self, overview_ctx):
+        """A1b is Excel-only; chart is rendered by A1 combined slide."""
         mod = ProductCodeDistribution()
         results = mod.run(overview_ctx)
-        assert results[0].chart_path is not None
-        assert results[0].chart_path.exists()
+        assert results[0].chart_path is None
 
     def test_run_marks_success(self, overview_ctx):
         mod = ProductCodeDistribution()

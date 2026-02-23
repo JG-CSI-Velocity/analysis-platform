@@ -120,6 +120,20 @@ def _by_branch(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.xaxis.set_major_formatter(PCT_FORMATTER)
         ax.legend(fontsize=16)
         ax.tick_params(labelsize=TICK_SIZE - 2)
+        ax.grid(axis="x", alpha=0.2, linestyle="--")
+        ax.set_axisbelow(True)
+        ax.text(
+            0.98,
+            0.95,
+            f"Overall: {overall_rate:.1%}",
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=14,
+            fontweight="bold",
+            color="#1E3D59",
+            bbox={"boxstyle": "round,pad=0.4", "facecolor": "#E8F4FD", "edgecolor": TEAL},
+        )
         fig.tight_layout()
 
     ctx.results["attrition_4"] = {"n_branches": len(branch_df)}
@@ -196,6 +210,21 @@ def _by_product(ctx: PipelineContext) -> list[AnalysisResult]:
         for lbl in ax.xaxis.get_majorticklabels():
             lbl.set_rotation(45)
             lbl.set_ha("right")
+        ax.grid(axis="y", alpha=0.2, linestyle="--")
+        ax.set_axisbelow(True)
+        overall_rate = prod_df["Closed"].sum() / prod_df["Total"].sum()
+        ax.text(
+            0.98,
+            0.95,
+            f"Overall: {overall_rate:.1%}",
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=14,
+            fontweight="bold",
+            color="#1E3D59",
+            bbox={"boxstyle": "round,pad=0.4", "facecolor": "#E8F4FD", "edgecolor": TEAL},
+        )
         fig.tight_layout()
 
     return [
@@ -272,6 +301,21 @@ def _personal_vs_business(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.set_ylabel("Attrition Rate (%)", fontsize=20)
         ax.yaxis.set_major_formatter(PCT_FORMATTER)
         ax.tick_params(labelsize=TICK_SIZE)
+        ax.grid(axis="y", alpha=0.2, linestyle="--")
+        ax.set_axisbelow(True)
+        overall_rate = pb_df["Closed"].sum() / pb_df["Total"].sum()
+        ax.text(
+            0.98,
+            0.95,
+            f"Overall: {overall_rate:.1%}",
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=14,
+            fontweight="bold",
+            color="#1E3D59",
+            bbox={"boxstyle": "round,pad=0.4", "facecolor": "#E8F4FD", "edgecolor": TEAL},
+        )
         fig.tight_layout()
 
     return [
@@ -365,6 +409,21 @@ def _by_tenure(ctx: PipelineContext) -> list[AnalysisResult]:
         for lbl in ax.xaxis.get_majorticklabels():
             lbl.set_rotation(30)
             lbl.set_ha("right")
+        ax.grid(axis="y", alpha=0.2, linestyle="--")
+        ax.set_axisbelow(True)
+        overall_rate = tenure_df["Closed"].sum() / tenure_df["Total"].sum()
+        ax.text(
+            0.98,
+            0.95,
+            f"Overall: {overall_rate:.1%}",
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=14,
+            fontweight="bold",
+            color="#1E3D59",
+            bbox={"boxstyle": "round,pad=0.4", "facecolor": "#E8F4FD", "edgecolor": TEAL},
+        )
         fig.tight_layout()
 
     return [
@@ -448,6 +507,21 @@ def _by_balance(ctx: PipelineContext) -> list[AnalysisResult]:
         for lbl in ax.xaxis.get_majorticklabels():
             lbl.set_rotation(30)
             lbl.set_ha("right")
+        ax.grid(axis="y", alpha=0.2, linestyle="--")
+        ax.set_axisbelow(True)
+        overall_rate = bal_df["Closed"].sum() / bal_df["Total"].sum()
+        ax.text(
+            0.98,
+            0.95,
+            f"Overall: {overall_rate:.1%}",
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=14,
+            fontweight="bold",
+            color="#1E3D59",
+            bbox={"boxstyle": "round,pad=0.4", "facecolor": "#E8F4FD", "edgecolor": TEAL},
+        )
         fig.tight_layout()
 
     return [

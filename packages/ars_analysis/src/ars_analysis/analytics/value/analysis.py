@@ -72,58 +72,60 @@ def _draw_value_slide(
     ax_left = fig.add_axes([0.02, 0.05, 0.48, 0.90])
     ax_left.set_xlim(0, 10)
     ax_left.set_ylim(0, 10)
+    ax_left.set_facecolor("#F8FAFC")
     ax_left.axis("off")
 
-    ax_left.text(5, 9, col1_header, fontsize=18, fontweight="500", color="#333333", ha="center")
-    ax_left.text(7.5, 9, col2_header, fontsize=18, fontweight="500", color="#333333", ha="center")
+    # Column header backgrounds
+    hdr1 = Rectangle((3.75, 8.6), 2.25, 0.9, facecolor=COL1_COLOR, edgecolor="none", alpha=0.85)
+    ax_left.add_patch(hdr1)
+    ax_left.text(5, 9.05, col1_header, fontsize=16, fontweight="bold", color="white", ha="center", va="center")
+
+    hdr2 = Rectangle((6.25, 8.6), 2.25, 0.9, facecolor=COL2_COLOR, edgecolor="none", alpha=0.85)
+    ax_left.add_patch(hdr2)
+    ax_left.text(7.5, 9.05, col2_header, fontsize=16, fontweight="bold", color="white", ha="center", va="center")
 
     n_rows = len(row_data)
     for i, (y_pos, label, with_val, without_val) in enumerate(row_data):
         ax_left.text(2.5, y_pos, label, fontsize=16, color="#333333", va="center", ha="right")
-        if i < n_rows - 1:
-            c1, c2 = COL1_COLOR, COL2_COLOR
-        else:
+        is_last = i == n_rows - 1
+        if is_last:
             c1 = c2 = HIGHLIGHT_COLOR
+        else:
+            c1, c2 = COL1_COLOR, COL2_COLOR
 
         rect1 = Rectangle((3.75, y_pos - 0.5), 2.25, 1, facecolor=c1, edgecolor="none")
         ax_left.add_patch(rect1)
         ax_left.text(
-            5,
-            y_pos,
-            with_val,
-            fontsize=18,
-            color="white",
-            ha="center",
-            va="center",
-            fontweight="500",
+            5, y_pos, with_val,
+            fontsize=18, color="white", ha="center", va="center", fontweight="500",
         )
 
         rect2 = Rectangle((6.25, y_pos - 0.5), 2.25, 1, facecolor=c2, edgecolor="none")
         ax_left.add_patch(rect2)
         ax_left.text(
-            7.5,
-            y_pos,
-            without_val,
-            fontsize=18,
-            color="white",
-            ha="center",
-            va="center",
-            fontweight="500",
+            7.5, y_pos, without_val,
+            fontsize=18, color="white", ha="center", va="center", fontweight="500",
         )
 
-        if i < n_rows - 1:
+        # Highlight border on the key takeaway row (Revenue Per Account)
+        if is_last:
+            highlight = Rectangle(
+                (3.65, y_pos - 0.6), 4.95, 1.2,
+                facecolor="none", edgecolor="#1E3D59", linewidth=3, linestyle="-",
+            )
+            ax_left.add_patch(highlight)
+
+        if not is_last:
             ax_left.plot(
-                [2.5, 8.5],
-                [y_pos - 0.75, y_pos - 0.75],
-                color="#CCCCCC",
-                linewidth=1,
-                linestyle="--",
+                [2.5, 8.5], [y_pos - 0.75, y_pos - 0.75],
+                color="#CCCCCC", linewidth=1, linestyle="--",
             )
 
     # Right: potential impact
     ax_right = fig.add_axes([0.52, 0.05, 0.46, 0.90])
     ax_right.set_xlim(0, 10)
     ax_right.set_ylim(0, 10)
+    ax_right.set_facecolor("#F8FAFC")
     ax_right.axis("off")
 
     awo = impact.get("awo", 0)
@@ -136,7 +138,7 @@ def _draw_value_slide(
     rate_label = impact.get("rate_label", "DCTR")
 
     ax_right.text(
-        5, 9.2, "Potential Impact", fontsize=22, fontweight="bold", color="#1E3D59", ha="center"
+        5, 9.2, "Potential Impact", fontsize=24, fontweight="bold", color="#1E3D59", ha="center"
     )
 
     y = 8.0
@@ -144,30 +146,34 @@ def _draw_value_slide(
         ("Accounts without feature", f"{awo:,}"),
         ("Revenue delta per account", f"${delta:.2f}"),
     ]:
-        ax_right.text(5, y, label, fontsize=13, color="#666666", ha="center")
+        ax_right.text(5, y, label, fontsize=14, color="#666666", ha="center")
         y -= 0.5
-        ax_right.text(5, y, value, fontsize=20, fontweight="bold", color="#333333", ha="center")
+        ax_right.text(5, y, value, fontsize=24, fontweight="bold", color="#333333", ha="center")
         y -= 1.0
 
     ax_right.text(
-        5,
-        y,
+        5, y,
         "Estimated Revenue Opportunity",
-        fontsize=16,
-        fontweight="bold",
-        color="#005072",
-        ha="center",
+        fontsize=18, fontweight="bold", color="#005072", ha="center",
     )
     y -= 0.9
 
-    for label, value in [
-        (f"At {hist_rate:.0%} Historical {rate_label}", f"${pot_hist:,.0f}"),
-        (f"At {l12m_rate:.0%} TTM {rate_label}", f"${pot_l12m:,.0f}"),
-        ("At 100% Adoption", f"${pot_100:,.0f}"),
-    ]:
-        ax_right.text(5, y, label, fontsize=12, color="#666666", ha="center")
+    scenarios = [
+        (f"At {hist_rate:.0%} Historical {rate_label}", f"${pot_hist:,.0f}", False),
+        (f"At {l12m_rate:.0%} TTM {rate_label}", f"${pot_l12m:,.0f}", True),
+        ("At 100% Adoption", f"${pot_100:,.0f}", False),
+    ]
+
+    for label, value, is_key in scenarios:
+        ax_right.text(5, y, label, fontsize=14, color="#666666", ha="center")
         y -= 0.5
-        ax_right.text(5, y, value, fontsize=20, fontweight="bold", color="#333333", ha="center")
+        if is_key:
+            # Highlight the TTM scenario (most actionable)
+            hl = Rectangle((1.5, y - 0.35), 7, 0.75, facecolor="#E8F5E9", edgecolor="#2E7D32", linewidth=2)
+            ax_right.add_patch(hl)
+            ax_right.text(5, y, value, fontsize=24, fontweight="bold", color="#2E7D32", ha="center")
+        else:
+            ax_right.text(5, y, value, fontsize=24, fontweight="bold", color="#333333", ha="center")
         y -= 0.8
 
 
@@ -253,7 +259,8 @@ class ValueAnalysis(AnalysisModule):
         if "Date Closed" in df.columns:
             df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce")
             if ctx.start_date:
-                active = df[df["Date Closed"].isna() | (df["Date Closed"] >= ctx.start_date)].copy()
+                cutoff = pd.Timestamp(ctx.start_date)
+                active = df[df["Date Closed"].isna() | (df["Date Closed"] >= cutoff)].copy()
             else:
                 active = df.copy()
         else:
@@ -465,7 +472,8 @@ class ValueAnalysis(AnalysisModule):
         if "Date Closed" in df.columns:
             df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce")
             if ctx.start_date:
-                active = df[df["Date Closed"].isna() | (df["Date Closed"] >= ctx.start_date)].copy()
+                cutoff = pd.Timestamp(ctx.start_date)
+                active = df[df["Date Closed"].isna() | (df["Date Closed"] >= cutoff)].copy()
             else:
                 active = df.copy()
         else:

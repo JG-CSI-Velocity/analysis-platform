@@ -15,7 +15,7 @@ from ars_analysis.analytics.base import AnalysisModule, AnalysisResult
 from ars_analysis.analytics.dctr._helpers import debit_mask, filter_l12m
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
-from ars_analysis.charts.style import NEGATIVE, POSITIVE
+from ars_analysis.charts.style import ELIGIBLE, HISTORICAL, NEGATIVE, POSITIVE, TEAL
 from ars_analysis.pipeline.context import PipelineContext
 
 
@@ -407,28 +407,28 @@ class DCTRFunnel(AnalysisModule):
                 "total": ta,
                 "personal": tp,
                 "business": tb,
-                "color": "#1f77b4",
+                "color": HISTORICAL,
             },
             {
                 "name": "Open\nAccounts",
                 "total": to_,
                 "personal": op,
                 "business": ob,
-                "color": "#2c7fb8",
+                "color": ELIGIBLE,
             },
             {
                 "name": "Eligible\nAccounts",
                 "total": te,
                 "personal": ep_cnt,
                 "business": eb_cnt,
-                "color": "#ff7f0e",
+                "color": TEAL,
             },
             {
                 "name": "Eligible With\nDebit Card",
                 "total": td,
                 "personal": dp,
                 "business": db_cnt,
-                "color": "#41b6c4",
+                "color": POSITIVE,
             },
         ]
 
@@ -557,7 +557,7 @@ class DCTRFunnel(AnalysisModule):
                         "",
                         xy=(0.5, arrow_y - stage_gap + 0.01),
                         xytext=(0.5, arrow_y - 0.01),
-                        arrowprops={"arrowstyle": "->", "lw": 3, "color": "#e74c3c"},
+                        arrowprops={"arrowstyle": "->", "lw": 3, "color": NEGATIVE},
                     )
                     ax.text(
                         0.45,
@@ -616,6 +616,31 @@ class DCTRFunnel(AnalysisModule):
                     fontsize=16,
                     frameon=True,
                     fancybox=True,
+                )
+
+            # Through-rate badge
+            if ta > 0:
+                through_pct = td / ta * 100
+                badge = mpatches.FancyBboxPatch(
+                    (0.25, 0.01),
+                    0.50,
+                    0.06,
+                    boxstyle="round,pad=0.02",
+                    facecolor=POSITIVE,
+                    alpha=0.15,
+                    edgecolor=POSITIVE,
+                    linewidth=2,
+                )
+                ax.add_patch(badge)
+                ax.text(
+                    0.5,
+                    0.04,
+                    f"End-to-End Through Rate: {through_pct:.1f}%",
+                    ha="center",
+                    va="center",
+                    fontsize=16,
+                    fontweight="bold",
+                    color=POSITIVE,
                 )
 
             ax.set_xlim(0, 1)

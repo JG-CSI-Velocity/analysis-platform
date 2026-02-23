@@ -167,7 +167,7 @@ with tab_tran:
                             )
 
                 if st.button(
-                    f"Merge all {len(files)} files", key="tran_merge", use_container_width=True
+                    f"Merge all {len(files)} files", key="tran_merge", width="stretch"
                 ):
                     merge_progress = st.progress(0, text="Merging...")
                     frames = []
@@ -298,11 +298,11 @@ def _profile_file(path_str: str, label: str) -> None:
                 "Null %": [f"{df[c].isnull().mean() * 100:.1f}%" for c in df.columns],
             }
         )
-        st.dataframe(col_info, use_container_width=True, hide_index=True)
+        st.dataframe(col_info, width="stretch", hide_index=True)
 
         # Preview
         st.markdown('<p class="uap-label">PREVIEW (FIRST 10 ROWS)</p>', unsafe_allow_html=True)
-        st.dataframe(df.head(10), use_container_width=True, hide_index=True)
+        st.dataframe(df.head(10), width="stretch", hide_index=True)
 
 
 _profile_file(st.session_state.get("uap_file_oddd", ""), "ODDD")

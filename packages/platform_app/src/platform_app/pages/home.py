@@ -494,7 +494,7 @@ for col, product in zip(_pip_cols, [Product.ARS, Product.ICS, Product.TXN]):
         if st.button(
             f"{label}  {status_icon}",
             key=f"home_pip_{product.value}",
-            use_container_width=True,
+            width="stretch",
             type=btn_type,
             disabled=not is_available,
             help=desc if is_available else f"No {label} data file detected",
@@ -718,7 +718,7 @@ st.markdown('<div class="uap-run-btn">', unsafe_allow_html=True)
 run_btn = st.button(
     f"Run {len(selected_modules)} Modules",
     type="primary",
-    use_container_width=True,
+    width="stretch",
     key="home_run_btn",
 )
 st.markdown("</div>", unsafe_allow_html=True)
@@ -812,13 +812,12 @@ odd_path = st.session_state.get("uap_file_odd", "")
 t0 = time.time()
 total_pipelines = len(needed_products)
 
-# Read ODD Excel once, save as local CSV.  This avoids:
-#   1. Repeated slow network reads from M: drive
-#   2. Repeated slow Excel parsing (openpyxl) -- CSV is ~10x faster to re-read
-# Both ARS and ICS pipelines will read the fast local CSV instead.
+# Pre-convert ODD Excel to local CSV only when ARS or ICS needs it.
+# This avoids the 8-minute network Excel read when only TXN is selected.
 _local_oddd: str = oddd_path
 _local_dir = Path(tempfile.mkdtemp(prefix="uap_run_"))
-if oddd_path and Path(oddd_path).exists():
+_needs_odd = Product.ARS in needed_products or Product.ICS in needed_products
+if _needs_odd and oddd_path and Path(oddd_path).exists():
     import pandas as pd
 
     _render_exec_dashboard(_exec_plan, 0, "Loading ODD data...")
@@ -1007,11 +1006,17 @@ if pipeline_errors:
 # Run report (slide-level diagnostics from JSON)
 # ---------------------------------------------------------------------------
 _run_reports: list[dict] = []
+_seen_reports: set[str] = set()
 for out_dir in all_output_dirs.values():
     if out_dir and Path(out_dir).is_dir():
-        for rpt in Path(out_dir).rglob("*_run_report.json"):
+        for rpt_path in Path(out_dir).rglob("*_run_report.json"):
+            # Deduplicate by resolved path (avoids showing old + new from same dir)
+            _rpt_key = str(rpt_path.resolve())
+            if _rpt_key in _seen_reports:
+                continue
+            _seen_reports.add(_rpt_key)
             try:
-                _run_reports.append(_json.loads(rpt.read_text()))
+                _run_reports.append(_json.loads(rpt_path.read_text()))
             except Exception:
                 pass
 
@@ -1055,15 +1060,45 @@ if _run_reports:
                     ),
                     axis=1,
                 )
-                _display_cols = ["slide_id", "status", "title", "has_chart", "has_excel", "error"]
+
+                # Group by module for cleaner display
+                if "module_id" in _df.columns:
+                    _df["module"] = (
+                        _df["module_id"].str.split(".").str[0].str.upper().replace("", "—")
+                    )
+                    _df = _df.sort_values("slide_id")
+                else:
+                    _df["module"] = "—"
+
+                _display_cols = [
+                    "module",
+                    "slide_id",
+                    "status",
+                    "title",
+                    "has_chart",
+                    "has_excel",
+                    "error",
+                ]
                 _display_cols = [c for c in _display_cols if c in _df.columns]
+
+                # Color-code status
+                def _style_status(val: str) -> str:
+                    if val == "OK":
+                        return "color: #16A34A; font-weight: 600"
+                    if val == "FAIL":
+                        return "color: #DC2626; font-weight: 600"
+                    return "color: #94A3B8"
+
+                _styled = _df[_display_cols].style.map(_style_status, subset=["status"])
                 st.dataframe(
-                    _df[_display_cols],
-                    use_container_width=True,
+                    _styled,
+                    width="stretch",
                     hide_index=True,
                     column_config={
+                        "module": st.column_config.TextColumn("Module", width="small"),
                         "status": st.column_config.TextColumn("Status", width="small"),
                         "slide_id": st.column_config.TextColumn("Slide", width="small"),
+                        "title": st.column_config.TextColumn("Title", width="medium"),
                         "error": st.column_config.TextColumn("Error", width="large"),
                     },
                 )
@@ -1109,7 +1144,7 @@ if all_results:
                 f.read_bytes(),
                 file_name=f.name,
                 mime=_MIME.get(f.suffix, "application/octet-stream"),
-                key=f"home_dl_{f.name}",
+                key=f"home_dl_{f.parent.name}_{f.name}",
             )
     else:
         st.info("No PPTX or Excel files generated. Check View Outputs for charts.")

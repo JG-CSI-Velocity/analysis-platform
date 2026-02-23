@@ -52,7 +52,7 @@ def _render_donut_chart(seg_details: dict, save_path, title: str) -> bool:
     colors = [SEGMENT_COLORS.get(s, "#888") for s in active]
     total = sum(resp_counts)
 
-    with chart_figure(figsize=(8, 7), save_path=save_path) as (fig, ax):
+    with chart_figure(figsize=(6, 5.5), save_path=save_path) as (fig, ax):
         if total > 0:
             wedges, texts, autotexts = ax.pie(
                 resp_counts,
@@ -70,11 +70,19 @@ def _render_donut_chart(seg_details: dict, save_path, title: str) -> bool:
 
             centre = plt.Circle((0, 0), 0.50, fc="white")
             ax.add_artist(centre)
-            ax.text(0, 0, f"{total:,}\nTotal", ha="center", va="center",
-                    fontsize=16, fontweight="bold")
+            ax.text(
+                0, 0, f"{total:,}\nTotal", ha="center", va="center", fontsize=16, fontweight="bold"
+            )
         else:
-            ax.text(0.5, 0.5, "No Responders", ha="center", va="center",
-                    fontsize=16, transform=ax.transAxes)
+            ax.text(
+                0.5,
+                0.5,
+                "No Responders",
+                ha="center",
+                va="center",
+                fontsize=16,
+                transform=ax.transAxes,
+            )
             ax.axis("off")
         ax.set_title(title, fontsize=18, fontweight="bold", pad=15)
     return True
@@ -98,14 +106,35 @@ def _render_hbar_chart(seg_details: dict, save_path, title: str) -> bool:
         for bar, rate, resp, mailed in zip(bars, rates, resp_counts, mailed_counts):
             bar_cy = bar.get_y() + bar.get_height() / 2
             if bar.get_width() > max_rate * 0.25:
-                ax.text(bar.get_width() * 0.5, bar_cy, f"{resp}/{mailed}",
-                        ha="center", va="center", fontsize=14, fontweight="bold", color="white")
-                ax.text(bar.get_width() + max_rate * 0.02, bar_cy, f"{rate:.1f}%",
-                        ha="left", va="center", fontsize=14, fontweight="bold")
+                ax.text(
+                    bar.get_width() * 0.5,
+                    bar_cy,
+                    f"{resp}/{mailed}",
+                    ha="center",
+                    va="center",
+                    fontsize=14,
+                    fontweight="bold",
+                    color="white",
+                )
+                ax.text(
+                    bar.get_width() + max_rate * 0.02,
+                    bar_cy,
+                    f"{rate:.1f}%",
+                    ha="left",
+                    va="center",
+                    fontsize=14,
+                    fontweight="bold",
+                )
             else:
-                ax.text(bar.get_width() + max_rate * 0.02, bar_cy,
-                        f"{resp}/{mailed} ({rate:.1f}%)",
-                        ha="left", va="center", fontsize=12, fontweight="bold")
+                ax.text(
+                    bar.get_width() + max_rate * 0.02,
+                    bar_cy,
+                    f"{resp}/{mailed} ({rate:.1f}%)",
+                    ha="left",
+                    va="center",
+                    fontsize=12,
+                    fontweight="bold",
+                )
         ax.set_yticks(y)
         ax.set_yticklabels(active, fontsize=14, fontweight="bold")
         ax.set_xlabel("Response Rate (%)", fontsize=14, fontweight="bold")
@@ -168,10 +197,8 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
 
         # Build "Inside the Numbers" bullets
         active = [s for s in RESPONSE_SEGMENTS if s in seg_details]
-        inside_bullets: list[str] = [
-            f"{overall_rate:.1f}%|Overall response rate"
-        ]
-        for s in active[:3]:
+        inside_bullets: list[str] = [f"{overall_rate:.1f}%|Overall response rate"]
+        for s in active:
             d = seg_details[s]
             lbl = "NU 5+" if s == "NU" else s
             inside_bullets.append(f"{d['rate']:.1f}%|{lbl} response rate")
@@ -200,7 +227,8 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
                 title=month_title,
                 chart_path=donut_path if ok_donut else None,
                 extra_charts=[hbar_path] if ok_hbar else None,
-                bullets=[f"Mailed {total_mailed:,}, {total_resp:,} responded ({overall_rate:.1f}%)"] + inside_bullets,
+                bullets=[f"Mailed {total_mailed:,}, {total_resp:,} responded ({overall_rate:.1f}%)"]
+                + inside_bullets,
                 kpis=kpis,
                 excel_data={"Response": pd.DataFrame(rows)},
                 slide_type="mailer_summary",
@@ -270,7 +298,7 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
 
     active = [s for s in RESPONSE_SEGMENTS if s in combined]
     inside_bullets: list[str] = [f"{overall:.1f}%|Overall response rate"]
-    for s in active[:3]:
+    for s in active:
         d = combined[s]
         lbl = "NU 5+" if s == "NU" else s
         inside_bullets.append(f"{d['rate']:.1f}%|{lbl} response rate")
@@ -304,7 +332,10 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
             title=title,
             chart_path=donut_path if ok_donut else None,
             extra_charts=[hbar_path] if ok_hbar else None,
-            bullets=[f"{len(pairs)} campaigns, {total_m:,} mailed, {total_r:,} responded ({overall:.1f}%)"] + inside_bullets,
+            bullets=[
+                f"{len(pairs)} campaigns, {total_m:,} mailed, {total_r:,} responded ({overall:.1f}%)"
+            ]
+            + inside_bullets,
             kpis=kpis,
             excel_data={"AllTime": pd.DataFrame(rows)},
             slide_type="mailer_summary",
@@ -390,7 +421,7 @@ def _count_trend(ctx: PipelineContext) -> list[AnalysisResult]:
         ax.set_xticks(x)
         ax.set_xticklabels(months, fontsize=14, fontweight="bold", rotation=45, ha="right")
         ax.set_ylabel("Count of Responders", fontsize=16, fontweight="bold")
-        ax.legend(fontsize=12, loc="upper left")
+        ax.legend(fontsize=11, loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=5)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.set_ylim(0, max(totals) * 1.12)
@@ -498,7 +529,7 @@ def _rate_trend(ctx: PipelineContext) -> list[AnalysisResult]:
 
 
 def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
-    """Responder distribution by account age across all mail months."""
+    """Responder vs non-responder distribution by account age (all months combined)."""
     logger.info("A14.2 account age")
     pairs = discover_pairs(ctx)
     if not pairs:
@@ -524,22 +555,34 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
 
     data["Date Opened"] = pd.to_datetime(data["Date Opened"], errors="coerce")
 
-    all_rows = []
-    for month, resp_col, _ in pairs:
-        resp = data[data[resp_col].isin(RESPONSE_SEGMENTS)]
-        if resp.empty:
+    # Aggregate across all months: count mailed + responders per age bucket
+    resp_totals: dict[str, int] = {s[0]: 0 for s in AGE_SEGMENTS}
+    mailed_totals: dict[str, int] = {s[0]: 0 for s in AGE_SEGMENTS}
+    detail_rows: list[dict] = []
+
+    for month, resp_col, mail_col in pairs:
+        mailed = data[data[mail_col].isin(MAILED_SEGMENTS)]
+        if mailed.empty:
             continue
-        # Compute age relative to the MAIL MONTH (not today) so buckets are stable
         mail_date = parse_month(f"{month} Mail")
         if pd.isna(mail_date):
             mail_date = pd.Timestamp.now()
-        age_years = (mail_date - resp["Date Opened"]).dt.days / 365.25
-        row_data: dict = {"Month": month, "Total Responders": len(resp)}
-        for lbl, lo, hi in AGE_SEGMENTS:
-            row_data[lbl] = int(((age_years >= lo) & (age_years < hi)).sum())
-        all_rows.append(row_data)
 
-    if not all_rows:
+        m_age = (mail_date - mailed["Date Opened"]).dt.days / 365.25
+        r_mask = mailed[resp_col].isin(RESPONSE_SEGMENTS)
+
+        row_data: dict = {"Month": month}
+        for lbl, lo, hi in AGE_SEGMENTS:
+            bucket = (m_age >= lo) & (m_age < hi)
+            n_mailed = int(bucket.sum())
+            n_resp = int((bucket & r_mask).sum())
+            mailed_totals[lbl] += n_mailed
+            resp_totals[lbl] += n_resp
+            row_data[f"{lbl} Mailed"] = n_mailed
+            row_data[f"{lbl} Responded"] = n_resp
+        detail_rows.append(row_data)
+
+    if not detail_rows or sum(resp_totals.values()) == 0:
         return [
             AnalysisResult(
                 slide_id="A14.2",
@@ -549,65 +592,123 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
             )
         ]
 
-    age_df = pd.DataFrame(all_rows)
+    age_df = pd.DataFrame(detail_rows)
     labels = [s[0] for s in AGE_SEGMENTS]
-    totals = {lbl: int(age_df[lbl].sum()) for lbl in labels if lbl in age_df.columns}
-    grand = sum(totals.values())
-    pcts = {k: v / grand * 100 if grand > 0 else 0 for k, v in totals.items()}
-    largest = max(pcts, key=pcts.get) if pcts else "N/A"
+    grand_resp = sum(resp_totals.values())
+    grand_mailed = sum(mailed_totals.values())
+
+    # Compute response rate per bucket
+    rates = {}
+    for lbl in labels:
+        m = mailed_totals[lbl]
+        rates[lbl] = resp_totals[lbl] / m * 100 if m > 0 else 0
+
+    # Identify best and worst buckets for insight
+    best_bucket = max(rates, key=rates.get) if rates else "N/A"
+    worst_bucket = min(rates, key=rates.get) if rates else "N/A"
+    best_rate = rates.get(best_bucket, 0)
+    worst_rate = rates.get(worst_bucket, 0)
 
     save_to = ctx.paths.charts_dir / "a14_2_account_age.png"
     ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
-    with chart_figure(figsize=(14, 7), save_path=save_to) as (fig, ax):
-        lbl_list = list(totals.keys())
-        cts = [totals[lbl] for lbl in lbl_list]
-        ps = [pcts[lbl] for lbl in lbl_list]
-        x = np.arange(len(lbl_list))
+    with chart_figure(figsize=(16, 9), save_path=save_to) as (fig, ax):
+        y = np.arange(len(labels))
+        h = 0.35
 
-        bars = ax.bar(
-            x,
-            cts,
-            color=BAR_COLORS[: len(lbl_list)],
+        resp_vals = [resp_totals[lbl] for lbl in labels]
+        non_resp = [mailed_totals[lbl] - resp_totals[lbl] for lbl in labels]
+
+        from ars_analysis.charts.style import SILVER, TEAL
+
+        ax.barh(
+            y + h / 2,
+            resp_vals,
+            h,
+            label="Responders",
+            color=TEAL,
             edgecolor="black",
-            linewidth=2,
-            alpha=0.8,
+            linewidth=1.2,
         )
-        for bar, ct, pct in zip(bars, cts, ps):
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                bar.get_height() + max(cts) * 0.02,
-                f"{pct:.1f}%",
-                ha="center",
-                va="bottom",
-                fontsize=16,
-                fontweight="bold",
-            )
-            if ct > 0:
-                ax.text(
-                    bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() / 2,
-                    f"{ct:,}",
-                    ha="center",
-                    va="center",
-                    fontsize=14,
-                    color="white",
-                    fontweight="bold",
-                )
+        ax.barh(
+            y - h / 2,
+            non_resp,
+            h,
+            label="Non-Responders",
+            color=SILVER,
+            edgecolor="black",
+            linewidth=1.2,
+        )
 
-        ax.set_xticks(x)
-        ax.set_xticklabels(lbl_list, fontsize=14, fontweight="bold")
-        ax.set_ylabel("Number of Responders", fontsize=16, fontweight="bold")
+        # Rate annotations on the right
+        max_val = max(max(resp_vals), max(non_resp)) if resp_vals else 1
+        for i, lbl in enumerate(labels):
+            rate = rates[lbl]
+            ax.text(
+                max_val * 1.02,
+                i,
+                f"{rate:.1f}%",
+                va="center",
+                fontsize=18,
+                fontweight="bold",
+                color=TEAL if rate >= grand_resp / grand_mailed * 100 else "#94A3B8",
+            )
+
+        ax.set_yticks(y)
+        ax.set_yticklabels(labels, fontsize=16, fontweight="bold")
+        ax.set_xlabel("Number of Accounts", fontsize=18, fontweight="bold")
         ax.set_title(
-            "Responder Distribution by Account Age",
-            fontsize=20,
+            "Account Age: Responders vs Non-Responders",
+            fontsize=22,
             fontweight="bold",
+            pad=16,
         )
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
+        ax.tick_params(axis="x", labelsize=14)
+        ax.legend(fontsize=14, loc="lower right")
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
+        ax.set_axisbelow(True)
 
-    ctx.results["account_age"] = {"totals": totals, "grand": grand}
+        # Add "Response Rate" label above the rate annotations
+        ax.text(
+            max_val * 1.02,
+            len(labels) - 0.3,
+            "Rate",
+            va="bottom",
+            fontsize=13,
+            fontweight="bold",
+            color="#64748B",
+        )
 
+        # Insight callout
+        if best_rate > 0 and worst_rate > 0 and best_bucket != worst_bucket:
+            ratio = best_rate / worst_rate if worst_rate > 0 else 0
+            if ratio > 1.3:
+                callout = (
+                    f'"{best_bucket}" accounts respond at '
+                    f'{ratio:.1f}x the rate of "{worst_bucket}" accounts'
+                )
+                ax.text(
+                    0.02,
+                    0.02,
+                    callout,
+                    transform=ax.transAxes,
+                    fontsize=12,
+                    style="italic",
+                    color="#475569",
+                    bbox={"boxstyle": "round,pad=0.4", "facecolor": "#F1F5F9", "alpha": 0.9},
+                )
+
+    ctx.results["account_age"] = {
+        "totals": resp_totals,
+        "mailed": mailed_totals,
+        "rates": rates,
+        "grand_resp": grand_resp,
+        "grand_mailed": grand_mailed,
+    }
+
+    overall_rate = grand_resp / grand_mailed * 100 if grand_mailed > 0 else 0
     return [
         AnalysisResult(
             slide_id="A14.2",
@@ -615,8 +716,9 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
             chart_path=save_to,
             excel_data={"AccountAge": age_df},
             notes=(
-                f"{grand:,} responders across {len(all_rows)} months | "
-                f"Dominant: {largest} ({pcts.get(largest, 0):.0f}%)"
+                f"{grand_resp:,} responders of {grand_mailed:,} mailed ({overall_rate:.1f}%) | "
+                f"Best: {best_bucket} ({best_rate:.1f}%) | "
+                f"Lowest: {worst_bucket} ({worst_rate:.1f}%)"
             ),
         )
     ]

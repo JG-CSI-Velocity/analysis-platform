@@ -65,12 +65,20 @@ def _flavor_text(pipeline: str, phase: str = "start") -> str:
 
 
 def _make_status_line(msg: str, pipeline: str) -> str:
-    """Shorten a verbose progress callback to a clean one-liner."""
+    """Shorten a verbose progress callback to a readable one-liner."""
     short = msg
+    # Strip verbose prefixes
     for prefix in ("Starting ", "ARS complete: ", "ICS complete: ", "TXN complete: "):
         if short.startswith(prefix):
             short = short[len(prefix) :]
             break
+    # Make module progress more readable
+    if short.startswith("Module ") and ": " in short:
+        parts = short.split(": ", 1)
+        module_name = parts[1] if len(parts) > 1 else short
+        # Convert module_id to readable name (e.g. "dctr.penetration" -> "DCTR Penetration")
+        readable = module_name.replace(".", " ").replace("_", " ").title()
+        return f"{pipeline.upper()} {parts[0]} -- {readable}"
     return f"{pipeline.upper()} -- {short}"
 
 
@@ -420,9 +428,9 @@ if oddd_path and not ars_formatted:
 st.divider()
 
 # =========================================================================
-# STEP 2 -- Pick analysis
+# STEP 2 -- Pick pipelines
 # =========================================================================
-st.markdown('<p class="uap-label">STEP 2 / SELECT ANALYSIS</p>', unsafe_allow_html=True)
+st.markdown('<p class="uap-label">STEP 2 / SELECT PIPELINES</p>', unsafe_allow_html=True)
 
 
 @st.cache_data(show_spinner=False)
@@ -437,94 +445,99 @@ module_map = {m.key: m for m in registry}
 # Determine which products have data available
 _product_available = {
     Product.ARS: bool(detected.get("oddd")),
-    Product.TXN: bool(detected.get("tran")),
-    Product.ICS: bool(detected.get("ics")),
+    Product.TXN: bool(detected.get("tran") or detected.get("tran_files")),
+    Product.ICS: bool(detected.get("ics") or ics_ready),
 }
 
-# Filter templates to those whose files are available
-available_templates: dict[str, list[str]] = {}
-for tpl_name, tpl_keys in templates.items():
-    products_needed = {module_map[k].product for k in tpl_keys if k in module_map}
-    can_run = all(_product_available.get(p, False) for p in products_needed)
-    available_templates[tpl_name] = tpl_keys if can_run else []
+# Map each pipeline to its full suite template
+_PIPELINE_TEMPLATE: dict[Product, str] = {
+    Product.ARS: "ARS Full Suite",
+    Product.ICS: "ICS Full Suite",
+    Product.TXN: "TXN Full Suite",
+}
+_PIPELINE_LABELS: dict[Product, tuple[str, str, str]] = {
+    Product.ARS: ("ARS", "OD/NSF account analysis, DCTR, mailers, Reg E", ":material/analytics:"),
+    Product.ICS: (
+        "ICS",
+        "ICS account analysis, referral sources, activity",
+        ":material/account_tree:",
+    ),
+    Product.TXN: ("TXN", "Transaction intelligence, competitors, MCC", ":material/credit_card:"),
+}
 
-# Template buttons
-tpl_names = list(templates.keys())
-n_cols = min(len(tpl_names), 4)
-tpl_cols = st.columns(n_cols) if n_cols > 0 else []
+# Initialize active pipelines from session state
+_active_pipelines: set[Product] = st.session_state.get("uap_active_pipelines", set())
 
-selected_template = st.session_state.get("uap_selected_template", "")
+# Pipeline toggle buttons -- one per pipeline type
+_pip_cols = st.columns(3)
+for col, product in zip(_pip_cols, [Product.ARS, Product.ICS, Product.TXN]):
+    label, desc, icon = _PIPELINE_LABELS[product]
+    is_available = _product_available.get(product, False)
+    is_active = product in _active_pipelines
 
-for i, tpl_name in enumerate(tpl_names):
-    tpl_keys = templates[tpl_name]
-    is_available = bool(available_templates.get(tpl_name))
-    with tpl_cols[i % n_cols]:
-        product_counts: dict[str, int] = {}
-        for k in tpl_keys:
-            if k in module_map:
-                pname = module_map[k].product.value.upper()
-                product_counts[pname] = product_counts.get(pname, 0) + 1
-
-        detail = " / ".join(f"{ct} {p}" for p, ct in sorted(product_counts.items()))
-        btn_type = "primary" if tpl_name == selected_template else "secondary"
+    with col:
+        if is_active:
+            btn_type = "primary"
+            status_icon = "ON"
+        else:
+            btn_type = "secondary"
+            status_icon = "OFF" if is_available else "--"
 
         if st.button(
-            tpl_name,
-            key=f"home_tpl_{i}",
+            f"{label}  {status_icon}",
+            key=f"home_pip_{product.value}",
             use_container_width=True,
             type=btn_type,
             disabled=not is_available,
-            help=f"{len(tpl_keys)} modules: {detail}" if is_available else "Missing data files",
+            help=desc if is_available else f"No {label} data file detected",
         ):
-            st.session_state["uap_selected_template"] = tpl_name
-            st.session_state["uap_selected_modules"] = set(tpl_keys)
+            if product in _active_pipelines:
+                _active_pipelines.discard(product)
+            else:
+                _active_pipelines.add(product)
+            st.session_state["uap_active_pipelines"] = _active_pipelines
+
+            # Build combined module set from all active pipelines
+            combined_modules: set[str] = set()
+            for p in _active_pipelines:
+                tpl_name = _PIPELINE_TEMPLATE.get(p, "")
+                if tpl_name and tpl_name in templates:
+                    combined_modules.update(templates[tpl_name])
+            st.session_state["uap_selected_modules"] = combined_modules
+            active_names = " + ".join(
+                _PIPELINE_LABELS[p][0] for p in sorted(_active_pipelines, key=lambda x: x.value)
+            )
+            st.session_state["uap_selected_template"] = active_names or ""
             st.rerun()
 
 selected_modules = st.session_state.get("uap_selected_modules", set())
+selected_template = st.session_state.get("uap_selected_template", "")
 
 if selected_modules:
-    st.caption(f"**{selected_template or 'Custom'}** -- {len(selected_modules)} modules selected")
+    _n_pipelines = len(_active_pipelines)
+    st.caption(
+        f"**{selected_template}** -- {len(selected_modules)} modules across "
+        f"{_n_pipelines} pipeline{'s' if _n_pipelines > 1 else ''}"
+    )
 
 # ---------------------------------------------------------------------------
-# Module TOC -- three-column tabs by pipeline
+# Module detail (collapsed by default -- for power users)
 # ---------------------------------------------------------------------------
 _modules_by_product: dict[Product, list] = {}
 for m in registry:
     _modules_by_product.setdefault(m.product, []).append(m)
 
-_products_with_modules = [
-    p for p in (Product.ARS, Product.ICS, Product.TXN) if _modules_by_product.get(p)
-]
-
-if _products_with_modules:
-    tab_labels = []
-    for p in _products_with_modules:
-        count = len(_modules_by_product[p])
-        avail = _product_available.get(p, False)
-        tab_labels.append(f"{p.value.upper()} ({count})")
-
-    tabs = st.tabs(tab_labels)
-
-    for tab, product in zip(tabs, _products_with_modules):
-        modules = _modules_by_product[product]
-        avail = _product_available.get(product, False)
-
-        with tab:
-            if not avail:
-                st.caption("No data file detected for this pipeline.")
-            # Group modules by category, render in multi-column layout
+if selected_modules:
+    with st.expander("Module Detail", expanded=False):
+        for product in sorted(_active_pipelines, key=lambda x: x.value):
+            modules = _modules_by_product.get(product, [])
             _by_cat: dict[str, list] = {}
             for m in sorted(modules, key=lambda x: x.run_order):
                 _by_cat.setdefault(m.category, []).append(m)
 
             _n_selected = sum(1 for m in modules if m.key in selected_modules)
-            _n_total = len(modules)
-            _count_line = (
-                f'<div style="font-size:0.75rem;color:#64748B;margin-bottom:0.3rem;">'
-                f"{_n_selected}/{_n_total} modules selected</div>"
-            )
-
-            _lines: list[str] = [_count_line, '<div style="column-count:2;column-gap:2rem;">']
+            st.markdown(f"**{product.value.upper()}** -- {_n_selected}/{len(modules)} modules")
+            _lines: list[str] = ['<div style="column-count:2;column-gap:2rem;">']
             for cat_name, cat_modules in _by_cat.items():
                 _lines.append(
                     f'<div style="break-inside:avoid;margin-bottom:0.5rem;">'
@@ -547,11 +560,10 @@ if _products_with_modules:
                         )
                 _lines.append("</div>")
             _lines.append("</div>")
-            if _lines:
-                st.markdown("".join(_lines), unsafe_allow_html=True)
+            st.markdown("".join(_lines), unsafe_allow_html=True)
 
 if not selected_modules:
-    st.info("Pick an analysis template above to continue.")
+    st.info("Select one or more pipelines above to continue.")
     st.stop()
 
 st.divider()
@@ -597,132 +609,99 @@ if errors:
     st.stop()
 
 # ---------------------------------------------------------------------------
-# Command Center -- dark panel with KPI numbers
+# Run Summary -- clean card with key config visible
 # ---------------------------------------------------------------------------
 _raw_entry: dict = {}
 if _config_path:
     _raw_entry = load_raw_client_entry(_config_path, client_id)
 
 _pipelines_str = " + ".join(p.value.upper() for p in sorted(needed_products, key=lambda x: x.value))
-_n_prods = len(_raw_entry.get("EligibleProductCodes", []))
-_n_branches = len(_raw_entry.get("BranchMapping", {}))
 _ic = _raw_entry.get("ICRate", "--")
 _fee = _raw_entry.get("NSF_OD_Fee", "--")
 
-st.markdown(
-    f'<div class="uap-command-center">'
-    f'<div style="display:flex;gap:2.5rem;align-items:flex-end;flex-wrap:wrap;">'
-    # Client ID (hero)
-    f"<div>"
-    f'<div class="cc-label">Client</div>'
-    f'<div class="cc-value">{client_id}</div>'
-    f'<div class="cc-sub">{client_name}</div>'
-    f"</div>"
-    # Pipelines
-    f"<div>"
-    f'<div class="cc-label">Pipelines</div>'
-    f'<div class="cc-value">{_pipelines_str}</div>'
-    f"</div>"
-    # Modules
-    f"<div>"
-    f'<div class="cc-label">Modules</div>'
-    f'<div class="cc-value">{len(selected_modules)}</div>'
-    f'<div class="cc-sub">{selected_template or "Custom"}</div>'
-    f"</div>"
-    # Separator
-    f'<div style="width:1px;height:48px;background:#334155;margin:0 0.5rem;"></div>'
-    # IC Rate
-    f"<div>"
-    f'<div class="cc-label">IC Rate</div>'
-    f'<div class="cc-value-sm">{_ic}</div>'
-    f"</div>"
-    # NSF/OD Fee
-    f"<div>"
-    f'<div class="cc-label">NSF/OD Fee</div>'
-    f'<div class="cc-value-sm">${_fee}</div>'
-    f"</div>"
-    # Products
-    f"<div>"
-    f'<div class="cc-label">Products</div>'
-    f'<div class="cc-value-sm">{_n_prods}</div>'
-    f"</div>"
-    # Branches
-    f"<div>"
-    f'<div class="cc-label">Branches</div>'
-    f'<div class="cc-value-sm">{_n_branches}</div>'
-    f"</div>"
-    f"</div>"
-    f"</div>",
-    unsafe_allow_html=True,
-)
+# Key metrics row
+_metric_cols = st.columns(4)
+_metric_cols[0].metric("Client", client_id)
+_metric_cols[1].metric("Pipelines", _pipelines_str)
+_metric_cols[2].metric("IC Rate", str(_ic))
+_metric_cols[3].metric("NSF/OD Fee", f"${_fee}")
 
-# ---------------------------------------------------------------------------
-# Config detail -- compact grid with pills (expandable)
-# ---------------------------------------------------------------------------
-with st.expander("Configuration Detail", expanded=False):
-    if not _raw_entry:
-        st.warning(f"Client {client_id} not found in config. Analysis will use defaults.")
-    else:
-        _cfg_html = '<div class="uap-cfg-grid">'
+# Eligible config -- always visible
+if _raw_entry:
+    _cfg_html = '<div class="uap-cfg-grid">'
 
-        # Eligible Status Codes
-        _esc = _raw_entry.get("EligibleStatusCodes", [])
-        _esc_pills = " ".join(
-            f'<span class="uap-pill uap-pill-green">{c}</span>'
-            for c in (_esc if isinstance(_esc, list) else [_esc] if _esc else [])
-        )
-        _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Eligible Status</div><div>{_esc_pills or "--"}</div></div>'
+    # Eligible Status Codes
+    _esc = _raw_entry.get("EligibleStatusCodes", [])
+    _esc_pills = " ".join(
+        f'<span class="uap-pill uap-pill-green">{c}</span>'
+        for c in (_esc if isinstance(_esc, list) else [_esc] if _esc else [])
+    )
+    _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Eligible Status</div><div>{_esc_pills or "--"}</div></div>'
 
-        # Ineligible Status Codes
-        _isc = _raw_entry.get("IneligibleStatusCodes", [])
-        _isc_pills = " ".join(
-            f'<span class="uap-pill uap-pill-red">{c}</span>'
-            for c in (_isc if isinstance(_isc, list) else [_isc] if _isc else [])
-        )
-        _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Ineligible Status</div><div>{_isc_pills or "--"}</div></div>'
+    # Eligible Product Codes
+    _epc = _raw_entry.get("EligibleProductCodes", [])
+    _epc_pills = " ".join(
+        f'<span class="uap-pill uap-pill-green">{c}</span>'
+        for c in (_epc if isinstance(_epc, list) else [_epc] if _epc else [])
+    )
+    _cfg_html += f'<div class="uap-cfg-item" style="grid-column:span 2;"><div class="cfg-label">Eligible Products</div><div>{_epc_pills or "--"}</div></div>'
 
-        # Eligible Product Codes
-        _epc = _raw_entry.get("EligibleProductCodes", [])
-        _epc_pills = " ".join(
-            f'<span class="uap-pill uap-pill-green">{c}</span>'
-            for c in (_epc if isinstance(_epc, list) else [_epc] if _epc else [])
-        )
-        _cfg_html += f'<div class="uap-cfg-item" style="grid-column:span 2;"><div class="cfg-label">Eligible Products</div><div>{_epc_pills or "--"}</div></div>'
+    # Mail Code
+    _mc = _raw_entry.get("EligibleMailCode", "--")
+    _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Mail Code</div><div class="cfg-val">{_mc}</div></div>'
 
-        # Ineligible Product Codes
-        _ipc = _raw_entry.get("IneligibleProductCodes", [])
-        _ipc_pills = " ".join(
-            f'<span class="uap-pill uap-pill-red">{c}</span>'
-            for c in (_ipc if isinstance(_ipc, list) else [_ipc] if _ipc else [])
-        )
-        if _ipc_pills:
-            _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Ineligible Products</div><div>{_ipc_pills}</div></div>'
+    _cfg_html += "</div>"
+    st.markdown(_cfg_html, unsafe_allow_html=True)
 
-        # Mail Code
-        _mc = _raw_entry.get("EligibleMailCode", "--")
-        _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Mail Code</div><div class="cfg-val">{_mc}</div></div>'
+    # Extended config -- expandable
+    _has_extra = (
+        _raw_entry.get("IneligibleStatusCodes")
+        or _raw_entry.get("IneligibleProductCodes")
+        or _raw_entry.get("RegEOptInCode")
+        or _raw_entry.get("BranchMapping")
+    )
+    if _has_extra:
+        with st.expander("Extended Configuration", expanded=False):
+            _ext_html = '<div class="uap-cfg-grid">'
 
-        # Reg E
-        _re = _raw_entry.get("RegEOptInCode", [])
-        _re_pills = " ".join(
-            f'<span class="uap-pill uap-pill-blue">{c}</span>'
-            for c in (_re if isinstance(_re, list) else [_re] if _re else [])
-        )
-        _cfg_html += f'<div class="uap-cfg-item"><div class="cfg-label">Reg E Opt-In</div><div>{_re_pills or "--"}</div></div>'
+            _isc = _raw_entry.get("IneligibleStatusCodes", [])
+            if _isc:
+                _isc_pills = " ".join(
+                    f'<span class="uap-pill uap-pill-red">{c}</span>'
+                    for c in (_isc if isinstance(_isc, list) else [_isc])
+                )
+                _ext_html += f'<div class="uap-cfg-item"><div class="cfg-label">Ineligible Status</div><div>{_isc_pills}</div></div>'
 
-        # Branch Mapping
-        _branches = _raw_entry.get("BranchMapping", {})
-        if _branches:
-            _br_pills = " ".join(
-                f'<span class="uap-pill">{k}={v}</span>' for k, v in _branches.items()
-            )
-            _cfg_html += f'<div class="uap-cfg-item" style="grid-column:span 2;"><div class="cfg-label">Branch Mapping</div><div>{_br_pills}</div></div>'
+            _ipc = _raw_entry.get("IneligibleProductCodes", [])
+            if _ipc:
+                _ipc_pills = " ".join(
+                    f'<span class="uap-pill uap-pill-red">{c}</span>'
+                    for c in (_ipc if isinstance(_ipc, list) else [_ipc])
+                )
+                _ext_html += f'<div class="uap-cfg-item"><div class="cfg-label">Ineligible Products</div><div>{_ipc_pills}</div></div>'
 
-        _cfg_html += "</div>"
-        st.markdown(_cfg_html, unsafe_allow_html=True)
+            _re = _raw_entry.get("RegEOptInCode", [])
+            if _re:
+                _re_pills = " ".join(
+                    f'<span class="uap-pill uap-pill-blue">{c}</span>'
+                    for c in (_re if isinstance(_re, list) else [_re])
+                )
+                _ext_html += f'<div class="uap-cfg-item"><div class="cfg-label">Reg E Opt-In</div><div>{_re_pills}</div></div>'
+
+            _branches = _raw_entry.get("BranchMapping", {})
+            if _branches:
+                _br_pills = " ".join(
+                    f'<span class="uap-pill">{k}={v}</span>' for k, v in _branches.items()
+                )
+                _ext_html += f'<div class="uap-cfg-item" style="grid-column:span 2;"><div class="cfg-label">Branch Mapping</div><div>{_br_pills}</div></div>'
+
+            _ext_html += "</div>"
+            st.markdown(_ext_html, unsafe_allow_html=True)
 
     if _config_path:
         st.caption(f"Config: {_config_path}")
+else:
+    st.warning(f"Client {client_id} not found in config. Analysis will use defaults.")
 
 # ---------------------------------------------------------------------------
 # Run button -- NO form (avoids Streamlit's blue progress bar)

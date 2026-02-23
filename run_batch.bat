@@ -1,7 +1,9 @@
 @echo off
 setlocal
+REM BRAND: Update if brand.py changes (verified by test_brand_consistency.py)
 echo ==========================================
-echo  Analysis Platform -- Headless Batch
+echo  RPE Analysis Platform -- Headless Batch
+echo  CSI ^| Velocity
 echo ==========================================
 echo.
 

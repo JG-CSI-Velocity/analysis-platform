@@ -1,4 +1,4 @@
-"""Shared infrastructure for the unified analysis platform."""
+"""Shared infrastructure for the RPE Analysis Platform."""
 
 from shared.config import PipelineConfig, PlatformConfig
 from shared.context import PipelineContext

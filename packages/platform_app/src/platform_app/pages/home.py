@@ -1,4 +1,4 @@
-"""UAP Home -- single-page CSM workflow: select client, pick template, run."""
+"""RPE Home -- single-page CSM workflow: select client, pick template, run."""
 
 from __future__ import annotations
 
@@ -198,7 +198,7 @@ def _cached_config_path() -> Path | None:
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
-st.markdown('<p class="uap-label">UNIFIED ANALYSIS PLATFORM</p>', unsafe_allow_html=True)
+st.markdown('<p class="uap-label">RPE ANALYSIS PLATFORM</p>', unsafe_allow_html=True)
 st.title("Run Analysis")
 
 # =========================================================================

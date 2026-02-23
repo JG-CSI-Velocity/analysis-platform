@@ -1,4 +1,4 @@
-"""UAP Run Analysis -- execute selected modules with progress tracking."""
+"""RPE Run Analysis -- execute selected modules with progress tracking."""
 
 from __future__ import annotations
 
@@ -88,7 +88,7 @@ if Product.ARS in needed_products and oddd_path and Path(oddd_path).exists():
             f'<span class="uap-badge {badge_cls}" style="min-width: 60px; text-align: center;">{badge_txt}</span>'
             f'<span style="font-family: var(--uap-sans); font-size: 0.88rem; margin-left: 0.75rem;">ARS Format</span>'
             f'<span style="font-family: var(--uap-mono); font-size: 0.72rem; color: #94A3B8; margin-left: auto;">'
-            f'{len(ars_status.found_columns)}/{len(ars_status.found_columns) + len(ars_status.missing_columns)} columns</span>'
+            f"{len(ars_status.found_columns)}/{len(ars_status.found_columns) + len(ars_status.missing_columns)} columns</span>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -107,7 +107,7 @@ if Product.ICS in needed_products and oddd_path and Path(oddd_path).exists():
             f'<span class="uap-badge {badge_cls}" style="min-width: 60px; text-align: center;">{badge_txt}</span>'
             f'<span style="font-family: var(--uap-sans); font-size: 0.88rem; margin-left: 0.75rem;">ICS Fields</span>'
             f'<span style="font-family: var(--uap-mono); font-size: 0.72rem; color: #94A3B8; margin-left: auto;">'
-            f'{len(ics_status.found_columns)}/{len(ics_status.found_columns) + len(ics_status.missing_columns)} columns</span>'
+            f"{len(ics_status.found_columns)}/{len(ics_status.found_columns) + len(ics_status.missing_columns)} columns</span>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -126,13 +126,9 @@ for name, (ready, _) in file_status.items():
     if not ready:
         errors.append(f"{name} data file missing. Go to **Data Ingestion** to upload.")
 if Product.ARS in needed_products and ars_status and not ars_status.is_formatted:
-    errors.append(
-        "ARS ODD file is unformatted. Format via **Data Ingestion** or CLI `ars format`."
-    )
+    errors.append("ARS ODD file is unformatted. Format via **Data Ingestion** or CLI `ars format`.")
 if Product.ICS in needed_products and ics_status and not ics_status.is_formatted:
-    errors.append(
-        "ODD file missing ICS fields (ICS Account, ICS Source). Run ICS append first."
-    )
+    errors.append("ODD file missing ICS fields (ICS Account, ICS Source). Run ICS append first.")
 
 if errors:
     st.divider()

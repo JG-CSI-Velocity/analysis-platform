@@ -5,9 +5,19 @@ maxMessageSize = 200
 [browser]
 gatherUsageStats = false
 
+[runner]
+fastReruns = true
+magicEnabled = false
+
 [theme]
 primaryColor = "#16A34A"
 backgroundColor = "#FFFFFF"
 secondaryBackgroundColor = "#F8FAFC"
 textColor = "#0F172A"
 font = "sans serif"
+
+[theme.sidebar]
+backgroundColor = "#0F172A"
+textColor = "#CBD5E1"
+primaryColor = "#16A34A"
+borderColor = "#1E293B"

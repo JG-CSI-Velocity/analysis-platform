@@ -1,5 +1,5 @@
-# Unified Analysis Platform Configuration
-# =========================================
+# RPE Analysis Platform Configuration
+# =====================================
 
 base_output_dir: output
 m_drive_path: null  # Set to M: drive path when available (e.g., "M:\\ARS")

@@ -1,1 +1,1 @@
-"""Core engine for the Unified Analysis Platform."""
+"""Core engine for the RPE Analysis Platform."""

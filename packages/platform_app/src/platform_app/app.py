@@ -1,4 +1,4 @@
-"""Unified Analysis Platform v2.0 -- Streamlit entry point.
+"""RPE Analysis Platform v2.0 -- Streamlit entry point.
 
 Run with: streamlit run packages/platform_app/src/platform_app/app.py
 """
@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import streamlit as st
 
+from platform_app.brand import PAGE_TITLE, TAGLINE
+
 st.set_page_config(
-    page_title="UAP",
+    page_title=PAGE_TITLE,
     page_icon=":material/terminal:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -457,6 +459,6 @@ pg = st.navigation(
 # Sidebar footer
 with st.sidebar:
     st.divider()
-    st.markdown('<p class="uap-version">UAP v2.0 // ANALYSIS PLATFORM</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="uap-version">{TAGLINE}</p>', unsafe_allow_html=True)
 
 pg.run()

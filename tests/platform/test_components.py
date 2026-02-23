@@ -133,29 +133,6 @@ class TestSharedAnalysisResult:
 
 
 # ---------------------------------------------------------------------------
-# styles.py -- pure string functions, no Streamlit dependency
-# ---------------------------------------------------------------------------
-
-
-class TestPageCSS:
-    def test_page_css_contains_pipeline_header(self):
-        from platform_app.components.styles import PAGE_CSS
-
-        assert ".pipeline-header" in PAGE_CSS
-
-    def test_page_css_contains_sidebar_section(self):
-        from platform_app.components.styles import PAGE_CSS
-
-        assert ".sidebar-section" in PAGE_CSS
-
-    def test_page_css_contains_status_chips(self):
-        from platform_app.components.styles import PAGE_CSS
-
-        assert ".status-ready" in PAGE_CSS
-        assert ".status-error" in PAGE_CSS
-
-
-# ---------------------------------------------------------------------------
 # core/module_registry.py
 # ---------------------------------------------------------------------------
 

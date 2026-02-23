@@ -1,4 +1,4 @@
-# Analysis Platform -- Claude Code Instructions
+# RPE Analysis Platform -- Claude Code Instructions
 
 ## Current State (2026-02-23)
 

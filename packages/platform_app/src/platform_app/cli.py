@@ -1,4 +1,4 @@
-"""Typer CLI for the unified analysis platform."""
+"""Typer CLI for the RPE Analysis Platform."""
 
 from __future__ import annotations
 
@@ -6,9 +6,11 @@ from pathlib import Path
 
 import typer
 
+from platform_app.brand import CLI_DESCRIPTION
+
 app = typer.Typer(
     name="analysis-platform",
-    help="Unified banking analysis platform: ARS, Transaction, and ICS pipelines.",
+    help=CLI_DESCRIPTION,
 )
 
 

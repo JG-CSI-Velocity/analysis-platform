@@ -1,4 +1,4 @@
-"""UAP Workspace -- CSM + month + client folder selection and file auto-detection."""
+"""RPE Workspace -- CSM + month + client folder selection and file auto-detection."""
 
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
-# Analysis Platform
+# RPE Analysis Platform
 
-Unified analysis platform for CSI Velocity. Combines three pipelines into one tool: **ARS** (account reviews), **Transaction** (debit card analytics), and **ICS** (Instant Card Services).
+Analysis platform by CSI | Velocity. Combines three pipelines into one tool: **ARS** (account reviews), **Transaction** (debit card analytics), and **ICS** (Instant Card Services).
 
 Used by CSMs to generate consultant-grade PowerPoint decks, detailed Excel reports, and charts for 300+ credit union clients.
 

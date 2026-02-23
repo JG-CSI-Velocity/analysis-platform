@@ -1,4 +1,4 @@
-"""UAP Outputs -- view results and download generated files."""
+"""RPE Outputs -- view results and download generated files."""
 
 from __future__ import annotations
 
@@ -98,7 +98,9 @@ if results:
     st.markdown('<p class="uap-label">DATA TABLES</p>', unsafe_allow_html=True)
 
     for pipeline_name, pipeline_results in results.items():
-        with st.expander(f"{pipeline_name.upper()} -- {len(pipeline_results)} analyses", expanded=False):
+        with st.expander(
+            f"{pipeline_name.upper()} -- {len(pipeline_results)} analyses", expanded=False
+        ):
             for name, ar in pipeline_results.items():
                 st.markdown(
                     f'<span style="font-family:var(--uap-mono);font-size:0.75rem;color:var(--uap-dim);">'

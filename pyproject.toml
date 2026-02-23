@@ -1,7 +1,7 @@
 [project]
 name = "analysis-platform"
 version = "1.0.0"
-description = "Unified banking analysis platform: ARS, Transaction, and ICS pipelines"
+description = "RPE Analysis Platform: ARS, Transaction, and ICS pipelines"
 requires-python = ">=3.11"
 readme = "README.md"
 dependencies = [

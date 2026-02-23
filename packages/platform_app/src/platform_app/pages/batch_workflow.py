@@ -1,4 +1,4 @@
-"""UAP Batch Run -- run multiple pipelines sequentially for multiple clients."""
+"""RPE Batch Run -- run multiple pipelines sequentially for multiple clients."""
 
 from __future__ import annotations
 

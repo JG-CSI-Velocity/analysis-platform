@@ -1,4 +1,4 @@
-# CSI Velocity -- Repository Roadmap & Session Handoff
+# RPE Analysis Platform -- Repository Roadmap & Session Handoff
 
 **Date:** 2026-02-20
 **Repo:** https://github.com/JG-CSI-Velocity/analysis-platform

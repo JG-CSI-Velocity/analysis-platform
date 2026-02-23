@@ -1,4 +1,4 @@
-"""UAP Module Library -- browse, search, and select analysis modules."""
+"""RPE Module Library -- browse, search, and select analysis modules."""
 
 from __future__ import annotations
 

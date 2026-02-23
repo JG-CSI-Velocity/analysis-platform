@@ -1,4 +1,4 @@
-"""UAP Run History -- view past pipeline executions."""
+"""RPE Run History -- view past pipeline executions."""
 
 from __future__ import annotations
 

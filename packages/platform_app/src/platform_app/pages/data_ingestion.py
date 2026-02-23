@@ -1,4 +1,4 @@
-"""UAP Data Ingestion -- upload, validate, and profile data files."""
+"""RPE Data Ingestion -- upload, validate, and profile data files."""
 
 from __future__ import annotations
 
@@ -166,9 +166,7 @@ with tab_tran:
                                 unsafe_allow_html=True,
                             )
 
-                if st.button(
-                    f"Merge all {len(files)} files", key="tran_merge", width="stretch"
-                ):
+                if st.button(f"Merge all {len(files)} files", key="tran_merge", width="stretch"):
                     merge_progress = st.progress(0, text="Merging...")
                     frames = []
                     for idx, f in enumerate(files):

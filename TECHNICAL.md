@@ -1,6 +1,6 @@
 # Technical Reference
 
-Internal developer documentation for the Analysis Platform. Not for end users.
+Internal developer documentation for the RPE Analysis Platform. Not for end users.
 
 ---
 

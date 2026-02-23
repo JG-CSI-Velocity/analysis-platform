@@ -85,12 +85,30 @@ def rege(df: pd.DataFrame, col: str, opt_list: list[str]) -> tuple[int, int, flo
     return t, oi, oi / t
 
 
+def _parse_reg_e_date(col_name: str) -> pd.Timestamp:
+    """Extract date from a Reg E column name like 'Reg E Code Jan26'."""
+    # Strip "Reg E Code" prefix, then parse remaining date part
+    suffix = col_name.replace("Reg E Code", "").strip()
+    # Handle "Jan26" (no space) and "Jan 26" (with space)
+    suffix = suffix.replace(" ", "")
+    try:
+        return pd.to_datetime(suffix, format="%b%y")
+    except Exception:
+        return pd.NaT
+
+
 def detect_reg_e_column(df: pd.DataFrame) -> str | None:
-    """Auto-detect the latest 'Reg E Code ...' column from DataFrame columns."""
+    """Auto-detect the latest 'Reg E Code ...' column from DataFrame columns.
+
+    Sorts chronologically (not alphabetically) so Jan26 beats Dec25.
+    """
     reg_e_cols = [c for c in df.columns if "Reg E Code" in c]
     if not reg_e_cols:
         return None
-    return sorted(reg_e_cols, key=lambda c: c.split()[-1] if c.split() else c)[-1]
+    # Sort chronologically; columns that fail to parse go first (NaT)
+    reg_e_cols.sort(key=_parse_reg_e_date)
+    logger.debug("Reg E columns found: {cols}, selected: {sel}", cols=reg_e_cols, sel=reg_e_cols[-1])
+    return reg_e_cols[-1]
 
 
 def reg_e_base(ctx: PipelineContext) -> tuple[pd.DataFrame, pd.DataFrame | None, str, list[str]]:

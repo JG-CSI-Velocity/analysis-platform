@@ -414,7 +414,7 @@ for i, tpl_name in enumerate(tpl_names):
         ):
             st.session_state["uap_selected_template"] = tpl_name
             st.session_state["uap_selected_modules"] = set(tpl_keys)
-            selected_template = tpl_name
+            st.rerun()
 
 selected_modules = st.session_state.get("uap_selected_modules", set())
 
@@ -446,20 +446,29 @@ if _products_with_modules:
         with tab:
             if not avail:
                 st.caption("No data file detected for this pipeline.")
-            # Batch all module lines into a single HTML block
-            _lines = []
+            # Group modules by category, then render as single HTML block
+            _by_cat: dict[str, list] = {}
             for m in sorted(modules, key=lambda x: x.run_order):
-                is_selected = m.key in selected_modules
-                if is_selected:
-                    _lines.append(
-                        f'<div style="padding:1px 0;"><b>{m.name}</b> '
-                        f'<span style="color:#64748B;font-size:0.82rem;">{m.description}</span></div>'
-                    )
-                else:
-                    _lines.append(
-                        f'<div style="padding:1px 0;"><span style="color:#94A3B8;">{m.name}</span> '
-                        f'<span style="color:#CBD5E1;font-size:0.82rem;">{m.description}</span></div>'
-                    )
+                _by_cat.setdefault(m.category, []).append(m)
+
+            _lines: list[str] = []
+            for cat_name, cat_modules in _by_cat.items():
+                _lines.append(
+                    f'<div style="margin-top:0.5rem;margin-bottom:0.15rem;">'
+                    f'<b style="color:#475569;font-size:0.82rem;">{cat_name}</b></div>'
+                )
+                for m in cat_modules:
+                    is_selected = m.key in selected_modules
+                    if is_selected:
+                        _lines.append(
+                            f'<div style="padding:1px 0 1px 12px;"><b>{m.name}</b> '
+                            f'<span style="color:#64748B;font-size:0.82rem;">{m.description}</span></div>'
+                        )
+                    else:
+                        _lines.append(
+                            f'<div style="padding:1px 0 1px 12px;"><span style="color:#94A3B8;">{m.name}</span> '
+                            f'<span style="color:#CBD5E1;font-size:0.82rem;">{m.description}</span></div>'
+                        )
             if _lines:
                 st.markdown("".join(_lines), unsafe_allow_html=True)
 
@@ -596,10 +605,25 @@ all_results: dict[str, dict] = {}
 all_output_dirs: dict[str, Path] = {}
 pipeline_errors: dict[str, str] = {}
 
-_progress_bar = st.progress(0, text="Warming up the engines...")
+_progress_container = st.empty()
 _status_line = st.empty()
 total_pipelines = len(needed_products)
 completed = 0
+
+
+def _render_progress(pct: float, text: str) -> None:
+    """Render a custom green/gray progress bar (avoids Streamlit's blue)."""
+    w = max(0, min(100, pct * 100))
+    _progress_container.markdown(
+        f'<div style="background:#E2E8F0;border-radius:4px;height:8px;margin:0.5rem 0;">'
+        f'<div style="background:#16A34A;height:100%;border-radius:4px;width:{w:.0f}%;'
+        f'transition:width 0.3s;"></div></div>'
+        f'<p style="font-size:0.85rem;color:#64748B;margin:0.2rem 0;">{text}</p>',
+        unsafe_allow_html=True,
+    )
+
+
+_render_progress(0, "Warming up the engines...")
 
 tran_path = st.session_state.get("uap_file_tran", "")
 ics_path = st.session_state.get("uap_file_ics", "")
@@ -627,11 +651,10 @@ for product in sorted(needed_products, key=lambda p: p.value):
         continue
 
     out.mkdir(parents=True, exist_ok=True)
-    _progress_bar.progress(pct, text=_flavor_text(pipeline_name, "start"))
+    _render_progress(pct, _flavor_text(pipeline_name, "start"))
 
     def _on_progress(
         msg: str,
-        _bar=_progress_bar,
         _line=_status_line,
         _pct=pct,
         _pipe=pipeline_name,
@@ -670,7 +693,7 @@ for product in sorted(needed_products, key=lambda p: p.value):
         )
 
 total_elapsed = round(time.time() - t0, 1)
-_progress_bar.progress(1.0, text=f"All done in {total_elapsed}s")
+_render_progress(1.0, f"All done in {total_elapsed}s")
 _status_line.empty()
 
 # ---------------------------------------------------------------------------

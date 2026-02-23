@@ -216,7 +216,7 @@ The funnel uses 4 stages: Total -> Open -> Eligible -> With Debit.
 
 A7.8 uses `filter_l12m()` which depends on `ctx.start_date` and `ctx.end_date`. If dates aren't set, the filter may return all data or empty data.
 
-- [ ] Verify `start_date`/`end_date` are set correctly in subsets step
+- [x] Verify `start_date`/`end_date` are set correctly in subsets step
 - [x] Log L12M date range and row count after filtering
 - [x] Handle case where L12M filter returns 0 rows (skip A7.8 with message, not crash)
 

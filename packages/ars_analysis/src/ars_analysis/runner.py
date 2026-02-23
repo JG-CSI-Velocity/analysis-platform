@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from shared.context import PipelineContext as SharedContext
@@ -52,6 +53,28 @@ def _load_client_config(raw_config: dict) -> dict:
 
     logger.warning("Client %s not found in config file (%d clients available)", client_id, len(all_clients))
     return raw_config
+
+
+def _resolve_template_path() -> Path | None:
+    """Find the PPTX template on the M: drive or known locations."""
+    import platform as _platform
+
+    candidates = (
+        [
+            Path(r"M:\ARS\Presentations\Template12.25.pptx"),
+            Path(r"M:\ARS\Presentations\Template 12.25.pptx"),
+        ]
+        if _platform.system() == "Windows"
+        else [
+            Path("/Volumes/M/ARS/Presentations/Template12.25.pptx"),
+            Path("/Volumes/M/ARS/Presentations/Template 12.25.pptx"),
+        ]
+    )
+    for p in candidates:
+        if p.exists():
+            logger.info("Found PPTX template: %s", p)
+            return p
+    return None
 
 
 def _resolve_config_fallback() -> str | None:
@@ -139,6 +162,16 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
         paths=paths,
         progress_callback=ctx.progress_callback,
     )
+
+    # 3b. Resolve PPTX template (M: drive > config > embedded fallback)
+    _tpl = ccfg.get("TemplatePath")
+    if _tpl and Path(_tpl).exists():
+        tpl_path = Path(_tpl)
+    else:
+        tpl_path = _resolve_template_path()
+    if tpl_path:
+        ars_ctx.settings = SimpleNamespace(paths=SimpleNamespace(template_path=tpl_path))
+        logger.info("Using PPTX template: %s", tpl_path)
 
     # 4. Determine input file
     oddd_path = ctx.input_files.get("oddd")

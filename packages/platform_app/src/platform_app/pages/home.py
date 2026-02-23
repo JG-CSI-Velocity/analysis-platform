@@ -446,29 +446,41 @@ if _products_with_modules:
         with tab:
             if not avail:
                 st.caption("No data file detected for this pipeline.")
-            # Group modules by category, then render as single HTML block
+            # Group modules by category, render in multi-column layout
             _by_cat: dict[str, list] = {}
             for m in sorted(modules, key=lambda x: x.run_order):
                 _by_cat.setdefault(m.category, []).append(m)
 
-            _lines: list[str] = []
+            _n_selected = sum(1 for m in modules if m.key in selected_modules)
+            _n_total = len(modules)
+            _count_line = (
+                f'<div style="font-size:0.75rem;color:#64748B;margin-bottom:0.3rem;">'
+                f'{_n_selected}/{_n_total} modules selected</div>'
+            )
+
+            _lines: list[str] = [_count_line, '<div style="column-count:2;column-gap:2rem;">']
             for cat_name, cat_modules in _by_cat.items():
                 _lines.append(
-                    f'<div style="margin-top:0.5rem;margin-bottom:0.15rem;">'
-                    f'<b style="color:#475569;font-size:0.82rem;">{cat_name}</b></div>'
+                    f'<div style="break-inside:avoid;margin-bottom:0.5rem;">'
+                    f'<div style="margin-bottom:0.1rem;">'
+                    f'<b style="color:#475569;font-size:0.82rem;text-transform:uppercase;'
+                    f'letter-spacing:0.03em;">{cat_name}</b></div>'
                 )
                 for m in cat_modules:
                     is_selected = m.key in selected_modules
                     if is_selected:
                         _lines.append(
-                            f'<div style="padding:1px 0 1px 12px;"><b>{m.name}</b> '
-                            f'<span style="color:#64748B;font-size:0.82rem;">{m.description}</span></div>'
+                            f'<div style="padding:2px 0 2px 10px;border-left:3px solid #16A34A;">'
+                            f'<b style="color:#1E293B;">{m.name}</b> '
+                            f'<span style="color:#64748B;font-size:0.78rem;">{m.description}</span></div>'
                         )
                     else:
                         _lines.append(
-                            f'<div style="padding:1px 0 1px 12px;"><span style="color:#94A3B8;">{m.name}</span> '
-                            f'<span style="color:#CBD5E1;font-size:0.82rem;">{m.description}</span></div>'
+                            f'<div style="padding:2px 0 2px 10px;border-left:3px solid transparent;">'
+                            f'<span style="color:#CBD5E1;">{m.name}</span></div>'
                         )
+                _lines.append('</div>')
+            _lines.append('</div>')
             if _lines:
                 st.markdown("".join(_lines), unsafe_allow_html=True)
 
@@ -665,6 +677,12 @@ for product in sorted(needed_products, key=lambda p: p.value):
             unsafe_allow_html=True,
         )
 
+    # Pass selected module keys so the runner only executes chosen modules
+    _product_keys = [k for k in selected_modules if module_map.get(k) and module_map[k].product == product]
+    _pipeline_config = {**_client_config}
+    if _product_keys:
+        _pipeline_config["module_ids"] = _product_keys
+
     try:
         results = run_pipeline(
             pipeline_name,
@@ -672,7 +690,7 @@ for product in sorted(needed_products, key=lambda p: p.value):
             output_dir=out,
             client_id=client_id,
             client_name=client_name,
-            client_config=_client_config,
+            client_config=_pipeline_config,
             progress_callback=_on_progress,
         )
         all_results[pipeline_name] = results

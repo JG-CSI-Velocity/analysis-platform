@@ -35,20 +35,64 @@ def step_subsets(ctx: PipelineContext) -> None:
             )
 
     # Open accounts (Stat Code == "O" or starts with "O")
-    if "Stat Code" in df.columns:
-        subs.open_accounts = df[df["Stat Code"].astype(str).str.upper().str.startswith("O", na=False)]
-        logger.debug("Open accounts: {n:,} rows", n=len(subs.open_accounts))
+    _stat_col = "Stat Code" if "Stat Code" in df.columns else None
+    if not _stat_col:
+        # Auto-detect common alternatives
+        for _alt in ("Status Code", "StatCode", "Stat_Code", "Account Status"):
+            if _alt in df.columns:
+                _stat_col = _alt
+                logger.info("Auto-detected stat column: {col}", col=_stat_col)
+                break
+
+    if _stat_col:
+        _stat_values = df[_stat_col].astype(str).str.strip()
+        _stat_upper = _stat_values.str.upper()
+        _unique_stats = _stat_values.value_counts().head(10)
+        logger.info(
+            "Stat Code column '{col}' -- top values: {vals}",
+            col=_stat_col,
+            vals=dict(_unique_stats),
+        )
+
+        subs.open_accounts = df[_stat_upper.str.startswith("O", na=False)]
+        logger.info("Open accounts: {n:,} rows", n=len(subs.open_accounts))
+    else:
+        logger.warning("No 'Stat Code' column found. Columns: {cols}", cols=list(df.columns)[:20])
 
     # Eligible accounts based on client config
     eligible_stats = ctx.client.eligible_stat_codes
     eligible_prods = ctx.client.eligible_prod_codes
 
-    if eligible_stats and "Stat Code" in df.columns:
-        mask = df["Stat Code"].astype(str).str.strip().isin(eligible_stats)
+    if not eligible_stats and _stat_col:
+        logger.warning(
+            "No EligibleStatusCodes configured -- eligible_data will be None. "
+            "Check client config."
+        )
+
+    if eligible_stats and _stat_col:
+        # Case-insensitive matching: uppercase both config values and data
+        _cfg_upper = [s.strip().upper() for s in eligible_stats]
+        mask = _stat_upper.isin(_cfg_upper)
+        _match_count = mask.sum()
+        logger.info(
+            "Eligible stat filter: config={cfg} -> {n:,} matches out of {total:,}",
+            cfg=eligible_stats,
+            n=_match_count,
+            total=len(df),
+        )
+
         if eligible_prods and "Product Code" in df.columns:
-            mask = mask & df["Product Code"].astype(str).str.strip().isin(eligible_prods)
+            _prod_upper = [s.strip().upper() for s in eligible_prods]
+            _prod_mask = df["Product Code"].astype(str).str.strip().str.upper().isin(_prod_upper)
+            mask = mask & _prod_mask
+            logger.info(
+                "Eligible prod filter: config={cfg} -> {n:,} matches after both filters",
+                cfg=eligible_prods,
+                n=mask.sum(),
+            )
+
         subs.eligible_data = df[mask]
-        logger.debug("Eligible data: {n:,} rows", n=len(subs.eligible_data))
+        logger.info("Eligible data: {n:,} rows", n=len(subs.eligible_data))
 
         # Personal/Business splits
         if "Business?" in df.columns and subs.eligible_data is not None:
@@ -56,7 +100,7 @@ def step_subsets(ctx: PipelineContext) -> None:
             biz_mask = elig["Business?"].astype(str).str.strip().str.upper().isin(("YES", "Y"))
             subs.eligible_business = elig[biz_mask]
             subs.eligible_personal = elig[~biz_mask]
-            logger.debug(
+            logger.info(
                 "Eligible split: {p:,} personal, {b:,} business",
                 p=len(subs.eligible_personal),
                 b=len(subs.eligible_business),
@@ -76,7 +120,7 @@ def step_subsets(ctx: PipelineContext) -> None:
                     ("D", "DC", "DEBIT", "YES", "Y")
                 )
             ]
-            logger.debug(
+            logger.info(
                 "Eligible with debit: {n:,} rows",
                 n=len(subs.eligible_with_debit),
             )
@@ -87,7 +131,7 @@ def step_subsets(ctx: PipelineContext) -> None:
 
         cutoff = ctx.end_date - relativedelta(months=12)
         subs.last_12_months = df[df["Date Opened"] >= str(cutoff)]
-        logger.debug("Last 12 months: {n:,} rows", n=len(subs.last_12_months))
+        logger.info("Last 12 months: {n:,} rows (cutoff={cutoff})", n=len(subs.last_12_months), cutoff=cutoff)
 
     ctx.subsets = subs
     logger.info("Subsets created for {client}", client=ctx.client.client_id)

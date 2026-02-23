@@ -111,6 +111,48 @@ def _resolve_config_fallback() -> str | None:
     return None
 
 
+# Map UI module keys → ARS internal module ID prefixes.
+# Overview modules always run (fast, foundational).
+_UI_KEY_TO_PREFIXES: dict[str, list[str]] = {
+    "ars_attrition": ["attrition."],
+    "ars_reg_e": ["rege."],
+    "ars_value": ["value."],
+    "ars_mailer_impact": ["mailer.impact"],
+    "ars_mailer_response": ["mailer.response"],
+    "ars_mailer_insights": ["mailer.insights"],
+    "ars_dctr": ["dctr."],
+    "ars_insights": ["insights."],
+}
+_ALWAYS_RUN_PREFIXES = ["overview."]
+
+
+def _expand_ui_keys(ui_keys: list[str]) -> list[str]:
+    """Expand UI module keys to internal ARS module IDs.
+
+    E.g. ["ars_attrition", "ars_dctr"] ->
+         ["overview.stat_codes", "overview.product_codes", "overview.eligibility",
+          "attrition.rates", "attrition.dimensions", "attrition.impact",
+          "dctr.penetration", "dctr.trends", "dctr.branches", "dctr.funnel", "dctr.overlays"]
+    """
+    from ars_analysis.analytics.registry import ordered_modules
+
+    # Collect prefixes from selected UI keys
+    prefixes = list(_ALWAYS_RUN_PREFIXES)
+    for key in ui_keys:
+        if key in _UI_KEY_TO_PREFIXES:
+            prefixes.extend(_UI_KEY_TO_PREFIXES[key])
+
+    # Expand to actual registered module IDs
+    all_mods = ordered_modules()
+    expanded = []
+    for mod_cls in all_mods:
+        mid = mod_cls().module_id
+        if any(mid.startswith(pfx) for pfx in prefixes):
+            expanded.append(mid)
+
+    return expanded
+
+
 def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
     """Run the full ARS v2 pipeline via the shared PipelineContext bridge.
 
@@ -134,22 +176,39 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
     # Load all analytics modules (triggers @register decorators)
     load_all_modules()
 
+    # 0. Capture module_ids from caller BEFORE _load_client_config replaces them
+    _ui_module_ids = (ctx.client_config or {}).get("module_ids")
+
     # 1. Build ARS ClientInfo from shared context
     ccfg = _load_client_config({**(ctx.client_config or {}), "client_id": ctx.client_id})
     month = ctx.analysis_date.strftime("%Y.%m") if ctx.analysis_date else ""
+
+    _stat_codes = _ensure_list(ccfg.get("EligibleStatusCodes", []))
+    _prod_codes = _ensure_list(ccfg.get("EligibleProductCodes", []))
+    _rege_opt = _ensure_list(ccfg.get("RegEOptInCode", []))
+
+    logger.info(
+        "Client config for %s: stat_codes=%s, prod_codes=%s, rege_opt=%s, ic_rate=%s, dc=%s",
+        ctx.client_id,
+        _stat_codes,
+        _prod_codes,
+        _rege_opt,
+        ccfg.get("ICRate", 0),
+        ccfg.get("DCIndicator", "DC Indicator"),
+    )
 
     client_info = ClientInfo(
         client_id=ctx.client_id,
         client_name=ctx.client_name or ctx.client_id,
         month=month,
         assigned_csm=ctx.csm,
-        eligible_stat_codes=_ensure_list(ccfg.get("EligibleStatusCodes", [])),
-        eligible_prod_codes=_ensure_list(ccfg.get("EligibleProductCodes", [])),
+        eligible_stat_codes=_stat_codes,
+        eligible_prod_codes=_prod_codes,
         eligible_mailable=_ensure_list(ccfg.get("EligibleMailCode", [])),
         nsf_od_fee=_safe_float(ccfg.get("NSF_OD_Fee", 0)),
         ic_rate=_safe_float(ccfg.get("ICRate", 0)),
         dc_indicator=ccfg.get("DCIndicator", "DC Indicator"),
-        reg_e_opt_in=_ensure_list(ccfg.get("RegEOptInCode", [])),
+        reg_e_opt_in=_rege_opt,
         reg_e_column=ccfg.get("RegEColumn", ""),
     )
 
@@ -179,9 +238,12 @@ def run_ars(ctx: SharedContext) -> dict[str, SharedResult]:
         raise FileNotFoundError("No 'oddd' input file in PipelineContext")
 
     # 5. Build and run pipeline steps
-    module_ids = ccfg.get("module_ids")
+    #    _ui_module_ids comes from the Streamlit UI (e.g. ["ars_attrition", "ars_dctr"])
+    #    and must be expanded to internal ARS module IDs (e.g. ["attrition.rates", ...])
+    module_ids = _expand_ui_keys(_ui_module_ids) if _ui_module_ids else None
 
     if module_ids:
+        logger.info("Selected modules: %s -> %s", _ui_module_ids, module_ids)
         analyze_step = PipelineStep(
             "run_analyses",
             lambda c, ids=module_ids: step_analyze_selected(c, ids),

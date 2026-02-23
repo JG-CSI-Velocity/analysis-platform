@@ -28,6 +28,7 @@ from ars_analysis.analytics.mailer._helpers import (
     analyze_month,
     discover_pairs,
     format_title,
+    parse_month,
 )
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
@@ -521,16 +522,20 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
         ]
 
     data["Date Opened"] = pd.to_datetime(data["Date Opened"], errors="coerce")
-    data["_age"] = (pd.Timestamp.now() - data["Date Opened"]).dt.days / 365.25
 
     all_rows = []
     for month, resp_col, _ in pairs:
         resp = data[data[resp_col].isin(RESPONSE_SEGMENTS)]
         if resp.empty:
             continue
+        # Compute age relative to the MAIL MONTH (not today) so buckets are stable
+        mail_date = parse_month(f"{month} Mail")
+        if pd.isna(mail_date):
+            mail_date = pd.Timestamp.now()
+        age_years = (mail_date - resp["Date Opened"]).dt.days / 365.25
         row_data: dict = {"Month": month, "Total Responders": len(resp)}
         for lbl, lo, hi in AGE_SEGMENTS:
-            row_data[lbl] = int(((resp["_age"] >= lo) & (resp["_age"] < hi)).sum())
+            row_data[lbl] = int(((age_years >= lo) & (age_years < hi)).sum())
         all_rows.append(row_data)
 
     if not all_rows:

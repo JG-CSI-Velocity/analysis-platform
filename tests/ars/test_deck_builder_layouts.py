@@ -20,6 +20,7 @@ from ars_analysis.output.deck_builder import (
     _consolidate,
     _get_section,
     _group_by_section,
+    _mailer_sort_key,
     _match_prefix,
     _result_to_slide,
     build_deck,
@@ -98,16 +99,65 @@ class TestMatchPrefix:
     def test_a12_prefix(self):
         assert _match_prefix("A12.Nov25.Swipes") == (13, "screenshot")
 
-    def test_a13_mailer_summary(self):
-        assert _match_prefix("A13.Sep24") == (13, "mailer_summary")
+    def test_a13_monthly_screenshot(self):
+        # A13.{month} uses screenshot (combined donut+hbar PNG)
+        assert _match_prefix("A13.Sep24") == (13, "screenshot")
 
     def test_a13_5_not_mailer(self):
-        # A13.5 and A13.6 are excluded from the mailer_summary prefix match
+        # A13.5 and A13.6 are excluded from the monthly prefix match
         layout, stype = _match_prefix("a13.5")
         assert stype == "screenshot"  # falls through to default
 
     def test_unknown_prefix_default(self):
         assert _match_prefix("ZZZ.1") == (9, "screenshot")
+
+
+# =============================================================================
+# _mailer_sort_key
+# =============================================================================
+
+
+class TestMailerSortKey:
+    """Mailer slides should sort in logical section order."""
+
+    def test_monthly_summaries_first(self):
+        r = AnalysisResult(slide_id="A13.Sep24", title="Sep24 Summary")
+        assert _mailer_sort_key(r)[0] == 0
+
+    def test_aggregate_after_monthly(self):
+        r = AnalysisResult(slide_id="A13.Agg", title="Aggregate")
+        assert _mailer_sort_key(r)[0] == 1
+
+    def test_trends_after_aggregate(self):
+        r5 = AnalysisResult(slide_id="A13.5", title="Count Trend")
+        r6 = AnalysisResult(slide_id="A13.6", title="Rate Trend")
+        assert _mailer_sort_key(r5)[0] == 2
+        assert _mailer_sort_key(r6)[0] == 3
+
+    def test_account_age_after_trends(self):
+        r = AnalysisResult(slide_id="A14.2", title="Account Age")
+        assert _mailer_sort_key(r)[0] == 4
+
+    def test_insights_after_age(self):
+        r = AnalysisResult(slide_id="A12.Nov25.Swipes", title="Swipes")
+        assert _mailer_sort_key(r)[0] == 5
+
+    def test_impact_last(self):
+        r = AnalysisResult(slide_id="A15.1", title="Market Reach")
+        assert _mailer_sort_key(r)[0] == 6
+
+    def test_full_sort_order(self):
+        results = [
+            AnalysisResult(slide_id="A15.1", title="Impact"),
+            AnalysisResult(slide_id="A12.Nov25.Swipes", title="Swipes"),
+            AnalysisResult(slide_id="A13.Agg", title="Aggregate"),
+            AnalysisResult(slide_id="A13.Sep24", title="Sep24"),
+            AnalysisResult(slide_id="A13.5", title="Count Trend"),
+            AnalysisResult(slide_id="A14.2", title="Age"),
+        ]
+        results.sort(key=_mailer_sort_key)
+        ids = [r.slide_id for r in results]
+        assert ids == ["A13.Sep24", "A13.Agg", "A13.5", "A14.2", "A12.Nov25.Swipes", "A15.1"]
 
 
 # =============================================================================

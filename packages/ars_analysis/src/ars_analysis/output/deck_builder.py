@@ -728,7 +728,9 @@ def _match_prefix(slide_id: str) -> tuple[int, str]:
     if sid.startswith("a12"):
         return (13, "screenshot")
     if sid.startswith("a13") and sid not in ("a13.5", "a13.6"):
-        return (13, "mailer_summary")
+        # A13.{month} and A13.Agg produce a combined donut+hbar PNG;
+        # display as screenshot (mailer_summary expects separate images)
+        return (13, "screenshot")
     return (9, "screenshot")
 
 
@@ -988,6 +990,30 @@ def _result_to_slide(result) -> SlideContent | None:
 
 
 # =============================================================================
+# MAILER SLIDE ORDERING
+# =============================================================================
+
+_MAILER_FIXED_IDS = {"A13.Agg": 1, "A13.5": 2, "A13.6": 3}
+
+
+def _mailer_sort_key(result) -> tuple[int, str]:
+    """Sort key for mailer slides: monthly summaries -> aggregate -> trends -> age -> insights -> impact."""
+    sid = getattr(result, "slide_id", "")
+    # A13.{month} monthly summaries first (not Agg, .5, .6)
+    if sid.startswith("A13.") and sid not in _MAILER_FIXED_IDS and not sid.startswith("A13.5") and not sid.startswith("A13.6"):
+        return (0, sid)
+    if sid in _MAILER_FIXED_IDS:
+        return (_MAILER_FIXED_IDS[sid], sid)
+    if sid.startswith("A14"):
+        return (4, sid)
+    if sid.startswith("A12"):
+        return (5, sid)
+    if sid.startswith("A15"):
+        return (6, sid)
+    return (9, sid)
+
+
+# =============================================================================
 # BUILD DECK -- main entry point
 # =============================================================================
 
@@ -1072,7 +1098,8 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     # Build ordered analysis slides
     analysis_slides: list[SlideContent] = []
 
-    # Recent mailer slides first
+    # Recent mailer slides first -- sorted by logical section order
+    mailer_results.sort(key=_mailer_sort_key)
     mailer_slides = _convert_list(mailer_results)
     if mailer_slides:
         analysis_slides.extend(mailer_slides)

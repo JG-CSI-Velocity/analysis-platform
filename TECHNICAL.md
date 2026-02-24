@@ -13,13 +13,13 @@ analysis_platform/
   packages/
     shared/           Types, context, config, helpers, format_odd, charts
     ars_analysis/     ARS pipeline: 8 analytics modules, deck builder, Excel formatter
-    txn_analysis/     TXN pipeline: 35 analyses (M1-M14 + scorecard), Plotly charts
+    txn_analysis/     TXN pipeline: 39 analyses (M1-M17 + scorecard), Plotly charts
     ics_toolkit/      ICS pipeline: 37 analyses + append + referral intelligence
     platform_app/     Orchestrator, Streamlit UI (7 pages), module registry, CLI
   tests/
-    shared/           93 tests
+    shared/           87 tests
     ars/              545 tests
-    txn/              597 tests
+    txn/              640+ tests
     ics/              1,049 tests (including 212 referral)
     platform/         60 tests
     integration/      26 E2E tests (12 orchestrator + 14 CLI)
@@ -166,7 +166,7 @@ Section grouping: Slide ID prefix maps to sections. Consolidation reorders slide
 
 ## TXN Pipeline Internals
 
-35 analyses in `ANALYSIS_REGISTRY`. M1-M10 are native. M11-M14 use storyline adapters (thin wrappers around V4 code). Scorecard is final.
+39 analyses in `ANALYSIS_REGISTRY`. M1-M10 are native. M11-M14 use storyline adapters (thin wrappers around V4 code). M15 (recurring payments + onset tracking), M16 (time patterns + day-of-month), M17 (spending behavior by demographics). Scorecard is final.
 
 Plotly charts exported via `kaleido==0.2.1` (pinned -- v1.0+ has 50x regression).
 
@@ -188,7 +188,7 @@ Three sub-pipelines:
 
 ```bash
 # Development
-make test          # all tests (~2,400, ~2.5 min)
+make test          # all tests (~2,605, ~3 min)
 make cov           # tests + coverage
 make lint          # ruff check + format check
 make fmt           # auto-fix lint + format
@@ -247,7 +247,7 @@ uv run streamlit run packages/platform_app/src/platform_app/app.py
 | `packages/shared/src/shared/format_odd.py` | ODD formatting + validation checks |
 | `packages/shared/src/shared/helpers.py` | `safe_percentage()`, `safe_ratio()` |
 | `packages/shared/src/shared/context.py` | `PipelineContext` dataclass |
-| `packages/txn_analysis/src/txn_analysis/analyses/__init__.py` | ANALYSIS_REGISTRY (35 entries) |
+| `packages/txn_analysis/src/txn_analysis/analyses/__init__.py` | ANALYSIS_REGISTRY (39 entries) |
 | `packages/txn_analysis/src/txn_analysis/analyses/storyline_adapters.py` | V4 bridge for M11-M14 |
 | `packages/ics_toolkit/src/ics_toolkit/cli.py` | ICS CLI entry point |
 | `packages/ars_analysis/src/ars_analysis/cli.py` | ARS CLI entry point |

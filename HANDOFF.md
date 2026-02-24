@@ -14,7 +14,7 @@
 
 | Metric | Value |
 |--------|-------|
-| Tests | **2,358 passing** |
+| Tests | **2,605 passing** |
 | Coverage | **94%** (CI floor 80%) |
 | Lint | Clean (ruff check + ruff format) |
 | Open PRs | 0 |
@@ -44,15 +44,15 @@ See `plans/chore-unified-consolidation.md` -- Phases 1-4 complete. Phase 5 (deco
 ```
 analysis_platform/
   packages/
-    shared/           Shared types, context, config, helpers (81 tests)
+    shared/           Shared types, context, config, helpers (87 tests)
     ars_analysis/     ARS pipeline (70+ analyses, PPTX deck, 545 tests)
-    txn_analysis/     Transaction pipeline (35 analyses: M1-M14 + scorecard, 597 tests)
+    txn_analysis/     Transaction pipeline (39 analyses: M1-M17 + scorecard, 640+ tests)
     ics_toolkit/      ICS pipeline (37 analyses + append + referral, 1049 tests)
     platform_app/     Orchestrator, CLI, Streamlit UI (60 tests)
   tests/
-    shared/           Shared tests (81)
+    shared/           Shared tests (87)
     ars/              ARS tests (545)
-    txn/              Transaction tests (597)
+    txn/              Transaction tests (640+)
     ics/              ICS tests (1049, including ics/referral/ -- 212)
     platform/         Platform tests (60)
     integration/      E2E tests (26: 12 orchestrator + 14 CLI)
@@ -111,7 +111,7 @@ Settings (Pydantic) -> data_loader.load_data() -> run_all_analyses() -> export_o
 
 ```bash
 # Development
-make test          # all tests (~2,358, ~2.5 min)
+make test          # all tests (~2,605, ~3 min)
 make cov           # tests + coverage
 make lint          # ruff check + format check
 make fmt           # auto-fix lint + format
@@ -169,7 +169,7 @@ uv run streamlit run packages/platform_app/src/platform_app/app.py
 |------|-------------|
 | `packages/shared/src/shared/types.py` | Canonical `AnalysisResult` (used by all pipelines) |
 | `packages/shared/src/shared/helpers.py` | `safe_percentage()`, `safe_ratio()` (used by ICS + TXN) |
-| `packages/txn_analysis/src/txn_analysis/analyses/__init__.py` | ANALYSIS_REGISTRY (35 entries), `run_all_analyses()` |
+| `packages/txn_analysis/src/txn_analysis/analyses/__init__.py` | ANALYSIS_REGISTRY (39 entries), `run_all_analyses()` |
 | `packages/txn_analysis/src/txn_analysis/analyses/storyline_adapters.py` | Bridges S5/S7/S8/S9 into registry |
 | `packages/txn_analysis/src/txn_analysis/pipeline.py` | Main TXN pipeline entry point |
 | `packages/txn_analysis/src/txn_analysis/settings.py` | Pydantic Settings with all TXN config |

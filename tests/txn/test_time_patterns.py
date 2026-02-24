@@ -92,3 +92,36 @@ class TestTimePatterns:
         df = _make_df(["2025-07-14"])
         result = analyze_time_patterns(df, df, df, _settings())
         assert result.sheet_name == "M16 Time Patterns"
+
+    def test_day_of_month_sheet(self):
+        # Transactions across different parts of the month
+        dates = [
+            "2025-07-03",  # Early (Days 1-7)
+            "2025-07-10",  # Mid-early (Days 8-14)
+            "2025-07-18",  # Mid-late (Days 15-21)
+            "2025-07-28",  # Late (Days 22-31)
+        ]
+        df = _make_df(dates)
+        result = analyze_time_patterns(df, df, df, _settings())
+        assert "day_of_month" in result.data
+        dom = result.data["day_of_month"]
+        assert len(dom) == 4
+        assert list(dom["Period"]) == [
+            "Days 1-7", "Days 8-14", "Days 15-21", "Days 22-31"
+        ]
+
+    def test_early_vs_late_month_avg_ticket(self):
+        # Early month: small txns. Late month: large txns.
+        dates = ["2025-07-02", "2025-07-03", "2025-07-25", "2025-07-28"]
+        amounts = [10.0, 10.0, 200.0, 200.0]
+        df = _make_df(dates, amounts)
+        result = analyze_time_patterns(df, df, df, _settings())
+        assert result.metadata["early_month_avg_ticket"] == 10.0
+        assert result.metadata["late_month_avg_ticket"] == 200.0
+
+    def test_summary_mentions_early_late(self):
+        dates = ["2025-07-02", "2025-07-28"]
+        amounts = [50.0, 150.0]
+        df = _make_df(dates, amounts)
+        result = analyze_time_patterns(df, df, df, _settings())
+        assert "Early month" in result.summary or "early month" in result.summary

@@ -82,6 +82,16 @@ def _make_status_line(msg: str, pipeline: str) -> str:
         if short.startswith(prefix):
             short = short[len(prefix) :]
             break
+    # Handle TXN per-analysis progress: "[1/3] Analysis 5/38: competitor_detection"
+    if "Analysis " in short and "/" in short and ": " in short:
+        try:
+            # Extract the analysis part after "Analysis "
+            _analysis_part = short.split("Analysis ", 1)[1]
+            _count, _name = _analysis_part.split(": ", 1)
+            _readable = _name.replace("_", " ").title()
+            return f"{pipeline.upper()} -- Analysis {_count}: {_readable}"
+        except (IndexError, ValueError):
+            pass
     # Make module progress more readable
     if short.startswith("Module ") and ": " in short:
         parts = short.split(": ", 1)
@@ -722,6 +732,35 @@ if not selected_modules:
     st.info("Select one or more pipelines above to continue.")
     st.stop()
 
+# ---------------------------------------------------------------------------
+# Cross-pipeline segment filters (TXN + ODD only)
+# ---------------------------------------------------------------------------
+_show_seg_filters = Product.TXN in _active_pipelines and bool(detected.get("oddd"))
+if _show_seg_filters:
+    st.markdown('<div style="height:0.5rem;"></div>', unsafe_allow_html=True)
+    with st.expander("Transaction Segment Filters", expanded=False):
+        st.caption(
+            "Filter transaction data to specific ODD account segments. "
+            "Runs the full 35-analysis suite on each segment for comparison."
+        )
+        _seg_cols = st.columns(2)
+        with _seg_cols[0]:
+            _seg_ars = st.toggle(
+                "ARS Responders",
+                value=st.session_state.get("uap_seg_ars", False),
+                key="home_seg_ars",
+                help="Accounts that responded to any ARS mailer campaign",
+            )
+            st.session_state["uap_seg_ars"] = _seg_ars
+        with _seg_cols[1]:
+            _seg_ics = st.toggle(
+                "ICS Account Holders",
+                value=st.session_state.get("uap_seg_ics", False),
+                key="home_seg_ics",
+                help="Accounts flagged as ICS Account = Yes in ODD",
+            )
+            st.session_state["uap_seg_ics"] = _seg_ics
+
 st.divider()
 
 # =========================================================================
@@ -868,6 +907,8 @@ _is_running = st.session_state.get("uap_running", False)
 def _on_run_click() -> None:
     """Callback fires BEFORE the page reruns -- disables button immediately."""
     st.session_state["uap_running"] = True
+    st.session_state["uap_progress_log"] = []
+    st.session_state["uap_run_start"] = time.time()
 
 
 st.markdown('<div class="uap-run-btn">', unsafe_allow_html=True)
@@ -884,6 +925,24 @@ st.markdown("</div>", unsafe_allow_html=True)
 if not run_btn and not _is_running:
     _render_results_dashboard()
     st.stop()
+
+# Guard: if pipeline is already running (user clicked something during execution),
+# show stored progress and poll for completion instead of re-executing.
+if not run_btn and _is_running:
+    _progress_log: list[str] = st.session_state.get("uap_progress_log", [])
+    _run_elapsed = time.time() - st.session_state.get("uap_run_start", time.time())
+
+    st.info(f"Pipeline running ({round(_run_elapsed)}s elapsed)... Do not close this page.")
+    if _progress_log:
+        with st.status("Pipeline in progress...", expanded=True, state="running") as _replay:
+            for _msg in _progress_log[-30:]:
+                _replay.write(_msg)
+    else:
+        st.status("Pipeline starting...", expanded=True, state="running")
+
+    # Poll: wait a few seconds then rerun to check for updates
+    time.sleep(3)
+    st.rerun()
 
 # ---------------------------------------------------------------------------
 # Execution -- full analytics dashboard
@@ -919,6 +978,7 @@ _needs_odd = Product.ARS in needed_products or Product.ICS in needed_products
 
 if _needs_odd and oddd_path and Path(oddd_path).exists():
     _data_status.write("Reading ODD Excel from network drive...")
+    st.session_state.setdefault("uap_progress_log", []).append("Loading ODD Excel...")
     logger.info("Loading ODD Excel: %s", oddd_path)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
@@ -934,6 +994,9 @@ _effective_tran: Path | None = None
 if Product.TXN in needed_products:
     n_tran = len(_all_tran_paths)
     _data_status.write(f"Reading {n_tran} transaction file{'s' if n_tran != 1 else ''}...")
+    st.session_state.setdefault("uap_progress_log", []).append(
+        f"Loading {n_tran} transaction file{'s' if n_tran != 1 else ''}..."
+    )
     logger.info("Combining %d transaction files", n_tran)
     _effective_tran = _combine_tran_files(
         _all_tran_paths, Path(oddd_path).parent if oddd_path else Path(".")
@@ -1015,6 +1078,10 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
     ) -> None:
         _short = _make_status_line(msg, _pipe)
         _status.write(_short)
+        # Store in session_state so reruns can replay progress
+        _log = st.session_state.get("uap_progress_log")
+        if _log is not None:
+            _log.append(_short)
 
     _product_keys = [
         k for k in selected_modules if module_map.get(k) and module_map[k].product == product
@@ -1022,6 +1089,19 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
     _pipeline_config = {**_client_config}
     if _product_keys:
         _pipeline_config["module_ids"] = _product_keys
+
+    # Pass segment filter toggles to TXN pipeline
+    if product == Product.TXN:
+        _seg_ars_on = st.session_state.get("uap_seg_ars", False)
+        _seg_ics_on = st.session_state.get("uap_seg_ics", False)
+        if _seg_ars_on or _seg_ics_on:
+            _pipeline_config["segments"] = {
+                "ars_responders": _seg_ars_on,
+                "ics_accounts": _seg_ics_on,
+            }
+            # TXN segmentation needs the ODD file for account lookup
+            if oddd_path and Path(oddd_path).exists() and "odd" not in input_files:
+                input_files["odd"] = Path(_local_oddd)
 
     _ps.write(f"Running {len(_product_keys)} modules...")
 
@@ -1062,8 +1142,10 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
 
 total_elapsed = round(time.time() - t0, 1)
 
-# Re-enable the run button
+# Re-enable the run button and clear progress log
 st.session_state["uap_running"] = False
+st.session_state.pop("uap_progress_log", None)
+st.session_state.pop("uap_run_start", None)
 
 # Clean up local copy
 shutil.rmtree(_local_dir, ignore_errors=True)

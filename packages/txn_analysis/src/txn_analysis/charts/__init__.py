@@ -41,6 +41,10 @@ from txn_analysis.charts.personal import (
     chart_personal_top_by_spend,
     chart_personal_top_by_transactions,
 )
+from txn_analysis.charts.recurring import (
+    chart_recurring_merchants,
+    chart_recurring_onsets,
+)
 from txn_analysis.charts.scorecard import chart_scorecard_bullets
 from txn_analysis.charts.trends import (
     chart_cohort_summary,
@@ -77,6 +81,9 @@ CHART_REGISTRY: dict[str, ChartFunc] = {
     "competitor_threat_assessment": chart_threat_scatter,
     "competitor_segmentation": chart_segmentation_bar,
     "competitor_categories": chart_competitor_heatmap,
+    # M15: Recurring Payments
+    "recurring_payments": chart_recurring_merchants,
+    "recurring_payments:onsets": chart_recurring_onsets,
     # M9: Scorecard
     "portfolio_scorecard": chart_scorecard_bullets,
 }

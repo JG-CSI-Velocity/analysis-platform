@@ -47,6 +47,7 @@ from txn_analysis.analyses.personal import (
 )
 from txn_analysis.analyses.recurring import analyze_recurring_payments
 from txn_analysis.analyses.scorecard import analyze_portfolio_scorecard
+from txn_analysis.analyses.spending_behavior import analyze_spending_behavior
 from txn_analysis.analyses.storyline_adapters import (
     analyze_campaigns,
     analyze_demographics,
@@ -124,8 +125,10 @@ ANALYSIS_REGISTRY: list[tuple[str, AnalysisFunc]] = [
     ("lifecycle", analyze_lifecycle),
     # M15: Recurring Payments (pure TXN, no ODD needed)
     ("recurring_payments", analyze_recurring_payments),
-    # M16: Time-of-Day / Day-of-Week Patterns (pure TXN, no ODD needed)
+    # M16: Time-of-Day / Day-of-Week / Day-of-Month Patterns (pure TXN, no ODD needed)
     ("time_patterns", analyze_time_patterns),
+    # M17: Spending Behavior by Demographics + Response Timing (requires ODD)
+    ("spending_behavior", analyze_spending_behavior),
     # M9: Scorecard (MUST be last -- reads completed_results from all prior analyses)
     ("portfolio_scorecard", analyze_portfolio_scorecard),
 ]

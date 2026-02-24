@@ -20,7 +20,7 @@ class TestRunPipeline:
 
     def test_has_analyses(self, pipeline_settings):
         result = run_pipeline(pipeline_settings)
-        assert len(result.analyses) == 38
+        assert len(result.analyses) == 39
 
     def test_all_analyses_succeed(self, pipeline_settings):
         result = run_pipeline(pipeline_settings)
@@ -46,9 +46,14 @@ class TestRunPipeline:
             calls.append((step, total, msg))
 
         run_pipeline(pipeline_settings, on_progress=on_progress)
-        assert len(calls) == 3
-        assert calls[0][0] == 0
-        assert calls[2][0] == 2
+        # 3 phase-level calls + 38 per-analysis calls = 41 total
+        assert len(calls) >= 3
+        assert calls[0] == (0, 3, "Loading data...")
+        assert calls[1] == (1, 3, "Running analyses...")
+        # Per-analysis callbacks follow with step=1, total=3
+        analysis_calls = [c for c in calls if "Analysis " in c[2]]
+        assert len(analysis_calls) >= 10  # at least some analyses reported
+        assert calls[-1][0] == 2  # final call is "Building charts"
 
 
 class TestExportOutputs:

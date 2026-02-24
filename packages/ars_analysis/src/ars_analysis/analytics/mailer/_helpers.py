@@ -247,6 +247,53 @@ def analyze_month(data: pd.DataFrame, resp_col: str, mail_col: str) -> tuple[dic
 
 
 # ---------------------------------------------------------------------------
+# "Inside the Numbers" -- responder characteristics
+# ---------------------------------------------------------------------------
+
+
+def compute_inside_numbers(
+    ctx: PipelineContext,
+    data: pd.DataFrame,
+    resp_col: str,
+) -> list[tuple[str, str]]:
+    """Compute responder characteristic metrics for mailer summary slides.
+
+    Returns list of (percentage_string, description) tuples, e.g.:
+      ("42%", "of Responders were accounts opened fewer than 2 years ago")
+      ("68%", "of Responders opted into Reg E")
+    """
+    metrics: list[tuple[str, str]] = []
+    responders = data[data[resp_col].isin(RESPONSE_SEGMENTS)]
+    n_resp = len(responders)
+    if n_resp == 0:
+        return metrics
+
+    # % of responders with accounts opened < 2 years ago
+    if "Date Opened" in data.columns:
+        do = pd.to_datetime(responders["Date Opened"], errors="coerce")
+        age_years = (pd.Timestamp.now() - do).dt.days / 365.25
+        under_2 = int((age_years < 2).sum())
+        pct = under_2 / n_resp * 100
+        metrics.append((f"{pct:.0f}%", "of Responders were accounts opened fewer than 2 years ago"))
+
+    # % of responders opted into Reg E (uses same config as Reg E module)
+    opt_list = ctx.client.reg_e_opt_in
+    if opt_list:
+        reg_e_col = ctx.client.reg_e_column
+        if not reg_e_col and ctx.data is not None:
+            from ars_analysis.analytics.rege._helpers import detect_reg_e_column
+
+            reg_e_col = detect_reg_e_column(ctx.data)
+        if reg_e_col and reg_e_col in data.columns:
+            opted_in = responders[reg_e_col].astype(str).str.strip()
+            n_opted = int(opted_in.isin(opt_list).sum())
+            pct = n_opted / n_resp * 100
+            metrics.append((f"{pct:.0f}%", "of Responders opted into Reg E"))
+
+    return metrics
+
+
+# ---------------------------------------------------------------------------
 # Safe wrapper
 # ---------------------------------------------------------------------------
 

@@ -26,6 +26,7 @@ from ars_analysis.analytics.mailer._helpers import (
     VALID_RESPONSES,
     _safe,
     analyze_month,
+    compute_inside_numbers,
     discover_pairs,
     format_title,
     parse_month,
@@ -195,9 +196,14 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
         ok_donut = _render_donut_chart(seg_details, donut_path, "Response Share")
         ok_hbar = _render_hbar_chart(seg_details, hbar_path, "Response Rate")
 
-        # Build "Inside the Numbers" bullets
+        # Build "Inside the Numbers" bullets -- member characteristics first
+        inside_numbers = compute_inside_numbers(ctx, data, resp_col)
+        inside_bullets: list[str] = []
+        for pct_str, desc in inside_numbers:
+            inside_bullets.append(f"{pct_str}|{desc}")
+        # Then response rates
         active = [s for s in RESPONSE_SEGMENTS if s in seg_details]
-        inside_bullets: list[str] = [f"{overall_rate:.1f}%|Overall response rate"]
+        inside_bullets.append(f"{overall_rate:.1f}%|Overall response rate")
         for s in active:
             d = seg_details[s]
             lbl = "NU 5+" if s == "NU" else s
@@ -296,8 +302,42 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
     ok_donut = _render_donut_chart(combined, donut_path, "Response Share")
     ok_hbar = _render_hbar_chart(combined, hbar_path, "Response Rate")
 
+    # Build combined responder mask across ALL months for inside numbers
+    all_resp_mask = pd.Series(False, index=data.index)
+    for _, resp_col, _ in pairs:
+        all_resp_mask |= data[resp_col].isin(RESPONSE_SEGMENTS)
+    responders = data[all_resp_mask]
+    n_resp = len(responders)
+
+    inside_bullets: list[str] = []
+
+    # Member characteristic metrics (account age, Reg E)
+    if n_resp > 0:
+        if "Date Opened" in data.columns:
+            do = pd.to_datetime(responders["Date Opened"], errors="coerce")
+            age_years = (pd.Timestamp.now() - do).dt.days / 365.25
+            under_2 = int((age_years < 2).sum())
+            pct = under_2 / n_resp * 100
+            inside_bullets.append(
+                f"{pct:.0f}%|of Responders were accounts opened fewer than 2 years ago"
+            )
+
+        opt_list = ctx.client.reg_e_opt_in
+        if opt_list:
+            reg_e_col = ctx.client.reg_e_column
+            if not reg_e_col and ctx.data is not None:
+                from ars_analysis.analytics.rege._helpers import detect_reg_e_column
+
+                reg_e_col = detect_reg_e_column(ctx.data)
+            if reg_e_col and reg_e_col in data.columns:
+                opted_in = responders[reg_e_col].astype(str).str.strip()
+                n_opted = int(opted_in.isin(opt_list).sum())
+                pct_re = n_opted / n_resp * 100
+                inside_bullets.append(f"{pct_re:.0f}%|of Responders opted into Reg E")
+
+    # Then response rates
     active = [s for s in RESPONSE_SEGMENTS if s in combined]
-    inside_bullets: list[str] = [f"{overall:.1f}%|Overall response rate"]
+    inside_bullets.append(f"{overall:.1f}%|Overall response rate")
     for s in active:
         d = combined[s]
         lbl = "NU 5+" if s == "NU" else s

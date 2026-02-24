@@ -53,6 +53,18 @@ def run_pipeline(
     if on_progress:
         on_progress(1, 3, "Running analyses...")
 
+    # Per-analysis progress: report each of the N analyses individually
+    from txn_analysis.analyses import ANALYSIS_REGISTRY
+
+    _n_analyses = len(ANALYSIS_REGISTRY)
+    _analysis_idx = 0
+
+    def _per_analysis(name: str) -> None:
+        nonlocal _analysis_idx
+        _analysis_idx += 1
+        if on_progress:
+            on_progress(1, 3, f"Analysis {_analysis_idx}/{_n_analyses}: {name}")
+
     seg_cfg = settings.segments
     seg_filters = []
     segmented_results: list[SegmentedResult] = []
@@ -69,7 +81,7 @@ def run_pipeline(
         # Use full-population analyses as the primary result set
         analyses = segmented_results[0].analyses if segmented_results else []
     else:
-        analyses = run_all_analyses(df, settings, odd_df=odd_df)
+        analyses = run_all_analyses(df, settings, on_progress=_per_analysis, odd_df=odd_df)
 
     successful = [a for a in analyses if a.error is None]
     failed = [a for a in analyses if a.error is not None]

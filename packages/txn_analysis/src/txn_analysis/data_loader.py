@@ -465,9 +465,12 @@ def load_odd(settings: Settings) -> pd.DataFrame | None:
 
     odd_path = settings.odd_file
     logger.info("Loading ODD file: %s", odd_path.name)
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
-        odd_df = pd.read_excel(odd_path, engine="openpyxl")
+    if odd_path.suffix.lower() == ".csv":
+        odd_df = pd.read_csv(odd_path)
+    else:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+            odd_df = pd.read_excel(odd_path, engine="openpyxl")
     odd_df.columns = odd_df.columns.str.strip()
 
     # Parse date columns

@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from txn_analysis.data_loader import load_data
+from txn_analysis.data_loader import load_data, load_odd
 from txn_analysis.exceptions import ColumnMismatchError, DataLoadError
 from txn_analysis.settings import Settings
 
@@ -145,3 +145,22 @@ class TestLoadData:
         df = load_data(settings)
         assert len(df) == 2
         assert (df["amount"] < 0).any()
+
+
+class TestLoadOdd:
+    def test_load_odd_csv(self, sample_csv_path: Path, tmp_path: Path):
+        odd_csv = tmp_path / "odd_data.csv"
+        odd_csv.write_text(
+            "Account Number,Balance,Account Holder Age,DOB\n"
+            "123,500,35,1990-01-15\n"
+            "456,1200,55,1970-06-20\n"
+        )
+        settings = Settings(data_file=sample_csv_path, output_dir=tmp_path, odd_file=odd_csv)
+        df = load_odd(settings)
+        assert df is not None
+        assert len(df) == 2
+        assert "generation" in df.columns
+
+    def test_load_odd_none(self, sample_csv_path: Path, tmp_path: Path):
+        settings = Settings(data_file=sample_csv_path, output_dir=tmp_path)
+        assert load_odd(settings) is None

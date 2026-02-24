@@ -106,8 +106,8 @@ class Settings(BaseModel):
         p = Path(v).expanduser().resolve()
         if not p.exists():
             raise ValueError(f"ODD file not found: {p}")
-        if p.suffix.lower() not in (".xlsx", ".xls"):
-            raise ValueError(f"ODD file must be Excel (.xlsx/.xls): {p.suffix}")
+        if p.suffix.lower() not in (".xlsx", ".xls", ".csv"):
+            raise ValueError(f"ODD file must be Excel or CSV (.xlsx/.xls/.csv): {p.suffix}")
         return p
 
     @field_validator("transaction_dir", mode="before")

@@ -57,6 +57,24 @@ class TestSettings:
         with pytest.raises(Exception):
             Settings(data_file=sample_csv_path, output_dir=tmp_path, bogus=1)
 
+    def test_odd_file_csv_accepted(self, sample_csv_path: Path, tmp_path: Path):
+        odd_csv = tmp_path / "odd_data.csv"
+        odd_csv.write_text("Account Number,Balance\n123,500\n")
+        s = Settings(data_file=sample_csv_path, output_dir=tmp_path, odd_file=odd_csv)
+        assert s.odd_file == odd_csv.resolve()
+
+    def test_odd_file_xlsx_accepted(self, sample_csv_path: Path, tmp_path: Path):
+        odd_xlsx = tmp_path / "odd_data.xlsx"
+        odd_xlsx.write_bytes(b"")  # won't be read, just needs to exist
+        s = Settings(data_file=sample_csv_path, output_dir=tmp_path, odd_file=odd_xlsx)
+        assert s.odd_file == odd_xlsx.resolve()
+
+    def test_odd_file_unsupported_ext(self, sample_csv_path: Path, tmp_path: Path):
+        bad = tmp_path / "odd_data.json"
+        bad.write_text("{}")
+        with pytest.raises(Exception, match="ODD file must be Excel or CSV"):
+            Settings(data_file=sample_csv_path, output_dir=tmp_path, odd_file=bad)
+
     def test_data_file_not_found(self, tmp_path: Path):
         with pytest.raises(Exception, match="Data file not found"):
             Settings(data_file=tmp_path / "nope.csv")

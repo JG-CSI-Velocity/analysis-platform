@@ -6,6 +6,7 @@ colors to ensure visual consistency across ARS (matplotlib) and Txn/ICS (Plotly)
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 # Consultant-grade color palette (single authority)
@@ -54,7 +55,9 @@ def save_chart_png(fig: object, path: Path, scale: int = 1) -> Path:
 
         plt.close(fig)
     elif "plotly" in fig_type:
-        fig.write_image(str(path), scale=scale)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            fig.write_image(str(path), scale=scale)
     else:
         raise TypeError(f"Unsupported figure type: {type(fig)}")
 

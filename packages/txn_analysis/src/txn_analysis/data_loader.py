@@ -227,7 +227,7 @@ def _derive_year_month(df: pd.DataFrame) -> pd.DataFrame:
     if "year_month" in df.columns:
         return df
     df = df.copy()
-    dt = pd.to_datetime(df["transaction_date"], errors="coerce")
+    dt = pd.to_datetime(df["transaction_date"], errors="coerce", format="mixed")
     df["year_month"] = dt.dt.to_period("M").astype(str)
     return df
 
@@ -277,7 +277,7 @@ def _flag_partial_month(df: pd.DataFrame) -> pd.DataFrame:
     if "transaction_date" not in df.columns:
         return df
 
-    dt = pd.to_datetime(df["transaction_date"], errors="coerce")
+    dt = pd.to_datetime(df["transaction_date"], errors="coerce", format="mixed")
     max_date = dt.max()
     if pd.isna(max_date):
         return df
@@ -402,7 +402,7 @@ def _load_transaction_dir(settings: Settings) -> pd.DataFrame:
     combined["amount"] = pd.to_numeric(combined["amount"], errors="coerce").fillna(0.0)
     if combined["amount"].median() < 0:
         combined["amount"] = combined["amount"].abs()
-    combined["transaction_date"] = pd.to_datetime(combined["transaction_date"], errors="coerce")
+    combined["transaction_date"] = pd.to_datetime(combined["transaction_date"], errors="coerce", format="mixed")
 
     logger.info("Loaded %d rows from transaction directory", len(combined))
     return combined
@@ -476,7 +476,7 @@ def load_odd(settings: Settings) -> pd.DataFrame | None:
     # Parse date columns
     for col in ("DOB", "Date Opened", "Date Closed"):
         if col in odd_df.columns:
-            odd_df[col] = pd.to_datetime(odd_df[col], errors="coerce")
+            odd_df[col] = pd.to_datetime(odd_df[col], errors="coerce", format="mixed")
 
     # Derived: generation
     if "Account Holder Age" in odd_df.columns:

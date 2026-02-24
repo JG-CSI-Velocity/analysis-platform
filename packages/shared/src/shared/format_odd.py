@@ -116,13 +116,13 @@ def _step5_age_calculations(df: pd.DataFrame) -> pd.DataFrame:
     now = datetime.now()
 
     if "DOB" in df.columns:
-        df["DOB"] = pd.to_datetime(df["DOB"], errors="coerce")
+        df["DOB"] = pd.to_datetime(df["DOB"], errors="coerce", format="mixed")
         df["Account Holder Age"] = now.year - df["DOB"].dt.year
 
     if "Date Opened" in df.columns:
-        df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce")
+        df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")
         if "Date Closed" in df.columns:
-            df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce")
+            df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce", format="mixed")
             end_date = df["Date Closed"].fillna(pd.Timestamp(now))
         else:
             end_date = pd.Timestamp(now)

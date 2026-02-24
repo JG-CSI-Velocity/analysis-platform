@@ -114,7 +114,7 @@ def _parse_dates(df: pd.DataFrame) -> pd.DataFrame:
     """Parse date columns to datetime."""
     for col in ("Date Opened", "Date Closed"):
         if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
+            df[col] = pd.to_datetime(df[col], errors="coerce", format="mixed")
 
     return df
 

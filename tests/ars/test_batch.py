@@ -14,7 +14,7 @@ def _make_scanned(tmp_path, client_id="1234"):
     df = pd.DataFrame(
         {
             "Account Number": [f"A{i}" for i in range(20)],
-            "Date Opened": pd.date_range("2020-01-01", periods=20, freq="M"),
+            "Date Opened": pd.date_range("2020-01-01", periods=20, freq="ME"),
             "Status Code": ["A"] * 15 + ["C"] * 5,
             "Current Balance": [1000 + i * 100 for i in range(20)],
         }

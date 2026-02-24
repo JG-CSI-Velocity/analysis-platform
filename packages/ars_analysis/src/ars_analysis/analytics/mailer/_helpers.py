@@ -270,7 +270,7 @@ def compute_inside_numbers(
 
     # % of responders with accounts opened < 2 years ago
     if "Date Opened" in data.columns:
-        do = pd.to_datetime(responders["Date Opened"], errors="coerce")
+        do = pd.to_datetime(responders["Date Opened"], errors="coerce", format="mixed")
         age_years = (pd.Timestamp.now() - do).dt.days / 365.25
         under_2 = int((age_years < 2).sum())
         pct = under_2 / n_resp * 100

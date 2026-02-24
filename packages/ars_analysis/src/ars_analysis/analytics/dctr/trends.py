@@ -303,7 +303,7 @@ class DCTRTrends(AnalysisModule):
 
         def _monthly_rates(dataset: pd.DataFrame, month_list: list[str]) -> list[float]:
             dc = dataset.copy()
-            dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
+            dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce", format="mixed")
             dc["Month_Year"] = dc["Date Opened"].dt.strftime("%b%y")
             rates = []
             for m in month_list:
@@ -532,7 +532,7 @@ class DCTRTrends(AnalysisModule):
             return []
 
         valid = ed.copy()
-        valid["Date Opened"] = pd.to_datetime(valid["Date Opened"], errors="coerce")
+        valid["Date Opened"] = pd.to_datetime(valid["Date Opened"], errors="coerce", format="mixed")
         valid = valid[valid["Date Opened"].notna()]
         if valid.empty:
             return []
@@ -616,7 +616,7 @@ class DCTRTrends(AnalysisModule):
             return []
 
         valid = ed.copy()
-        valid["Date Opened"] = pd.to_datetime(valid["Date Opened"], errors="coerce")
+        valid["Date Opened"] = pd.to_datetime(valid["Date Opened"], errors="coerce", format="mixed")
         valid = valid[valid["Date Opened"].notna()]
         if valid.empty:
             return []

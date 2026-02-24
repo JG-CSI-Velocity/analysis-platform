@@ -26,7 +26,7 @@ def step_subsets(ctx: PipelineContext) -> None:
     # is in Feb 2026, the L12M window is Feb 1, 2025 - Jan 31, 2026.
     # Store as pd.Timestamp so downstream comparisons against datetime64 columns work.
     if "Date Opened" in df.columns and ctx.end_date is None:
-        date_col = pd.to_datetime(df["Date Opened"], errors="coerce").dropna()
+        date_col = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed").dropna()
         if not date_col.empty:
             from dateutil.relativedelta import relativedelta
 
@@ -69,7 +69,7 @@ def step_subsets(ctx: PipelineContext) -> None:
         if pd.api.types.is_datetime64_any_dtype(df["Date Closed"]):
             _dc_parsed = df["Date Closed"]
         else:
-            _dc_parsed = pd.to_datetime(df["Date Closed"], errors="coerce")
+            _dc_parsed = pd.to_datetime(df["Date Closed"], errors="coerce", format="mixed")
         _open_mask = _open_mask | _dc_parsed.isna()
 
     subs.open_accounts = df[_open_mask]
@@ -160,7 +160,7 @@ def step_subsets(ctx: PipelineContext) -> None:
         if pd.api.types.is_datetime64_any_dtype(df["Date Opened"]):
             _do_parsed = df["Date Opened"]
         else:
-            _do_parsed = pd.to_datetime(df["Date Opened"], errors="coerce")
+            _do_parsed = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")
         subs.last_12_months = df[_do_parsed >= cutoff]
         logger.info(
             "Last 12 months: {n:,} rows (cutoff={cutoff})",

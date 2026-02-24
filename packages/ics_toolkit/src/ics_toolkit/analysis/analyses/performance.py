@@ -52,7 +52,7 @@ def analyze_days_to_first_use(
             days_list.append(None)
             continue
 
-        opened_dt = pd.to_datetime(opened)
+        opened_dt = pd.to_datetime(opened, format="mixed")
         first_use = None
 
         for tag in tags:

@@ -308,7 +308,7 @@ class ValueAnalysis(AnalysisModule):
         if "Date Closed" in df.columns:
             # Ensure datetime (may already be parsed by step_load)
             if not pd.api.types.is_datetime64_any_dtype(df["Date Closed"]):
-                df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce")
+                df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce", format="mixed")
             if ctx.start_date is not None:
                 cutoff = pd.Timestamp(ctx.start_date)
                 active = df[df["Date Closed"].isna() | (df["Date Closed"] >= cutoff)].copy()
@@ -524,7 +524,7 @@ class ValueAnalysis(AnalysisModule):
         if "Date Closed" in df.columns:
             # Ensure datetime (may already be parsed by step_load)
             if not pd.api.types.is_datetime64_any_dtype(df["Date Closed"]):
-                df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce")
+                df["Date Closed"] = pd.to_datetime(df["Date Closed"], errors="coerce", format="mixed")
             if ctx.start_date is not None:
                 cutoff = pd.Timestamp(ctx.start_date)
                 active = df[df["Date Closed"].isna() | (df["Date Closed"] >= cutoff)].copy()

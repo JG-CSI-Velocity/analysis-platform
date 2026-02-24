@@ -205,7 +205,7 @@ def _draw_priority_matrix(ax, df: pd.DataFrame) -> str:
     # Size by account age (if Date Opened exists)
     if "Date Opened" in df.columns:
         today = pd.Timestamp.now()
-        age_years = (today - pd.to_datetime(df["Date Opened"])).dt.days / 365.25
+        age_years = (today - pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")).dt.days / 365.25
         sizes = np.clip(age_years * 15, 20, 200)
     else:
         sizes = 60

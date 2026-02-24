@@ -50,7 +50,7 @@ def analyze_time_patterns(
             error="Missing transaction_date column",
         )
 
-    dt = pd.to_datetime(df["transaction_date"], errors="coerce")
+    dt = pd.to_datetime(df["transaction_date"], errors="coerce", format="mixed")
     valid_mask = dt.notna()
     if valid_mask.sum() == 0:
         return AnalysisResult.from_df(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -133,14 +134,16 @@ def _render_chart_pngs(result: PipelineResult) -> dict[str, bytes]:
     for name, fig in result.charts.items():
         try:
             buf = BytesIO()
-            fig.write_image(
-                buf,
-                format="png",
-                width=config.width,
-                height=config.height,
-                scale=1,
-                engine="kaleido",
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                fig.write_image(
+                    buf,
+                    format="png",
+                    width=config.width,
+                    height=config.height,
+                    scale=1,
+                    engine="kaleido",
+                )
             pngs[name] = buf.getvalue()
         except Exception as e:
             logger.warning("PNG render failed for '%s': %s", name, e)

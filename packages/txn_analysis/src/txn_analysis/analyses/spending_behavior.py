@@ -67,7 +67,7 @@ def _build_response_month_velocity(
     For each response month, splits accounts into responders vs non-responders,
     then looks at their transaction timing (day-of-month) in that calendar month.
     """
-    dt = pd.to_datetime(txn_df["transaction_date"], errors="coerce")
+    dt = pd.to_datetime(txn_df["transaction_date"], errors="coerce", format="mixed")
     txn_work = txn_df[dt.notna()].copy()
     txn_work["txn_date"] = dt[dt.notna()]
     txn_work["txn_ym"] = txn_work["txn_date"].dt.to_period("M").astype(str)

@@ -314,7 +314,7 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
     # Member characteristic metrics (account age, Reg E)
     if n_resp > 0:
         if "Date Opened" in data.columns:
-            do = pd.to_datetime(responders["Date Opened"], errors="coerce")
+            do = pd.to_datetime(responders["Date Opened"], errors="coerce", format="mixed")
             age_years = (pd.Timestamp.now() - do).dt.days / 365.25
             under_2 = int((age_years < 2).sum())
             pct = under_2 / n_resp * 100
@@ -593,7 +593,7 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
             )
         ]
 
-    data["Date Opened"] = pd.to_datetime(data["Date Opened"], errors="coerce")
+    data["Date Opened"] = pd.to_datetime(data["Date Opened"], errors="coerce", format="mixed")
 
     # Aggregate across all months: count mailed + responders per age bucket
     resp_totals: dict[str, int] = {s[0]: 0 for s in AGE_SEGMENTS}

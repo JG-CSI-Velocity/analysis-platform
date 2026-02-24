@@ -192,7 +192,7 @@ def filter_l12m(
     if df is None or df.empty:
         return pd.DataFrame()
     dc = df.copy()
-    dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
+    dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce", format="mixed")
     mask = (dc["Date Opened"] >= str(start_date)) & (dc["Date Opened"] <= str(end_date))
     return dc[mask]
 
@@ -216,7 +216,7 @@ def analyze_historical_dctr(
         return pd.DataFrame(), pd.DataFrame(), empty_ins
 
     df = dataset.copy()
-    df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce")
+    df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")
     df["Year"] = df["Date Opened"].dt.year
     valid = df.dropna(subset=["Year"])
     if valid.empty:
@@ -297,7 +297,7 @@ def l12m_monthly(
         return pd.DataFrame(), empty_ins
 
     dc = dataset.copy()
-    dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
+    dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce", format="mixed")
     dc["Month_Year"] = dc["Date Opened"].dt.strftime("%b%y")
 
     rows = []

@@ -150,12 +150,12 @@ def format_odd(df: pd.DataFrame) -> pd.DataFrame:
     # Step 5: Age calculations
     now = datetime.now()
     if "DOB" in df.columns:
-        df["DOB"] = pd.to_datetime(df["DOB"], errors="coerce")
+        df["DOB"] = pd.to_datetime(df["DOB"], errors="coerce", format="mixed")
         df["Account Holder Age"] = now.year - df["DOB"].dt.year
     if "Date Opened" in df.columns:
-        df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce")
+        df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")
         if "Date Closed" in df.columns:
-            date_closed = pd.to_datetime(df["Date Closed"], errors="coerce")
+            date_closed = pd.to_datetime(df["Date Closed"], errors="coerce", format="mixed")
         else:
             date_closed = pd.Series(pd.NaT, index=df.index)
         df["Account Age"] = (date_closed.fillna(now) - df["Date Opened"]).dt.days / 365

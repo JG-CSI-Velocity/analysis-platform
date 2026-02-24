@@ -104,7 +104,7 @@ def _validate_primary_key(df: pd.DataFrame) -> pd.DataFrame:
 def _parse_dates(df: pd.DataFrame) -> pd.DataFrame:
     """Parse Issue Date as datetime."""
     df = df.copy()
-    df["Issue Date"] = pd.to_datetime(df["Issue Date"], errors="coerce")
+    df["Issue Date"] = pd.to_datetime(df["Issue Date"], errors="coerce", format="mixed")
     nat_count = df["Issue Date"].isna().sum()
     if nat_count > 0:
         logger.warning(

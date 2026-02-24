@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Callable
 from pathlib import Path
 
@@ -144,11 +145,13 @@ def render_chart_png(
 ) -> Path:
     """Write a Plotly figure to PNG using kaleido."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.write_image(
-        str(output_path),
-        width=config.width,
-        height=config.height,
-        scale=scale or config.scale,
-        engine="kaleido",
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        fig.write_image(
+            str(output_path),
+            width=config.width,
+            height=config.height,
+            scale=scale or config.scale,
+            engine="kaleido",
+        )
     return output_path

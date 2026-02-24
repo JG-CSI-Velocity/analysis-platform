@@ -228,7 +228,7 @@ class RegEDimensions(AnalysisModule):
         base, _, col, opts = reg_e_base(ctx)
 
         df = base.copy()
-        df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce")
+        df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")
         df["Age Days"] = (pd.Timestamp.now() - df["Date Opened"]).dt.days
         df["Age Range"] = df["Age Days"].apply(categorize_account_age)
 
@@ -320,7 +320,7 @@ class RegEDimensions(AnalysisModule):
             if "Account Holder Age" in d.columns:
                 d["Holder Age"] = pd.to_numeric(d["Account Holder Age"], errors="coerce")
             elif "Birth Date" in d.columns:
-                d["Birth Date"] = pd.to_datetime(d["Birth Date"], errors="coerce")
+                d["Birth Date"] = pd.to_datetime(d["Birth Date"], errors="coerce", format="mixed")
                 d["Holder Age"] = (pd.Timestamp.now() - d["Birth Date"]).dt.days / 365.25
             elif "Age" in d.columns:
                 d["Holder Age"] = pd.to_numeric(d["Age"], errors="coerce")

@@ -62,7 +62,7 @@ class DCTROverlays(AnalysisModule):
             return []
 
         dc = ed.copy()
-        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
+        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce", format="mixed")
         dc["Account Age Days"] = (pd.Timestamp.now() - dc["Date Opened"]).dt.days
         df, ins = by_dimension(
             dc, "Account Age Days", categorize_account_age, AGE_ORDER, "Account Age"
@@ -349,7 +349,7 @@ class DCTROverlays(AnalysisModule):
             return []
 
         dc = ed.copy()
-        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
+        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce", format="mixed")
         dc["Account Age Days"] = (pd.Timestamp.now() - dc["Date Opened"]).dt.days
         dc["Avg Bal"] = pd.to_numeric(dc["Avg Bal"], errors="coerce")
         valid = dc[dc["Account Age Days"].notna() & dc["Avg Bal"].notna()].copy()

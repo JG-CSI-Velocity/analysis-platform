@@ -167,7 +167,7 @@ class DCTRFunnel(AnalysisModule):
         logger.info("A7.8 L12M date range: {sd} to {ed}", sd=sd, ed=ed_date)
 
         dc = data.copy()
-        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
+        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce", format="mixed")
         l12m_all = dc[(dc["Date Opened"] >= str(sd)) & (dc["Date Opened"] <= str(ed_date))]
 
         l12m_open = filter_l12m(oa, sd, ed_date) if oa is not None else pd.DataFrame()

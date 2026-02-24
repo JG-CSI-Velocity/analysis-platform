@@ -48,12 +48,12 @@ def run_pipeline(
 
     # Filter out records before data_start_date (e.g. test data)
     if settings.data_start_date:
-        cutoff = pd.to_datetime(settings.data_start_date)
+        cutoff = pd.to_datetime(settings.data_start_date, format="mixed")
 
         # Filter rows by Date Opened
         if "Date Opened" in df.columns:
             before = len(df)
-            opened = pd.to_datetime(df["Date Opened"], errors="coerce")
+            opened = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")
             df = df[opened.isna() | (opened >= cutoff)].copy()
             dropped = before - len(df)
             if dropped > 0:
@@ -85,7 +85,7 @@ def run_pipeline(
         settings.cohort_start = dt.strftime("%Y-%m")
         logger.info("Auto-detected cohort_start: %s", settings.cohort_start)
     elif settings.cohort_start is None and "Date Opened" in df.columns:
-        earliest = pd.to_datetime(df["Date Opened"], errors="coerce").min()
+        earliest = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed").min()
         if pd.notna(earliest):
             settings.cohort_start = earliest.strftime("%Y-%m")
             logger.info("Derived cohort_start from data: %s", settings.cohort_start)

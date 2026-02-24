@@ -38,7 +38,7 @@ def analyze_member_segments(
 
     # Recency: days since last transaction, anchored to dataset max date
     if "transaction_date" in df.columns:
-        dt = pd.to_datetime(df["transaction_date"], errors="coerce")
+        dt = pd.to_datetime(df["transaction_date"], errors="coerce", format="mixed")
         max_date = dt.max()
         last_txn = dt.groupby(df["primary_account_num"]).max()
         acct = acct.set_index("primary_account_num")

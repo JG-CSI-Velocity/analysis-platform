@@ -37,6 +37,17 @@ pythonpath = [
 markers = [
     "uses_kaleido: test requires kaleido chart export (skipped on Windows)",
 ]
+filterwarnings = [
+    "default",
+    # Kaleido 0.2.1 is pinned (v1.0+ has 50x regression) -- suppress remaining noise
+    "ignore::DeprecationWarning:kaleido",
+    "ignore::DeprecationWarning:plotly",
+    # PIL decompression bomb warnings on large test charts
+    "ignore::PIL.Image.DecompressionBombWarning",
+    # matplotlib layout/transform warnings on small test figures
+    "ignore:Tight layout not applied:UserWarning",
+    "ignore:Attempting to set identical low and high ylims:UserWarning",
+]
 
 [tool.ruff]
 target-version = "py311"

@@ -130,7 +130,7 @@ class DCTRBranches(AnalysisModule):
 
         bm = getattr(ctx.settings, "branch_mapping", None) if ctx.settings else None
         dc = ed.copy()
-        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
+        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce", format="mixed")
         dc["Account Age Days"] = (pd.Timestamp.now() - dc["Date Opened"]).dt.days
         if bm:
             mapped = dc["Branch"].map(bm)
@@ -194,7 +194,7 @@ class DCTRBranches(AnalysisModule):
         months = l12m_month_labels(ctx.end_date)
 
         dc = ed.copy()
-        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
+        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce", format="mixed")
         dc["Month_Year"] = dc["Date Opened"].dt.strftime("%b%y")
         if bm:
             mapped = dc["Branch"].map(bm)
@@ -431,7 +431,7 @@ class DCTRBranches(AnalysisModule):
         months = l12m_month_labels(ctx.end_date)
 
         dc = ed.copy()
-        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce")
+        dc["Date Opened"] = pd.to_datetime(dc["Date Opened"], errors="coerce", format="mixed")
         dc["Month_Year"] = dc["Date Opened"].dt.strftime("%b%y")
         if bm:
             mapped = dc["Branch"].map(bm)

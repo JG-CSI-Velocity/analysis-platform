@@ -94,7 +94,7 @@ def analyze_net_portfolio_growth(
 
     # Determine date range cutoff (use data_start_date or last 24 months)
     if settings.data_start_date:
-        cutoff = pd.to_datetime(settings.data_start_date)
+        cutoff = pd.to_datetime(settings.data_start_date, format="mixed")
     elif settings.last_12_months:
         from datetime import datetime
 
@@ -103,7 +103,7 @@ def analyze_net_portfolio_growth(
     else:
         cutoff = None
 
-    opened_dt = pd.to_datetime(data["Date Opened"], errors="coerce")
+    opened_dt = pd.to_datetime(data["Date Opened"], errors="coerce", format="mixed")
     data["Open Month"] = opened_dt.dt.to_period("M").astype(str)
 
     opens = data.groupby("Open Month").size().reset_index(name="Opens")
@@ -111,7 +111,7 @@ def analyze_net_portfolio_growth(
     if "Date Closed" in data.columns:
         closed = data[data["Date Closed"].notna()].copy()
         closed["Close Month"] = (
-            pd.to_datetime(closed["Date Closed"], errors="coerce").dt.to_period("M").astype(str)
+            pd.to_datetime(closed["Date Closed"], errors="coerce", format="mixed").dt.to_period("M").astype(str)
         )
         closes = closed.groupby("Close Month").size().reset_index(name="Closes")
         closes.columns = ["Month", "Closes"]
@@ -198,7 +198,7 @@ def analyze_concentration(
 def _get_cutoff(settings: Settings):
     """Derive a date range cutoff from settings."""
     if settings.data_start_date:
-        return pd.to_datetime(settings.data_start_date)
+        return pd.to_datetime(settings.data_start_date, format="mixed")
     if settings.last_12_months:
         from datetime import datetime
 
@@ -301,7 +301,7 @@ def analyze_closure_by_account_age(
         ref_dates = pd.Timestamp.now()
 
     closed["Account Age Days"] = (
-        (pd.to_datetime(ref_dates) - pd.to_datetime(closed["Date Opened"], errors="coerce"))
+        (pd.to_datetime(ref_dates, format="mixed") - pd.to_datetime(closed["Date Opened"], errors="coerce", format="mixed"))
         .dt.days.fillna(0)
         .astype(int)
     )
@@ -352,7 +352,7 @@ def analyze_net_growth_by_source(
     cutoff = _get_cutoff(settings)
 
     # Opens by source
-    opened_dt = pd.to_datetime(data["Date Opened"], errors="coerce")
+    opened_dt = pd.to_datetime(data["Date Opened"], errors="coerce", format="mixed")
     data = data.copy()
     data["Open Month"] = opened_dt.dt.to_period("M").astype(str)
 
@@ -367,7 +367,7 @@ def analyze_net_growth_by_source(
         closed = ics_all[ics_all["Stat Code"].isin(settings.closed_stat_codes)].copy()
         if cutoff is not None and "Date Closed" in closed.columns:
             closed["Close Month"] = (
-                pd.to_datetime(closed["Date Closed"], errors="coerce").dt.to_period("M").astype(str)
+                pd.to_datetime(closed["Date Closed"], errors="coerce", format="mixed").dt.to_period("M").astype(str)
             )
             closed = closed[closed["Close Month"] >= cutoff_period]
         closes = closed.groupby("Source", dropna=False).size().reset_index(name="Closes")
@@ -416,7 +416,7 @@ def analyze_closure_rate_trend(
         )
 
     closed["Close Month"] = (
-        pd.to_datetime(closed["Date Closed"], errors="coerce").dt.to_period("M").astype(str)
+        pd.to_datetime(closed["Date Closed"], errors="coerce", format="mixed").dt.to_period("M").astype(str)
     )
     closed = closed.dropna(subset=["Close Month"])
 

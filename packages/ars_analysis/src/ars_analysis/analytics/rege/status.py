@@ -188,7 +188,7 @@ class RegEStatus(AnalysisModule):
         base, _, col, opts = reg_e_base(ctx)
 
         df = base.copy()
-        df["Year"] = pd.to_datetime(df["Date Opened"], errors="coerce").dt.year
+        df["Year"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed").dt.year
         valid = df.dropna(subset=["Year"]).copy()
 
         # Yearly breakdown
@@ -341,7 +341,7 @@ class RegEStatus(AnalysisModule):
 
         l12m_labels = l12m_month_labels(ctx.end_date)
         df = base_l12m.copy()
-        df["Month_Year"] = pd.to_datetime(df["Date Opened"], errors="coerce").dt.strftime("%b%y")
+        df["Month_Year"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed").dt.strftime("%b%y")
 
         rows = []
         for my in l12m_labels:
@@ -424,7 +424,7 @@ class RegEStatus(AnalysisModule):
         base, _, col, opts = reg_e_base(ctx)
 
         df = base.copy()
-        df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce")
+        df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")
         df["Year_Month"] = df["Date Opened"].dt.to_period("M")
         df["Has_RegE"] = df[col].isin(opts).astype(int)
 

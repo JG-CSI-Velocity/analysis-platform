@@ -179,7 +179,7 @@ def analyze_source_acquisition_mix(
             sheet_name="85_Source_Acq_Mix",
         )
 
-    data["Open Month"] = pd.to_datetime(data["Date Opened"], errors="coerce").dt.to_period("M")
+    data["Open Month"] = pd.to_datetime(data["Date Opened"], errors="coerce", format="mixed").dt.to_period("M")
     data = data.dropna(subset=["Open Month"])
 
     if data.empty:

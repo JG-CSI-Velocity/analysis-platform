@@ -45,7 +45,7 @@ def step_load(ctx: PipelineContext) -> None:
     # Pre-parse date columns once at load time
     for col in DATE_COLUMNS:
         if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
+            df[col] = pd.to_datetime(df[col], errors="coerce", format="mixed")
             logger.debug("Pre-parsed date column: {col}", col=col)
 
     _normalize_columns(df, file_path)
@@ -70,7 +70,7 @@ def step_load_file(ctx: PipelineContext, file_path: Path) -> None:
 
     for col in DATE_COLUMNS:
         if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
+            df[col] = pd.to_datetime(df[col], errors="coerce", format="mixed")
 
     _normalize_columns(df, file_path)
     df = _filter_by_start_date(df, ctx)

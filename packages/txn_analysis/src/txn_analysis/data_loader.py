@@ -492,7 +492,7 @@ def load_odd(settings: Settings) -> pd.DataFrame | None:
     odd_path = settings.odd_file
     logger.info("Loading ODD file: %s", odd_path.name)
     if odd_path.suffix.lower() == ".csv":
-        odd_df = pd.read_csv(odd_path)
+        odd_df = pd.read_csv(odd_path, low_memory=False)
     else:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")

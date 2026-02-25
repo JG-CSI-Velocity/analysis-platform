@@ -1,18 +1,13 @@
-"""Format ODD files: apply the 6-step ARS formatting pipeline.
+"""Format ODD files: apply the 7-step ARS formatting pipeline.
 
-Steps:
-  2. Delete PYTD and YTD columns
-  3. Calculate totals, monthly averages, swipe categories
-  4. Sum PIN+Sig into combined Spend/Swipes columns
-  5. Age calculations
-  6. Mail & Response grouping
-  7. Control segmentation
+Uses the canonical ``shared.format_odd.format_odd`` implementation for the
+per-DataFrame transformation.  This module adds ``format_all`` (batch
+orchestration across CSM directories) and ``_read_odd`` (file I/O).
 """
 
 from __future__ import annotations
 
 import logging
-import re
 import shutil
 import tempfile
 from dataclasses import dataclass, field
@@ -23,71 +18,13 @@ from rich.console import Console
 
 from ars_analysis.config import ARSSettings
 from ars_analysis.pipeline.utils import resolve_target_month
+from shared.format_odd import format_odd  # canonical implementation
 
 logger = logging.getLogger(__name__)
 console = Console()
 
-# Swipe category thresholds
-SWIPE_THRESHOLDS = [
-    (1, "Non-user"),
-    (6, "1-5 Swipes"),
-    (11, "6-10 Swipes"),
-    (16, "11-15 Swipes"),
-    (21, "16-20 Swipes"),
-    (26, "21-25 Swipes"),
-    (41, "26-40 Swipes"),
-]
-SWIPE_TOP = "41+ Swipes"
-
-_MONTH_MAP = {
-    "Jan": 1,
-    "Feb": 2,
-    "Mar": 3,
-    "Apr": 4,
-    "May": 5,
-    "Jun": 6,
-    "Jul": 7,
-    "Aug": 8,
-    "Sep": 9,
-    "Oct": 10,
-    "Nov": 11,
-    "Dec": 12,
-}
-_MONTH_PREFIX_RE = re.compile(r"^([A-Z][a-z]{2})(\d{2})")
-
-
-def _infer_report_date(df: pd.DataFrame) -> pd.Timestamp:
-    """Infer a stable report date from column headers or date fields."""
-    month_tags: list[pd.Timestamp] = []
-    for col in df.columns:
-        match = _MONTH_PREFIX_RE.match(str(col))
-        if not match:
-            continue
-        month = _MONTH_MAP.get(match.group(1))
-        if not month:
-            continue
-        year = 2000 + int(match.group(2))
-        month_tags.append(pd.Timestamp(year, month, 1))
-
-    if month_tags:
-        return max(month_tags)
-
-    for col in ("Date Closed", "Date Opened"):
-        if col in df.columns:
-            parsed = pd.to_datetime(df[col], errors="coerce", format="mixed")
-            max_date = parsed.max()
-            if pd.notna(max_date):
-                return pd.Timestamp(max_date).normalize()
-
-    return pd.Timestamp.now()
-
-
-def _swipe_category(monthly_swipes: float) -> str:
-    """Categorize monthly swipe count into a labeled bucket."""
-    for threshold, label in SWIPE_THRESHOLDS:
-        if monthly_swipes < threshold:
-            return label
-    return SWIPE_TOP
+# Re-export so existing callers (`from ars_analysis.pipeline.steps.format import format_odd`) work.
+__all__ = ["format_odd", "format_all", "FormatResult"]
 
 
 @dataclass
@@ -100,153 +37,6 @@ class FormatResult:
     @property
     def total(self) -> int:
         return len(self.formatted) + len(self.errors)
-
-
-def format_odd(df: pd.DataFrame) -> pd.DataFrame:
-    """Apply 6-step formatting to an ODD DataFrame. Returns a new DataFrame."""
-    df = df.copy()
-
-    # Step 2: Delete PYTD and YTD columns
-    drop_cols = [c for c in df.columns if "PYTD" in c or "YTD" in c]
-    df.drop(columns=drop_cols, errors="ignore", inplace=True)
-    logger.debug("Step 2: dropped %d PYTD/YTD columns", len(drop_cols))
-
-    # Step 3: Totals, averages, categories
-    pin_spend = [c for c in df.columns if "PIN $" in c]
-    sig_spend = [c for c in df.columns if "Sig $" in c]
-    pin_swipe = [c for c in df.columns if "PIN #" in c]
-    sig_swipe = [c for c in df.columns if "Sig #" in c]
-    mtd_cols = [c for c in df.columns if "MTD" in c]
-
-    new_data: dict[str, pd.Series] = {}
-    if pin_spend or sig_spend:
-        new_data["Total Spend"] = df[sig_spend + pin_spend].sum(axis=1)
-    if pin_swipe or sig_swipe:
-        new_data["Total Swipes"] = df[sig_swipe + pin_swipe].sum(axis=1)
-    if pin_spend or sig_spend:
-        new_data["last 3-mon spend"] = df[pin_spend[-3:] + sig_spend[-3:]].sum(axis=1)
-        new_data["last 12-mon spend"] = df[pin_spend[-12:] + sig_spend[-12:]].sum(axis=1)
-    if pin_swipe or sig_swipe:
-        new_data["last 3-mon swipes"] = df[pin_swipe[-3:] + sig_swipe[-3:]].sum(axis=1)
-        new_data["last 12-mon swipes"] = df[pin_swipe[-12:] + sig_swipe[-12:]].sum(axis=1)
-    if mtd_cols:
-        new_data["Total Items"] = df[mtd_cols].sum(axis=1)
-        new_data["Last 12-mon Items"] = df[mtd_cols[-12:]].sum(axis=1)
-        new_data["Last 3-mon Items"] = df[mtd_cols[-3:]].sum(axis=1)
-
-    if new_data:
-        df = pd.concat([df, pd.DataFrame(new_data)], axis=1)
-
-    # Monthly averages
-    if "last 12-mon swipes" in df.columns:
-        df["MonthlySwipes12"] = df["last 12-mon swipes"] / 12
-        df["MonthlySwipes3"] = df["last 3-mon swipes"] / 3
-    if "last 12-mon spend" in df.columns:
-        df["MonthlySpend12"] = df["last 12-mon spend"] / 12
-        df["MonthlySpend3"] = df["last 3-mon spend"] / 3
-    if "Last 12-mon Items" in df.columns:
-        df["MonthlyItems12"] = df["Last 12-mon Items"] / 12
-        df["MonthlyItems3"] = df["Last 3-mon Items"] / 3
-
-    # Swipe categories
-    if "MonthlySwipes12" in df.columns:
-        df["SwipeCat12"] = df["MonthlySwipes12"].apply(_swipe_category)
-        df["SwipeCat3"] = df["MonthlySwipes3"].apply(_swipe_category)
-
-    # Reorder: base columns, then detail, then calculated
-    calc_col_names = list(new_data.keys()) + [
-        c
-        for c in [
-            "MonthlySwipes12",
-            "MonthlySwipes3",
-            "MonthlySpend12",
-            "MonthlySpend3",
-            "MonthlyItems12",
-            "MonthlyItems3",
-            "SwipeCat12",
-            "SwipeCat3",
-        ]
-        if c in df.columns
-    ]
-    detail_cols = pin_spend + sig_spend + pin_swipe + sig_swipe + mtd_cols
-    other = [c for c in df.columns if c not in detail_cols + calc_col_names]
-    df = df[other + detail_cols + calc_col_names]
-    logger.debug("Step 3: totals + averages + categories done")
-
-    # Step 4: Combined Spend/Swipes per month
-    added = 0
-    for col in pin_spend:
-        my = col[:5]
-        sig_col = my + " Sig $"
-        if sig_col in df.columns:
-            df[my + " Spend"] = df[col] + df[sig_col]
-            added += 1
-    for col in pin_swipe:
-        my = col[:5]
-        sig_col = my + " Sig #"
-        if sig_col in df.columns:
-            df[my + " Swipes"] = df[col] + df[sig_col]
-            added += 1
-    logger.debug("Step 4: added %d combined Spend/Swipes columns", added)
-
-    # Step 5: Age calculations
-    anchor_date = _infer_report_date(df)
-    if "DOB" in df.columns:
-        df["DOB"] = pd.to_datetime(df["DOB"], errors="coerce", format="mixed")
-        df["Account Holder Age"] = anchor_date.year - df["DOB"].dt.year
-    if "Date Opened" in df.columns:
-        df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")
-        if "Date Closed" in df.columns:
-            date_closed = pd.to_datetime(df["Date Closed"], errors="coerce", format="mixed")
-        else:
-            date_closed = pd.Series(pd.NaT, index=df.index)
-        df["Account Age"] = (date_closed.fillna(anchor_date) - df["Date Opened"]).dt.days / 365
-    logger.debug("Step 5: age calculations done")
-
-    # Step 6: Mail & Response grouping
-    if "# of Offers" not in df.columns:
-        mail_cols = df.filter(like=" Mail")
-        if not mail_cols.empty:
-            df["# of Offers"] = mail_cols.notnull().sum(axis=1)
-    if "# of Responses" not in df.columns:
-        resp_cols = df.filter(like=" Resp")
-        if not resp_cols.empty:
-            df["# of Responses"] = resp_cols.replace("NU 1-4", pd.NA).count(axis=1)
-
-    if "# of Offers" in df.columns and "# of Responses" in df.columns:
-        rg = pd.Series("check", index=df.index)
-        rg[df["# of Responses"] >= 2] = "MR"
-        rg[(df["# of Responses"] == 1) & (df["# of Offers"] >= 2)] = "MO-SR"
-        rg[(df["# of Offers"] == 1) & (df["# of Responses"] == 1)] = "SO-SR"
-        rg[(df["# of Offers"] > 0) & (df["# of Responses"] == 0)] = "Non-Responder"
-        rg[df["# of Offers"] == 0] = "No Offer"
-        df["Response Grouping"] = rg
-    logger.debug("Step 6: response grouping done")
-
-    # Step 7: Control segmentation
-    seg_updates: dict[str, pd.Series] = {}
-    resp_col_names = [
-        c for c in df.columns if "Resp" in c and c not in ("# of Responses", "Response Grouping")
-    ]
-    for col in resp_col_names:
-        mail_col = col.replace("Resp", "Mail")
-        seg_col = col.replace("Resp", "Segmentation")
-        if mail_col in df.columns:
-            seg_updates[seg_col] = df.apply(
-                lambda x, m=mail_col, r=col: (
-                    "Control"
-                    if pd.isna(x[m])
-                    else "Non-Responder"
-                    if pd.notna(x[m]) and (pd.isna(x[r]) or x[r] == "NU 1-4")
-                    else "Responder"
-                ),
-                axis=1,
-            )
-    if seg_updates:
-        df = pd.concat([df, pd.DataFrame(seg_updates)], axis=1)
-    logger.debug("Step 7: control segmentation done (%d columns)", len(seg_updates))
-
-    return df
 
 
 def _read_odd(file_path: Path) -> pd.DataFrame | None:

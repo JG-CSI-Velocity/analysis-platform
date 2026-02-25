@@ -1157,7 +1157,11 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
         _tb_str = _tb.format_exc()
         pipeline_errors[pipeline_name] = _tb_str
         _progress_bar.progress(1.0, text=f"{pipeline_name.upper()} FAILED ({_step_elapsed}s)")
-        _status_text.error(_tb_str[-300:])
+        # Show last line as inline error, full traceback in expander
+        _last_line = _tb_str.strip().rsplit("\n", 1)[-1]
+        _status_text.error(_last_line)
+        with st.expander("Full traceback", expanded=False):
+            st.code(_tb_str, language="python")
         logger.error("Pipeline %s failed for client %s:\n%s", pipeline_name, client_id, _tb_str)
 
 total_elapsed = round(time.time() - t0, 1)

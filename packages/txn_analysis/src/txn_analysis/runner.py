@@ -76,9 +76,13 @@ def run_txn(ctx: PipelineContext) -> dict[str, SharedResult]:
         if ctx.progress_callback:
             ctx.progress_callback(f"[3/{_total}] Export FAILED: {exc}")
 
+    n_ok = len([a for a in result.analyses if a.error is None])
+    n_fail = len([a for a in result.analyses if a.error is not None])
     if export_error is None and ctx.progress_callback:
-        n = len([a for a in result.analyses if a.error is None])
-        ctx.progress_callback(f"[3/{_total}] Exported {n} analyses")
+        msg = f"[3/{_total}] Exported {n_ok} analyses"
+        if n_fail:
+            msg += f" ({n_fail} failed)"
+        ctx.progress_callback(msg)
 
     chart_dir = (
         result.settings.output_dir / "charts" if result.settings.outputs.chart_images else None

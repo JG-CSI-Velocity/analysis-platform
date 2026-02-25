@@ -175,19 +175,21 @@ def _step5_age_calculations(df: pd.DataFrame) -> pd.DataFrame:
 
 def _step6_mail_response_grouping(df: pd.DataFrame) -> pd.DataFrame:
     """Count offers/responses and classify Response Grouping."""
-    mail_cols = [c for c in df.columns if c.endswith(" Mail")]
-    resp_cols = [c for c in df.columns if c.endswith(" Resp")]
+    # Preserve pre-existing columns (some ODD files arrive with these populated)
+    if "# of Offers" not in df.columns:
+        mail_cols = [c for c in df.columns if c.endswith(" Mail")]
+        if mail_cols:
+            df["# of Offers"] = df[mail_cols].notna().sum(axis=1)
+        else:
+            df["# of Offers"] = 0
 
-    if mail_cols:
-        df["# of Offers"] = df[mail_cols].notna().sum(axis=1)
-    else:
-        df["# of Offers"] = 0
-
-    if resp_cols:
-        resp_data = df[resp_cols].replace("NU 1-4", pd.NA)
-        df["# of Responses"] = resp_data.notna().sum(axis=1)
-    else:
-        df["# of Responses"] = 0
+    if "# of Responses" not in df.columns:
+        resp_cols = [c for c in df.columns if c.endswith(" Resp")]
+        if resp_cols:
+            resp_data = df[resp_cols].replace("NU 1-4", pd.NA)
+            df["# of Responses"] = resp_data.notna().sum(axis=1)
+        else:
+            df["# of Responses"] = 0
 
     # Response Grouping classification
     rg = pd.Series("check", index=df.index)

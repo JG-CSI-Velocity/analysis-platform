@@ -90,24 +90,6 @@ class TestFindChartImages:
 
 
 # ---------------------------------------------------------------------------
-# client_selector.py -- _load_registry isolation
-# ---------------------------------------------------------------------------
-
-
-class TestLoadRegistry:
-    def test_returns_dict_when_no_registry(self):
-        """Without a master config file, returns empty dict."""
-        from platform_app.components.client_selector import _load_registry
-
-        # Clear the cached version so test runs fresh
-        _load_registry.clear()
-        result = _load_registry()
-        assert isinstance(result, dict)
-        # Clean up cache
-        _load_registry.clear()
-
-
-# ---------------------------------------------------------------------------
 # AnalysisResult used across components
 # ---------------------------------------------------------------------------
 

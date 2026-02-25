@@ -142,6 +142,8 @@ def run_pipeline(
         logger.info("Built %d charts", len(charts))
     except Exception as e:
         logger.error("Chart generation failed: %s", e, exc_info=True)
+        if on_progress:
+            on_progress(2, 3, f"Chart generation failed: {e}")
 
     return PipelineResult(
         settings=settings,

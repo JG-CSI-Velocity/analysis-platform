@@ -176,14 +176,11 @@ def _mailer_retention(ctx: PipelineContext) -> list[AnalysisResult]:
     else:
         all_copy["_ever_responded"] = False
 
-    def _classify(row: pd.Series) -> str:
-        if row["_ever_responded"]:
-            return "Responded"
-        if row["_ever_mailed"]:
-            return "Mailed (No Response)"
-        return "Never Mailed"
-
-    all_copy["_mail_group"] = all_copy.apply(_classify, axis=1)
+    all_copy["_mail_group"] = np.select(
+        [all_copy["_ever_responded"], all_copy["_ever_mailed"]],
+        ["Responded", "Mailed (No Response)"],
+        default="Never Mailed",
+    )
 
     rows = []
     for grp in ["Responded", "Mailed (No Response)", "Never Mailed"]:

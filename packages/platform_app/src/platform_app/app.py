@@ -236,8 +236,8 @@ div[data-testid="stDataFrame"] {
     background: var(--uap-accent-dim) !important;
 }
 
-/* Progress bar */
-div[data-testid="stProgress"] > div > div {
+/* Progress bar -- only color the fill bar, not the text label */
+div[data-testid="stProgress"] [role="progressbar"] {
     background-color: var(--uap-accent) !important;
 }
 
@@ -446,8 +446,8 @@ button[data-baseweb="tab"] {
     color: #94A3B8;
 }
 
-/* Progress bar override -- kill Streamlit blue */
-div[data-testid="stProgress"] > div > div {
+/* Progress bar override -- only the fill bar, not text label */
+div[data-testid="stProgress"] [role="progressbar"] {
     background-color: #16A34A !important;
 }
 

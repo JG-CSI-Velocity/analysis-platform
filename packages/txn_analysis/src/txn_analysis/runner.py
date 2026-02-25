@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 def run_txn(ctx: PipelineContext) -> dict[str, SharedResult]:
     """Run all transaction analyses via PipelineContext bridge.
 
-    Supports two input modes:
+    Supports three input modes:
+      - Pre-loaded DataFrame: ctx.data (multi-file data already in memory)
       - Single file: ctx.input_files["tran"] (CSV/Excel)
       - Transaction dir + ODD: ctx.input_files["txn_dir"] + ctx.input_files["odd"]
 
@@ -23,11 +24,12 @@ def run_txn(ctx: PipelineContext) -> dict[str, SharedResult]:
     from txn_analysis.pipeline import export_outputs, run_pipeline
     from txn_analysis.settings import Settings
 
+    has_preloaded = ctx.data is not None
     data_file = ctx.input_files.get("tran")
     txn_dir = ctx.input_files.get("txn_dir")
     odd_file = ctx.input_files.get("odd")
 
-    if not data_file and not txn_dir:
+    if not has_preloaded and not data_file and not txn_dir:
         raise FileNotFoundError("No 'tran' or 'txn_dir' input file in PipelineContext")
 
     kwargs: dict = {
@@ -35,7 +37,8 @@ def run_txn(ctx: PipelineContext) -> dict[str, SharedResult]:
         "client_id": ctx.client_id or None,
         "client_name": ctx.client_name or None,
     }
-    if data_file:
+    # Only set data_file if we have a real path (not the "(preloaded)" sentinel)
+    if data_file and not has_preloaded:
         kwargs["data_file"] = Path(data_file)
     if txn_dir:
         kwargs["transaction_dir"] = Path(txn_dir)
@@ -52,12 +55,23 @@ def run_txn(ctx: PipelineContext) -> dict[str, SharedResult]:
 
     settings = Settings(**kwargs)
 
-    def _progress_bridge(step: int, total: int, msg: str) -> None:
-        if ctx.progress_callback:
-            ctx.progress_callback(f"[{step}/{total}] {msg}")
+    # TXN pipeline has 3 internal steps (load=0, analyze=1, charts=2).
+    # We add export as step 3, giving 4 total for smooth progress.
+    _total = 4
 
-    result = run_pipeline(settings, on_progress=_progress_bridge)
+    def _progress_bridge(step: int, _internal_total: int, msg: str) -> None:
+        if ctx.progress_callback:
+            ctx.progress_callback(f"[{step}/{_total}] {msg}")
+
+    # Pass pre-loaded DataFrame if available (skips file I/O in pipeline)
+    result = run_pipeline(settings, on_progress=_progress_bridge, pre_loaded_df=ctx.data)
+
+    if ctx.progress_callback:
+        ctx.progress_callback(f"[3/{_total}] Exporting results...")
     export_outputs(result)
+    if ctx.progress_callback:
+        n = len([a for a in result.analyses if a.error is None])
+        ctx.progress_callback(f"[3/{_total}] Export complete -- {n} analyses")
 
     return _convert_results(result.analyses)
 

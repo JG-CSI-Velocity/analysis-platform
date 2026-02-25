@@ -6,6 +6,8 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
+import pandas as pd
+
 from shared.context import PipelineContext
 from shared.types import AnalysisResult
 
@@ -23,6 +25,7 @@ def run_pipeline(
     client_name: str = "",
     client_config: dict | None = None,
     progress_callback: Callable[[str], None] | None = None,
+    pre_loaded_data: pd.DataFrame | None = None,
 ) -> dict[str, AnalysisResult]:
     """Run a named pipeline and return results.
 
@@ -40,6 +43,9 @@ def run_pipeline(
         Pipeline-specific client config (e.g. ARS config_path).
     progress_callback : callable | None
         Optional progress callback.
+    pre_loaded_data : DataFrame | None
+        Pre-loaded DataFrame (e.g. multi-file TXN data already in memory).
+        Skips file I/O when provided.
 
     Returns
     -------
@@ -56,6 +62,7 @@ def run_pipeline(
         chart_dir=output_dir / "charts",
         client_config=client_config or {},
         progress_callback=progress_callback,
+        data=pre_loaded_data,
     )
 
     output_dir.mkdir(parents=True, exist_ok=True)

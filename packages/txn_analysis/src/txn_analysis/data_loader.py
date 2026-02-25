@@ -475,6 +475,10 @@ def load_odd(settings: Settings) -> pd.DataFrame | None:
             odd_df = pd.read_excel(odd_path, engine="openpyxl")
     odd_df.columns = odd_df.columns.str.strip()
 
+    # Defragment: ODD files have 100+ columns; adding derived columns
+    # one-by-one on a wide frame triggers PerformanceWarning (#50).
+    odd_df = odd_df.copy()
+
     # Parse date columns
     for col in ("DOB", "Date Opened", "Date Closed"):
         if col in odd_df.columns:

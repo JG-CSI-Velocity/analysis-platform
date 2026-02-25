@@ -14,6 +14,7 @@ import plotly.graph_objects as go
 
 from txn_analysis.analyses import run_all_analyses
 from txn_analysis.analyses.base import AnalysisResult
+from txn_analysis.column_map import resolve_columns
 from txn_analysis.data_loader import load_data, load_odd
 from txn_analysis.segment_runner import SegmentedResult, run_segmented_analyses
 from txn_analysis.segments import build_segment_filters
@@ -37,17 +38,44 @@ class PipelineResult:
 def run_pipeline(
     settings: Settings,
     on_progress: Callable[[int, int, str], None] | None = None,
+    pre_loaded_df: pd.DataFrame | None = None,
 ) -> PipelineResult:
     """Execute the full analysis pipeline: load -> analyze -> chart.
 
     Args:
         settings: Application configuration.
         on_progress: Optional callback(step, total, message) for UI progress.
+        pre_loaded_df: Pre-loaded transaction DataFrame (skips file I/O).
     """
     # Step 1: Load data
     if on_progress:
-        on_progress(0, 3, "Loading data...")
-    df = load_data(settings)
+        on_progress(0, 3, "Loading transaction data...")
+    if pre_loaded_df is not None:
+        logger.info("Using pre-loaded DataFrame: %d rows", len(pre_loaded_df))
+        from txn_analysis.data_loader import (
+            _apply_merchant_consolidation,
+            _derive_year_month,
+            _flag_partial_month,
+            _normalize_business_flag,
+            _warn_negative_amounts,
+        )
+
+        if on_progress:
+            on_progress(0, 3, f"Resolving columns ({len(pre_loaded_df):,} rows)...")
+        df = resolve_columns(pre_loaded_df)
+        if on_progress:
+            on_progress(0, 3, "Standardizing merchant names...")
+        df = _apply_merchant_consolidation(df)
+        if on_progress:
+            on_progress(0, 3, "Deriving date fields...")
+        df = _derive_year_month(df)
+        df = _normalize_business_flag(df)
+        df = _flag_partial_month(df)
+        _warn_negative_amounts(df)
+    else:
+        df = load_data(settings)
+    if on_progress:
+        on_progress(0, 3, f"Transaction data ready: {len(df):,} rows")
     odd_df = load_odd(settings)
 
     # Step 2: Run analyses (segmented if configured and ODD available)

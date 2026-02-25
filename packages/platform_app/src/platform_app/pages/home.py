@@ -103,21 +103,34 @@ def _make_status_line(msg: str, pipeline: str) -> str:
 
 
 def _extract_progress(msg: str) -> float | None:
-    """Extract progress fraction (0.0-1.0) from callback message patterns."""
+    """Extract progress fraction (0.0-1.0) from callback message patterns.
+
+    When a message contains both a step prefix [step/total] AND a finer
+    counter (Analysis i/n or Module i/n), computes composite progress:
+        overall = step/total + (1/total) * (i/n)
+    This gives smooth 0->1 progress across all phases.
+    """
     import re
 
-    # Pattern: [ICS 2/5] or [0/3] or [2/3]
-    m = re.search(r"\[(?:\w+\s+)?(\d+)/(\d+)\]", msg)
-    if m:
-        return int(m.group(1)) / max(int(m.group(2)), 1)
-    # Pattern: Analysis 5/38
-    m = re.search(r"Analysis (\d+)/(\d+)", msg)
-    if m:
-        return int(m.group(1)) / max(int(m.group(2)), 1)
-    # Pattern: Module 3/12
-    m = re.search(r"Module (\d+)/(\d+)", msg)
-    if m:
-        return int(m.group(1)) / max(int(m.group(2)), 1)
+    # Step prefix: [0/3], [1/3], [ICS 2/5], etc.
+    step_m = re.search(r"\[(?:\w+\s+)?(\d+)/(\d+)\]", msg)
+    step_frac = int(step_m.group(1)) / max(int(step_m.group(2)), 1) if step_m else None
+    step_total = int(step_m.group(2)) if step_m else None
+
+    # Fine-grained: Analysis 5/38
+    fine_m = re.search(r"Analysis (\d+)/(\d+)", msg)
+    if not fine_m:
+        # Fine-grained: Module 3/12
+        fine_m = re.search(r"Module (\d+)/(\d+)", msg)
+    fine_frac = int(fine_m.group(1)) / max(int(fine_m.group(2)), 1) if fine_m else None
+
+    # Composite: step + fine within step
+    if step_frac is not None and fine_frac is not None and step_total:
+        return step_frac + (1.0 / step_total) * fine_frac
+    if fine_frac is not None:
+        return fine_frac
+    if step_frac is not None:
+        return step_frac
     return None
 
 
@@ -148,13 +161,11 @@ def _read_tran_file(p: Path) -> pd.DataFrame:
     return pd.read_csv(p, low_memory=False)
 
 
-def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
-    """Combine multiple transaction files into a single CSV for the pipeline.
+def _load_tran_to_df(file_paths: list[str]) -> pd.DataFrame | None:
+    """Load multiple transaction files directly into a DataFrame (no disk write).
 
-    Reads all .txt/.csv files, concatenates them, and writes a combined file.
-    Returns the path to the combined file, or None if no files found.
-    If only one file, returns it directly (no combine needed).
-    Skips re-combining if output already exists and source files haven't changed.
+    Reads all files, concatenates in memory, and returns the combined DataFrame.
+    Returns None if no valid files found.
     """
     if not file_paths:
         return None
@@ -163,43 +174,21 @@ def _combine_tran_files(file_paths: list[str], output_dir: Path) -> Path | None:
     if not paths:
         return None
 
-    if len(paths) == 1:
-        return paths[0]
-
-    from loguru import logger as _log
-
-    # Check if combined file already exists and is newer than all source files
-    out_path = output_dir / f"_combined_transactions_{len(paths)}files.csv"
-    if out_path.exists():
-        out_mtime = out_path.stat().st_mtime
-        sources_unchanged = all(p.stat().st_mtime <= out_mtime for p in paths)
-        if sources_unchanged:
-            _log.info(
-                "Using cached combined file: {} ({:,} bytes)",
-                out_path.name,
-                out_path.stat().st_size,
-            )
-            return out_path
-
-    _log.info("Combining {} transaction files into one", len(paths))
     frames = []
     for p in sorted(paths):
         try:
             df = _read_tran_file(p)
             frames.append(df)
-            _log.info("  Loaded {}: {:,} rows, {} cols", p.name, len(df), len(df.columns))
+            logger.info("  Loaded %s: %d rows, %d cols", p.name, len(df), len(df.columns))
         except Exception as exc:
-            _log.warning("  Skipping {}: {}", p.name, exc)
+            logger.warning("  Skipping %s: %s", p.name, exc)
 
     if not frames:
         return None
 
     combined = pd.concat(frames, ignore_index=True)
-    _log.info("Combined: {:,} total rows from {} files", len(combined), len(frames))
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    combined.to_csv(out_path, index=False)
-    return out_path
+    logger.info("Combined: %d total rows from %d files (in memory)", len(combined), len(frames))
+    return combined
 
 
 # ---------------------------------------------------------------------------
@@ -1008,18 +997,31 @@ if _needs_odd and oddd_path and Path(oddd_path).exists():
     del _oddd_df
 
 _effective_tran: Path | None = None
+_txn_preloaded_df: pd.DataFrame | None = None
 if Product.TXN in needed_products:
     n_tran = len(_all_tran_paths)
     _data_status.write(f"Reading {n_tran} transaction file{'s' if n_tran != 1 else ''}...")
     st.session_state.setdefault("uap_progress_log", []).append(
         f"Loading {n_tran} transaction file{'s' if n_tran != 1 else ''}..."
     )
-    logger.info("Combining %d transaction files", n_tran)
-    _effective_tran = _combine_tran_files(
-        _all_tran_paths, Path(oddd_path).parent if oddd_path else Path(".")
-    )
-    if not _effective_tran and tran_path:
-        _effective_tran = Path(tran_path)
+    logger.info("Loading %d transaction files", n_tran)
+
+    if n_tran == 1:
+        # Single file: pass path directly (no combine needed)
+        _effective_tran = Path(_all_tran_paths[0]) if _all_tran_paths else None
+        if not _effective_tran and tran_path:
+            _effective_tran = Path(tran_path)
+    elif n_tran > 1:
+        # Multiple files: load into memory — no disk write
+        _txn_preloaded_df = _load_tran_to_df(_all_tran_paths)
+        if _txn_preloaded_df is not None:
+            _data_status.write(
+                f"Transaction data ready: {len(_txn_preloaded_df):,} rows from {n_tran} files"
+            )
+    else:
+        if tran_path:
+            _effective_tran = Path(tran_path)
+
     if _effective_tran:
         _data_status.write(f"Transaction data ready: {_effective_tran.name}")
 
@@ -1044,15 +1046,28 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
     _status_text = st.empty()
 
     input_files: dict[str, Path] = {}
+    _pre_loaded_data: pd.DataFrame | None = None
     if product == Product.ARS:
         input_files["oddd"] = Path(_local_oddd)
         out = Path(oddd_path).parent / "output"
     elif product == Product.TXN:
-        if _effective_tran:
+        if _txn_preloaded_df is not None:
+            # Multiple files already loaded in memory — skip file I/O
+            _pre_loaded_data = _txn_preloaded_df
+            # Still need a dummy tran key for pipeline detection
+            input_files["tran"] = Path("(preloaded)")
+        elif _effective_tran:
             input_files["tran"] = _effective_tran
         if odd_path and Path(odd_path).exists():
             input_files["odd"] = Path(odd_path)
-        out = (_effective_tran.parent if _effective_tran else Path(".")) / "output_txn"
+        _tran_base = (
+            _effective_tran.parent
+            if _effective_tran
+            else Path(oddd_path).parent
+            if oddd_path
+            else Path(".")
+        )
+        out = _tran_base / "output_txn"
     elif product == Product.ICS:
         input_files["ics"] = Path(ics_path) if ics_path else Path(_local_oddd)
         out = Path(oddd_path).parent / "output_ics"
@@ -1083,8 +1098,8 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
         fraction = _extract_progress(msg)
         if fraction is not None:
             _bar.progress(min(fraction, 0.99), text=_short)
-        else:
-            _text.markdown(_short)
+        # Always update status text so the user sees what's happening
+        _text.markdown(f"**{_pipe.upper()}** -- {_short}")
         # Store in session_state so reruns can replay progress
         _log = st.session_state.get("uap_progress_log")
         if _log is not None:
@@ -1122,6 +1137,7 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
             client_name=client_name,
             client_config=_pipeline_config,
             progress_callback=_on_progress,
+            pre_loaded_data=_pre_loaded_data,
         )
         all_results[pipeline_name] = results
         all_output_dirs[pipeline_name] = out

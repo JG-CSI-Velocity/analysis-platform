@@ -1126,6 +1126,7 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
                 input_files["odd"] = Path(_local_oddd)
 
     _status_text.markdown(f"**{pipeline_name.upper()}** -- Starting pipeline...")
+    print(f"[{pipeline_name.upper()}] Starting...")
 
     step_t0 = time.time()
     try:
@@ -1147,6 +1148,7 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
             text=f"{pipeline_name.upper()} complete -- {len(results)} results in {_step_elapsed}s",
         )
         _status_text.empty()
+        print(f"[{pipeline_name.upper()}] Complete -- {len(results)} results ({_step_elapsed}s)")
         logger.info(
             "Pipeline %s complete: %d results in %.1fs", pipeline_name, len(results), _step_elapsed
         )
@@ -1162,6 +1164,7 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
         _status_text.error(_last_line)
         with st.expander("Full traceback", expanded=False):
             st.code(_tb_str, language="python")
+        print(f"[{pipeline_name.upper()}] FAILED ({_step_elapsed}s)")
         logger.error("Pipeline %s failed for client %s:\n%s", pipeline_name, client_id, _tb_str)
 
 total_elapsed = round(time.time() - t0, 1)

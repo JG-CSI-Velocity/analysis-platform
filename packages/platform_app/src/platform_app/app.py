@@ -39,6 +39,12 @@ if not any(
     _root.addHandler(_fh)
     _root.setLevel(logging.DEBUG)
 
+    # Terminal output -- INFO+ so pipelines are visible in the console
+    _sh = logging.StreamHandler()
+    _sh.setLevel(logging.INFO)
+    _sh.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+    _root.addHandler(_sh)
+
     # Also capture uncaught exceptions to the log file
     def _exception_hook(exc_type, exc_value, exc_tb):
         logging.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))

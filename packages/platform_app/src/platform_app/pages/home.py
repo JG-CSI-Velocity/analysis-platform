@@ -102,6 +102,25 @@ def _make_status_line(msg: str, pipeline: str) -> str:
     return f"{pipeline.upper()} -- {short}"
 
 
+def _extract_progress(msg: str) -> float | None:
+    """Extract progress fraction (0.0-1.0) from callback message patterns."""
+    import re
+
+    # Pattern: [ICS 2/5] or [0/3] or [2/3]
+    m = re.search(r"\[(?:\w+\s+)?(\d+)/(\d+)\]", msg)
+    if m:
+        return int(m.group(1)) / max(int(m.group(2)), 1)
+    # Pattern: Analysis 5/38
+    m = re.search(r"Analysis (\d+)/(\d+)", msg)
+    if m:
+        return int(m.group(1)) / max(int(m.group(2)), 1)
+    # Pattern: Module 3/12
+    m = re.search(r"Module (\d+)/(\d+)", msg)
+    if m:
+        return int(m.group(1)) / max(int(m.group(2)), 1)
+    return None
+
+
 def _read_tran_file(p: Path) -> pd.DataFrame:
     """Read a single transaction file, auto-detecting delimiter and header.
 
@@ -934,11 +953,11 @@ if not run_btn and _is_running:
 
     st.info(f"Pipeline running ({round(_run_elapsed)}s elapsed)... Do not close this page.")
     if _progress_log:
-        with st.status("Pipeline in progress...", expanded=True, state="running") as _replay:
-            for _msg in _progress_log[-30:]:
-                _replay.write(_msg)
+        _last_msg = _progress_log[-1] if _progress_log else "Starting..."
+        _last_frac = _extract_progress(_last_msg) if _progress_log else None
+        st.progress(min(_last_frac or 0.1, 0.99), text=_last_msg)
     else:
-        st.status("Pipeline starting...", expanded=True, state="running")
+        st.progress(0, text="Pipeline starting...")
 
     # Poll: wait a few seconds then rerun to check for updates
     time.sleep(3)
@@ -1013,27 +1032,18 @@ _data_status.update(
     expanded=False,
 )
 
-# PHASE 2+: Pipeline execution -- one st.status() per pipeline
-_pipeline_statuses: list = []
-for product in sorted(needed_products, key=lambda p: p.value):
-    _pipeline_statuses.append(
-        st.status(
-            f"Step {len(_pipeline_statuses) + 2} of {total_pipelines + 1} "
-            f"-- {product.value.upper()} pipeline queued",
-            expanded=False,
-        )
-    )
-
+# PHASE 2+: Pipeline execution -- progress bar per pipeline
 for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
     pipeline_name = product.value
-    _ps = _pipeline_statuses[idx]
     _step_num = idx + 2
-    _ps.update(
-        label=f"Step {_step_num} of {total_pipelines + 1} "
-        f"-- Running {pipeline_name.upper()} pipeline...",
-        state="running",
-        expanded=True,
+
+    st.markdown(
+        f'<p class="uap-label">{pipeline_name.upper()} PIPELINE '
+        f'(Step {_step_num} of {total_pipelines + 1})</p>',
+        unsafe_allow_html=True,
     )
+    _progress_bar = st.progress(0, text=f"{pipeline_name.upper()} -- Initializing...")
+    _status_text = st.empty()
 
     input_files: dict[str, Path] = {}
     if product == Product.ARS:
@@ -1061,23 +1071,22 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
         )
         pipeline_errors[pipeline_name] = _err_msg
         logger.error("Output dir creation failed for %s: %s", pipeline_name, exc)
-        _ps.update(
-            label=f"Step {_step_num} of {total_pipelines + 1} "
-            f"-- {pipeline_name.upper()} FAILED (output dir)",
-            state="error", expanded=True,
-        )
-        _ps.write(f"ERROR: {_err_msg}")
+        _progress_bar.progress(1.0, text=f"{pipeline_name.upper()} FAILED (output dir)")
+        _status_text.error(f"Cannot create output directory: {out}")
         continue
-
-    _module_count = 0
 
     def _on_progress(
         msg: str,
-        _status=_ps,
+        _bar=_progress_bar,
+        _text=_status_text,
         _pipe=pipeline_name,
     ) -> None:
         _short = _make_status_line(msg, _pipe)
-        _status.write(_short)
+        fraction = _extract_progress(msg)
+        if fraction is not None:
+            _bar.progress(min(fraction, 0.99), text=_short)
+        else:
+            _text.markdown(_short)
         # Store in session_state so reruns can replay progress
         _log = st.session_state.get("uap_progress_log")
         if _log is not None:
@@ -1103,7 +1112,7 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
             if oddd_path and Path(oddd_path).exists() and "odd" not in input_files:
                 input_files["odd"] = Path(_local_oddd)
 
-    _ps.write(f"Running {len(_product_keys)} modules...")
+    _status_text.markdown(f"**{pipeline_name.upper()}** -- Starting pipeline...")
 
     step_t0 = time.time()
     try:
@@ -1119,12 +1128,11 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
         all_results[pipeline_name] = results
         all_output_dirs[pipeline_name] = out
         _step_elapsed = round(time.time() - step_t0, 1)
-        _ps.update(
-            label=f"Step {_step_num} of {total_pipelines + 1} "
-            f"-- {pipeline_name.upper()} complete "
-            f"({len(results)} results, {_step_elapsed}s)",
-            state="complete", expanded=False,
+        _progress_bar.progress(
+            1.0,
+            text=f"{pipeline_name.upper()} complete -- {len(results)} results in {_step_elapsed}s",
         )
+        _status_text.empty()
         logger.info("Pipeline %s complete: %d results in %.1fs", pipeline_name, len(results), _step_elapsed)
     except Exception:
         import traceback as _tb
@@ -1132,12 +1140,10 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
         _step_elapsed = round(time.time() - step_t0, 1)
         _tb_str = _tb.format_exc()
         pipeline_errors[pipeline_name] = _tb_str
-        _ps.update(
-            label=f"Step {_step_num} of {total_pipelines + 1} "
-            f"-- {pipeline_name.upper()} FAILED ({_step_elapsed}s)",
-            state="error", expanded=True,
+        _progress_bar.progress(
+            1.0, text=f"{pipeline_name.upper()} FAILED ({_step_elapsed}s)"
         )
-        _ps.code(_tb_str[-500:], language="python")
+        _status_text.error(_tb_str[-300:])
         logger.error("Pipeline %s failed for client %s:\n%s", pipeline_name, client_id, _tb_str)
 
 total_elapsed = round(time.time() - t0, 1)

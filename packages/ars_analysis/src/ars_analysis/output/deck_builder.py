@@ -224,10 +224,14 @@ class DeckBuilder:
         """Add image scaled to fit within max_width and max_height."""
         effective_max_h = max_height or self.MAX_CHART_HEIGHT
         try:
+            import warnings
+
             from PIL import Image
 
-            with Image.open(img_path) as img:
-                native_w, native_h = img.size
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=Image.DecompressionBombWarning)
+                with Image.open(img_path) as img:
+                    native_w, native_h = img.size
             aspect = native_h / native_w
             height_at_width = int(max_width * aspect)
             if height_at_width > effective_max_h:

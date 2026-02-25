@@ -3,11 +3,8 @@
 import pandas as pd
 import pytest
 
-from ars_analysis.pipeline.steps.format import (
-    FormatResult,
-    _swipe_category,
-    format_odd,
-)
+from ars_analysis.pipeline.steps.format import FormatResult, format_odd
+from shared.format_odd import _categorize_swipes
 
 
 class TestSwipeCategory:
@@ -30,7 +27,7 @@ class TestSwipeCategory:
         ],
     )
     def test_categories(self, swipes, expected):
-        assert _swipe_category(swipes) == expected
+        assert _categorize_swipes(swipes) == expected
 
 
 class TestFormatOdd:

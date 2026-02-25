@@ -42,38 +42,30 @@ def merge_sources(
     Returns DataFrame with columns: ["Acct Hash", "Source"].
     Deduplicates by normalized hash, tagging accounts in both as "Both".
     """
-    rows: list[dict[str, str]] = []
+    parts: list[pd.DataFrame] = []
+    if ref_series is not None and len(ref_series) > 0:
+        parts.append(pd.DataFrame({"Acct Hash": ref_series.astype(str), "Source": "REF"}))
+    if dm_series is not None and len(dm_series) > 0:
+        parts.append(pd.DataFrame({"Acct Hash": dm_series.astype(str), "Source": "DM"}))
 
-    if ref_series is not None:
-        for val in ref_series:
-            rows.append({"Acct Hash": str(val), "Source": "REF"})
-
-    if dm_series is not None:
-        for val in dm_series:
-            rows.append({"Acct Hash": str(val), "Source": "DM"})
-
-    if not rows:
+    if not parts:
         return pd.DataFrame(columns=["Acct Hash", "Source"])
 
-    df = pd.DataFrame(rows)
-    df["Acct Hash"] = df["Acct Hash"].astype(str)
-
-    # Deduplicate: if same normalized hash appears in both REF and DM, tag as "Both"
+    df = pd.concat(parts, ignore_index=True)
     df["_norm"] = df["Acct Hash"].apply(normalize_hash)
-    source_by_hash = df.groupby("_norm")["Source"].apply(set).to_dict()
 
-    seen: set[str] = set()
-    deduped: list[dict[str, str]] = []
-    for _, row in df.iterrows():
-        norm = row["_norm"]
-        if norm in seen or not norm:
-            continue
-        seen.add(norm)
-        sources = source_by_hash[norm]
-        source = "Both" if len(sources) > 1 else sources.pop()
-        deduped.append({"Acct Hash": row["Acct Hash"], "Source": source})
+    # Drop empty normalized hashes, then deduplicate
+    df = df[df["_norm"].astype(bool)]
 
-    return pd.DataFrame(deduped, columns=["Acct Hash", "Source"])
+    # Determine source per normalized hash: "Both" if seen in multiple sources
+    source_counts = df.groupby("_norm")["Source"].nunique()
+    both_norms = set(source_counts[source_counts > 1].index)
+
+    # Keep first occurrence per normalized hash
+    deduped = df.drop_duplicates(subset="_norm", keep="first").copy()
+    deduped.loc[deduped["_norm"].isin(both_norms), "Source"] = "Both"
+
+    return deduped[["Acct Hash", "Source"]].reset_index(drop=True)
 
 
 def merge_client_files(

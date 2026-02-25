@@ -89,9 +89,19 @@ def _normalize_strings(df: pd.DataFrame) -> pd.DataFrame:
 
     for col in ("ICS Account", "Debit?", "Business?"):
         if col in df.columns:
-            df[col] = (
-                df[col].fillna("").astype(str).str.strip().str.upper().map(yn_map).fillna("No")
-            )
+            raw = df[col].fillna("").astype(str).str.strip().str.upper()
+            mapped = raw.map(yn_map)
+            unknown_mask = mapped.isna() & raw.ne("")
+            if unknown_mask.any():
+                examples = raw[unknown_mask].unique()[:5].tolist()
+                logger.warning(
+                    "%s: %d unknown values mapped to 'Unknown' (examples: %s)",
+                    col,
+                    int(unknown_mask.sum()),
+                    examples,
+                )
+            mapped = mapped.where(~unknown_mask, other="Unknown")
+            df[col] = mapped.fillna("No")
 
     if "Stat Code" in df.columns:
         df["Stat Code"] = df["Stat Code"].fillna("").astype(str).str.strip().str.upper()

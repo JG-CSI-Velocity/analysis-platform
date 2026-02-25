@@ -83,6 +83,17 @@ BALANCE_TIERS = [
 ]
 
 
+def _infer_anchor_date(df: pd.DataFrame) -> pd.Timestamp:
+    """Infer a stable anchor date for tenure calculations."""
+    for col in ("Date Closed", "Date Opened"):
+        if col in df.columns:
+            parsed = pd.to_datetime(df[col], errors="coerce", format="mixed")
+            max_date = parsed.max()
+            if pd.notna(max_date):
+                return pd.Timestamp(max_date).normalize()
+    return pd.Timestamp.now()
+
+
 def load_data(settings: Settings) -> pd.DataFrame:
     """Load, validate, and prepare the transaction dataset.
 
@@ -208,6 +219,11 @@ def _read_csv_autodetect(path: Path) -> pd.DataFrame:
 
     # Last resort: comma with header
     return pd.read_csv(path, low_memory=False)
+
+
+def read_transaction_file(path: Path) -> pd.DataFrame:
+    """Read a single transaction CSV/TXT file using pipeline autodetect logic."""
+    return _read_csv_autodetect(path)
 
 
 def _apply_merchant_consolidation(df: pd.DataFrame) -> pd.DataFrame:
@@ -441,6 +457,14 @@ def _assign_balance_tier(avg_bal) -> str | None:
     return None
 
 
+def _normalize_acct_key(series: pd.Series) -> pd.Series:
+    """Normalize account keys for merge (strip, remove Excel .0 artifacts)."""
+    cleaned = series.fillna("").astype(str).str.strip()
+    cleaned = cleaned.str.replace(r"\\.0$", "", regex=True)
+    cleaned = cleaned.replace({"nan": "", "NaT": ""})
+    return cleaned
+
+
 def _detect_timeseries_columns(columns: pd.Index) -> dict[str, list[str]]:
     """Auto-detect monthly time series columns in the ODD file.
 
@@ -496,13 +520,13 @@ def load_odd(settings: Settings) -> pd.DataFrame | None:
         if numeric_age.notna().any():
             odd_df["tenure_years"] = numeric_age
         elif "Date Opened" in odd_df.columns:
-            today = pd.Timestamp.now()
-            odd_df["tenure_years"] = ((today - odd_df["Date Opened"]).dt.days / 365.25).round(1)
+            anchor = _infer_anchor_date(odd_df)
+            odd_df["tenure_years"] = ((anchor - odd_df["Date Opened"]).dt.days / 365.25).round(1)
         else:
             odd_df["tenure_years"] = None
     elif "Date Opened" in odd_df.columns:
-        today = pd.Timestamp.now()
-        odd_df["tenure_years"] = ((today - odd_df["Date Opened"]).dt.days / 365.25).round(1)
+        anchor = _infer_anchor_date(odd_df)
+        odd_df["tenure_years"] = ((anchor - odd_df["Date Opened"]).dt.days / 365.25).round(1)
     else:
         odd_df["tenure_years"] = None
 
@@ -547,12 +571,16 @@ def merge_odd(
     merge_cols = [c for c in _ODD_MERGE_COLS if c in odd_df.columns]
     odd_slim = odd_df[merge_cols].copy()
 
-    combined = df.merge(
+    combined = df.copy()
+    combined["_acct_key"] = _normalize_acct_key(combined["primary_account_num"])
+    odd_slim["_acct_key"] = _normalize_acct_key(odd_slim["Acct Number"])
+
+    combined = combined.merge(
         odd_slim,
-        left_on="primary_account_num",
-        right_on="Acct Number",
+        left_on="_acct_key",
+        right_on="_acct_key",
         how="left",
-    )
+    ).drop(columns=["_acct_key"])
 
     matched = combined["Acct Number"].notna().sum()
     match_rate = (matched / len(combined) * 100) if len(combined) else 0.0

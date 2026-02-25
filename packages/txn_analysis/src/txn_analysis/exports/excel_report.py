@@ -84,10 +84,15 @@ def _write_cover_sheet(wb: Workbook, result) -> None:
     ws["A2"].font = Font(name="Calibri", size=16, color="666666")
 
     now = datetime.now()
+    source_file = (
+        result.settings.data_file.name
+        if result.settings.data_file is not None
+        else "Preloaded Data"
+    )
     details = [
         ("Client ID:", result.settings.client_id or "N/A"),
         ("Report Date:", now.strftime("%B %d, %Y")),
-        ("Source File:", result.settings.data_file.name),
+        ("Source File:", source_file),
         ("Total Rows:", f"{len(result.df):,}"),
         ("Analyses Run:", str(sum(1 for a in result.analyses if a.error is None))),
     ]

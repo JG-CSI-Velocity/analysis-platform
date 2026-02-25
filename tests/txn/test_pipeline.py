@@ -93,7 +93,7 @@ class TestExportOutputs:
         settings = Settings.from_args(
             data_file=sample_csv_path,
             output_dir=tmp_path,
-            outputs={"excel": False, "chart_images": False},
+            outputs={"excel": False, "chart_images": False, "powerpoint": False},
         )
         result = run_pipeline(settings)
         files = export_outputs(result)

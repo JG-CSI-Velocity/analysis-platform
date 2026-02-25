@@ -80,7 +80,8 @@ class TestFormatOdd:
         )
         result = format_odd(df)
         assert "Account Holder Age" in result.columns
-        assert result["Account Holder Age"].iloc[0] > 30
+        # Anchor date is inferred from data (max Date Opened = 2020-01-01)
+        assert result["Account Holder Age"].iloc[0] == 30
 
     def test_empty_dataframe(self):
         df = pd.DataFrame({"Col1": [], "Col2": []})

@@ -35,7 +35,7 @@ class TestOutputConfig:
         cfg = OutputConfig()
         assert cfg.excel is True
         assert cfg.chart_images is True
-        assert cfg.powerpoint is False
+        assert cfg.powerpoint is True
         assert cfg.html_charts is False
 
 

@@ -68,12 +68,25 @@ def run_txn(ctx: PipelineContext) -> dict[str, SharedResult]:
 
     if ctx.progress_callback:
         ctx.progress_callback(f"[3/{_total}] Exporting results...")
-    export_outputs(result)
-    if ctx.progress_callback:
-        n = len([a for a in result.analyses if a.error is None])
-        ctx.progress_callback(f"[3/{_total}] Export complete -- {n} analyses")
+    export_error = None
+    try:
+        export_outputs(result)
+    except Exception as exc:
+        export_error = exc
+        if ctx.progress_callback:
+            ctx.progress_callback(f"[3/{_total}] Export FAILED: {exc}")
 
-    return _convert_results(result.analyses)
+    if export_error is None and ctx.progress_callback:
+        n = len([a for a in result.analyses if a.error is None])
+        ctx.progress_callback(f"[3/{_total}] Exported {n} analyses")
+
+    chart_dir = (
+        result.settings.output_dir / "charts" if result.settings.outputs.chart_images else None
+    )
+    results = _convert_results(result.analyses, chart_dir=chart_dir)
+    if export_error is not None:
+        logger.error("Export failed but returning %d analysis results", len(results))
+    return results
 
 
 def run_txn_from_settings(
@@ -88,11 +101,19 @@ def run_txn_from_settings(
     settings = Settings.from_args(data_file=Path(data_file), output_dir=Path(output_dir), **kwargs)
     result = run_pipeline(settings)
     export_outputs(result)
-    return _convert_results(result.analyses)
+    chart_dir = (
+        result.settings.output_dir / "charts" if result.settings.outputs.chart_images else None
+    )
+    return _convert_results(result.analyses, chart_dir=chart_dir)
 
 
-def _convert_results(analyses: list) -> dict[str, SharedResult]:
+def _convert_results(analyses: list, *, chart_dir: Path | None = None) -> dict[str, SharedResult]:
     """Convert txn_analysis AnalysisResult list to shared AnalysisResult dict."""
+    chart_map: dict[str, list[Path]] = {}
+    if chart_dir is not None and chart_dir.exists():
+        for path in sorted(chart_dir.glob("*.png")):
+            analysis_key = path.stem.split(":")[0]
+            chart_map.setdefault(analysis_key, []).append(path)
     results: dict[str, SharedResult] = {}
     for ar in analyses:
         if ar.error:
@@ -107,5 +128,6 @@ def _convert_results(analyses: list) -> dict[str, SharedResult]:
             data={"main": ar.df},
             summary=ar.title,
             metadata=meta,
+            charts=chart_map.get(ar.name, []),
         )
     return results

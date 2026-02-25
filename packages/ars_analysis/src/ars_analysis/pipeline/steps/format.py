@@ -12,10 +12,10 @@ Steps:
 from __future__ import annotations
 
 import logging
+import re
 import shutil
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -38,6 +38,48 @@ SWIPE_THRESHOLDS = [
     (41, "26-40 Swipes"),
 ]
 SWIPE_TOP = "41+ Swipes"
+
+_MONTH_MAP = {
+    "Jan": 1,
+    "Feb": 2,
+    "Mar": 3,
+    "Apr": 4,
+    "May": 5,
+    "Jun": 6,
+    "Jul": 7,
+    "Aug": 8,
+    "Sep": 9,
+    "Oct": 10,
+    "Nov": 11,
+    "Dec": 12,
+}
+_MONTH_PREFIX_RE = re.compile(r"^([A-Z][a-z]{2})(\d{2})")
+
+
+def _infer_report_date(df: pd.DataFrame) -> pd.Timestamp:
+    """Infer a stable report date from column headers or date fields."""
+    month_tags: list[pd.Timestamp] = []
+    for col in df.columns:
+        match = _MONTH_PREFIX_RE.match(str(col))
+        if not match:
+            continue
+        month = _MONTH_MAP.get(match.group(1))
+        if not month:
+            continue
+        year = 2000 + int(match.group(2))
+        month_tags.append(pd.Timestamp(year, month, 1))
+
+    if month_tags:
+        return max(month_tags)
+
+    for col in ("Date Closed", "Date Opened"):
+        if col in df.columns:
+            parsed = pd.to_datetime(df[col], errors="coerce", format="mixed")
+            max_date = parsed.max()
+            if pd.notna(max_date):
+                return pd.Timestamp(max_date).normalize()
+
+    return pd.Timestamp.now()
 
 
 def _swipe_category(monthly_swipes: float) -> str:
@@ -148,17 +190,17 @@ def format_odd(df: pd.DataFrame) -> pd.DataFrame:
     logger.debug("Step 4: added %d combined Spend/Swipes columns", added)
 
     # Step 5: Age calculations
-    now = datetime.now()
+    anchor_date = _infer_report_date(df)
     if "DOB" in df.columns:
         df["DOB"] = pd.to_datetime(df["DOB"], errors="coerce", format="mixed")
-        df["Account Holder Age"] = now.year - df["DOB"].dt.year
+        df["Account Holder Age"] = anchor_date.year - df["DOB"].dt.year
     if "Date Opened" in df.columns:
         df["Date Opened"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed")
         if "Date Closed" in df.columns:
             date_closed = pd.to_datetime(df["Date Closed"], errors="coerce", format="mixed")
         else:
             date_closed = pd.Series(pd.NaT, index=df.index)
-        df["Account Age"] = (date_closed.fillna(now) - df["Date Opened"]).dt.days / 365
+        df["Account Age"] = (date_closed.fillna(anchor_date) - df["Date Opened"]).dt.days / 365
     logger.debug("Step 5: age calculations done")
 
     # Step 6: Mail & Response grouping

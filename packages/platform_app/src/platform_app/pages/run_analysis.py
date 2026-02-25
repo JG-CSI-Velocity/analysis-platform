@@ -167,6 +167,7 @@ if not run_btn:
 # Execution
 # ---------------------------------------------------------------------------
 run_id = generate_run_id()
+run_start = time.time()
 all_results: dict[str, dict] = {}
 all_output_dirs: dict[str, Path] = {}
 pipeline_errors: dict[str, str] = {}
@@ -247,8 +248,8 @@ overall_progress.progress(1.0, text="Complete!")
 # ---------------------------------------------------------------------------
 # Log the run
 # ---------------------------------------------------------------------------
-total_time = time.time() - t0 if not all_results else sum(1 for _ in [])  # approximate
 status = "success" if not pipeline_errors else ("partial" if all_results else "error")
+modules_run = sorted(m.key for m in registry if m.product in needed_products)
 
 # Get first input file for hashing
 first_file = oddd_path or tran_path or ics_path
@@ -259,8 +260,8 @@ record = RunRecord(
     client_id=client_id,
     client_name=client_name,
     pipeline=",".join(sorted(p.value for p in needed_products)),
-    modules_run=sorted(selected_modules),
-    runtime_seconds=round(time.time() - t0, 1) if "t0" in dir() else 0,
+    modules_run=modules_run,
+    runtime_seconds=round(time.time() - run_start, 1),
     status=status,
     output_dir=output_base.strip() or str(out),
     input_file_hash=hash_file(Path(first_file)) if first_file else "",

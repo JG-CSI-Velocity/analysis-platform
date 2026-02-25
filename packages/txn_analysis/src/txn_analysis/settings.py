@@ -40,7 +40,7 @@ class OutputConfig(BaseModel):
 
     excel: bool = True
     chart_images: bool = True
-    powerpoint: bool = False
+    powerpoint: bool = True
     html_charts: bool = False
 
 

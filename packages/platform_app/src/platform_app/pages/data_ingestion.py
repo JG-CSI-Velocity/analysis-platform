@@ -169,10 +169,12 @@ with tab_tran:
                 if st.button(f"Merge all {len(files)} files", key="tran_merge", width="stretch"):
                     merge_progress = st.progress(0, text="Merging...")
                     frames = []
+                    from txn_analysis.data_loader import read_transaction_file
+
                     for idx, f in enumerate(files):
                         merge_progress.progress(idx / len(files), text=f"Reading {f.name}...")
                         try:
-                            df = pd.read_csv(f) if file_ext == "csv" else pd.read_csv(f, sep="\t")
+                            df = read_transaction_file(f)
                             frames.append(df)
                         except Exception as e:
                             st.warning(f"Skipped `{f.name}`: {e}")

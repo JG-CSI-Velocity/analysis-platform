@@ -190,14 +190,15 @@ def export_outputs(result: PipelineResult) -> list[Path]:
     date_str = datetime.now().strftime("%Y%m%d")
     client_id = settings.client_id or "unknown"
 
-    # Render chart PNGs if charts exist and chart_images enabled
+    # Render chart PNGs (bytes) when needed for Excel or PPTX export
     chart_pngs: dict[str, bytes] = {}
-    if result.charts and settings.outputs.chart_images:
+    if result.charts and (settings.outputs.chart_images or settings.outputs.powerpoint):
         chart_pngs = _render_chart_pngs(result)
         result.chart_pngs = chart_pngs
         logger.info("Rendered %d chart PNGs", len(chart_pngs))
 
-        # Save standalone PNGs to disk (high-res scale=3)
+    # Save standalone PNGs to disk (high-res scale=3)
+    if result.charts and settings.outputs.chart_images:
         chart_dir = settings.output_dir / "charts"
         chart_dir.mkdir(parents=True, exist_ok=True)
         from txn_analysis.charts import render_chart_png
@@ -210,6 +211,7 @@ def export_outputs(result: PipelineResult) -> list[Path]:
             except Exception as e:
                 logger.warning("Standalone PNG for '%s' failed: %s", name, e)
 
+    excel_error: Exception | None = None
     if settings.outputs.excel:
         try:
             from txn_analysis.exports.excel_report import write_excel_report
@@ -219,6 +221,22 @@ def export_outputs(result: PipelineResult) -> list[Path]:
             generated.append(path)
             logger.info("Excel report: %s", path)
         except Exception as e:
+            excel_error = e
             logger.error("Excel report failed: %s", e, exc_info=True)
+
+    if settings.outputs.powerpoint:
+        try:
+            from txn_analysis.exports.pptx_report import write_pptx_report
+
+            pptx_path = settings.output_dir / f"{client_id}_TXN_Analysis_{date_str}.pptx"
+            write_pptx_report(result, pptx_path, chart_pngs)
+            generated.append(pptx_path)
+        except Exception as e:
+            logger.error("PowerPoint report failed: %s", e, exc_info=True)
+            if excel_error is None:
+                excel_error = e
+
+    if excel_error is not None:
+        raise RuntimeError("TXN export failed") from excel_error
 
     return generated

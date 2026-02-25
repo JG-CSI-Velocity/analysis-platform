@@ -139,7 +139,9 @@ def chart_cohort_summary(result: AnalysisResult, config: ChartConfig) -> go.Figu
 
     fig = go.Figure()
 
-    cohort_cols = [c for c in df.columns if c not in ("year_month",)]
+    # Analysis produces "month" column; normalize to "year_month" for consistency
+    month_col = "year_month" if "year_month" in df.columns else "month"
+    cohort_cols = [c for c in df.columns if c not in (month_col,)]
     colors = {
         "new_merchants": ACCENT,
         "lost_merchants": CORAL,
@@ -150,7 +152,7 @@ def chart_cohort_summary(result: AnalysisResult, config: ChartConfig) -> go.Figu
         if col in df.columns:
             fig.add_trace(
                 go.Bar(
-                    x=df["year_month"].tolist(),
+                    x=df[month_col].tolist(),
                     y=df[col].tolist(),
                     name=col.replace("_", " ").title(),
                     marker_color=colors.get(col, GRAY_BASE),

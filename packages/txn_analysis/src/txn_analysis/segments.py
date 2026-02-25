@@ -19,9 +19,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 # ARS response segment codes (from ars_analysis/analytics/mailer/_helpers.py)
-RESPONSE_SEGMENTS: frozenset[str] = frozenset(
-    {"NU 5+", "TH-10", "TH-15", "TH-20", "TH-25"}
-)
+RESPONSE_SEGMENTS: frozenset[str] = frozenset({"NU 5+", "TH-10", "TH-15", "TH-20", "TH-25"})
 
 # Pattern matching MmmYY Resp columns (e.g. "Aug25 Resp", "Jan24 Resp")
 _RESP_COL_RE = re.compile(r"^[A-Z][a-z]{2}\d{2} Resp$")

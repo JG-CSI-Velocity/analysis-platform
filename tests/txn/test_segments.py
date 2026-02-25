@@ -67,10 +67,12 @@ class TestExtractResponderAccounts:
         assert result == set()
 
     def test_nan_acct_numbers_excluded(self):
-        odd = pd.DataFrame({
-            "Acct Number": ["1001", None, "1003"],
-            "Jan24 Resp": ["NU 5+", "TH-10", "TH-20"],
-        })
+        odd = pd.DataFrame(
+            {
+                "Acct Number": ["1001", None, "1003"],
+                "Jan24 Resp": ["NU 5+", "TH-10", "TH-20"],
+            }
+        )
         result = extract_responder_accounts(odd)
         assert "1001" in result
         assert "1003" in result
@@ -115,10 +117,12 @@ class TestExtractICSAccounts:
 
     def test_alias_columns(self):
         for alias in ("ICS Accounts", "Ics Account", "ICS_Account"):
-            odd = pd.DataFrame({
-                "Acct Number": ["1001", "1002"],
-                alias: ["Yes", "No"],
-            })
+            odd = pd.DataFrame(
+                {
+                    "Acct Number": ["1001", "1002"],
+                    alias: ["Yes", "No"],
+                }
+            )
             result = extract_ics_accounts(odd)
             assert result == {"1001"}, f"Failed for alias: {alias}"
 
@@ -133,25 +137,25 @@ class TestExtractICSAccounts:
 
 class TestSegmentFilter:
     def test_filter_transactions(self):
-        seg = SegmentFilter(
-            name="test", label="Test", account_numbers=frozenset({"1001", "1003"})
+        seg = SegmentFilter(name="test", label="Test", account_numbers=frozenset({"1001", "1003"}))
+        txn_df = pd.DataFrame(
+            {
+                "primary_account_num": [1001, 1002, 1003, 1004],
+                "amount": [100, 200, 300, 400],
+            }
         )
-        txn_df = pd.DataFrame({
-            "primary_account_num": [1001, 1002, 1003, 1004],
-            "amount": [100, 200, 300, 400],
-        })
         filtered = seg.filter_transactions(txn_df)
         assert len(filtered) == 2
         assert set(filtered["primary_account_num"]) == {1001, 1003}
 
     def test_filter_empty_result(self):
-        seg = SegmentFilter(
-            name="test", label="Test", account_numbers=frozenset({"9999"})
+        seg = SegmentFilter(name="test", label="Test", account_numbers=frozenset({"9999"}))
+        txn_df = pd.DataFrame(
+            {
+                "primary_account_num": [1001, 1002],
+                "amount": [100, 200],
+            }
         )
-        txn_df = pd.DataFrame({
-            "primary_account_num": [1001, 1002],
-            "amount": [100, 200],
-        })
         filtered = seg.filter_transactions(txn_df)
         assert len(filtered) == 0
 

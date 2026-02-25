@@ -54,15 +54,17 @@ def _make_txns(
     rows = []
     for acct in accounts:
         for date in dates:
-            rows.append({
-                "primary_account_num": acct,
-                "merchant_consolidated": "STORE",
-                "merchant_name": "STORE",
-                "amount": amount,
-                "transaction_date": date,
-                "year_month": date[:7],
-                "business_flag": "No",
-            })
+            rows.append(
+                {
+                    "primary_account_num": acct,
+                    "merchant_consolidated": "STORE",
+                    "merchant_name": "STORE",
+                    "amount": amount,
+                    "transaction_date": date,
+                    "year_month": date[:7],
+                    "business_flag": "No",
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -82,13 +84,15 @@ class TestDetectAcctCol:
 
 class TestDetectRespPairs:
     def test_finds_pairs(self):
-        df = pd.DataFrame({
-            "Account Number": ["1001"],
-            "Apr24 Mail": ["TH-10"],
-            "Apr24 Resp": ["TH-10"],
-            "May24 Mail": ["TH-15"],
-            "May24 Resp": [""],
-        })
+        df = pd.DataFrame(
+            {
+                "Account Number": ["1001"],
+                "Apr24 Mail": ["TH-10"],
+                "Apr24 Resp": ["TH-10"],
+                "May24 Mail": ["TH-15"],
+                "May24 Resp": [""],
+            }
+        )
         pairs = _detect_resp_pairs(df)
         assert len(pairs) == 2
         assert pairs[0][0] == "Apr24"
@@ -107,14 +111,28 @@ class TestResponseMonthVelocity:
             responders={"1001"},
         )
         # 1001 (responder) swipes early; 1002 (non-responder) swipes late
-        txns = pd.DataFrame([
-            {"primary_account_num": "1001", "transaction_date": "2025-01-05",
-             "amount": 50, "year_month": "2025-01", "business_flag": "No",
-             "merchant_consolidated": "X", "merchant_name": "X"},
-            {"primary_account_num": "1002", "transaction_date": "2025-01-25",
-             "amount": 50, "year_month": "2025-01", "business_flag": "No",
-             "merchant_consolidated": "X", "merchant_name": "X"},
-        ])
+        txns = pd.DataFrame(
+            [
+                {
+                    "primary_account_num": "1001",
+                    "transaction_date": "2025-01-05",
+                    "amount": 50,
+                    "year_month": "2025-01",
+                    "business_flag": "No",
+                    "merchant_consolidated": "X",
+                    "merchant_name": "X",
+                },
+                {
+                    "primary_account_num": "1002",
+                    "transaction_date": "2025-01-25",
+                    "amount": 50,
+                    "year_month": "2025-01",
+                    "business_flag": "No",
+                    "merchant_consolidated": "X",
+                    "merchant_name": "X",
+                },
+            ]
+        )
         pairs = _detect_resp_pairs(odd)
         result = _build_response_month_velocity(txns, odd, "Account Number", pairs)
         assert not result.empty

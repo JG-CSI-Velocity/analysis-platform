@@ -41,7 +41,9 @@ def load_tran(path: Path) -> pd.DataFrame:
     if "amount" in df.columns:
         df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
     if "transaction_date" in df.columns:
-        df["transaction_date"] = pd.to_datetime(df["transaction_date"], errors="coerce", format="mixed")
+        df["transaction_date"] = pd.to_datetime(
+            df["transaction_date"], errors="coerce", format="mixed"
+        )
 
     return df
 

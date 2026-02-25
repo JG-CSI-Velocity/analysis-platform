@@ -63,7 +63,7 @@ st.markdown(
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:1.5rem;">
     <div>
       <div class="cc-label">CLIENT</div>
-      <div class="cc-value-sm">{client_label or '--'}</div>
+      <div class="cc-value-sm">{client_label or "--"}</div>
     </div>
     <div>
       <div class="cc-label">PIPELINES</div>
@@ -107,9 +107,9 @@ if findings:
             badge_cls = "uap-badge-active"
             st.markdown(
                 f"""<div class="uap-card">
-                <span class="uap-badge {badge_cls}">{f['pipeline'].upper()}</span>
-                <h4 style="margin-top:0.5rem;">{f['name'].replace('_', ' ').title()}</h4>
-                <p>{f['summary'][:200]}</p>
+                <span class="uap-badge {badge_cls}">{f["pipeline"].upper()}</span>
+                <h4 style="margin-top:0.5rem;">{f["name"].replace("_", " ").title()}</h4>
+                <p>{f["summary"][:200]}</p>
                 </div>""",
                 unsafe_allow_html=True,
             )
@@ -204,7 +204,11 @@ with tab_data:
                 unsafe_allow_html=True,
             )
             for name, ar in pipeline_results.items():
-                title = ar.title if hasattr(ar, "title") and ar.title else name.replace("_", " ").title()
+                title = (
+                    ar.title
+                    if hasattr(ar, "title") and ar.title
+                    else name.replace("_", " ").title()
+                )
                 with st.expander(title, expanded=False):
                     if hasattr(ar, "summary") and ar.summary:
                         st.caption(ar.summary)

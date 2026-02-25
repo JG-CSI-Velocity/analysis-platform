@@ -402,7 +402,9 @@ def _load_transaction_dir(settings: Settings) -> pd.DataFrame:
     combined["amount"] = pd.to_numeric(combined["amount"], errors="coerce").fillna(0.0)
     if combined["amount"].median() < 0:
         combined["amount"] = combined["amount"].abs()
-    combined["transaction_date"] = pd.to_datetime(combined["transaction_date"], errors="coerce", format="mixed")
+    combined["transaction_date"] = pd.to_datetime(
+        combined["transaction_date"], errors="coerce", format="mixed"
+    )
 
     logger.info("Loaded %d rows from transaction directory", len(combined))
     return combined

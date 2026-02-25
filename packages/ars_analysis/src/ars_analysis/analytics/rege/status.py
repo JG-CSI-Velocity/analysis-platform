@@ -341,7 +341,9 @@ class RegEStatus(AnalysisModule):
 
         l12m_labels = l12m_month_labels(ctx.end_date)
         df = base_l12m.copy()
-        df["Month_Year"] = pd.to_datetime(df["Date Opened"], errors="coerce", format="mixed").dt.strftime("%b%y")
+        df["Month_Year"] = pd.to_datetime(
+            df["Date Opened"], errors="coerce", format="mixed"
+        ).dt.strftime("%b%y")
 
         rows = []
         for my in l12m_labels:

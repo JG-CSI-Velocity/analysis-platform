@@ -52,7 +52,9 @@ def run_segmented_analyses(
             segment="full_population",
             label="Full Population",
             analyses=full_analyses,
-            account_count=df["primary_account_num"].nunique() if "primary_account_num" in df.columns else 0,
+            account_count=df["primary_account_num"].nunique()
+            if "primary_account_num" in df.columns
+            else 0,
             transaction_count=len(df),
         )
     )
@@ -61,9 +63,7 @@ def run_segmented_analyses(
     for seg in segments:
         seg_df = seg.filter_transactions(df)
         if seg_df.empty:
-            logger.warning(
-                "Segment '%s' produced 0 transactions -- skipping", seg.name
-            )
+            logger.warning("Segment '%s' produced 0 transactions -- skipping", seg.name)
             continue
 
         logger.info(

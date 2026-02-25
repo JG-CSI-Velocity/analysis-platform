@@ -63,8 +63,7 @@ if search_term.strip():
 # Display
 # ---------------------------------------------------------------------------
 st.markdown(
-    f'<p class="uap-label">{len(tail)} LINES '
-    f'(of {len(raw_lines)} total in log file)</p>',
+    f'<p class="uap-label">{len(tail)} LINES (of {len(raw_lines)} total in log file)</p>',
     unsafe_allow_html=True,
 )
 

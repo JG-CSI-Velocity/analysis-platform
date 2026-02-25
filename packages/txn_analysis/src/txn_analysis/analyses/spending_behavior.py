@@ -88,10 +88,10 @@ def _build_response_month_velocity(
         if mailed.empty:
             continue
 
-        resp_accts = set(
-            mailed[mailed[resp_col].isin(_RESPONSE_SEGMENTS)][acct_col].astype(str)
+        resp_accts = set(mailed[mailed[resp_col].isin(_RESPONSE_SEGMENTS)][acct_col].astype(str))
+        non_resp_accts = set(
+            mailed[~mailed[resp_col].isin(_RESPONSE_SEGMENTS)][acct_col].astype(str)
         )
-        non_resp_accts = set(mailed[~mailed[resp_col].isin(_RESPONSE_SEGMENTS)][acct_col].astype(str))
 
         # Get transactions in that calendar month
         month_txns = txn_work[txn_work["txn_ym"] == ym]
@@ -99,9 +99,7 @@ def _build_response_month_velocity(
             continue
 
         for label, acct_set in [("Responders", resp_accts), ("Non-Responders", non_resp_accts)]:
-            segment_txns = month_txns[
-                month_txns["primary_account_num"].astype(str).isin(acct_set)
-            ]
+            segment_txns = month_txns[month_txns["primary_account_num"].astype(str).isin(acct_set)]
             if segment_txns.empty:
                 continue
 
@@ -113,18 +111,20 @@ def _build_response_month_velocity(
             avg_ticket = segment_txns["amount"].mean()
             total_spend = segment_txns["amount"].sum()
 
-            rows.append({
-                "month": month_str,
-                "segment": label,
-                "accounts": n_accts,
-                "transactions": n_txns,
-                "txns_per_account": round(n_txns / n_accts, 1) if n_accts else 0,
-                "avg_day_of_month": round(avg_dom, 1),
-                "median_day_of_month": round(median_dom, 1),
-                "pct_first_10_days": round(early_pct, 1),
-                "avg_ticket": round(avg_ticket, 2),
-                "total_spend": round(total_spend, 2),
-            })
+            rows.append(
+                {
+                    "month": month_str,
+                    "segment": label,
+                    "accounts": n_accts,
+                    "transactions": n_txns,
+                    "txns_per_account": round(n_txns / n_accts, 1) if n_accts else 0,
+                    "avg_day_of_month": round(avg_dom, 1),
+                    "median_day_of_month": round(median_dom, 1),
+                    "pct_first_10_days": round(early_pct, 1),
+                    "avg_ticket": round(avg_ticket, 2),
+                    "total_spend": round(total_spend, 2),
+                }
+            )
 
     if not rows:
         return pd.DataFrame()
@@ -328,8 +328,7 @@ def analyze_spending_behavior(
         data["age_groups"] = age_df
         top_age = age_df.iloc[age_df["% of Spend"].values.argmax()]
         summary_parts.append(
-            f"Top spending age group: {top_age['Age Group']} "
-            f"({top_age['% of Spend']}% of spend)"
+            f"Top spending age group: {top_age['Age Group']} ({top_age['% of Spend']}% of spend)"
         )
 
     # Branch spending

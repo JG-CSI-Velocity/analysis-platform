@@ -16,13 +16,15 @@ def _make_df(dates: list[str], amounts: list[float] | None = None) -> pd.DataFra
     """Build synthetic txn DataFrame with given dates."""
     if amounts is None:
         amounts = [100.0] * len(dates)
-    return pd.DataFrame({
-        "transaction_date": dates,
-        "amount": amounts,
-        "primary_account_num": [f"ACCT{i:03d}" for i in range(len(dates))],
-        "merchant_name": ["Test Merchant"] * len(dates),
-        "business_flag": ["No"] * len(dates),
-    })
+    return pd.DataFrame(
+        {
+            "transaction_date": dates,
+            "amount": amounts,
+            "primary_account_num": [f"ACCT{i:03d}" for i in range(len(dates))],
+            "merchant_name": ["Test Merchant"] * len(dates),
+            "business_flag": ["No"] * len(dates),
+        }
+    )
 
 
 class TestTimePatterns:
@@ -42,8 +44,13 @@ class TestTimePatterns:
         assert result.error is None
         assert len(result.df) == 7
         assert list(result.df["Day"]) == [
-            "Monday", "Tuesday", "Wednesday", "Thursday",
-            "Friday", "Saturday", "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
         ]
 
     def test_weekend_pct(self):
@@ -106,9 +113,7 @@ class TestTimePatterns:
         assert "day_of_month" in result.data
         dom = result.data["day_of_month"]
         assert len(dom) == 4
-        assert list(dom["Period"]) == [
-            "Days 1-7", "Days 8-14", "Days 15-21", "Days 22-31"
-        ]
+        assert list(dom["Period"]) == ["Days 1-7", "Days 8-14", "Days 15-21", "Days 22-31"]
 
     def test_early_vs_late_month_avg_ticket(self):
         # Early month: small txns. Late month: large txns.

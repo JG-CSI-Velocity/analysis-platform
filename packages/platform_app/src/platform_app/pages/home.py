@@ -986,9 +986,7 @@ _pipelines_label = " + ".join(
 # ---- Single progress tracker: one st.status() per phase ----
 
 # PHASE 1: Data preparation
-_data_status = st.status(
-    f"Step 1 of {total_pipelines + 1} -- Loading data files...", expanded=True
-)
+_data_status = st.status(f"Step 1 of {total_pipelines + 1} -- Loading data files...", expanded=True)
 _data_status.write(f"Client **{client_id}** -- {_pipelines_label}")
 
 _local_oddd: str = oddd_path
@@ -1039,7 +1037,7 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
 
     st.markdown(
         f'<p class="uap-label">{pipeline_name.upper()} PIPELINE '
-        f'(Step {_step_num} of {total_pipelines + 1})</p>',
+        f"(Step {_step_num} of {total_pipelines + 1})</p>",
         unsafe_allow_html=True,
     )
     _progress_bar = st.progress(0, text=f"{pipeline_name.upper()} -- Initializing...")
@@ -1133,16 +1131,16 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
             text=f"{pipeline_name.upper()} complete -- {len(results)} results in {_step_elapsed}s",
         )
         _status_text.empty()
-        logger.info("Pipeline %s complete: %d results in %.1fs", pipeline_name, len(results), _step_elapsed)
+        logger.info(
+            "Pipeline %s complete: %d results in %.1fs", pipeline_name, len(results), _step_elapsed
+        )
     except Exception:
         import traceback as _tb
 
         _step_elapsed = round(time.time() - step_t0, 1)
         _tb_str = _tb.format_exc()
         pipeline_errors[pipeline_name] = _tb_str
-        _progress_bar.progress(
-            1.0, text=f"{pipeline_name.upper()} FAILED ({_step_elapsed}s)"
-        )
+        _progress_bar.progress(1.0, text=f"{pipeline_name.upper()} FAILED ({_step_elapsed}s)")
         _status_text.error(_tb_str[-300:])
         logger.error("Pipeline %s failed for client %s:\n%s", pipeline_name, client_id, _tb_str)
 
@@ -1160,7 +1158,9 @@ shutil.rmtree(_local_dir, ignore_errors=True)
 _ok = len(all_results)
 _fail = len(pipeline_errors)
 if _fail:
-    st.warning(f"Completed in {total_elapsed}s -- {_ok} pipeline(s) OK, {_fail} failed. Check errors above.")
+    st.warning(
+        f"Completed in {total_elapsed}s -- {_ok} pipeline(s) OK, {_fail} failed. Check errors above."
+    )
 else:
     st.success(f"All {_ok} pipeline(s) complete in {total_elapsed}s.")
 

@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import logging
 import sys
+import warnings
 from pathlib import Path
 
 import streamlit as st
+from PIL import Image
 
 from platform_app.brand import PAGE_TITLE, TAGLINE
 
@@ -22,14 +24,18 @@ _LOG_FILE = _LOG_DIR / "app.log"
 
 # Configure root logger to write to file + stderr
 _root = logging.getLogger()
-if not any(isinstance(h, logging.FileHandler) and getattr(h, "_uap_marker", False) for h in _root.handlers):
+if not any(
+    isinstance(h, logging.FileHandler) and getattr(h, "_uap_marker", False) for h in _root.handlers
+):
     _fh = logging.FileHandler(_LOG_FILE, encoding="utf-8")
     _fh._uap_marker = True  # type: ignore[attr-defined]
     _fh.setLevel(logging.DEBUG)
-    _fh.setFormatter(logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    ))
+    _fh.setFormatter(
+        logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
     _root.addHandler(_fh)
     _root.setLevel(logging.DEBUG)
 
@@ -39,6 +45,9 @@ if not any(isinstance(h, logging.FileHandler) and getattr(h, "_uap_marker", Fals
         sys.__excepthook__(exc_type, exc_value, exc_tb)
 
     sys.excepthook = _exception_hook
+
+# Suppress PIL DecompressionBombWarning globally (large chart PNGs are expected)
+warnings.filterwarnings("ignore", category=Image.DecompressionBombWarning)
 
 logging.getLogger("platform_app").info("App startup -- logging to %s", _LOG_FILE)
 

@@ -21,13 +21,15 @@ def _make_txn_df(accts: list[str], n_per_acct: int = 3) -> pd.DataFrame:
     rows = []
     for acct in accts:
         for i in range(n_per_acct):
-            rows.append({
-                "primary_account_num": acct,
-                "merchant_name": f"Merchant_{i}",
-                "amount": 100.0 * (i + 1),
-                "year_month": "2025-01",
-                "business_flag": "No",
-            })
+            rows.append(
+                {
+                    "primary_account_num": acct,
+                    "merchant_name": f"Merchant_{i}",
+                    "amount": 100.0 * (i + 1),
+                    "year_month": "2025-01",
+                    "business_flag": "No",
+                }
+            )
     return pd.DataFrame(rows)
 
 

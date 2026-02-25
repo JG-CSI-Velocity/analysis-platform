@@ -183,9 +183,7 @@ def analyze_recurring_payments(
         .reset_index()
     )
 
-    main_result = merchant_summary.merge(
-        spend_by_merchant, on="merchant_consolidated", how="left"
-    )
+    main_result = merchant_summary.merge(spend_by_merchant, on="merchant_consolidated", how="left")
     main_result["avg_months"] = main_result["avg_months"].round(1)
     main_result["avg_txn"] = main_result["avg_txn"].round(2)
     main_result["total_spend"] = main_result["total_spend"].round(2)

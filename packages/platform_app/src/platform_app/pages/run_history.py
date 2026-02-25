@@ -133,9 +133,7 @@ st.divider()
 st.markdown('<p class="uap-label">DETAILS</p>', unsafe_allow_html=True)
 
 for record in filtered[:10]:
-    with st.expander(
-        f"{record.run_id} -- {record.client_id} / {record.pipeline}", expanded=False
-    ):
+    with st.expander(f"{record.run_id} -- {record.client_id} / {record.pipeline}", expanded=False):
         d1, d2, d3 = st.columns(3)
         d1.markdown(f"**CSM:** {record.csm or '--'}")
         d2.markdown(f"**Client:** {record.client_id} - {record.client_name}")

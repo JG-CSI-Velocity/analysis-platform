@@ -111,7 +111,9 @@ def analyze_net_portfolio_growth(
     if "Date Closed" in data.columns:
         closed = data[data["Date Closed"].notna()].copy()
         closed["Close Month"] = (
-            pd.to_datetime(closed["Date Closed"], errors="coerce", format="mixed").dt.to_period("M").astype(str)
+            pd.to_datetime(closed["Date Closed"], errors="coerce", format="mixed")
+            .dt.to_period("M")
+            .astype(str)
         )
         closes = closed.groupby("Close Month").size().reset_index(name="Closes")
         closes.columns = ["Month", "Closes"]
@@ -301,7 +303,10 @@ def analyze_closure_by_account_age(
         ref_dates = pd.Timestamp.now()
 
     closed["Account Age Days"] = (
-        (pd.to_datetime(ref_dates, format="mixed") - pd.to_datetime(closed["Date Opened"], errors="coerce", format="mixed"))
+        (
+            pd.to_datetime(ref_dates, format="mixed")
+            - pd.to_datetime(closed["Date Opened"], errors="coerce", format="mixed")
+        )
         .dt.days.fillna(0)
         .astype(int)
     )
@@ -367,7 +372,9 @@ def analyze_net_growth_by_source(
         closed = ics_all[ics_all["Stat Code"].isin(settings.closed_stat_codes)].copy()
         if cutoff is not None and "Date Closed" in closed.columns:
             closed["Close Month"] = (
-                pd.to_datetime(closed["Date Closed"], errors="coerce", format="mixed").dt.to_period("M").astype(str)
+                pd.to_datetime(closed["Date Closed"], errors="coerce", format="mixed")
+                .dt.to_period("M")
+                .astype(str)
             )
             closed = closed[closed["Close Month"] >= cutoff_period]
         closes = closed.groupby("Source", dropna=False).size().reset_index(name="Closes")
@@ -416,7 +423,9 @@ def analyze_closure_rate_trend(
         )
 
     closed["Close Month"] = (
-        pd.to_datetime(closed["Date Closed"], errors="coerce", format="mixed").dt.to_period("M").astype(str)
+        pd.to_datetime(closed["Date Closed"], errors="coerce", format="mixed")
+        .dt.to_period("M")
+        .astype(str)
     )
     closed = closed.dropna(subset=["Close Month"])
 

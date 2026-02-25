@@ -26,15 +26,17 @@ def _make_df(
     for acct in accounts:
         for merchant in merchants:
             for month in months:
-                rows.append({
-                    "merchant_consolidated": merchant,
-                    "merchant_name": merchant,
-                    "primary_account_num": acct,
-                    "amount": 15.99,
-                    "year_month": month,
-                    "transaction_date": f"{month}-15",
-                    "business_flag": "No",
-                })
+                rows.append(
+                    {
+                        "merchant_consolidated": merchant,
+                        "merchant_name": merchant,
+                        "primary_account_num": acct,
+                        "amount": 15.99,
+                        "year_month": month,
+                        "transaction_date": f"{month}-15",
+                        "business_flag": "No",
+                    }
+                )
     return pd.DataFrame(rows)
 
 
@@ -81,24 +83,28 @@ class TestRecurringPayments:
         # 1001 has Netflix for 4 months (recurring), 1002 has it for 1 month (not)
         rows = []
         for m in ["2025-01", "2025-02", "2025-03", "2025-04"]:
-            rows.append({
+            rows.append(
+                {
+                    "merchant_consolidated": "NETFLIX.COM",
+                    "merchant_name": "NETFLIX.COM",
+                    "primary_account_num": "1001",
+                    "amount": 15.99,
+                    "year_month": m,
+                    "transaction_date": f"{m}-15",
+                    "business_flag": "No",
+                }
+            )
+        rows.append(
+            {
                 "merchant_consolidated": "NETFLIX.COM",
                 "merchant_name": "NETFLIX.COM",
-                "primary_account_num": "1001",
+                "primary_account_num": "1002",
                 "amount": 15.99,
-                "year_month": m,
-                "transaction_date": f"{m}-15",
+                "year_month": "2025-01",
+                "transaction_date": "2025-01-15",
                 "business_flag": "No",
-            })
-        rows.append({
-            "merchant_consolidated": "NETFLIX.COM",
-            "merchant_name": "NETFLIX.COM",
-            "primary_account_num": "1002",
-            "amount": 15.99,
-            "year_month": "2025-01",
-            "transaction_date": "2025-01-15",
-            "business_flag": "No",
-        })
+            }
+        )
         df = pd.DataFrame(rows)
         result = analyze_recurring_payments(df, df, df, _settings())
         assert result.error is None
@@ -138,24 +144,28 @@ class TestOnsetTimeline:
         rows = []
         # Account 1001: Netflix from Jan-Mar (onset = Mar)
         for m in ["2025-01", "2025-02", "2025-03"]:
-            rows.append({
-                "merchant_consolidated": "NETFLIX.COM",
-                "primary_account_num": "1001",
-                "amount": 15.99,
-                "year_month": m,
-                "transaction_date": f"{m}-15",
-                "business_flag": "No",
-            })
+            rows.append(
+                {
+                    "merchant_consolidated": "NETFLIX.COM",
+                    "primary_account_num": "1001",
+                    "amount": 15.99,
+                    "year_month": m,
+                    "transaction_date": f"{m}-15",
+                    "business_flag": "No",
+                }
+            )
         # Account 1002: Netflix from Feb-Apr (onset = Apr)
         for m in ["2025-02", "2025-03", "2025-04"]:
-            rows.append({
-                "merchant_consolidated": "NETFLIX.COM",
-                "primary_account_num": "1002",
-                "amount": 15.99,
-                "year_month": m,
-                "transaction_date": f"{m}-15",
-                "business_flag": "No",
-            })
+            rows.append(
+                {
+                    "merchant_consolidated": "NETFLIX.COM",
+                    "primary_account_num": "1002",
+                    "amount": 15.99,
+                    "year_month": m,
+                    "transaction_date": f"{m}-15",
+                    "business_flag": "No",
+                }
+            )
         df = pd.DataFrame(rows)
         onsets = _build_onset_timeline(df, min_months=3)
         assert len(onsets) == 2
@@ -166,14 +176,16 @@ class TestOnsetTimeline:
         rows = []
         for merchant in ["NETFLIX.COM", "SPOTIFY"]:
             for m in ["2025-01", "2025-02", "2025-03"]:
-                rows.append({
-                    "merchant_consolidated": merchant,
-                    "primary_account_num": "1001",
-                    "amount": 15.99,
-                    "year_month": m,
-                    "transaction_date": f"{m}-15",
-                    "business_flag": "No",
-                })
+                rows.append(
+                    {
+                        "merchant_consolidated": merchant,
+                        "primary_account_num": "1001",
+                        "amount": 15.99,
+                        "year_month": m,
+                        "transaction_date": f"{m}-15",
+                        "business_flag": "No",
+                    }
+                )
         df = pd.DataFrame(rows)
         onsets = _build_onset_timeline(df, min_months=3)
         assert len(onsets) == 2
@@ -207,24 +219,28 @@ class TestOnsetSummaryByMonth:
         rows = []
         # 1001+Netflix: Jan-Mar (onset Mar)
         for m in ["2025-01", "2025-02", "2025-03"]:
-            rows.append({
-                "merchant_consolidated": "NETFLIX.COM",
-                "primary_account_num": "1001",
-                "amount": 15.99,
-                "year_month": m,
-                "transaction_date": f"{m}-15",
-                "business_flag": "No",
-            })
+            rows.append(
+                {
+                    "merchant_consolidated": "NETFLIX.COM",
+                    "primary_account_num": "1001",
+                    "amount": 15.99,
+                    "year_month": m,
+                    "transaction_date": f"{m}-15",
+                    "business_flag": "No",
+                }
+            )
         # 1002+Spotify: Feb-Apr (onset Apr)
         for m in ["2025-02", "2025-03", "2025-04"]:
-            rows.append({
-                "merchant_consolidated": "SPOTIFY",
-                "primary_account_num": "1002",
-                "amount": 9.99,
-                "year_month": m,
-                "transaction_date": f"{m}-15",
-                "business_flag": "No",
-            })
+            rows.append(
+                {
+                    "merchant_consolidated": "SPOTIFY",
+                    "primary_account_num": "1002",
+                    "amount": 9.99,
+                    "year_month": m,
+                    "transaction_date": f"{m}-15",
+                    "business_flag": "No",
+                }
+            )
         df = pd.DataFrame(rows)
         onsets = _build_onset_timeline(df, min_months=3)
         summary = _summarize_onsets_by_month(onsets, df)

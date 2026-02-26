@@ -1,44 +1,65 @@
 """Chart for R02: Emerging Referrers -- scatter timeline."""
 
-import plotly.graph_objects as go
+from __future__ import annotations
 
+from io import BytesIO
+
+import matplotlib.dates as mdates
+import numpy as np
+import pandas as pd
+
+from ics_toolkit.analysis.charts.guards import chart_figure
+from ics_toolkit.analysis.charts.style import TICK_SIZE
 from ics_toolkit.settings import ChartConfig
 
-LAYOUT_DEFAULTS = dict(
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    margin=dict(t=60, b=40),
-)
 
-
-def chart_emerging_referrers(df, config: ChartConfig) -> go.Figure:
+def chart_emerging_referrers(df: pd.DataFrame, config: ChartConfig) -> bytes:
     """Scatter plot: Referrer (y) x First Referral date (x), size = Burst Count."""
+    if df.empty:
+        return b""
+
     data = df.copy()
-    marker_size = data["Burst Count"].clip(lower=1) * 8
+    data["First Referral"] = pd.to_datetime(data["First Referral"], errors="coerce")
+    data = data.dropna(subset=["First Referral"])
+    if data.empty:
+        return b""
 
-    fig = go.Figure(
-        go.Scatter(
-            x=data["First Referral"],
-            y=data["Referrer"],
-            mode="markers",
-            marker=dict(
-                size=marker_size,
-                color=data["Influence Score"],
-                colorscale="Blues",
-                showscale=True,
-                colorbar=dict(title="Score"),
-            ),
-            text=data.apply(
-                lambda r: f"Score: {r['Influence Score']}<br>Bursts: {r['Burst Count']}",
-                axis=1,
-            ),
-            hoverinfo="text+y",
+    n = len(data)
+    row_height = 0.5
+    fig_height = max(4, n * row_height + 1.5)
+    buf = BytesIO()
+
+    with chart_figure(figsize=(12, fig_height), save_path=buf) as (_fig, ax):
+        burst = data["Burst Count"].clip(lower=1).values
+        marker_sizes = burst * 60
+
+        scores = data["Influence Score"].values
+        score_min = scores.min() if len(scores) > 0 else 0
+        score_max = scores.max() if len(scores) > 0 else 1
+        score_range = score_max - score_min if score_max > score_min else 1
+        norm_scores = (scores - score_min) / score_range
+
+        dates = mdates.date2num(data["First Referral"])
+        y_pos = np.arange(n)
+
+        sc = ax.scatter(
+            dates,
+            y_pos,
+            s=marker_sizes,
+            c=norm_scores,
+            cmap="Blues",
+            alpha=0.8,
+            edgecolors="white",
+            linewidth=0.5,
         )
-    )
+        _fig.colorbar(sc, ax=ax, label="Influence Score", shrink=0.8)
 
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="First Referral Date",
-        yaxis_title="Referrer",
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(data["Referrer"].tolist(), fontsize=TICK_SIZE)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
+        _fig.autofmt_xdate(rotation=45)
+        ax.set_xlabel("First Referral Date", fontsize=TICK_SIZE)
+
+    buf.seek(0)
+    return buf.read()

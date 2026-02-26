@@ -1,34 +1,64 @@
 """Chart for R01: Top Referrers -- horizontal bar by influence score."""
 
-import plotly.graph_objects as go
+from __future__ import annotations
 
+from io import BytesIO
+
+import numpy as np
+import pandas as pd
+
+from ics_toolkit.analysis.charts.guards import chart_figure
+from ics_toolkit.analysis.charts.style import (
+    BAR_ALPHA,
+    BAR_EDGE,
+    BAR_EDGE_WIDTH,
+    DATA_LABEL_SIZE,
+    NAVY,
+    TICK_SIZE,
+)
 from ics_toolkit.settings import ChartConfig
 
-LAYOUT_DEFAULTS = dict(
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    margin=dict(t=60, b=40),
-)
 
-
-def chart_top_referrers(df, config: ChartConfig) -> go.Figure:
+def chart_top_referrers(df: pd.DataFrame, config: ChartConfig) -> bytes:
     """Horizontal bar chart of top referrers ranked by influence score."""
-    data = df.sort_values("Influence Score", ascending=True).copy()
+    data = df.sort_values("Influence Score", ascending=True)
+    n = len(data)
+    if n == 0:
+        return b""
 
-    fig = go.Figure(
-        go.Bar(
-            x=data["Influence Score"],
-            y=data["Referrer"],
-            orientation="h",
-            marker_color=config.colors[0],
-            text=data["Influence Score"],
-            textposition="outside",
+    row_height = 0.4
+    fig_height = max(4, n * row_height + 1.5)
+    buf = BytesIO()
+
+    with chart_figure(figsize=(12, fig_height), save_path=buf) as (_fig, ax):
+        y_pos = np.arange(n)
+        scores = data["Influence Score"].values
+        labels = data["Referrer"].tolist()
+
+        ax.barh(
+            y_pos,
+            scores,
+            color=NAVY,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=BAR_ALPHA,
+            height=0.6,
         )
-    )
 
-    fig.update_layout(
-        template=config.theme,
-        xaxis_title="Influence Score",
-        yaxis_title="Referrer",
-        **LAYOUT_DEFAULTS,
-    )
-    return fig
+        for i, val in enumerate(scores):
+            ax.annotate(
+                f"{val:.1f}",
+                xy=(val, i),
+                xytext=(4, 0),
+                textcoords="offset points",
+                fontsize=DATA_LABEL_SIZE,
+                va="center",
+            )
+
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(labels, fontsize=TICK_SIZE)
+        ax.set_xlabel("Influence Score", fontsize=TICK_SIZE)
+        ax.xaxis.set_visible(False)
+
+    buf.seek(0)
+    return buf.read()

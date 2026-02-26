@@ -9,7 +9,6 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-import plotly.graph_objects as go
 
 from ics_toolkit.analysis.analyses.base import AnalysisResult
 from ics_toolkit.referral.analyses import run_all_referral_analyses
@@ -39,7 +38,6 @@ class ReferralPipelineResult:
     referrer_metrics: pd.DataFrame
     staff_metrics: pd.DataFrame
     analyses: list[AnalysisResult] = field(default_factory=list)
-    charts: dict[str, go.Figure] = field(default_factory=dict)
     chart_pngs: dict[str, bytes] = field(default_factory=dict)
 
 
@@ -58,7 +56,7 @@ def run_pipeline(
     5. Network inference
     6. Influence scoring + staff multipliers
     7. Run 8 analysis artifacts
-    8. Build charts + render PNGs
+    8. Build charts (matplotlib, direct PNG)
     """
     total_steps = 7 if skip_charts else 8
 
@@ -125,7 +123,6 @@ def run_pipeline(
     logger.info("%d/%d analyses completed", len(successful), len(analyses))
 
     # Step 8: Charts
-    charts: dict[str, go.Figure] = {}
     chart_pngs: dict[str, bytes] = {}
     if skip_charts:
         logger.info("[8/%d] Skipping charts (--no-charts)", total_steps)
@@ -134,19 +131,10 @@ def run_pipeline(
         if on_progress:
             on_progress(7, total_steps, "Building charts...")
         try:
-            charts = create_referral_charts(analyses, settings.charts)
-            logger.info("Built %d charts", len(charts))
+            chart_pngs = create_referral_charts(analyses, settings.charts)
+            logger.info("Built %d chart PNGs", len(chart_pngs))
         except Exception as e:
             logger.error("Chart generation failed: %s", e, exc_info=True)
-
-        if charts:
-            from ics_toolkit.analysis.charts.renderer import render_all_chart_pngs
-
-            try:
-                chart_pngs = render_all_chart_pngs(charts)
-                logger.info("Rendered %d chart PNGs", len(chart_pngs))
-            except Exception as e:
-                logger.error("Chart PNG rendering failed: %s", e, exc_info=True)
 
     return ReferralPipelineResult(
         settings=settings,
@@ -154,7 +142,6 @@ def run_pipeline(
         referrer_metrics=referrer_metrics,
         staff_metrics=staff_metrics,
         analyses=analyses,
-        charts=charts,
         chart_pngs=chart_pngs,
     )
 

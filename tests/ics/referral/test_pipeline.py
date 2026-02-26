@@ -43,7 +43,6 @@ class TestRunPipeline:
 
     def test_skip_charts_produces_no_charts(self, sample_referral_settings):
         result = run_pipeline(sample_referral_settings, skip_charts=True)
-        assert len(result.charts) == 0
         assert len(result.chart_pngs) == 0
 
     def test_progress_callback(self, sample_referral_settings):

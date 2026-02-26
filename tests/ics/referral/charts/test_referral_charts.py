@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pandas as pd
-import plotly.graph_objects as go
 import pytest
 
 from ics_toolkit.analysis.analyses.base import AnalysisResult
@@ -104,79 +103,80 @@ class TestChartRegistry:
 
 
 class TestChartTopReferrers:
-    def test_returns_figure(self, top_referrers_df, chart_config):
-        fig = chart_top_referrers(top_referrers_df, chart_config)
-        assert isinstance(fig, go.Figure)
+    def test_returns_png_bytes(self, top_referrers_df, chart_config):
+        result = chart_top_referrers(top_referrers_df, chart_config)
+        assert isinstance(result, bytes)
+        assert len(result) > 0
 
-    def test_has_bar_trace(self, top_referrers_df, chart_config):
-        fig = chart_top_referrers(top_referrers_df, chart_config)
-        assert any(isinstance(t, go.Bar) for t in fig.data)
+    def test_png_header(self, top_referrers_df, chart_config):
+        result = chart_top_referrers(top_referrers_df, chart_config)
+        assert result[:4] == b"\x89PNG"
 
-    def test_horizontal_orientation(self, top_referrers_df, chart_config):
-        fig = chart_top_referrers(top_referrers_df, chart_config)
-        bar = [t for t in fig.data if isinstance(t, go.Bar)][0]
-        assert bar.orientation == "h"
+    def test_empty_df_returns_empty(self, chart_config):
+        result = chart_top_referrers(pd.DataFrame(columns=["Referrer", "Influence Score"]), chart_config)
+        assert result == b""
 
 
 class TestChartEmergingReferrers:
-    def test_returns_figure(self, emerging_referrers_df, chart_config):
-        fig = chart_emerging_referrers(emerging_referrers_df, chart_config)
-        assert isinstance(fig, go.Figure)
+    def test_returns_png_bytes(self, emerging_referrers_df, chart_config):
+        result = chart_emerging_referrers(emerging_referrers_df, chart_config)
+        assert isinstance(result, bytes)
+        assert len(result) > 0
 
-    def test_has_scatter_trace(self, emerging_referrers_df, chart_config):
-        fig = chart_emerging_referrers(emerging_referrers_df, chart_config)
-        assert any(isinstance(t, go.Scatter) for t in fig.data)
+    def test_png_header(self, emerging_referrers_df, chart_config):
+        result = chart_emerging_referrers(emerging_referrers_df, chart_config)
+        assert result[:4] == b"\x89PNG"
 
-    def test_marker_mode(self, emerging_referrers_df, chart_config):
-        fig = chart_emerging_referrers(emerging_referrers_df, chart_config)
-        scatter = [t for t in fig.data if isinstance(t, go.Scatter)][0]
-        assert scatter.mode == "markers"
+    def test_empty_df_returns_empty(self, chart_config):
+        result = chart_emerging_referrers(pd.DataFrame(), chart_config)
+        assert result == b""
 
 
 class TestChartStaffMultipliers:
-    def test_returns_figure(self, staff_df, chart_config):
-        fig = chart_staff_multipliers(staff_df, chart_config)
-        assert isinstance(fig, go.Figure)
+    def test_returns_png_bytes(self, staff_df, chart_config):
+        result = chart_staff_multipliers(staff_df, chart_config)
+        assert isinstance(result, bytes)
+        assert len(result) > 0
 
-    def test_has_bar_traces(self, staff_df, chart_config):
-        fig = chart_staff_multipliers(staff_df, chart_config)
-        bars = [t for t in fig.data if isinstance(t, go.Bar)]
-        assert len(bars) >= 1
+    def test_png_header(self, staff_df, chart_config):
+        result = chart_staff_multipliers(staff_df, chart_config)
+        assert result[:4] == b"\x89PNG"
 
-    def test_grouped_barmode(self, staff_df, chart_config):
-        fig = chart_staff_multipliers(staff_df, chart_config)
-        assert fig.layout.barmode == "group"
+    def test_without_referrals_processed(self, chart_config):
+        df = pd.DataFrame({"Staff": ["A", "B"], "Multiplier Score": [80, 60]})
+        result = chart_staff_multipliers(df, chart_config)
+        assert isinstance(result, bytes)
+        assert len(result) > 0
 
 
 class TestChartBranchDensity:
-    def test_returns_figure(self, branch_df, chart_config):
-        fig = chart_branch_density(branch_df, chart_config)
-        assert isinstance(fig, go.Figure)
+    def test_returns_png_bytes(self, branch_df, chart_config):
+        result = chart_branch_density(branch_df, chart_config)
+        assert isinstance(result, bytes)
+        assert len(result) > 0
 
-    def test_has_bar_trace(self, branch_df, chart_config):
-        fig = chart_branch_density(branch_df, chart_config)
-        assert any(isinstance(t, go.Bar) for t in fig.data)
+    def test_png_header(self, branch_df, chart_config):
+        result = chart_branch_density(branch_df, chart_config)
+        assert result[:4] == b"\x89PNG"
 
-    def test_vertical_orientation(self, branch_df, chart_config):
-        fig = chart_branch_density(branch_df, chart_config)
-        bar = [t for t in fig.data if isinstance(t, go.Bar)][0]
-        # Default orientation is vertical (None or "v")
-        assert bar.orientation in (None, "v")
+    def test_empty_df_returns_empty(self, chart_config):
+        result = chart_branch_density(pd.DataFrame(columns=["Branch", "Avg Influence Score"]), chart_config)
+        assert result == b""
 
 
 class TestChartCodeHealth:
-    def test_returns_figure(self, code_health_df, chart_config):
-        fig = chart_code_health(code_health_df, chart_config)
-        assert isinstance(fig, go.Figure)
+    def test_returns_png_bytes(self, code_health_df, chart_config):
+        result = chart_code_health(code_health_df, chart_config)
+        assert isinstance(result, bytes)
+        assert len(result) > 0
 
-    def test_stacked_barmode(self, code_health_df, chart_config):
-        fig = chart_code_health(code_health_df, chart_config)
-        assert fig.layout.barmode == "stack"
+    def test_png_header(self, code_health_df, chart_config):
+        result = chart_code_health(code_health_df, chart_config)
+        assert result[:4] == b"\x89PNG"
 
-    def test_one_trace_per_reliability(self, code_health_df, chart_config):
-        fig = chart_code_health(code_health_df, chart_config)
-        n_reliabilities = code_health_df["Reliability"].nunique()
-        assert len(fig.data) == n_reliabilities
+    def test_empty_df_returns_empty(self, chart_config):
+        result = chart_code_health(pd.DataFrame(), chart_config)
+        assert result == b""
 
 
 class TestCreateReferralCharts:
@@ -186,7 +186,8 @@ class TestCreateReferralCharts:
         ]
         charts = create_referral_charts(analyses, chart_config)
         assert "Top Referrers" in charts
-        assert isinstance(charts["Top Referrers"], go.Figure)
+        assert isinstance(charts["Top Referrers"], bytes)
+        assert charts["Top Referrers"][:4] == b"\x89PNG"
 
     def test_skips_empty_analyses(self, chart_config):
         analyses = [

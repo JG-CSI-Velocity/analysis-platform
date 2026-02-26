@@ -3,8 +3,6 @@
 import logging
 from collections.abc import Callable
 
-import plotly.graph_objects as go
-
 from ics_toolkit.analysis.analyses.base import AnalysisResult
 from ics_toolkit.referral.charts.branch_density import chart_branch_density
 from ics_toolkit.referral.charts.code_health import chart_code_health
@@ -27,9 +25,9 @@ REFERRAL_CHART_REGISTRY: dict[str, Callable] = {
 def create_referral_charts(
     analyses: list[AnalysisResult],
     config: ChartConfig,
-) -> dict[str, go.Figure]:
-    """Build Plotly figures for referral analyses that have chart builders."""
-    charts: dict[str, go.Figure] = {}
+) -> dict[str, bytes]:
+    """Build chart PNGs for referral analyses that have chart builders."""
+    chart_pngs: dict[str, bytes] = {}
 
     for analysis in analyses:
         if analysis.error is not None or analysis.df.empty:
@@ -40,12 +38,10 @@ def create_referral_charts(
             continue
 
         try:
-            fig = builder(analysis.df, config)
-            fig.update_layout(title_text=analysis.title)
-            if len(fig.data) == 1 and not isinstance(fig.data[0], go.Pie):
-                fig.update_layout(showlegend=False)
-            charts[analysis.name] = fig
+            png_bytes = builder(analysis.df, config)
+            if png_bytes:
+                chart_pngs[analysis.name] = png_bytes
         except Exception as e:
             logger.warning("Chart for '%s' failed: %s", analysis.name, e)
 
-    return charts
+    return chart_pngs

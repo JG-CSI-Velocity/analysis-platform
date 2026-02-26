@@ -67,9 +67,9 @@ st.session_state[f"{PREFIX}_out_dir"] = out_dir
 st.divider()
 
 # ---------------------------------------------------------------------------
-# Module Selection
+# Analysis Selection
 # ---------------------------------------------------------------------------
-st.markdown("**Select Modules**")
+st.markdown("**Select Analyses**")
 render_preset_picker(Product.ARS, f"{PREFIX}_modules")
 selected = render_module_picker(Product.ARS, f"{PREFIX}_modules")
 

@@ -54,9 +54,9 @@ _PROD_COLORS = {
     Product.ICS: "#F59E0B",
 }
 _PROD_LABELS = {
-    Product.ARS: ("ARS", "Account Review Suite", "8 modules"),
-    Product.TXN: ("TXN", "Transaction Analysis", "35 modules"),
-    Product.ICS: ("ICS", "ICS Toolkit", "37 modules"),
+    Product.ARS: ("ARS", "Account Review Suite", "17 analyses"),
+    Product.TXN: ("TXN", "Transaction Analysis", "35 analyses"),
+    Product.ICS: ("ICS", "ICS Toolkit", "44 analyses"),
 }
 _STATUS_TAG = {
     ModuleStatus.STABLE: ("BUILT", "tag-built"),
@@ -142,8 +142,8 @@ div[data-testid="stExpander"] summary {
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
-st.markdown('<p class="uap-label">ANALYSIS / MODULE LIBRARY</p>', unsafe_allow_html=True)
-st.title("Module Library")
+st.markdown('<p class="uap-label">ANALYSIS / LIBRARY</p>', unsafe_allow_html=True)
+st.title("Analysis Library")
 
 # ---------------------------------------------------------------------------
 # Templates -- promoted to top as quick-launch
@@ -198,7 +198,7 @@ for tab, product in zip(tabs, Product):
         # Product header row: subtitle + select/deselect toggle
         h1, h2 = st.columns([4, 1])
         with h1:
-            st.caption(f"{prod_subtitle}  --  {len(modules)} modules")
+            st.caption(f"{prod_subtitle}  --  {len(modules)} analyses")
         with h2:
             if all_selected:
                 if st.button(
@@ -231,7 +231,7 @@ for tab, product in zip(tabs, Product):
             if cat_sel > 0:
                 exp_label = f"{cat_name}  --  {cat_sel}/{cat_total} selected"
             else:
-                exp_label = f"{cat_name}  --  {cat_total} modules"
+                exp_label = f"{cat_name}  --  {cat_total} analyses"
 
             with st.expander(exp_label, expanded=cat_sel > 0):
                 # Category-level select/deselect
@@ -316,15 +316,15 @@ if selected:
 
     st.markdown(
         f'<div class="sel-bar">'
-        f'<span class="sel-count">{len(selected)} modules selected</span>'
+        f'<span class="sel-count">{len(selected)} analyses selected</span>'
         f'<br><span class="sel-detail">{detail_str}</span>'
         f"</div>",
         unsafe_allow_html=True,
     )
 
     st.info(
-        "Pipelines run all modules for the selected product. "
-        "Individual module selection will be available in a future release."
+        "Pipelines run all analyses for the selected product. "
+        "Individual analysis selection will be available in a future release."
     )
 
     with st.expander("Save selection as template", expanded=False):
@@ -338,8 +338,8 @@ if selected:
 else:
     st.markdown(
         '<div class="sel-bar">'
-        '<span class="sel-count" style="color:#94A3B8;">No modules selected</span>'
+        '<span class="sel-count" style="color:#94A3B8;">No analyses selected</span>'
         "</div>",
         unsafe_allow_html=True,
     )
-    st.caption("Pick a template above or browse the tabs to select modules.")
+    st.caption("Pick a template above or browse the tabs to select analyses.")

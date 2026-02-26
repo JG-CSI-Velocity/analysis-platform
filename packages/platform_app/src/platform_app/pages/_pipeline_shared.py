@@ -40,7 +40,7 @@ def render_module_picker(
     product: Product,
     session_key: str,
 ) -> set[str]:
-    """Render grouped module checkboxes. Returns set of selected module keys."""
+    """Render grouped analysis checkboxes. Returns set of selected keys."""
     modules = get_modules_by_product(product)
     by_cat: dict[str, list[ModuleInfo]] = {}
     for m in sorted(modules, key=lambda x: x.run_order):
@@ -96,7 +96,7 @@ def render_preset_picker(
     product: Product,
     session_key: str,
 ) -> None:
-    """Render preset template buttons that populate the module picker."""
+    """Render preset template buttons that populate the analysis picker."""
     prefix = product.value.upper()
     matching = {
         name: keys
@@ -129,7 +129,7 @@ def render_run_button(
         st.session_state[f"{session_key}_start"] = time.time()
 
     clicked = st.button(
-        "Running..." if is_running else f"{label} ({selected_count} modules)",
+        "Running..." if is_running else f"{label} ({selected_count} analyses)",
         type="primary",
         key=f"_run_{session_key}",
         disabled=is_running or selected_count == 0,

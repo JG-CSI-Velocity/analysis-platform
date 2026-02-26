@@ -697,7 +697,7 @@ selected_template = st.session_state.get("uap_selected_template", "")
 if selected_modules:
     _n_pipelines = len(_active_pipelines)
     st.caption(
-        f"**{selected_template}** -- {len(selected_modules)} modules across "
+        f"**{selected_template}** -- {len(selected_modules)} analyses across "
         f"{_n_pipelines} pipeline{'s' if _n_pipelines > 1 else ''}"
     )
 
@@ -709,7 +709,7 @@ for m in registry:
     _modules_by_product.setdefault(m.product, []).append(m)
 
 if selected_modules:
-    with st.expander("Module Detail", expanded=False):
+    with st.expander("Analysis Detail", expanded=False):
         for product in sorted(_active_pipelines, key=lambda x: x.value):
             modules = _modules_by_product.get(product, [])
             _by_cat: dict[str, list] = {}
@@ -717,7 +717,7 @@ if selected_modules:
                 _by_cat.setdefault(m.category, []).append(m)
 
             _n_selected = sum(1 for m in modules if m.key in selected_modules)
-            st.markdown(f"**{product.value.upper()}** -- {_n_selected}/{len(modules)} modules")
+            st.markdown(f"**{product.value.upper()}** -- {_n_selected}/{len(modules)} analyses")
             _lines: list[str] = ['<div style="column-count:2;column-gap:2rem;">']
             for cat_name, cat_modules in _by_cat.items():
                 _lines.append(
@@ -928,7 +928,7 @@ def _on_run_click() -> None:
 
 st.markdown('<div class="uap-run-btn">', unsafe_allow_html=True)
 run_btn = st.button(
-    "Running..." if _is_running else f"Run {len(selected_modules)} Modules",
+    "Running..." if _is_running else f"Run {len(selected_modules)} Analyses",
     type="primary",
     width="stretch",
     key="home_run_btn",
@@ -1326,7 +1326,7 @@ if _run_reports:
                     width="stretch",
                     hide_index=True,
                     column_config={
-                        "module": st.column_config.TextColumn("Module", width="small"),
+                        "module": st.column_config.TextColumn("Analysis", width="small"),
                         "status": st.column_config.TextColumn("Status", width="small"),
                         "slide_id": st.column_config.TextColumn("Slide", width="small"),
                         "title": st.column_config.TextColumn("Title", width="medium"),

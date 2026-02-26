@@ -98,9 +98,9 @@ st.session_state[f"{PREFIX}_out_dir"] = out_dir
 st.divider()
 
 # ---------------------------------------------------------------------------
-# Module Selection
+# Analysis Selection
 # ---------------------------------------------------------------------------
-st.markdown("**Select ICS Modules**")
+st.markdown("**Select ICS Analyses**")
 render_preset_picker(Product.ICS, f"{PREFIX}_modules")
 selected = render_module_picker(Product.ICS, f"{PREFIX}_modules")
 
@@ -119,7 +119,7 @@ if not out_dir:
 if enable_referral and (not referral_path or not Path(referral_path).exists()):
     errors.append("Referral file is required when Referral Intelligence is enabled.")
 
-# Count total analyses (ICS modules + referral if enabled)
+# Count total analyses (ICS + referral if enabled)
 total_count = len(selected) + (8 if enable_referral else 0)
 
 if errors:

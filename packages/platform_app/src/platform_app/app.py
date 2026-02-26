@@ -508,7 +508,7 @@ workspace = st.Page("pages/workspace.py", title="Workspace", icon=":material/fol
 data_ingest = st.Page(
     "pages/data_ingestion.py", title="Data Ingestion", icon=":material/upload_file:"
 )
-modules = st.Page("pages/module_library.py", title="Module Library", icon=":material/apps:")
+modules = st.Page("pages/module_library.py", title="Analysis Library", icon=":material/apps:")
 run_page = st.Page("pages/run_analysis.py", title="Run (Advanced)", icon=":material/tune:")
 batch = st.Page("pages/batch_workflow.py", title="Batch Run", icon=":material/playlist_play:")
 logs = st.Page("pages/logs.py", title="View Logs", icon=":material/description:")

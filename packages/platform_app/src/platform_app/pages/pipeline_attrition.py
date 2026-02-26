@@ -230,7 +230,7 @@ if errors:
 # Total runs = segments x modules
 total_runs = len(segments_selected)
 run_label = (
-    f"Run Attrition ({len(selected)} modules x "
+    f"Run Attrition ({len(selected)} analyses x "
     f"{total_runs} segment{'s' if total_runs > 1 else ''})"
 )
 

@@ -57,7 +57,7 @@ if Product.ICS in needed_products:
 st.markdown('<p class="uap-label">PRE-FLIGHT CHECK</p>', unsafe_allow_html=True)
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Modules", len(selected_modules))
+c1.metric("Analyses", len(selected_modules))
 c2.metric("Pipelines", len(needed_products))
 c3.metric("Client", client_id or "Not set")
 c4.metric("Files Ready", f"{sum(v[0] for v in file_status.values())}/{len(file_status)}")
@@ -119,7 +119,7 @@ else:
 # Validation
 errors: list[str] = []
 if not selected_modules:
-    errors.append("No modules selected. Go to **Module Library** to choose modules.")
+    errors.append("No analyses selected. Go to **Analysis Library** to choose analyses.")
 if not client_id:
     errors.append("Client ID not set. Go to **Workspace** to configure.")
 for name, (ready, _) in file_status.items():
@@ -154,7 +154,7 @@ output_base = st.text_input(
 st.divider()
 
 run_btn = st.button(
-    f"Execute {len(selected_modules)} Modules",
+    f"Execute {len(selected_modules)} Analyses",
     type="primary",
     width="stretch",
     key="run_execute",

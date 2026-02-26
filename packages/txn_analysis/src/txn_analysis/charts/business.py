@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-import plotly.graph_objects as go
+from matplotlib.figure import Figure
 
 from txn_analysis.analyses.base import AnalysisResult
 from txn_analysis.charts.bar_charts import lollipop_chart
 from txn_analysis.settings import ChartConfig
 
 
-def chart_business_top_by_spend(result: AnalysisResult, config: ChartConfig) -> go.Figure:
+def chart_business_top_by_spend(result: AnalysisResult, config: ChartConfig) -> Figure:
     """Business merchants by total spend."""
     df = result.df
     if df.empty:
-        return go.Figure()
+        return Figure()
     data = df[df["merchant_consolidated"] != "Grand Total"].head(25)
     return lollipop_chart(
         labels=data["merchant_consolidated"].tolist(),
@@ -25,11 +25,11 @@ def chart_business_top_by_spend(result: AnalysisResult, config: ChartConfig) -> 
     )
 
 
-def chart_business_top_by_transactions(result: AnalysisResult, config: ChartConfig) -> go.Figure:
+def chart_business_top_by_transactions(result: AnalysisResult, config: ChartConfig) -> Figure:
     """Business merchants by transaction count."""
     df = result.df
     if df.empty:
-        return go.Figure()
+        return Figure()
     data = df[df["merchant_consolidated"] != "Grand Total"].head(25)
     return lollipop_chart(
         labels=data["merchant_consolidated"].tolist(),
@@ -41,11 +41,11 @@ def chart_business_top_by_transactions(result: AnalysisResult, config: ChartConf
     )
 
 
-def chart_business_top_by_accounts(result: AnalysisResult, config: ChartConfig) -> go.Figure:
+def chart_business_top_by_accounts(result: AnalysisResult, config: ChartConfig) -> Figure:
     """Business merchants by unique accounts."""
     df = result.df
     if df.empty:
-        return go.Figure()
+        return Figure()
     data = df[df["merchant_consolidated"] != "Grand Total"].head(25)
     return lollipop_chart(
         labels=data["merchant_consolidated"].tolist(),

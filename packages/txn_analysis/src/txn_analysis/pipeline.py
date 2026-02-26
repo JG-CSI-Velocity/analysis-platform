@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
-import plotly.graph_objects as go
+from matplotlib.figure import Figure
 
 from txn_analysis.analyses import run_all_analyses
 from txn_analysis.analyses.base import AnalysisResult
@@ -30,7 +31,7 @@ class PipelineResult:
     settings: Settings
     df: pd.DataFrame
     analyses: list[AnalysisResult] = field(default_factory=list)
-    charts: dict[str, go.Figure] = field(default_factory=dict)
+    charts: dict[str, Figure] = field(default_factory=dict)
     chart_pngs: dict[str, bytes] = field(default_factory=dict)
     segmented_results: list[SegmentedResult] = field(default_factory=list)
 
@@ -122,7 +123,7 @@ def run_pipeline(
     # Step 3: Build charts
     if on_progress:
         on_progress(2, 3, "Building charts...")
-    charts: dict[str, go.Figure] = {}
+    charts: dict[str, Figure] = {}
     try:
         from txn_analysis.charts import create_charts
 
@@ -155,26 +156,15 @@ def run_pipeline(
 
 
 def _render_chart_pngs(result: PipelineResult) -> dict[str, bytes]:
-    """Render all charts to PNG bytes for Excel embedding (scale=1)."""
-    from io import BytesIO
-
+    """Render all charts to PNG bytes for Excel/PPTX embedding."""
     pngs: dict[str, bytes] = {}
-    config = result.settings.charts
 
     for name, fig in result.charts.items():
         try:
             buf = BytesIO()
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning)
-                fig.write_image(
-                    buf,
-                    format="png",
-                    width=config.width,
-                    height=config.height,
-                    scale=1,
-                    engine="kaleido",
-                )
+            fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
             pngs[name] = buf.getvalue()
+            plt.close(fig)
         except Exception as e:
             logger.warning("PNG render failed for '%s': %s", name, e)
     return pngs
@@ -199,7 +189,7 @@ def export_outputs(result: PipelineResult) -> list[Path]:
         result.chart_pngs = chart_pngs
         logger.info("Rendered %d chart PNGs", len(chart_pngs))
 
-    # Save standalone PNGs to disk (high-res scale=3)
+    # Save standalone PNGs to disk (high-res)
     if result.charts and settings.outputs.chart_images:
         chart_dir = settings.output_dir / "charts"
         chart_dir.mkdir(parents=True, exist_ok=True)

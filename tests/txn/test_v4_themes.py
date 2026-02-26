@@ -1,19 +1,18 @@
-"""Tests for txn_analysis.v4_themes -- chart builders and formatting utilities."""
+"""Tests for txn_analysis chart builders and formatting utilities."""
 
 from __future__ import annotations
 
+import matplotlib.pyplot as plt
 import pandas as pd
-import plotly.graph_objects as go
 import pytest
+from matplotlib.figure import Figure
 
 from txn_analysis.charts.builders import (
-    add_source_footer,
     bullet_chart,
     donut_chart,
     grouped_bar,
     heatmap,
     horizontal_bar,
-    insight_title,
     line_trend,
     lollipop_chart,
     scatter_plot,
@@ -26,10 +25,10 @@ from txn_analysis.charts.theme import (
     COMPETITOR_COLORS,
     FONT_FAMILY,
     GENERATION_COLORS,
-    apply_theme,
-    ensure_theme,
+    add_source_footer,
     format_currency,
     format_pct,
+    set_insight_title,
 )
 
 
@@ -54,18 +53,6 @@ class TestColorPalettes:
 
     def test_font_family_is_string(self):
         assert isinstance(FONT_FAMILY, str)
-        assert "sans-serif" in FONT_FAMILY
-
-
-class TestThemeRegistration:
-    def test_ensure_theme_idempotent(self):
-        ensure_theme()
-        ensure_theme()  # second call should not raise
-
-    def test_apply_theme_returns_figure(self):
-        fig = go.Figure(go.Bar(x=[1, 2], y=[3, 4]))
-        result = apply_theme(fig)
-        assert isinstance(result, go.Figure)
 
 
 class TestFormatting:
@@ -102,146 +89,183 @@ class TestHorizontalBar:
     def test_returns_figure(self):
         df = pd.DataFrame({"merchant": ["A", "B", "C"], "spend": [100, 200, 300]})
         fig = horizontal_bar(df, "spend", "merchant", "Top Merchants")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
     def test_top_n_limits(self):
         df = pd.DataFrame({"name": list("ABCDE"), "val": range(5)})
         fig = horizontal_bar(df, "val", "name", "Test", top_n=3)
-        assert len(fig.data[0].x) == 3
+        ax = fig.get_axes()[0]
+        assert len(ax.patches) == 3
+        plt.close(fig)
 
     def test_custom_color(self):
         df = pd.DataFrame({"name": ["A"], "val": [100]})
         fig = horizontal_bar(df, "val", "name", "Test", color="#FF0000")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestLollipopChart:
     def test_returns_figure(self):
         df = pd.DataFrame({"name": ["A", "B", "C"], "val": [10, 20, 30]})
         fig = lollipop_chart(df, "val", "name", "Test Lollipop")
-        assert isinstance(fig, go.Figure)
-        assert len(fig.data) == 2  # stems + dots
+        assert isinstance(fig, Figure)
+        assert len(fig.get_axes()) > 0
+        plt.close(fig)
 
     def test_empty_data(self):
         df = pd.DataFrame({"name": [], "val": []})
         fig = lollipop_chart(df, "val", "name", "Empty")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestLineTrend:
     def test_single_line(self):
         df = pd.DataFrame({"month": ["Jan", "Feb", "Mar"], "spend": [100, 200, 150]})
         fig = line_trend(df, "month", ["spend"], "Monthly Spend")
-        assert isinstance(fig, go.Figure)
-        assert len(fig.data) == 1
+        assert isinstance(fig, Figure)
+        ax = fig.get_axes()[0]
+        assert len(ax.lines) == 1
+        plt.close(fig)
 
     def test_multiple_lines(self):
         df = pd.DataFrame({"month": ["Jan", "Feb"], "pin": [100, 200], "sig": [300, 400]})
         fig = line_trend(df, "month", ["pin", "sig"], "PIN vs SIG")
-        assert len(fig.data) == 2
+        ax = fig.get_axes()[0]
+        assert len(ax.lines) == 2
+        plt.close(fig)
 
     def test_y_format(self):
         df = pd.DataFrame({"x": [1, 2], "y": [0.5, 0.8]})
         fig = line_trend(df, "x", ["y"], "Pct", y_format=",.0%")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestStackedBar:
     def test_basic(self):
         df = pd.DataFrame({"cat": ["A", "B"], "v1": [10, 20], "v2": [30, 40]})
         fig = stacked_bar(df, "cat", ["v1", "v2"], "Stacked")
-        assert isinstance(fig, go.Figure)
-        assert len(fig.data) == 2
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
     def test_percentage_mode(self):
         df = pd.DataFrame({"cat": ["A", "B"], "v1": [10, 20], "v2": [30, 40]})
         fig = stacked_bar(df, "cat", ["v1", "v2"], "Pct", as_percentage=True)
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestDonutChart:
     def test_returns_figure(self):
         fig = donut_chart(["A", "B", "C"], [10, 20, 30], "Composition")
-        assert isinstance(fig, go.Figure)
-        assert fig.data[0].hole == 0.4
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
     def test_custom_hole(self):
         fig = donut_chart(["X"], [100], "Single", hole=0.6)
-        assert fig.data[0].hole == 0.6
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestHeatmap:
     def test_returns_figure(self):
         df = pd.DataFrame({"Jan": [1, 2], "Feb": [3, 4]}, index=["A", "B"])
         fig = heatmap(df, "Monthly Heatmap")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestBulletChart:
     def test_returns_figure(self):
         fig = bullet_chart(75, 100, "Revenue")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
     def test_custom_ranges(self):
         fig = bullet_chart(50, 80, "KPI", ranges=[40, 60, 100])
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestScatterPlot:
     def test_basic(self):
         df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
         fig = scatter_plot(df, "x", "y", "Scatter")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
     def test_with_size_and_color(self):
         df = pd.DataFrame({"x": [1, 2], "y": [3, 4], "sz": [10, 20], "grp": ["A", "B"]})
         fig = scatter_plot(df, "x", "y", "Bubble", size_col="sz", color_col="grp")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
     def test_with_hover(self):
         df = pd.DataFrame({"x": [1], "y": [2], "label": ["Point A"]})
         fig = scatter_plot(df, "x", "y", "Hover", hover_col="label")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestGroupedBar:
     def test_returns_figure(self):
         df = pd.DataFrame({"cat": ["A", "B"], "m1": [10, 20], "m2": [30, 40]})
         fig = grouped_bar(df, "cat", ["m1", "m2"], "Grouped")
-        assert isinstance(fig, go.Figure)
-        assert len(fig.data) == 2
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestWaterfallChart:
     def test_returns_figure(self):
         fig = waterfall_chart(["Revenue", "Costs", "Profit"], [100, -40, 60], "Waterfall")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
     def test_empty(self):
         fig = waterfall_chart([], [], "Empty")
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig, Figure)
+        plt.close(fig)
 
 
 class TestInsightTitle:
     def test_main_only(self):
-        result = insight_title("Top merchants")
-        assert "Top merchants" in result["text"]
-        assert isinstance(result, dict)
+        fig, ax = plt.subplots()
+        try:
+            set_insight_title(ax, "Top merchants")
+            assert ax.get_title(loc="left") == "Top merchants"
+        finally:
+            plt.close(fig)
 
     def test_with_subtitle(self):
-        result = insight_title("Main", "Sub detail")
-        assert "Main" in result["text"]
-        assert "Sub detail" in result["text"]
+        fig, ax = plt.subplots()
+        try:
+            set_insight_title(ax, "Main", "Sub detail")
+            assert ax.get_title(loc="left") == "Main"
+            texts = [t.get_text() for t in ax.texts]
+            assert "Sub detail" in texts
+        finally:
+            plt.close(fig)
 
 
 class TestAddSourceFooter:
-    def test_adds_annotation(self):
-        fig = go.Figure(go.Bar(x=[1], y=[2]))
-        result = add_source_footer(fig, client_name="Test CU", date_range="2025")
-        assert len(result.layout.annotations) == 1
-        assert "Test CU" in result.layout.annotations[0].text
+    def test_adds_text(self):
+        fig, ax = plt.subplots()
+        try:
+            ax.bar([1], [2])
+            add_source_footer(fig, client_name="Test CU", date_range="2025")
+            texts = [t.get_text() for t in fig.texts]
+            assert any("Test CU" in t for t in texts)
+        finally:
+            plt.close(fig)
 
     def test_empty_source(self):
-        fig = go.Figure(go.Bar(x=[1], y=[2]))
-        result = add_source_footer(fig)
-        assert isinstance(result, go.Figure)
+        fig, ax = plt.subplots()
+        try:
+            ax.bar([1], [2])
+            add_source_footer(fig)
+            assert len(fig.texts) == 0
+        finally:
+            plt.close(fig)

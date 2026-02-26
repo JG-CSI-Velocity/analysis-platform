@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 import pytest
+from matplotlib.figure import Figure
 
 from txn_analysis.storylines.v4_s7_campaigns import (
     _add,
@@ -339,7 +339,7 @@ def _assert_analysis_result(result):
     """Verify the standard (DataFrame, Figure, str) return tuple."""
     df, fig, narr = result
     assert isinstance(df, pd.DataFrame)
-    assert isinstance(fig, go.Figure)
+    assert isinstance(fig, Figure)
     assert isinstance(narr, str)
     return df, fig, narr
 
@@ -805,7 +805,7 @@ class TestAdd:
     def test_appends_when_data_present(self):
         sections, sheets = [], []
         df = pd.DataFrame({"A": [1, 2, 3]})
-        fig = go.Figure()
+        fig = Figure()
         _add(sections, sheets, "Test Heading", df, fig, "narrative", "Sheet1")
         assert len(sections) == 1
         assert sections[0]["heading"] == "Test Heading"
@@ -816,7 +816,7 @@ class TestAdd:
     def test_skips_when_empty(self):
         sections, sheets = [], []
         df = pd.DataFrame()
-        fig = go.Figure()
+        fig = Figure()
         _add(sections, sheets, "Empty Heading", df, fig, "narrative", "Sheet1")
         assert len(sections) == 0
         assert len(sheets) == 0
@@ -824,7 +824,7 @@ class TestAdd:
     def test_passes_col_spec(self):
         sections, sheets = [], []
         df = pd.DataFrame({"X": [1]})
-        fig = go.Figure()
+        fig = Figure()
         _add(
             sections,
             sheets,

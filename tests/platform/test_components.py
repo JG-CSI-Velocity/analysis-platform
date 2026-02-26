@@ -147,7 +147,7 @@ class TestModuleRegistry:
         from platform_app.core.module_registry import Product, get_modules_by_product
 
         ars = get_modules_by_product(Product.ARS)
-        assert len(ars) == 13
+        assert len(ars) == 17
         assert all(m.product == Product.ARS for m in ars)
 
     def test_get_categories_returns_sorted(self):
@@ -155,7 +155,7 @@ class TestModuleRegistry:
 
         cats = get_categories(Product.ARS)
         assert cats == sorted(cats)
-        assert "Core" in cats
+        assert "Operational" in cats
 
     def test_keys_are_unique(self):
         from platform_app.core.module_registry import build_registry
@@ -238,7 +238,7 @@ class TestTemplates:
 
         assert "ARS Full Suite" in BUILTIN_TEMPLATES
         assert "ICS Full Suite" in BUILTIN_TEMPLATES
-        assert len(BUILTIN_TEMPLATES) == 6
+        assert len(BUILTIN_TEMPLATES) == 7
 
     def test_load_includes_builtins(self, tmp_path):
         from platform_app.core.templates import load_templates

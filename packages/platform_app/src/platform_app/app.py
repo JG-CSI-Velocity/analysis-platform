@@ -497,6 +497,9 @@ ics_page = st.Page(
     "pages/pipeline_ics.py", title="ICS Analysis", icon=":material/account_balance:"
 )
 txn_page = st.Page("pages/pipeline_txn.py", title="TXN Analysis", icon=":material/receipt_long:")
+attrition_page = st.Page(
+    "pages/pipeline_attrition.py", title="Attrition", icon=":material/trending_down:"
+)
 
 outputs = st.Page("pages/outputs.py", title="View Outputs", icon=":material/download:")
 history = st.Page("pages/run_history.py", title="Run History", icon=":material/history:")
@@ -513,7 +516,7 @@ logs = st.Page("pages/logs.py", title="View Logs", icon=":material/description:"
 pg = st.navigation(
     {
         "": [home],
-        "PIPELINES": [ars_page, ics_page, txn_page],
+        "PIPELINES": [ars_page, ics_page, txn_page, attrition_page],
         "OUTPUTS": [outputs, history],
         "ADVANCED": [workspace, data_ingest, modules, run_page, batch],
         "DIAGNOSTICS": [logs],

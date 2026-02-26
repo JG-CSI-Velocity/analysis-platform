@@ -18,6 +18,7 @@ class Product(StrEnum):
     ARS = "ars"
     TXN = "txn"
     ICS = "ics"
+    ATTRITION = "attrition"
 
 
 class ModuleStatus(StrEnum):
@@ -47,16 +48,49 @@ class ModuleInfo:
 # ARS modules (declared statically -- ARS pipeline runs as monolith)
 # ---------------------------------------------------------------------------
 _ARS_MODULES = [
+    # Overview
     ModuleInfo(
-        "ars_attrition",
-        "Attrition Analysis",
+        "ars_overview_stat_codes",
+        "Stat Code Distribution",
         Product.ARS,
-        "Core",
-        "OD/NSF attrition modeling",
+        "Overview",
+        "Account status code breakdown",
         ("excel", "pptx"),
-        tags=("od", "nsf", "attrition"),
+        tags=("overview", "stat-codes"),
         run_order=1,
     ),
+    ModuleInfo(
+        "ars_overview_product_codes",
+        "Product Code Distribution",
+        Product.ARS,
+        "Overview",
+        "Product code mix and segmentation",
+        ("excel", "pptx"),
+        tags=("overview", "product-codes"),
+        run_order=2,
+    ),
+    ModuleInfo(
+        "ars_overview_eligibility",
+        "Eligibility Funnel",
+        Product.ARS,
+        "Overview",
+        "Account eligibility filtering and funnel",
+        ("excel", "pptx"),
+        tags=("overview", "eligibility"),
+        run_order=3,
+    ),
+    # Operational
+    ModuleInfo(
+        "ars_dctr",
+        "DCTR Analysis",
+        Product.ARS,
+        "Operational",
+        "Delinquency & charge-off transaction reporting",
+        ("excel", "pptx"),
+        tags=("dctr", "delinquency", "operational"),
+        run_order=4,
+    ),
+    # Regulatory
     ModuleInfo(
         "ars_reg_e",
         "Reg E Impact",
@@ -65,8 +99,9 @@ _ARS_MODULES = [
         "Regulation E adoption and impact",
         ("excel", "pptx"),
         tags=("reg-e", "regulatory", "compliance"),
-        run_order=2,
+        run_order=5,
     ),
+    # Segmentation
     ModuleInfo(
         "ars_value",
         "Value Segmentation",
@@ -75,8 +110,9 @@ _ARS_MODULES = [
         "Account value tier segmentation",
         ("excel", "pptx"),
         tags=("segmentation", "value"),
-        run_order=3,
+        run_order=6,
     ),
+    # Campaigns
     ModuleInfo(
         "ars_mailer_impact",
         "Mailer Campaign Impact",
@@ -85,7 +121,7 @@ _ARS_MODULES = [
         "Direct mail campaign effectiveness",
         ("excel", "pptx"),
         tags=("mailer", "campaign"),
-        run_order=4,
+        run_order=7,
     ),
     ModuleInfo(
         "ars_mailer_response",
@@ -95,7 +131,7 @@ _ARS_MODULES = [
         "Response rate analysis by segment",
         ("excel", "pptx"),
         tags=("mailer", "response"),
-        run_order=5,
+        run_order=8,
     ),
     ModuleInfo(
         "ars_mailer_insights",
@@ -105,7 +141,7 @@ _ARS_MODULES = [
         "Campaign insight narrative generation",
         ("excel", "pptx"),
         tags=("mailer", "insights"),
-        run_order=6,
+        run_order=9,
     ),
     ModuleInfo(
         "ars_mailer_cohort",
@@ -115,7 +151,7 @@ _ARS_MODULES = [
         "Cohort trajectory analysis proving responder spend/swipe reversal",
         ("excel", "pptx"),
         tags=("mailer", "cohort", "trajectory"),
-        run_order=7,
+        run_order=10,
     ),
     ModuleInfo(
         "ars_mailer_reach",
@@ -125,18 +161,30 @@ _ARS_MODULES = [
         "Cumulative members reached and program penetration",
         ("excel", "pptx"),
         tags=("mailer", "reach", "penetration"),
-        run_order=8,
+        run_order=11,
+    ),
+    # Behind the Numbers
+    ModuleInfo(
+        "ars_synthesis",
+        "Behind the Numbers: Synthesis",
+        Product.ARS,
+        "Behind the Numbers",
+        "Cross-metric narrative synthesis (S1-S5)",
+        ("excel", "pptx"),
+        tags=("insights", "synthesis", "narrative"),
+        run_order=12,
     ),
     ModuleInfo(
-        "ars_dctr",
-        "DCTR Analysis",
+        "ars_conclusions",
+        "Behind the Numbers: Conclusions",
         Product.ARS,
-        "Risk",
-        "Delinquency & charge-off transaction reporting",
+        "Behind the Numbers",
+        "Final conclusions and strategic recommendations (S6-S8)",
         ("excel", "pptx"),
-        tags=("dctr", "delinquency", "risk"),
-        run_order=7,
+        tags=("insights", "conclusions", "recommendations"),
+        run_order=13,
     ),
+    # Insights
     ModuleInfo(
         "ars_effectiveness",
         "Effectiveness Proof",
@@ -145,7 +193,7 @@ _ARS_MODULES = [
         "DCTR progression, cumulative value, and benchmark comparison",
         ("excel", "pptx"),
         tags=("insights", "effectiveness", "benchmarks"),
-        run_order=9,
+        run_order=14,
     ),
     ModuleInfo(
         "ars_branch_scorecard",
@@ -155,7 +203,7 @@ _ARS_MODULES = [
         "Cross-metric branch ranking and dollar opportunity",
         ("excel", "pptx"),
         tags=("insights", "branch", "scorecard"),
-        run_order=10,
+        run_order=15,
     ),
     ModuleInfo(
         "ars_dormant",
@@ -165,8 +213,9 @@ _ARS_MODULES = [
         "High-balance dormant accounts and declining spend identification",
         ("excel", "pptx"),
         tags=("insights", "dormant", "opportunity"),
-        run_order=11,
+        run_order=16,
     ),
+    # Output
     ModuleInfo(
         "ars_deck",
         "Deck Builder",
@@ -176,7 +225,10 @@ _ARS_MODULES = [
         ("pptx",),
         tags=("output", "deck"),
         depends_on=(
-            "ars_attrition",
+            "ars_overview_stat_codes",
+            "ars_overview_product_codes",
+            "ars_overview_eligibility",
+            "ars_dctr",
             "ars_reg_e",
             "ars_value",
             "ars_mailer_impact",
@@ -184,12 +236,49 @@ _ARS_MODULES = [
             "ars_mailer_insights",
             "ars_mailer_cohort",
             "ars_mailer_reach",
-            "ars_dctr",
+            "ars_synthesis",
+            "ars_conclusions",
             "ars_effectiveness",
             "ars_branch_scorecard",
             "ars_dormant",
         ),
         run_order=99,
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# Attrition modules (independent pipeline -- cross-program comparisons)
+# ---------------------------------------------------------------------------
+_ATTRITION_MODULES = [
+    ModuleInfo(
+        "attrition_rates",
+        "Attrition Rates",
+        Product.ATTRITION,
+        "Core",
+        "Overall attrition rate, closure duration, open vs closed",
+        ("excel", "pptx"),
+        tags=("attrition", "rates"),
+        run_order=1,
+    ),
+    ModuleInfo(
+        "attrition_dimensions",
+        "Attrition Dimensions",
+        Product.ATTRITION,
+        "Core",
+        "Attrition by branch, product, tenure, balance, personal vs business",
+        ("excel", "pptx"),
+        tags=("attrition", "dimensions", "branch", "product"),
+        run_order=2,
+    ),
+    ModuleInfo(
+        "attrition_impact",
+        "Attrition Impact",
+        Product.ATTRITION,
+        "Core",
+        "Revenue impact, retention rates, L12M velocity, ARS vs non-ARS",
+        ("excel", "pptx"),
+        tags=("attrition", "impact", "revenue", "retention"),
+        run_order=3,
     ),
 ]
 
@@ -361,6 +450,9 @@ def build_registry() -> list[ModuleInfo]:
 
     # ARS
     modules.extend(_ARS_MODULES)
+
+    # Attrition (independent pipeline)
+    modules.extend(_ATTRITION_MODULES)
 
     # ICS -- Executive Summary depends on all others
     ics_non_exec = [

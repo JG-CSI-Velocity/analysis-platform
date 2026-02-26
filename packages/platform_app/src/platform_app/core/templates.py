@@ -18,20 +18,36 @@ DEFAULT_TEMPLATES_FILE = Path("config/analysis_templates.yaml")
 # Built-in templates (always available, not editable)
 BUILTIN_TEMPLATES: dict[str, list[str]] = {
     "ARS Full Suite": [
-        "ars_attrition",
+        "ars_overview_stat_codes",
+        "ars_overview_product_codes",
+        "ars_overview_eligibility",
+        "ars_dctr",
         "ars_reg_e",
         "ars_value",
         "ars_mailer_impact",
         "ars_mailer_response",
         "ars_mailer_insights",
-        "ars_dctr",
+        "ars_mailer_cohort",
+        "ars_mailer_reach",
+        "ars_synthesis",
+        "ars_conclusions",
+        "ars_effectiveness",
+        "ars_branch_scorecard",
+        "ars_dormant",
         "ars_deck",
     ],
     "ARS Monthly Standard": [
-        "ars_attrition",
+        "ars_overview_stat_codes",
+        "ars_overview_eligibility",
+        "ars_dctr",
         "ars_reg_e",
         "ars_value",
         "ars_deck",
+    ],
+    "Attrition Full Suite": [
+        "attrition_rates",
+        "attrition_dimensions",
+        "attrition_impact",
     ],
     "ICS Full Suite": [
         f"ics_{name.lower().replace(' ', '_').replace('+', '_')}"

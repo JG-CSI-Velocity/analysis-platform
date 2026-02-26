@@ -142,13 +142,17 @@ def line_trend(
     y_format: str | None = None,
 ) -> Figure:
     """Multi-line trend chart for time series data."""
+    import numpy as np
+
     line_colors = colors or CATEGORY_PALETTE
+    x_labels = df[x_col].tolist()
+    x = np.arange(len(x_labels))
 
     with chart_figure(figsize=(10, 5)) as (fig, ax):
         for idx, col in enumerate(y_cols):
             c = line_colors[idx % len(line_colors)]
             ax.plot(
-                df[x_col],
+                x,
                 df[col],
                 color=c,
                 linewidth=2.5,
@@ -156,6 +160,9 @@ def line_trend(
                 markersize=4,
                 label=col,
             )
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(x_labels)
 
         if len(y_cols) > 1:
             ax.legend(loc="best", frameon=False)

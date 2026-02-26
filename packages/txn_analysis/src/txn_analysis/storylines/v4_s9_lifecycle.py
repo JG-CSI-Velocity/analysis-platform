@@ -237,6 +237,8 @@ def _stage3_onboarding(odd, df, sections, sheets):
         return
 
     merged = accts.merge(first_txn, on="Acct Number", how="left")
+    merged["Date Opened"] = pd.to_datetime(merged["Date Opened"], errors="coerce")
+    merged["first_txn_date"] = pd.to_datetime(merged["first_txn_date"], errors="coerce")
     merged["days_to_first_txn"] = (merged["first_txn_date"] - merged["Date Opened"]).dt.days
 
     # 30/60/90-day activation rates
@@ -321,6 +323,8 @@ def _stage4_early_engagement(odd, df, ctx, sections, sheets):
 
     accts = odd[["Acct Number", "Date Opened"]].dropna(subset=["Date Opened"]).copy()
     merged = df.merge(accts, left_on="primary_account_num", right_on="Acct Number", how="inner")
+    merged["Date Opened"] = pd.to_datetime(merged["Date Opened"], errors="coerce")
+    merged["transaction_date"] = pd.to_datetime(merged["transaction_date"], errors="coerce")
     merged["days_since_open"] = (merged["transaction_date"] - merged["Date Opened"]).dt.days
     early = merged[(merged["days_since_open"] >= 0) & (merged["days_since_open"] <= 90)]
 

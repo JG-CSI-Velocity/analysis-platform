@@ -29,6 +29,8 @@ def chart_rank_trajectory(result: AnalysisResult, config: ChartConfig) -> Figure
     if not month_cols:
         return Figure()
 
+    x_pos = np.arange(len(month_cols))
+
     with chart_figure(figsize=(12, 6)) as (fig, ax):
         top_merchants = df.head(10)
         accent_colors = [ACCENT, CORAL, TEAL]
@@ -43,7 +45,7 @@ def chart_rank_trajectory(result: AnalysisResult, config: ChartConfig) -> Figure
             alpha = 1.0 if is_top3 else 0.4
 
             ax.plot(
-                month_cols,
+                x_pos,
                 ranks,
                 color=color,
                 linewidth=lw,
@@ -54,17 +56,19 @@ def chart_rank_trajectory(result: AnalysisResult, config: ChartConfig) -> Figure
 
             # Direct label at endpoint for top 3
             if is_top3:
-                for m in reversed(month_cols):
-                    if row[m] > 0:
+                for i in reversed(range(len(month_cols))):
+                    if row[month_cols[i]] > 0:
                         ax.annotate(
                             f"  {name[:20]}",
-                            xy=(m, row[m]),
+                            xy=(x_pos[i], row[month_cols[i]]),
                             fontsize=9,
                             color=color,
                             va="center",
                         )
                         break
 
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(month_cols)
         ax.invert_yaxis()
         ax.set_ylabel("Rank", fontsize=11)
         ax.tick_params(axis="x", rotation=-45)

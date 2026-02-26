@@ -39,7 +39,7 @@ def run(ctx: dict) -> dict:
     sheets = []
 
     # --- 1. Generation Distribution ---
-    if "generation" in odd.columns:
+    if "generation" in odd.columns and odd["generation"].notna().any():
         gen_dist, gen_spend, figs = _generation_distribution(odd, df)
         sections.append(
             {
@@ -60,7 +60,7 @@ def run(ctx: dict) -> dict:
         )
 
     # --- 2. Generation Spend Profiles ---
-    if "generation" in df.columns:
+    if "generation" in df.columns and df["generation"].notna().any():
         profile_df, profile_fig = _generation_spend_profiles(df)
         sections.append(
             {
@@ -81,7 +81,7 @@ def run(ctx: dict) -> dict:
         )
 
     # --- 3. Account Tenure Analysis ---
-    if "tenure_years" in odd.columns:
+    if "tenure_years" in odd.columns and odd["tenure_years"].notna().any():
         tenure_df, tenure_figs = _tenure_analysis(odd, df)
         sections.append(
             {
@@ -206,7 +206,12 @@ def run(ctx: dict) -> dict:
             )
 
     # --- 9. Balance Tier Demographics ---
-    if "balance_tier" in odd.columns and "generation" in odd.columns:
+    if (
+        "balance_tier" in odd.columns
+        and odd["balance_tier"].notna().any()
+        and "generation" in odd.columns
+        and odd["generation"].notna().any()
+    ):
         bt_df, bt_fig = _balance_tier_demographics(odd)
         if bt_df is not None:
             sections.append(

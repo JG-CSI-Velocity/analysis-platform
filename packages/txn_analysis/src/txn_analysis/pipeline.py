@@ -6,10 +6,8 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from io import BytesIO
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.figure import Figure
 
@@ -155,21 +153,6 @@ def run_pipeline(
     )
 
 
-def _render_chart_pngs(result: PipelineResult) -> dict[str, bytes]:
-    """Render all charts to PNG bytes for Excel/PPTX embedding."""
-    pngs: dict[str, bytes] = {}
-
-    for name, fig in result.charts.items():
-        try:
-            buf = BytesIO()
-            fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
-            pngs[name] = buf.getvalue()
-            plt.close(fig)
-        except Exception as e:
-            logger.warning("PNG render failed for '%s': %s", name, e)
-    return pngs
-
-
 def export_outputs(result: PipelineResult) -> list[Path]:
     """Export pipeline results to configured output formats.
 
@@ -182,15 +165,12 @@ def export_outputs(result: PipelineResult) -> list[Path]:
     date_str = datetime.now().strftime("%Y%m%d")
     client_id = settings.client_id or "unknown"
 
-    # Render chart PNGs (bytes) when needed for Excel or PPTX export
+    # Render charts to disk once, then read bytes for Excel/PPTX embedding.
+    # Previous approach rendered figures twice (bytes then disk) but the first
+    # render closed figures via plt.close(), causing corrupt output on the second.
     chart_pngs: dict[str, bytes] = {}
-    if result.charts and (settings.outputs.chart_images or settings.outputs.powerpoint):
-        chart_pngs = _render_chart_pngs(result)
-        result.chart_pngs = chart_pngs
-        logger.info("Rendered %d chart PNGs", len(chart_pngs))
-
-    # Save standalone PNGs to disk (high-res)
-    if result.charts and settings.outputs.chart_images:
+    need_pngs = settings.outputs.chart_images or settings.outputs.excel or settings.outputs.powerpoint
+    if result.charts and need_pngs:
         chart_dir = settings.output_dir / "charts"
         chart_dir.mkdir(parents=True, exist_ok=True)
         from txn_analysis.charts import render_chart_png
@@ -199,9 +179,14 @@ def export_outputs(result: PipelineResult) -> list[Path]:
             try:
                 png_path = chart_dir / f"{name}.png"
                 render_chart_png(fig, png_path, settings.charts)
-                generated.append(png_path)
+                if settings.outputs.chart_images:
+                    generated.append(png_path)
+                chart_pngs[name] = png_path.read_bytes()
             except Exception as e:
-                logger.warning("Standalone PNG for '%s' failed: %s", name, e)
+                logger.warning("Chart PNG for '%s' failed: %s", name, e)
+
+        result.chart_pngs = chart_pngs
+        logger.info("Rendered %d chart PNGs", len(chart_pngs))
 
     excel_error: Exception | None = None
     if settings.outputs.excel:

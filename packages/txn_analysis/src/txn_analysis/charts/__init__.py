@@ -147,7 +147,12 @@ def render_chart_png(
 ) -> Path:
     """Write a matplotlib figure to PNG."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    dpi = (scale or config.scale) * config.dpi if hasattr(config, "dpi") else 150 * (scale or config.scale)
+    raw_dpi = (
+        (scale or config.scale) * config.dpi
+        if hasattr(config, "dpi")
+        else 150 * (scale or config.scale)
+    )
+    dpi = min(raw_dpi, 300)
     fig.savefig(str(output_path), dpi=dpi, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return output_path

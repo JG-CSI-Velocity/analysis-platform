@@ -214,6 +214,10 @@ def _embed_chart(ws, png_bytes: bytes, start_row: int) -> None:
     """Embed a chart PNG image into the worksheet."""
     from io import BytesIO
 
+    from PIL import Image as _PILImage
+
+    _PILImage.MAX_IMAGE_PIXELS = None  # our chart PNGs are safe
+
     from openpyxl.drawing.image import Image as XlImage
 
     img = XlImage(BytesIO(png_bytes))

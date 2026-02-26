@@ -8,9 +8,14 @@ from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from PIL import Image as _PILImage
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.util import Inches, Pt
+
+# python-pptx uses PIL internally to read image dimensions.
+# Our chart PNGs are safe -- suppress the decompression bomb check.
+_PILImage.MAX_IMAGE_PIXELS = None
 
 if TYPE_CHECKING:
     from txn_analysis.pipeline import PipelineResult

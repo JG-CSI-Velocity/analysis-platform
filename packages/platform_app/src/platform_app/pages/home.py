@@ -174,15 +174,22 @@ def _load_tran_to_df(file_paths: list[str]) -> pd.DataFrame | None:
     if not paths:
         return None
 
-    frames = []
-    for p in sorted(paths):
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _read_one(p: Path) -> pd.DataFrame | None:
         try:
             df = _read_tran_file(p)
-            frames.append(df)
             logger.info("  Loaded %s: %d rows, %d cols", p.name, len(df), len(df.columns))
+            return df
         except Exception as exc:
             logger.warning("  Skipping %s: %s", p.name, exc)
+            return None
 
+    sorted_paths = sorted(paths)
+    with ThreadPoolExecutor(max_workers=min(len(sorted_paths), 6)) as pool:
+        results = list(pool.map(_read_one, sorted_paths))
+
+    frames = [df for df in results if df is not None]
     if not frames:
         return None
 
@@ -964,7 +971,7 @@ pipeline_errors: dict[str, str] = {}
 tran_path = st.session_state.get("uap_file_tran", "")
 _all_tran_paths = st.session_state.get("uap_tran_files", [])
 ics_path = st.session_state.get("uap_file_ics", "")
-odd_path = st.session_state.get("uap_file_odd", "")
+odd_path = st.session_state.get("uap_file_oddd", "")
 t0 = time.time()
 total_pipelines = len(needed_products)
 
@@ -1058,8 +1065,8 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
             input_files["tran"] = Path("(preloaded)")
         elif _effective_tran:
             input_files["tran"] = _effective_tran
-        if odd_path and Path(odd_path).exists():
-            input_files["odd"] = Path(odd_path)
+        if _local_oddd and Path(_local_oddd).exists():
+            input_files["odd"] = Path(_local_oddd)
         _tran_base = (
             _effective_tran.parent
             if _effective_tran

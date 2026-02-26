@@ -231,7 +231,6 @@ def _apply_merchant_consolidation(df: pd.DataFrame) -> pd.DataFrame:
 
     Maps unique names first to avoid redundant per-row rule matching.
     """
-    df = df.copy()
     unique_names = df["merchant_name"].unique()
     mapping = {name: standardize_merchant_name(name) for name in unique_names}
     df["merchant_consolidated"] = df["merchant_name"].map(mapping)
@@ -242,7 +241,6 @@ def _derive_year_month(df: pd.DataFrame) -> pd.DataFrame:
     """Add year_month column from transaction_date if not already present."""
     if "year_month" in df.columns:
         return df
-    df = df.copy()
     dt = pd.to_datetime(df["transaction_date"], errors="coerce", format="mixed")
     df["year_month"] = dt.dt.to_period("M").astype(str)
     return df
@@ -258,7 +256,6 @@ def _normalize_business_flag(df: pd.DataFrame) -> pd.DataFrame:
     Handles common variants: Y/yes/TRUE/1 -> 'Yes', N/no/FALSE/0 -> 'No'.
     NaN defaults to 'No'. Unmapped values logged and default to 'No'.
     """
-    df = df.copy()
     if "business_flag" not in df.columns:
         df["business_flag"] = "No"
         return df
@@ -287,7 +284,6 @@ def _flag_partial_month(df: pd.DataFrame) -> pd.DataFrame:
     Adds an 'is_partial_month' boolean column. Anchored to the dataset's own
     max date (not the system clock) for reproducibility.
     """
-    df = df.copy()
     df["is_partial_month"] = False
 
     if "transaction_date" not in df.columns:
@@ -408,9 +404,11 @@ def _load_transaction_dir(settings: Settings) -> pd.DataFrame:
         selected[0][1].strftime("%Y-%m-%d"),
     )
 
-    frames: list[pd.DataFrame] = []
-    for filepath, _file_date in selected:
-        frames.append(_load_single_transaction_file(filepath))
+    from concurrent.futures import ThreadPoolExecutor
+
+    paths = [fp for fp, _ in selected]
+    with ThreadPoolExecutor(max_workers=min(len(paths), 6)) as pool:
+        frames = list(pool.map(_load_single_transaction_file, paths))
 
     combined = pd.concat(frames, ignore_index=True)
 
@@ -571,11 +569,11 @@ def merge_odd(
     merge_cols = [c for c in _ODD_MERGE_COLS if c in odd_df.columns]
     odd_slim = odd_df[merge_cols].copy()
 
-    combined = df.copy()
-    combined["_acct_key"] = _normalize_acct_key(combined["primary_account_num"])
     odd_slim["_acct_key"] = _normalize_acct_key(odd_slim["Acct Number"])
 
-    combined = combined.merge(
+    combined = df.assign(
+        _acct_key=_normalize_acct_key(df["primary_account_num"])
+    ).merge(
         odd_slim,
         left_on="_acct_key",
         right_on="_acct_key",

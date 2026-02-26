@@ -18,6 +18,14 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+
+def _normalize_acct(val: str) -> str:
+    """Strip trailing '.0' from account numbers (CSV float artifact)."""
+    val = val.strip()
+    if val.endswith(".0"):
+        val = val[:-2]
+    return val
+
 # ARS response segment codes (from ars_analysis/analytics/mailer/_helpers.py)
 RESPONSE_SEGMENTS: frozenset[str] = frozenset({"NU 5+", "TH-10", "TH-15", "TH-20", "TH-25"})
 
@@ -45,7 +53,7 @@ def extract_responder_accounts(odd_df: pd.DataFrame) -> set[str]:
     for col in resp_cols:
         mask |= odd_df[col].isin(RESPONSE_SEGMENTS)
 
-    accts = set(odd_df.loc[mask, "Acct Number"].dropna().astype(str))
+    accts = {_normalize_acct(v) for v in odd_df.loc[mask, "Acct Number"].dropna().astype(str)}
     logger.info(
         "ARS responder segment: %d accounts from %d Resp columns",
         len(accts),
@@ -75,7 +83,7 @@ def extract_ics_accounts(odd_df: pd.DataFrame) -> set[str]:
         return set()
 
     mask = odd_df[ics_col].astype(str).str.strip().str.lower() == "yes"
-    accts = set(odd_df.loc[mask, "Acct Number"].dropna().astype(str))
+    accts = {_normalize_acct(v) for v in odd_df.loc[mask, "Acct Number"].dropna().astype(str)}
     logger.info("ICS account segment: %d accounts", len(accts))
     return accts
 
@@ -90,7 +98,8 @@ class SegmentFilter:
 
     def filter_transactions(self, df: pd.DataFrame) -> pd.DataFrame:
         """Return only transactions belonging to this segment's accounts."""
-        return df[df["primary_account_num"].astype(str).isin(self.account_numbers)]
+        normalized = df["primary_account_num"].astype(str).map(_normalize_acct)
+        return df[normalized.isin(self.account_numbers)]
 
 
 def build_segment_filters(

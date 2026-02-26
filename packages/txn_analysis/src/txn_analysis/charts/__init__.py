@@ -1,13 +1,15 @@
-"""Chart registry and rendering."""
+"""Chart registry and rendering (matplotlib)."""
 
 from __future__ import annotations
 
 import logging
-import warnings
 from collections.abc import Callable
+from io import BytesIO
 from pathlib import Path
 
-import plotly.graph_objects as go
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 
 from txn_analysis.analyses.base import AnalysisResult
 from txn_analysis.charts.builders import (  # noqa: F401 -- re-export
@@ -54,9 +56,11 @@ from txn_analysis.charts.trends import (
 )
 from txn_analysis.settings import ChartConfig
 
+matplotlib.use("Agg")
+
 logger = logging.getLogger(__name__)
 
-ChartFunc = Callable[[AnalysisResult, ChartConfig], go.Figure]
+ChartFunc = Callable[[AnalysisResult, ChartConfig], Figure]
 
 # Maps analysis name -> chart function.
 # Composite keys (e.g. "name:variant") support multiple charts per analysis.
@@ -95,18 +99,16 @@ def create_charts(
     config: ChartConfig,
     client_name: str = "",
     date_range: str = "",
-) -> dict[str, go.Figure]:
+) -> dict[str, Figure]:
     """Generate all registered charts from analysis results.
 
-    Returns mapping of chart name -> Plotly Figure.
+    Returns mapping of chart name -> matplotlib Figure.
     """
     from txn_analysis.charts.mcc import chart_mcc_comparison
-    from txn_analysis.charts.theme import add_source_footer, ensure_theme
-
-    ensure_theme()
+    from txn_analysis.charts.theme import add_source_footer
 
     results_by_name = {r.name: r for r in results}
-    charts: dict[str, go.Figure] = {}
+    charts: dict[str, Figure] = {}
 
     # Standard single-result charts (supports composite keys like "name:variant")
     for key, func in CHART_REGISTRY.items():
@@ -116,7 +118,7 @@ def create_charts(
             continue
         try:
             fig = func(result, config)
-            if fig.data:
+            if fig.get_axes():
                 add_source_footer(fig, client_name, date_range)
                 charts[key] = fig
         except Exception as e:
@@ -128,7 +130,7 @@ def create_charts(
     if all(r and not r.error and not r.df.empty for r in mcc_results):
         try:
             fig = chart_mcc_comparison(mcc_results[0], mcc_results[1], mcc_results[2], config)
-            if fig.data:
+            if fig.get_axes():
                 add_source_footer(fig, client_name, date_range)
                 charts["mcc_comparison"] = fig
         except Exception as e:
@@ -138,20 +140,22 @@ def create_charts(
 
 
 def render_chart_png(
-    fig: go.Figure,
+    fig: Figure,
     output_path: Path,
     config: ChartConfig,
     scale: int | None = None,
 ) -> Path:
-    """Write a Plotly figure to PNG using kaleido."""
+    """Write a matplotlib figure to PNG."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        fig.write_image(
-            str(output_path),
-            width=config.width,
-            height=config.height,
-            scale=scale or config.scale,
-            engine="kaleido",
-        )
+    dpi = (scale or config.scale) * config.dpi if hasattr(config, "dpi") else 150 * (scale or config.scale)
+    fig.savefig(str(output_path), dpi=dpi, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
     return output_path
+
+
+def render_chart_png_bytes(fig: Figure, dpi: int = 150) -> bytes:
+    """Render a matplotlib figure to PNG bytes for embedding."""
+    buf = BytesIO()
+    fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return buf.getvalue()

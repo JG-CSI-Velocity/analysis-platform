@@ -7,7 +7,6 @@ import re as _re
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 
 from txn_analysis.charts.builders import (
     donut_chart,
@@ -16,11 +15,11 @@ from txn_analysis.charts.builders import (
     horizontal_bar,
     scatter_plot,
 )
+from txn_analysis.charts.guards import chart_figure
 from txn_analysis.charts.theme import (
     CATEGORY_PALETTE,
     COLORS,
     GENERATION_COLORS,
-    apply_theme,
     format_currency,
 )
 
@@ -326,24 +325,28 @@ def _generation_distribution(odd, df):
     acct_spend = acct_spend.reset_index().sort_values("Avg Spend/Acct", ascending=False)
 
     bar_colors = [GENERATION_COLORS.get(g, COLORS["neutral"]) for g in acct_spend["generation"]]
-    bar_fig = go.Figure(
-        go.Bar(
-            x=acct_spend["generation"],
-            y=acct_spend["Avg Spend/Acct"],
-            marker_color=bar_colors,
-            text=acct_spend["Avg Spend/Acct"].apply(format_currency),
-            textposition="outside",
+    with chart_figure(figsize=(10, 5)) as (fig, ax):
+        ax.bar(acct_spend["generation"], acct_spend["Avg Spend/Acct"], color=bar_colors)
+        for i, (_, row) in enumerate(acct_spend.iterrows()):
+            ax.annotate(
+                format_currency(row["Avg Spend/Acct"]),
+                xy=(i, row["Avg Spend/Acct"]),
+                xytext=(0, 4),
+                textcoords="offset points",
+                fontsize=9,
+                ha="center",
+                va="bottom",
+            )
+        ax.set_xlabel("Generation")
+        ax.set_ylabel("Avg Spend ($)")
+        ax.set_title(
+            "Average Spend per Account by Generation",
+            fontsize=16,
+            fontweight="bold",
+            loc="left",
         )
-    )
-    bar_fig.update_layout(
-        title="Average Spend per Account by Generation",
-        xaxis_title="Generation",
-        yaxis_title="Avg Spend ($)",
-        yaxis_tickprefix="$",
-        yaxis_tickformat=",",
-        showlegend=False,
-    )
-    bar_fig = apply_theme(bar_fig)
+        fig.tight_layout()
+    bar_fig = fig
 
     return gen_counts, acct_spend, [donut_fig, bar_fig]
 
@@ -474,43 +477,58 @@ def _tenure_analysis(odd, df):
         bucket_stats["Avg Spend per Account"] = 0
 
     # Distribution bar chart
-    dist_fig = go.Figure(
-        go.Bar(
-            x=bucket_stats["Tenure Bucket"].astype(str),
-            y=bucket_stats["Accounts"],
-            marker_color=COLORS["primary"],
-            text=[f"{a:,}" for a in bucket_stats["Accounts"]],
-            textposition="outside",
+    with chart_figure(figsize=(10, 5)) as (fig, ax):
+        x_labels = bucket_stats["Tenure Bucket"].astype(str).tolist()
+        x_pos = range(len(x_labels))
+        ax.bar(x_pos, bucket_stats["Accounts"], color=COLORS["primary"])
+        for i, val in enumerate(bucket_stats["Accounts"]):
+            ax.annotate(
+                f"{val:,}",
+                xy=(i, val),
+                xytext=(0, 4),
+                textcoords="offset points",
+                fontsize=9,
+                ha="center",
+                va="bottom",
+            )
+        ax.set_xticks(list(x_pos))
+        ax.set_xticklabels(x_labels)
+        ax.set_title(
+            "Account Distribution by Tenure",
+            fontsize=16,
+            fontweight="bold",
+            loc="left",
         )
-    )
-    dist_fig.update_layout(
-        title="Account Distribution by Tenure",
-        xaxis_title="Tenure",
-        yaxis_title="Accounts",
-        yaxis_tickformat=",",
-        showlegend=False,
-    )
-    dist_fig = apply_theme(dist_fig)
+        ax.set_ylabel("Accounts")
+        fig.tight_layout()
+    dist_fig = fig
 
     # Spend by tenure bar
-    spend_fig = go.Figure(
-        go.Bar(
-            x=bucket_stats["Tenure Bucket"].astype(str),
-            y=bucket_stats["Avg Spend per Account"],
-            marker_color=COLORS["secondary"],
-            text=bucket_stats["Avg Spend per Account"].apply(format_currency),
-            textposition="outside",
+    with chart_figure(figsize=(10, 5)) as (fig, ax):
+        x_labels = bucket_stats["Tenure Bucket"].astype(str).tolist()
+        x_pos = range(len(x_labels))
+        ax.bar(x_pos, bucket_stats["Avg Spend per Account"], color=COLORS["secondary"])
+        for i, val in enumerate(bucket_stats["Avg Spend per Account"]):
+            ax.annotate(
+                format_currency(val),
+                xy=(i, val),
+                xytext=(0, 4),
+                textcoords="offset points",
+                fontsize=9,
+                ha="center",
+                va="bottom",
+            )
+        ax.set_xticks(list(x_pos))
+        ax.set_xticklabels(x_labels)
+        ax.set_title(
+            "Average Spend per Account by Tenure",
+            fontsize=16,
+            fontweight="bold",
+            loc="left",
         )
-    )
-    spend_fig.update_layout(
-        title="Average Spend per Account by Tenure",
-        xaxis_title="Tenure",
-        yaxis_title="Avg Spend ($)",
-        yaxis_tickprefix="$",
-        yaxis_tickformat=",",
-        showlegend=False,
-    )
-    spend_fig = apply_theme(spend_fig)
+        ax.set_ylabel("Avg Spend ($)")
+        fig.tight_layout()
+    spend_fig = fig
 
     return bucket_stats, [dist_fig, spend_fig]
 
@@ -714,24 +732,31 @@ def _product_mix(odd, df):
         )
         prod_spend = prod_spend.sort_values("Avg Spend/Acct", ascending=False)
 
-        bar_fig = go.Figure(
-            go.Bar(
-                x=prod_spend["Prod Desc"].astype(str).str[:30],
-                y=prod_spend["Avg Spend/Acct"],
-                marker_color=COLORS["accent"],
-                text=prod_spend["Avg Spend/Acct"].apply(format_currency),
-                textposition="outside",
+        with chart_figure(figsize=(10, 5)) as (fig, ax):
+            x_labels = prod_spend["Prod Desc"].astype(str).str[:30].tolist()
+            x_pos = range(len(x_labels))
+            ax.bar(x_pos, prod_spend["Avg Spend/Acct"], color=COLORS["accent"])
+            for i, val in enumerate(prod_spend["Avg Spend/Acct"]):
+                ax.annotate(
+                    format_currency(val),
+                    xy=(i, val),
+                    xytext=(0, 4),
+                    textcoords="offset points",
+                    fontsize=9,
+                    ha="center",
+                    va="bottom",
+                )
+            ax.set_xticks(list(x_pos))
+            ax.set_xticklabels(x_labels, rotation=-45, ha="right")
+            ax.set_title(
+                "Average Spend per Account by Product",
+                fontsize=16,
+                fontweight="bold",
+                loc="left",
             )
-        )
-        bar_fig.update_layout(
-            title="Average Spend per Account by Product",
-            xaxis_title="Product",
-            yaxis_title="Avg Spend ($)",
-            yaxis_tickprefix="$",
-            yaxis_tickformat=",",
-            showlegend=False,
-        )
-        bar_fig = apply_theme(bar_fig)
+            ax.set_ylabel("Avg Spend ($)")
+            fig.tight_layout()
+        bar_fig = fig
 
         prod_counts = prod_counts.merge(
             prod_spend[["Prod Desc", "Avg Spend/Acct"]].rename(columns={"Prod Desc": "Product"}),
@@ -778,22 +803,29 @@ def _age_distribution(odd):
     total = counts["Accounts"].sum()
     counts["% of Total"] = (counts["Accounts"] / total * 100).round(1) if total else 0
 
-    fig = go.Figure(
-        go.Bar(
-            x=counts["Age Band"],
-            y=counts["Accounts"],
-            marker_color=CATEGORY_PALETTE[: len(counts)],
-            text=[f"{v:,}" for v in counts["Accounts"]],
-            textposition="outside",
+    with chart_figure(figsize=(10, 5)) as (fig, ax):
+        x_pos = range(len(counts))
+        ax.bar(x_pos, counts["Accounts"], color=CATEGORY_PALETTE[: len(counts)])
+        for i, val in enumerate(counts["Accounts"]):
+            ax.annotate(
+                f"{val:,}",
+                xy=(i, val),
+                xytext=(0, 4),
+                textcoords="offset points",
+                fontsize=9,
+                ha="center",
+                va="bottom",
+            )
+        ax.set_xticks(list(x_pos))
+        ax.set_xticklabels(counts["Age Band"].tolist())
+        ax.set_title(
+            "Account Distribution by Age Band",
+            fontsize=16,
+            fontweight="bold",
+            loc="left",
         )
-    )
-    fig.update_layout(
-        title="Account Distribution by Age Band",
-        xaxis_title=None,
-        yaxis_title="Accounts",
-        yaxis_tickformat=",",
-    )
-    fig = apply_theme(fig)
+        ax.set_ylabel("Accounts")
+        fig.tight_layout()
     return counts, fig
 
 
@@ -821,23 +853,36 @@ def _balance_tier_demographics(odd):
     ct_pct = ct_pct.T.reset_index()
 
     tier_cols = [c for c in ct_pct.columns if c != "generation"]
-    fig = go.Figure()
-    for i, tier in enumerate(tier_cols):
-        fig.add_trace(
-            go.Bar(
-                x=ct_pct["generation"],
-                y=ct_pct[tier],
-                name=str(tier),
-                marker_color=CATEGORY_PALETTE[i % len(CATEGORY_PALETTE)],
+    with chart_figure(figsize=(10, 5)) as (fig, ax):
+        x = np.arange(len(ct_pct))
+        bottom = np.zeros(len(ct_pct))
+        for i, tier in enumerate(tier_cols):
+            vals = ct_pct[tier].values
+            ax.bar(
+                x,
+                vals,
+                bottom=bottom,
+                color=CATEGORY_PALETTE[i % len(CATEGORY_PALETTE)],
+                label=str(tier),
+                width=0.7,
             )
+            bottom += vals
+        ax.set_xticks(x)
+        ax.set_xticklabels(ct_pct["generation"].tolist())
+        ax.set_ylim(0, 100)
+        ax.set_ylabel("% of Accounts")
+        ax.legend(
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.15),
+            ncol=min(len(tier_cols), 4),
         )
-    fig.update_layout(
-        barmode="stack",
-        title="Balance Tier Distribution by Generation",
-        yaxis=dict(title="% of Accounts", ticksuffix="%", range=[0, 100]),
-        xaxis_title=None,
-    )
-    fig = apply_theme(fig)
+        ax.set_title(
+            "Balance Tier Distribution by Generation",
+            fontsize=16,
+            fontweight="bold",
+            loc="left",
+        )
+        fig.tight_layout()
 
     tbl = ct.reset_index().rename(columns={"balance_tier": "Balance Tier"})
     return tbl, fig
@@ -870,14 +915,12 @@ def _segmentation_ladder(odd, seg_col):
     counts["% of Accounts"] = (counts["Accounts"] / total * 100).round(1) if total else 0
     counts = counts.sort_values("Accounts", ascending=True)
 
-    fig = apply_theme(
-        horizontal_bar(
-            counts,
-            "Accounts",
-            "Segment",
-            f"Segmentation Distribution ({seg_col.replace(' Segmentation', '')})",
-            top_n=20,
-        )
+    fig = horizontal_bar(
+        counts,
+        "Accounts",
+        "Segment",
+        f"Segmentation Distribution ({seg_col.replace(' Segmentation', '')})",
+        top_n=20,
     )
     return counts, fig
 
@@ -895,13 +938,11 @@ def _branch_headcount(odd):
     total = counts["Accounts"].sum()
     counts["% of Total"] = (counts["Accounts"] / total * 100).round(1) if total else 0
 
-    fig = apply_theme(
-        horizontal_bar(
-            counts,
-            "Accounts",
-            "Branch",
-            f"Account Headcount by Branch (Top {min(25, len(counts))})",
-            top_n=25,
-        )
+    fig = horizontal_bar(
+        counts,
+        "Accounts",
+        "Branch",
+        f"Account Headcount by Branch (Top {min(25, len(counts))})",
+        top_n=25,
     )
     return counts, fig

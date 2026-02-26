@@ -70,13 +70,13 @@ class TestSupportModules:
         from txn_analysis.charts.theme import (
             CATEGORY_PALETTE,
             COLORS,
-            apply_theme,
             format_currency,
+            set_insight_title,
         )
 
         assert isinstance(COLORS, dict)
         assert isinstance(CATEGORY_PALETTE, list)
-        assert callable(apply_theme)
+        assert callable(set_insight_title)
         assert callable(format_currency)
 
     def test_merchant_rules_imports(self):

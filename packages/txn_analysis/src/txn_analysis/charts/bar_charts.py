@@ -1,17 +1,19 @@
-"""Shared lollipop chart builder using Plotly (consultant style).
+"""Shared lollipop chart builder using matplotlib.
 
-Replaces the original horizontal_bar() with a 2-trace lollipop design:
-- Trace 1: thin horizontal stems with None separators (single trace)
-- Trace 2: circle dots with color array (single trace)
+Replaces the Plotly version with a clean matplotlib implementation:
+- ax.hlines() for stems
+- ax.scatter() for dots
+- ax.annotate() for value labels
 
-Top N items get accent color, rest get gray. Insight title computed dynamically.
+Top N items get accent color, rest get gray.
 """
 
 from __future__ import annotations
 
-import plotly.graph_objects as go
+from matplotlib.figure import Figure
 
-from txn_analysis.charts.theme import ACCENT, GRAY_BASE, insight_title
+from txn_analysis.charts.guards import chart_figure
+from txn_analysis.charts.theme import ACCENT, GRAY_BASE, set_insight_title
 from txn_analysis.settings import ChartConfig
 
 
@@ -33,18 +35,16 @@ def lollipop_chart(
     top_n: int = 25,
     accent_n: int = 3,
     subtitle: str = "",
-) -> go.Figure:
+) -> Figure:
     """Create a horizontal lollipop chart for top-N ranked data.
 
-    Uses exactly 2 Plotly traces regardless of item count:
-    - Stems: single Scatter trace with None breaks between segments
-    - Dots: single Scatter trace with per-point color array
+    Uses hlines + scatter for a clean consultant-grade look.
     """
     labels = labels[:top_n]
     values = values[:top_n]
     n = len(labels)
     if n == 0:
-        return go.Figure()
+        return Figure()
 
     accent_n = min(accent_n, n)
 
@@ -55,50 +55,43 @@ def lollipop_chart(
     # Color array: last accent_n (visually top) get accent, rest gray
     colors = [GRAY_BASE] * (n - accent_n) + [ACCENT] * accent_n
 
-    # Build stem segments with None separators
-    stem_x: list[float | None] = []
-    stem_y: list[str | None] = []
-    for label, val in zip(labels, values):
-        stem_x.extend([0, val, None])
-        stem_y.extend([label, label, None])
+    row_height = 0.35
+    fig_height = max(4, n * row_height + 1.5)
 
-    fig = go.Figure()
+    with chart_figure(figsize=(10, fig_height)) as (fig, ax):
+        y_positions = list(range(n))
 
-    # Trace 1: all stems
-    fig.add_trace(
-        go.Scatter(
-            x=stem_x,
-            y=stem_y,
-            mode="lines",
-            line=dict(color=GRAY_BASE, width=1.5),
-            showlegend=False,
-            hoverinfo="skip",
+        # Stems
+        ax.hlines(
+            y=y_positions,
+            xmin=0,
+            xmax=values,
+            color=GRAY_BASE,
+            linewidth=1.5,
         )
-    )
 
-    # Trace 2: all dots with value labels
-    fig.add_trace(
-        go.Scatter(
-            x=values,
-            y=labels,
-            mode="markers+text",
-            marker=dict(size=10, color=colors),
-            text=[_fmt(v, value_format) for v in values],
-            textposition="middle right",
-            textfont=dict(size=10, color="#333333"),
-            showlegend=False,
-            hovertemplate="%{y}: %{text}<extra></extra>",
-        )
-    )
+        # Dots
+        ax.scatter(values, y_positions, color=colors, s=80, zorder=5)
 
-    fig.update_layout(
-        title=insight_title(title, subtitle),
-        xaxis=dict(visible=False),
-        yaxis=dict(tickfont=dict(size=10, color="#555555")),
-        template=config.theme,
-        width=config.width,
-        height=max(config.height, n * 22),
-        margin=dict(l=200, r=100, t=80, b=40),
-    )
+        # Value labels
+        max_val = max(values) if values else 1
+        for i, (val, label) in enumerate(zip(values, labels)):
+            ax.annotate(
+                _fmt(val, value_format),
+                xy=(val, i),
+                xytext=(max_val * 0.02, 0),
+                textcoords="offset points",
+                fontsize=9,
+                color="#333333",
+                va="center",
+            )
+
+        ax.set_yticks(y_positions)
+        ax.set_yticklabels(labels, fontsize=9, color="#555555")
+        ax.set_xlim(left=0)
+        ax.xaxis.set_visible(False)
+
+        set_insight_title(ax, title, subtitle)
+        fig.tight_layout()
 
     return fig

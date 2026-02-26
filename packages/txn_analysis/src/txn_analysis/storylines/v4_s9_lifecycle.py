@@ -9,20 +9,19 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 
 from txn_analysis.charts.builders import (
     donut_chart,
     heatmap,
-    insight_title,
     line_trend,
     lollipop_chart,
     waterfall_chart,
 )
+from txn_analysis.charts.guards import chart_figure
 from txn_analysis.charts.theme import (
     COLORS,
-    apply_theme,
     format_currency,
+    set_insight_title,
 )
 
 
@@ -94,29 +93,33 @@ def _data_coverage(odd, df, sections, sheets):
         )
     cov_df = pd.DataFrame(rows)
 
-    fig = go.Figure(
-        go.Bar(
-            x=[
-                _COVERAGE_COLORS.get(r["Coverage"], COLORS["neutral"]) for _, r in cov_df.iterrows()
-            ],
-            y=cov_df["Stage"],
-            orientation="h",
-            marker_color=[
-                _COVERAGE_COLORS.get(r["Coverage"], COLORS["neutral"]) for _, r in cov_df.iterrows()
-            ],
-            text=cov_df["Coverage"],
-            textposition="inside",
+    coverage_colors = [
+        _COVERAGE_COLORS.get(r["Coverage"], COLORS["neutral"]) for _, r in cov_df.iterrows()
+    ]
+
+    n = len(cov_df)
+    with chart_figure(figsize=(10, max(3.5, n * 0.4 + 1))) as (fig, ax):
+        y_pos = list(range(n))
+        ax.barh(y_pos, [1] * n, color=coverage_colors, height=0.6)
+        for i, (_, r) in enumerate(cov_df.iterrows()):
+            ax.text(
+                0.5,
+                i,
+                r["Coverage"],
+                ha="center",
+                va="center",
+                fontsize=10,
+                fontweight="bold",
+                color="white",
+            )
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(cov_df["Stage"].tolist(), fontsize=10)
+        ax.invert_yaxis()
+        ax.xaxis.set_visible(False)
+        set_insight_title(
+            ax, "Lifecycle Data Coverage", "Green = full data, orange = partial, red = none"
         )
-    )
-    fig.update_layout(
-        title=insight_title(
-            "Lifecycle Data Coverage", "Green = full data, orange = partial, red = none"
-        ),
-        xaxis=dict(visible=False),
-        yaxis=dict(autorange="reversed"),
-        height=350,
-    )
-    fig = apply_theme(fig)
+        fig.tight_layout()
 
     sections.append(
         {
@@ -155,19 +158,17 @@ def _stage2_acquisition(odd, sections, sheets):
     monthly = odd_acq.groupby("open_month").size().reset_index(name="New Accounts")
     monthly = monthly.sort_values("open_month")
 
-    fig = apply_theme(
-        line_trend(
-            monthly,
-            "open_month",
-            ["New Accounts"],
-            "Monthly New Account Openings",
-        )
+    fig = line_trend(
+        monthly,
+        "open_month",
+        ["New Accounts"],
+        "Monthly New Account Openings",
     )
-    fig.update_layout(
-        title=insight_title(
-            "New account acquisition trend",
-            f"{monthly['New Accounts'].sum():,} total accounts opened",
-        )
+    ax = fig.get_axes()[0]
+    set_insight_title(
+        ax,
+        "New account acquisition trend",
+        f"{monthly['New Accounts'].sum():,} total accounts opened",
     )
 
     # Debit card possession rate
@@ -270,19 +271,17 @@ def _stage3_onboarding(odd, df, sections, sheets):
         ]
     )
 
-    fig = apply_theme(
-        lollipop_chart(
-            act_df[act_df["Window"] != "Never"],
-            "Rate (%)",
-            "Window",
-            "Activation Rates by Window",
-        )
+    fig = lollipop_chart(
+        act_df[act_df["Window"] != "Never"],
+        "Rate (%)",
+        "Window",
+        "Activation Rates by Window",
     )
-    fig.update_layout(
-        title=insight_title(
-            f"{round(activated_90 / total * 100, 1) if total else 0:.1f}% activated within 90 days",
-            f"{total:,} accounts analyzed",
-        )
+    ax = fig.get_axes()[0]
+    set_insight_title(
+        ax,
+        f"{round(activated_90 / total * 100, 1) if total else 0:.1f}% activated within 90 days",
+        f"{total:,} accounts analyzed",
     )
 
     narr = (
@@ -466,13 +465,12 @@ def _stage5_daily_banking(odd, df, sections, sheets):
         "Primary Bank Classification",
         colors=[COLORS["positive"], COLORS["accent"], COLORS["negative"]],
     )
-    fig.update_layout(
-        title=insight_title(
-            "Primary bank relationship proxy",
-            "Score: Payroll(30) + Txns(25) + MCCs(20) + Spend(15) + PIN/Sig(10)",
-        )
+    ax = fig.get_axes()[0]
+    set_insight_title(
+        ax,
+        "Primary bank relationship proxy",
+        "Score: Payroll(30) + Txns(25) + MCCs(20) + Spend(15) + PIN/Sig(10)",
     )
-    fig = apply_theme(fig)
 
     # Benchmark comparison (PULSE 2024)
     avg_ticket = df["amount"].mean()
@@ -489,31 +487,38 @@ def _stage5_daily_banking(odd, df, sections, sheets):
         ]
     )
 
-    bench_fig = go.Figure()
-    for _, row in benchmark.iterrows():
-        bench_fig.add_trace(
-            go.Bar(
-                x=[row["Metric"]],
-                y=[row["This CU"]],
-                name="This CU",
-                marker_color=COLORS["primary"],
-                showlegend=False,
-            )
+    with chart_figure(figsize=(8, 5)) as (bench_fig, bench_ax):
+        x = np.arange(len(benchmark))
+        bar_width = 0.35
+        bench_ax.bar(
+            x - bar_width / 2,
+            benchmark["This CU"],
+            bar_width,
+            color=COLORS["primary"],
+            label="This CU",
         )
-        bench_fig.add_trace(
-            go.Bar(
-                x=[row["Metric"]],
-                y=[row["PULSE 2024"]],
-                name="PULSE 2024",
-                marker_color=COLORS["neutral"],
-                showlegend=False,
-            )
+        bench_ax.bar(
+            x + bar_width / 2,
+            benchmark["PULSE 2024"],
+            bar_width,
+            color=COLORS["neutral"],
+            label="PULSE 2024",
         )
-    bench_fig.update_layout(
-        title="Performance vs PULSE 2024 Benchmark",
-        barmode="group",
-    )
-    bench_fig = apply_theme(bench_fig)
+        bench_ax.set_xticks(x)
+        bench_ax.set_xticklabels(benchmark["Metric"].tolist())
+        bench_ax.legend(
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.15),
+            ncol=2,
+            frameon=False,
+        )
+        bench_ax.set_title(
+            "Performance vs PULSE 2024 Benchmark",
+            fontsize=16,
+            fontweight="bold",
+            loc="left",
+        )
+        bench_fig.tight_layout()
 
     primary_count = int(
         class_dist.loc[class_dist["Classification"] == "Primary (60+)", "Accounts"].sum()
@@ -643,13 +648,11 @@ def _stage7_retention(odd, df, sections, sheets):
             closed["close_month"] = closed["Date Closed"].dt.to_period("M").astype(str)
             closure_df = closed.groupby("close_month").size().reset_index(name="Closures")
             closure_df = closure_df.sort_values("close_month")
-            fig = apply_theme(
-                line_trend(
-                    closure_df,
-                    "close_month",
-                    ["Closures"],
-                    "Monthly Account Closures",
-                )
+            fig = line_trend(
+                closure_df,
+                "close_month",
+                ["Closures"],
+                "Monthly Account Closures",
             )
             figs.append(fig)
 
@@ -792,7 +795,7 @@ def _stage8_attrition(odd, df, sections, sheets):
         row = class_dist[class_dist["Lifecycle Stage"] == l]
         values.append(int(row["Accounts"].iloc[0]) if not row.empty else 0)
 
-    wf_fig = apply_theme(waterfall_chart(labels, values, "Lifecycle Classification Waterfall"))
+    wf_fig = waterfall_chart(labels, values, "Lifecycle Classification Waterfall")
 
     # Attrition by generation heatmap
     hm_fig = None
@@ -803,7 +806,6 @@ def _stage8_attrition(odd, df, sections, sheets):
         ct_pct = ct.div(ct.sum(axis=1), axis=0).mul(100).round(1)
         if not ct_pct.empty:
             hm_fig = heatmap(ct_pct, "Attrition by Generation (%)", fmt=".1f")
-            hm_fig = apply_theme(hm_fig)
 
     narr = (
         f"Lifecycle: <b>{values[0]:,}</b> growing, <b>{values[1]:,}</b> stable, "

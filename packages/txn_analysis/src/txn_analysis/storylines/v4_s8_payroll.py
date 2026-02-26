@@ -6,20 +6,19 @@ from __future__ import annotations
 import re
 
 import pandas as pd
-import plotly.graph_objects as go
 
 from txn_analysis.charts.builders import (
     donut_chart,
     grouped_bar,
     horizontal_bar,
-    insight_title,
     line_trend,
 )
+from txn_analysis.charts.guards import chart_figure
 from txn_analysis.charts.theme import (
     COLORS,
     GENERATION_COLORS,
-    apply_theme,
     format_currency,
+    set_insight_title,
 )
 
 _KNOWN_PROCESSORS = {
@@ -214,7 +213,6 @@ def _payroll_summary(df: pd.DataFrame, pay: pd.DataFrame):
         title="Payroll vs Non-Payroll Spend",
         colors=[COLORS["primary"], COLORS["neutral"]],
     )
-    apply_theme(fig)
 
     narrative = (
         (
@@ -278,7 +276,6 @@ def _top_employers(pay: pd.DataFrame):
         title="Top 20 Employers by Payroll Spend",
         top_n=20,
     )
-    apply_theme(fig)
 
     top = agg.iloc[0] if not agg.empty else None
     narrative = (
@@ -319,26 +316,23 @@ def _payroll_by_generation(pay: pd.DataFrame):
     agg.columns = ["Generation", "Total Payroll", "Unique Accounts"]
     colors = [GENERATION_COLORS.get(g, COLORS["neutral"]) for g in agg["Generation"]]
 
-    fig = go.Figure(
-        go.Bar(
-            x=agg["Generation"],
-            y=agg["Total Payroll"],
-            marker_color=colors,
-            text=agg["Total Payroll"].apply(format_currency),
-            textposition="outside",
-            textfont=dict(size=10),
-            hovertemplate="%{x}: %{y:$,.0f}<extra></extra>",
-        )
-    )
-    fig.update_layout(
-        title=insight_title(
-            "Payroll Volume by Generation", "Workforce demographics across credit union members"
-        ),
-        yaxis=dict(title=None, tickprefix="$", tickformat=","),
-        showlegend=False,
-        height=500,
-    )
-    apply_theme(fig)
+    with chart_figure(figsize=(10, 5)) as (fig, ax):
+        x_pos = range(len(agg))
+        ax.bar(x_pos, agg["Total Payroll"], color=colors)
+        for i, val in enumerate(agg["Total Payroll"]):
+            ax.annotate(
+                format_currency(val),
+                xy=(i, val),
+                xytext=(0, 4),
+                textcoords="offset points",
+                fontsize=10,
+                ha="center",
+                va="bottom",
+            )
+        ax.set_xticks(list(x_pos))
+        ax.set_xticklabels(agg["Generation"].tolist())
+        set_insight_title(ax, "Payroll Volume by Generation", "Workforce demographics across credit union members")
+        fig.tight_layout()
 
     total = agg["Total Payroll"].sum()
     if total > 0:
@@ -385,7 +379,6 @@ def _monthly_trends(pay: pd.DataFrame):
         colors=[COLORS["primary"]],
         y_format="$,.0f",
     )
-    apply_theme(fig)
 
     if len(m) >= 2:
         f_val, l_val = m.iloc[0]["Total Payroll"], m.iloc[-1]["Total Payroll"]
@@ -450,27 +443,23 @@ def _circular_economy(df: pd.DataFrame, pay: pd.DataFrame):
         gr.columns = ["Generation", "Avg Recapture %"]
         gr["Avg Recapture %"] = gr["Avg Recapture %"].round(1)
         colors = [GENERATION_COLORS.get(g, COLORS["neutral"]) for g in gr["Generation"]]
-        fig = go.Figure(
-            go.Bar(
-                x=gr["Generation"],
-                y=gr["Avg Recapture %"],
-                marker_color=colors,
-                text=gr["Avg Recapture %"].apply(lambda v: f"{v:.1f}%"),
-                textposition="outside",
-                textfont=dict(size=10),
-                hovertemplate="%{x}: %{y:.1f}%<extra></extra>",
-            )
-        )
-        fig.update_layout(
-            title=insight_title(
-                f"Avg Recapture Rate: {avg_recap:.1f}%",
-                "Debit spend as % of payroll received, by generation",
-            ),
-            yaxis=dict(title=None, ticksuffix="%"),
-            showlegend=False,
-            height=500,
-        )
-        apply_theme(fig)
+        with chart_figure(figsize=(10, 5)) as (fig, ax):
+            x_pos = range(len(gr))
+            ax.bar(x_pos, gr["Avg Recapture %"], color=colors)
+            for i, val in enumerate(gr["Avg Recapture %"]):
+                ax.annotate(
+                    f"{val:.1f}%",
+                    xy=(i, val),
+                    xytext=(0, 4),
+                    textcoords="offset points",
+                    fontsize=10,
+                    ha="center",
+                    va="bottom",
+                )
+            ax.set_xticks(list(x_pos))
+            ax.set_xticklabels(gr["Generation"].tolist())
+            set_insight_title(ax, f"Avg Recapture Rate: {avg_recap:.1f}%", "Debit spend as % of payroll received, by generation")
+            fig.tight_layout()
         tbl = gr
     else:
         tbl = pd.DataFrame([{"Metric": "Avg Recapture Rate", "Value": f"{avg_recap:.1f}%"}])
@@ -480,7 +469,6 @@ def _circular_economy(df: pd.DataFrame, pay: pd.DataFrame):
             title=f"Average Recapture Rate: {avg_recap:.1f}%",
             colors=[COLORS["positive"], COLORS["neutral"]],
         )
-        apply_theme(fig)
 
     narrative = (
         f"Members who receive payroll spend an average of "
@@ -567,7 +555,6 @@ def _clean_employer_list(pay: pd.DataFrame):
         title="Top 20 Clean Employers by Payroll Spend",
         top_n=20,
     )
-    apply_theme(fig)
 
     top = agg.iloc[0] if not agg.empty else None
     n_clean = len(agg)
@@ -695,7 +682,6 @@ def _circular_economy_detail(
 
     # Horizontal bar chart -- top 15 by consumer spend, colored by recapture
     chart_df = detail_df.head(15).copy()
-    # Reverse for bottom-to-top Plotly ordering
     chart_df = chart_df.sort_values("Consumer Spend", ascending=True)
 
     # Color scale: low recapture = accent, high recapture = positive
@@ -703,40 +689,27 @@ def _circular_economy_detail(
     normed = chart_df["Recapture %"] / max(max_recap, 1)
     bar_colors = [_blend_color(COLORS["accent"], COLORS["positive"], v) for v in normed]
 
-    fig = go.Figure(
-        go.Bar(
-            x=chart_df["Consumer Spend"],
-            y=chart_df["Business Name"],
-            orientation="h",
-            marker=dict(color=bar_colors, line=dict(width=0)),
-            text=chart_df.apply(
-                lambda r: f"{format_currency(r['Consumer Spend'])} ({r['Recapture %']:.1f}%)",
-                axis=1,
-            ),
-            textposition="outside",
-            textfont=dict(size=10),
-            hovertemplate=(
-                "%{y}<br>Consumer Spend: %{x:$,.0f}<br>Recapture: %{customdata:.1f}%<extra></extra>"
-            ),
-            customdata=chart_df["Recapture %"],
-        )
-    )
+    n = len(chart_df)
+    row_height = 0.35
+    fig_height = max(4, n * row_height + 1.5)
 
-    row_height = max(22, 500 // max(len(chart_df), 1))
-    chart_height = max(400, len(chart_df) * row_height + 120)
-
-    fig.update_layout(
-        title=insight_title(
-            "Circular Economy by Employer",
-            "Consumer spend at payroll employers (color intensity = recapture rate)",
-        ),
-        xaxis=dict(visible=False),
-        yaxis=dict(tickfont=dict(size=10), automargin=True),
-        margin=dict(l=200, r=120, t=80, b=40),
-        height=chart_height,
-        showlegend=False,
-    )
-    apply_theme(fig)
+    with chart_figure(figsize=(10, fig_height)) as (fig, ax):
+        y_pos = list(range(n))
+        ax.barh(y_pos, chart_df["Consumer Spend"], color=bar_colors, height=0.6)
+        for i, (_, r) in enumerate(chart_df.iterrows()):
+            ax.annotate(
+                f"{format_currency(r['Consumer Spend'])} ({r['Recapture %']:.1f}%)",
+                xy=(r["Consumer Spend"], i),
+                xytext=(4, 0),
+                textcoords="offset points",
+                fontsize=10,
+                va="center",
+            )
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(chart_df["Business Name"].tolist(), fontsize=10)
+        ax.xaxis.set_visible(False)
+        set_insight_title(ax, "Circular Economy by Employer", "Consumer spend at payroll employers (color intensity = recapture rate)")
+        fig.tight_layout()
 
     total_payroll = detail_df["Payroll Spend"].sum()
     total_consumer = detail_df["Consumer Spend"].sum()
@@ -867,11 +840,6 @@ def _payroll_mom_growth(pay: pd.DataFrame):
         title="Payroll Growth: First 3 Months vs Last 3 Months (Top 15)",
         colors=[COLORS["neutral"], COLORS["primary"]],
     )
-    fig.update_layout(
-        yaxis=dict(tickprefix="$", tickformat=","),
-        height=550,
-    )
-    apply_theme(fig)
 
     n_growing = sum(1 for r in growth_rows if r["Classification"] == "Growing")
     n_declining = sum(1 for r in growth_rows if r["Classification"] == "Declining")

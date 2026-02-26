@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import plotly.graph_objects as go
+from matplotlib.figure import Figure
 
 from txn_analysis.analyses.base import AnalysisResult
 from txn_analysis.charts.bar_charts import lollipop_chart
@@ -18,11 +18,11 @@ def _insight_spend(df, top_k: int = 5) -> str:
     return f"Top {top_k} merchants capture {top_pct:.0f}% of total spend"
 
 
-def chart_top_by_spend(result: AnalysisResult, config: ChartConfig) -> go.Figure:
+def chart_top_by_spend(result: AnalysisResult, config: ChartConfig) -> Figure:
     """Top merchants by total spend."""
     df = result.df
     if df.empty:
-        return go.Figure()
+        return Figure()
     data = df[df["merchant_consolidated"] != "Grand Total"].head(25)
     return lollipop_chart(
         labels=data["merchant_consolidated"].tolist(),
@@ -33,11 +33,11 @@ def chart_top_by_spend(result: AnalysisResult, config: ChartConfig) -> go.Figure
     )
 
 
-def chart_top_by_transactions(result: AnalysisResult, config: ChartConfig) -> go.Figure:
+def chart_top_by_transactions(result: AnalysisResult, config: ChartConfig) -> Figure:
     """Top merchants by transaction count."""
     df = result.df
     if df.empty:
-        return go.Figure()
+        return Figure()
     data = df[df["merchant_consolidated"] != "Grand Total"].head(25)
     return lollipop_chart(
         labels=data["merchant_consolidated"].tolist(),
@@ -48,11 +48,11 @@ def chart_top_by_transactions(result: AnalysisResult, config: ChartConfig) -> go
     )
 
 
-def chart_top_by_accounts(result: AnalysisResult, config: ChartConfig) -> go.Figure:
+def chart_top_by_accounts(result: AnalysisResult, config: ChartConfig) -> Figure:
     """Top merchants by unique accounts."""
     df = result.df
     if df.empty:
-        return go.Figure()
+        return Figure()
     data = df[df["merchant_consolidated"] != "Grand Total"].head(25)
     return lollipop_chart(
         labels=data["merchant_consolidated"].tolist(),

@@ -443,6 +443,124 @@ LAYOUT_DATA = [
 ]
 
 
+SLIDE_TYPE_COLUMNS = [
+    "Slide Type",
+    "Layout Index",
+    "Layout Name",
+    "When To Use",
+    "Content Zones",
+    "Examples",
+]
+
+SLIDE_TYPE_DATA = [
+    [
+        "chart_narrative",
+        5,
+        "Analysis - Slide 2 (Chart + 1 Text)",
+        "Any chart that needs explanatory text -- trend lines, donuts, scatters, funnels, waterfalls",
+        "Chart (5.5\" x 3.4\" left) + header + tall body (5.7\" x 4.0\" right)",
+        "DCTR-1 trend, A7.8 funnel, A11.1 waterfall, ax08 source donut, ax29 milestones",
+    ],
+    [
+        "chart_kpi",
+        4,
+        "Analysis - Slide 1 (Chart + 2 Text)",
+        "Charts with 2 KPI callout zones -- rates, snapshots, impact metrics with headline numbers",
+        "Chart (5.5\" x 3.4\" left) + top header+body + bottom header+body (right)",
+        "DCTR-3 snapshot, A8.3 Reg E snapshot, A9.1 attrition rate, A9.9-A9.11 impact KPIs",
+    ],
+    [
+        "comparison",
+        6,
+        "Analysis - Slide 3 - Split",
+        "Natural A-vs-B content -- Personal vs Business, Open vs Closed, DM vs REF, rank vs change",
+        "Left content (5.8\" x 4.3\") + right content (5.8\" x 4.3\")",
+        "DCTR-4/5 personal vs business, A9.13 ARS vs non-ARS, ax14 age comparison, REF-4 one-time vs repeat",
+    ],
+    [
+        "multi_screenshot",
+        6,
+        "Analysis - Slide 3 - Split",
+        "Merged chart pairs -- two related charts that tell one story side by side",
+        "Left content (5.8\" x 4.3\") + right content (5.8\" x 4.3\")",
+        "A7.6a trajectory+segments, A7.7 historical vs TTM, A8.5 opportunity, A9.3 open vs closed",
+    ],
+    [
+        "kpi_grid",
+        7,
+        "Analysis - Slide 4 - Split",
+        "Pure KPI summary slides -- structured readouts with 6 metric cells",
+        "6 cells: 3 header+body pairs per column (left 3, right 3)",
+        "A7.10c branch KPIs, A8.12 Reg E summary, ax01/02 ICS summary, ax22 activity, REF-8 overview",
+    ],
+    [
+        "grid_thirds",
+        8,
+        "Analysis - Slide 5 - Thirds",
+        "Multi-panel charts -- 3+ small charts or comparison panels in a grid",
+        "6 cells: 3 columns x 2 rows (each 3.6\" x 2.1\")",
+        "MCC 3-panel comparison, portfolio scorecard bullet gauges",
+    ],
+    [
+        "screenshot",
+        9,
+        "Analysis - Slide 6 - Main",
+        "Data-dense charts that need full width -- heatmaps, long merchant lists, many-branch bars",
+        "Full-width content (11.7\" x 4.3\")",
+        "DCTR-8 summary, DCTR-9 heatmap, top-25 merchants, branch rank bars, cohort heatmaps",
+    ],
+    [
+        "section_text",
+        2,
+        "Divider - Slide 2",
+        "Text-only slides -- conclusions, section intros with explanatory content",
+        "Title + subtitle bar + large text content area (5.1\" x 4.0\")",
+        "S6-S8 conclusions, section overview text",
+    ],
+    [
+        "wide_custom",
+        13,
+        "Analysis - Slide 11 - Header2",
+        "Dense matrices needing freeform positioning -- wide heatmaps, custom mailer layouts",
+        "No content placeholders; shapes added programmatically",
+        "A7.10a branch matrix, A8.4a branch Reg E matrix, mailer monthly summaries",
+    ],
+    [
+        "data_only",
+        "",
+        "(no PPTX slide)",
+        "Excel-only tables and data engine steps -- no visual chart, no slide generated",
+        "N/A -- data appears in Excel report only",
+        "MCC tables, monthly movers, competitor detection, dormant lists, overview tables",
+    ],
+]
+
+
+def _write_slide_type_sheet(wb: Workbook) -> None:
+    ws = wb.create_sheet(title="Slide Types")
+
+    for col_idx, header in enumerate(SLIDE_TYPE_COLUMNS, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = HEADER_FONT
+        cell.fill = HEADER_FILL
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = THIN_BORDER
+
+    for row_idx, row_data in enumerate(SLIDE_TYPE_DATA, 2):
+        for col_idx, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.font = Font(name="Calibri", size=10)
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(vertical="center", wrap_text=col_idx >= 4)
+
+    widths = [18, 14, 36, 70, 55, 70]
+    for col_idx, w in enumerate(widths, 1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = w
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(SLIDE_TYPE_COLUMNS))}{len(SLIDE_TYPE_DATA) + 1}"
+
+
 def _write_layout_sheet(wb: Workbook) -> None:
     ws = wb.create_sheet(title="Template Layouts")
 
@@ -481,6 +599,7 @@ def main() -> None:
     _write_sheet(wb, "ARS", ARS_DATA)
     _write_sheet(wb, "TXN", TXN_DATA)
     _write_sheet(wb, "ICS", ICS_DATA)
+    _write_slide_type_sheet(wb)
     _write_layout_sheet(wb)
 
     out = "docs/slide_catalog.xlsx"

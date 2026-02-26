@@ -314,6 +314,166 @@ def _write_sheet(wb: Workbook, name: str, data: list[list]) -> None:
     ws.auto_filter.ref = f"A1:{get_column_letter(len(COLUMNS))}{len(data) + 1}"
 
 
+LAYOUT_COLUMNS = [
+    "Layout Index",
+    "Layout Name",
+    "Purpose",
+    "Key Placeholders",
+    "Used For",
+    "Notes",
+]
+
+LAYOUT_DATA = [
+    [
+        0,
+        "Cover / Intro - Slide 1",
+        "Title slide with logo area, 3 text sections, KPI images",
+        "ph[0] title, ph[32] subtitle, ph[14/33/34] 3 picture slots, "
+        "ph[26-31] 3 paired header+body blocks, ph[19] body text",
+        "Opening / title slide",
+        "3 picture placeholders for logos/icons; 3 header+body pairs for KPI text",
+    ],
+    [
+        1,
+        "Cover / Intro - Slide 2",
+        "Minimal cover, centered title only",
+        "ph[0] title (6.3\" x 0.9\")",
+        "Simple cover / closing",
+        "No content areas; title is center-positioned",
+    ],
+    [
+        2,
+        "Divider - Slide 2",
+        "Section divider with subtitle bar + large content area",
+        "ph[0] title, ph[13] subtitle bar, ph[1] content (5.1\" x 4.0\")",
+        "Section dividers between modules",
+        "Left-aligned layout; content area can hold bullets or overview text",
+    ],
+    [
+        3,
+        "Divider - Slide 3",
+        "Minimal section divider with subtitle bar",
+        "ph[0] title, ph[13] subtitle bar",
+        "Section dividers (minimal)",
+        "Full-width title; no content area beyond subtitle",
+    ],
+    [
+        4,
+        "Analysis - Slide 1 (Chart + 2 Text)",
+        "Chart on left, 2 header+body text sections on right",
+        "ph[0] title, ph[13] subtitle, ph[14] picture (5.5\" x 3.4\" left), "
+        "ph[26/19] top header+body, ph[27/28] bottom header+body",
+        "screenshot_kpi slides (chart + KPI callouts)",
+        "Right side has 2 independent text zones for insights/KPIs",
+    ],
+    [
+        5,
+        "Analysis - Slide 2 (Chart + 1 Text)",
+        "Chart on left, single tall text section on right",
+        "ph[0] title, ph[13] subtitle, ph[14] picture (5.5\" x 3.4\" left), "
+        "ph[26] header, ph[19] body (5.7\" x 4.0\" right)",
+        "screenshot_kpi slides (chart + narrative)",
+        "Right body is 4\" tall -- good for longer narratives or bullet lists",
+    ],
+    [
+        6,
+        "Analysis - Slide 3 - Split",
+        "Two equal content areas side-by-side",
+        "ph[0] title, ph[13] subtitle, ph[14] left (5.8\" x 4.3\"), ph[1] right (5.8\" x 4.3\")",
+        "multi_screenshot (2 charts side-by-side)",
+        "Both zones are generic OBJECT placeholders; can hold images or text",
+    ],
+    [
+        7,
+        "Analysis - Slide 4 - Split",
+        "6-cell KPI grid (3 header+body pairs per column)",
+        "ph[0] title, ph[13] subtitle, ph[26-30] left 3 pairs, ph[32-36] right 3 pairs",
+        "KPI summary / data grid slides",
+        "12 text placeholders total; designed for structured KPI readouts",
+    ],
+    [
+        8,
+        "Analysis - Slide 5 - Thirds",
+        "6-cell grid (3 columns x 2 rows of content blocks)",
+        "ph[0] title, ph[13] subtitle, ph[1/15/16] top row, ph[17/19/20] bottom row",
+        "Multi-chart grids, comparison panels",
+        "Each cell is 3.6\" x 2.1\"; all OBJECT type (images or text)",
+    ],
+    [
+        9,
+        "Analysis - Slide 6 - Main",
+        "Full-width single content area (the workhorse screenshot layout)",
+        "ph[0] title, ph[13] subtitle, ph[1] content (11.7\" x 4.3\")",
+        "screenshot (single full-width chart)",
+        "Most common layout; used for any single chart/image",
+    ],
+    [
+        10,
+        "Analysis - Slide 7 - Stacked Two",
+        "2 rows: each has text on left + 3 pictures on right",
+        "ph[0] title, ph[15/35] row headers, ph[19/36] row body, "
+        "ph[29-31] top 3 pics, ph[32-34] bottom 3 pics",
+        "Before/after comparisons, multi-image galleries",
+        "6 picture placeholders (2.1\" x 1.8\" each); good for small chart grids",
+    ],
+    [
+        11,
+        "Analysis - Slide 8 - Blank",
+        "Blank slide with right-aligned title",
+        "ph[0] title (6.4\" x 1.6\", right side)",
+        "Custom-built slides, freeform content",
+        "No content placeholders; shapes must be added programmatically",
+    ],
+    [
+        12,
+        "Analysis - Slide 11 - Header1",
+        "Pure background / decorative header",
+        "(no placeholders)",
+        "Visual separator, background-only",
+        "No usable placeholders; purely decorative",
+    ],
+    [
+        13,
+        "Analysis - Slide 11 - Header2",
+        "Background header with footer/slide number",
+        "ph[11] footer, ph[12] slide number",
+        "Mailer summaries, wide charts (custom positioning)",
+        "No title/content placeholders; content placed via freeform shapes",
+    ],
+]
+
+
+def _write_layout_sheet(wb: Workbook) -> None:
+    ws = wb.create_sheet(title="Template Layouts")
+
+    # Header row
+    for col_idx, header in enumerate(LAYOUT_COLUMNS, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = HEADER_FONT
+        cell.fill = HEADER_FILL
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = THIN_BORDER
+
+    # Data rows
+    for row_idx, row_data in enumerate(LAYOUT_DATA, 2):
+        for col_idx, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.font = Font(name="Calibri", size=10)
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(vertical="center", wrap_text=col_idx >= 4)
+
+    # Column widths
+    widths = [14, 36, 52, 70, 42, 60]
+    for col_idx, w in enumerate(widths, 1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = w
+
+    # Freeze header
+    ws.freeze_panes = "A2"
+
+    # Auto-filter
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(LAYOUT_COLUMNS))}{len(LAYOUT_DATA) + 1}"
+
+
 def main() -> None:
     wb = Workbook()
     wb.remove(wb.active)
@@ -321,10 +481,14 @@ def main() -> None:
     _write_sheet(wb, "ARS", ARS_DATA)
     _write_sheet(wb, "TXN", TXN_DATA)
     _write_sheet(wb, "ICS", ICS_DATA)
+    _write_layout_sheet(wb)
 
     out = "docs/slide_catalog.xlsx"
     wb.save(out)
-    print(f"Saved {out} -- ARS: {len(ARS_DATA)} rows, TXN: {len(TXN_DATA)} rows, ICS: {len(ICS_DATA)} rows")
+    print(
+        f"Saved {out} -- ARS: {len(ARS_DATA)} rows, TXN: {len(TXN_DATA)} rows, "
+        f"ICS: {len(ICS_DATA)} rows, Layouts: {len(LAYOUT_DATA)} rows"
+    )
 
 
 if __name__ == "__main__":

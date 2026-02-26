@@ -74,11 +74,15 @@ def run_pipeline(
     elif pipeline == "txn":
         from txn_analysis.runner import run_txn
 
-        return run_txn(ctx)
+        results = run_txn(ctx)
+        _ensure_deck(results, pipeline, client_id, client_name, output_dir, progress_callback)
+        return results
     elif pipeline == "ics":
         from ics_toolkit.runner import run_ics
 
-        return run_ics(ctx)
+        results = run_ics(ctx)
+        _ensure_deck(results, pipeline, client_id, client_name, output_dir, progress_callback)
+        return results
     elif pipeline == "ics_append":
         from ics_toolkit.runner import run_ics_append
 
@@ -134,6 +138,44 @@ def run_all(
             all_results[name] = {}
 
     return all_results
+
+
+def _ensure_deck(
+    results: dict[str, AnalysisResult],
+    pipeline: str,
+    client_id: str,
+    client_name: str,
+    output_dir: Path,
+    progress_callback: Callable[[str], None] | None = None,
+) -> None:
+    """Build a PPTX deck if the pipeline didn't already produce one."""
+    if not results:
+        return
+
+    existing = list(output_dir.rglob("*.pptx"))
+    if existing:
+        logger.info("Pipeline %s already produced %d PPTX file(s)", pipeline, len(existing))
+        return
+
+    try:
+        from shared.deck import build_deck_from_results
+
+        if progress_callback:
+            progress_callback(f"Building {pipeline} slide deck...")
+
+        deck_path = build_deck_from_results(
+            results,
+            pipeline=pipeline,
+            client_id=client_id,
+            client_name=client_name,
+            output_dir=output_dir,
+        )
+        if deck_path:
+            logger.info("Universal deck built for %s: %s", pipeline, deck_path.name)
+        else:
+            logger.info("No chartable results for %s deck", pipeline)
+    except Exception:
+        logger.exception("Universal deck build failed for %s", pipeline)
 
 
 def _detect_pipelines(input_files: dict[str, Path]) -> list[str]:

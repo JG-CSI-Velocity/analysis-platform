@@ -20,3 +20,4 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/shared"]
+artifacts = ["src/shared/deck/template/*.pptx"]

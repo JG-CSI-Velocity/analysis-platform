@@ -7,28 +7,34 @@ import logging
 import shutil
 import tempfile
 import time
+import traceback
 import warnings
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from ics_toolkit.client_registry import (
-    load_raw_client_entry,
-    resolve_master_config_path,
-)
-from platform_app.core.module_registry import Product, get_registry
-from platform_app.core.run_logger import RunRecord, generate_run_id, hash_file, log_run
-from platform_app.core.session_manager import (
-    KNOWN_DATA_ROOTS,
-    auto_detect_files,
-    discover_clients,
-    discover_csm_folders,
-    discover_months,
-)
-from platform_app.core.templates import load_templates
-from platform_app.orchestrator import run_pipeline
-from shared.format_odd import check_ics_ready, check_odd_formatted, format_odd
+# Diagnostic: catch import errors so they display in the UI instead of blank page
+try:
+    from ics_toolkit.client_registry import (
+        load_raw_client_entry,
+        resolve_master_config_path,
+    )
+    from platform_app.core.module_registry import Product, get_registry
+    from platform_app.core.run_logger import RunRecord, generate_run_id, hash_file, log_run
+    from platform_app.core.session_manager import (
+        KNOWN_DATA_ROOTS,
+        auto_detect_files,
+        discover_clients,
+        discover_csm_folders,
+        discover_months,
+    )
+    from platform_app.core.templates import load_templates
+    from platform_app.orchestrator import run_pipeline
+    from shared.format_odd import check_ics_ready, check_odd_formatted, format_odd
+except Exception as _import_err:
+    st.error(f"Import error -- check package installation:\n\n```\n{traceback.format_exc()}\n```")
+    st.stop()
 
 logger = logging.getLogger("platform_app.home")
 

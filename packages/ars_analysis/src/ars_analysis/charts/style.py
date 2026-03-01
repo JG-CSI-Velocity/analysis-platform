@@ -2,19 +2,27 @@
 
 Constants only -- no functions. Use ars.mplstyle for rcParams defaults.
 Import what you need: from ars_analysis.charts.style import PERSONAL, BUSINESS, TITLE_SIZE
+
+Color authority imported from shared.charts.COLORS (canonical).
+Legacy ARS-specific semantic names (PERSONAL, BUSINESS, etc.) preserved as aliases.
 """
 
 from matplotlib.ticker import FuncFormatter
 
-# Semantic colors
+from shared.charts import COLORS
+
+# Canonical semantic colors (from shared authority)
+PRIMARY = COLORS["primary"]
+POSITIVE = COLORS["positive"]
+NEGATIVE = COLORS["negative"]
+NEUTRAL = COLORS["neutral"]
+
+# ARS-specific semantic names (backward-compatible aliases)
 PERSONAL = "#4472C4"
 BUSINESS = "#ED7D31"
 HISTORICAL = "#5B9BD5"
 TTM = "#FFC000"
 ELIGIBLE = "#70AD47"
-POSITIVE = "#27AE60"
-NEGATIVE = "#E74C3C"
-NEUTRAL = "#95A5A6"
 SILVER = "#BDC3C7"
 TEAL = "#2E86AB"
 

@@ -54,6 +54,7 @@ class SlideContent:
     kpis: dict[str, str] | None = None
     bullets: list[str] | None = None
     layout_index: int = 5
+    notes_text: str | None = None
 
 
 # =============================================================================
@@ -162,6 +163,9 @@ class DeckBuilder:
             "summary": self._build_summary_slide,
             "blank": self._build_blank_slide,
             "mailer_summary": self._build_mailer_summary_slide,
+            "kpi_dashboard": self._build_kpi_dashboard_slide,
+            "chart_narrative": self._build_chart_narrative_slide,
+            "kpi_hero": self._build_kpi_hero_slide,
         }
 
         builder = builders.get(content.slide_type)
@@ -169,6 +173,15 @@ class DeckBuilder:
             builder(slide, content)
         else:
             logger.warning("Unknown slide_type: {t}", t=content.slide_type)
+
+        # Write speaker notes if provided
+        if content.notes_text:
+            try:
+                tf = slide.notes_slide.notes_text_frame
+                if tf is not None:
+                    tf.text = content.notes_text
+            except Exception:
+                pass
 
     # -------------------------------------------------------------------------
     # Title helpers
@@ -647,6 +660,210 @@ class DeckBuilder:
                     p.font.color.rgb = RGBColor(0, 0, 0)
 
 
+    def _build_kpi_dashboard_slide(self, slide, content: SlideContent) -> None:
+        """Build executive KPI dashboard with traffic-light colored metrics."""
+        # Clear placeholders
+        for ph in slide.placeholders:
+            if ph.placeholder_format.idx != 0:
+                try:
+                    ph.element.getparent().remove(ph.element)
+                except Exception:
+                    pass
+
+        # Title
+        tb = slide.shapes.add_textbox(Inches(0.5), Inches(0.38), Inches(12.0), Inches(0.7))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = content.title or "Executive Dashboard"
+        p.font.size = Pt(26)
+        p.font.bold = False
+        p.font.color.rgb = RGBColor(255, 255, 255)
+
+        if not content.kpis:
+            return
+
+        kpi_items = [(k, v) for k, v in content.kpis.items() if k != "subtitle"]
+        n = min(len(kpi_items), 6)
+        if n == 0:
+            return
+
+        # Card dimensions
+        card_w = 11.5 / n
+        card_h = 2.0
+        card_top = 2.2
+        start_left = 0.75
+
+        for i, (label, value) in enumerate(kpi_items[:n]):
+            x = start_left + i * card_w
+
+            # Parse color from value suffix: "34.2%|green" or just "34.2%"
+            display_val = str(value)
+            color = RGBColor(30, 61, 89)  # navy default
+            if "|" in display_val:
+                display_val, color_hint = display_val.rsplit("|", 1)
+                color_hint = color_hint.strip().lower()
+                if color_hint == "green":
+                    color = RGBColor(39, 174, 96)
+                elif color_hint == "yellow":
+                    color = RGBColor(243, 156, 18)
+                elif color_hint == "red":
+                    color = RGBColor(231, 76, 60)
+                elif color_hint == "gray":
+                    color = RGBColor(149, 165, 166)
+
+            # KPI value (large)
+            tb = slide.shapes.add_textbox(
+                Inches(x), Inches(card_top), Inches(card_w - 0.2), Inches(card_h * 0.6)
+            )
+            tf = tb.text_frame
+            tf.word_wrap = False
+            p = tf.paragraphs[0]
+            p.text = display_val
+            p.font.size = Pt(36)
+            p.font.bold = True
+            p.font.color.rgb = color
+            p.alignment = PP_ALIGN.CENTER
+
+            # KPI label
+            tb = slide.shapes.add_textbox(
+                Inches(x),
+                Inches(card_top + card_h * 0.55),
+                Inches(card_w - 0.2),
+                Inches(card_h * 0.35),
+            )
+            tf = tb.text_frame
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
+            p.text = label
+            p.font.size = Pt(14)
+            p.font.color.rgb = RGBColor(80, 80, 80)
+            p.alignment = PP_ALIGN.CENTER
+
+    def _build_chart_narrative_slide(self, slide, content: SlideContent) -> None:
+        """Build chart-left (60%) + text-right (40%) narrative slide."""
+        # Clear existing placeholders
+        for ph in slide.placeholders:
+            if ph.placeholder_format.idx != 0:
+                try:
+                    ph.element.getparent().remove(ph.element)
+                except Exception:
+                    pass
+
+        # Title
+        tb = slide.shapes.add_textbox(Inches(0.4), Inches(0.38), Inches(12.0), Inches(0.7))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        title_text = content.title.split("\n")[0] if "\n" in content.title else content.title
+        p.text = title_text
+        p.font.size = Pt(24)
+        p.font.bold = False
+        p.font.color.rgb = RGBColor(255, 255, 255)
+
+        # Chart image: left 60%
+        if content.images and Path(content.images[0]).exists():
+            self._add_fitted_picture(
+                slide,
+                content.images[0],
+                Inches(0.4),
+                Inches(1.6),
+                Inches(7.5),
+                max_height=Inches(5.2),
+            )
+
+        # Text panel: right 40%
+        tb = slide.shapes.add_textbox(Inches(8.2), Inches(1.6), Inches(4.6), Inches(5.0))
+        tf = tb.text_frame
+        tf.word_wrap = True
+
+        if content.bullets:
+            for i, bullet in enumerate(content.bullets):
+                p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+                p.text = bullet
+                p.font.size = Pt(14)
+                p.font.color.rgb = RGBColor(60, 60, 60)
+                p.space_after = Pt(8)
+        elif content.kpis:
+            for i, (label, value) in enumerate(content.kpis.items()):
+                if label == "subtitle":
+                    continue
+                p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+                p.text = f"{label}: {value}"
+                p.font.size = Pt(16)
+                p.font.color.rgb = RGBColor(30, 61, 89)
+                p.space_after = Pt(6)
+
+    def _build_kpi_hero_slide(self, slide, content: SlideContent) -> None:
+        """Build slide with 3-4 large KPI numbers and optional chart."""
+        # Clear placeholders
+        for ph in slide.placeholders:
+            if ph.placeholder_format.idx != 0:
+                try:
+                    ph.element.getparent().remove(ph.element)
+                except Exception:
+                    pass
+
+        # Title
+        tb = slide.shapes.add_textbox(Inches(0.5), Inches(0.38), Inches(12.0), Inches(0.7))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = content.title.split("\n")[0] if "\n" in content.title else content.title
+        p.font.size = Pt(24)
+        p.font.bold = False
+        p.font.color.rgb = RGBColor(255, 255, 255)
+
+        if not content.kpis:
+            return
+
+        kpi_items = [(k, v) for k, v in content.kpis.items() if k != "subtitle"]
+        n = min(len(kpi_items), 4)
+        if n == 0:
+            return
+
+        # KPI cards: evenly spaced across the top
+        card_width = 12.0 / n
+        card_top = 1.8
+
+        for i, (label, value) in enumerate(kpi_items[:n]):
+            x = 0.5 + i * card_width
+
+            # Value
+            tb = slide.shapes.add_textbox(
+                Inches(x), Inches(card_top), Inches(card_width - 0.3), Inches(1.0)
+            )
+            tf = tb.text_frame
+            p = tf.paragraphs[0]
+            p.text = str(value)
+            p.font.size = Pt(40)
+            p.font.bold = True
+            p.font.color.rgb = RGBColor(30, 61, 89)
+            p.alignment = PP_ALIGN.CENTER
+
+            # Label
+            tb = slide.shapes.add_textbox(
+                Inches(x), Inches(card_top + 1.0), Inches(card_width - 0.3), Inches(0.5)
+            )
+            tf = tb.text_frame
+            p = tf.paragraphs[0]
+            p.text = label
+            p.font.size = Pt(14)
+            p.font.color.rgb = RGBColor(100, 100, 100)
+            p.alignment = PP_ALIGN.CENTER
+
+        # Optional supporting chart below KPIs
+        if content.images and Path(content.images[0]).exists():
+            self._add_fitted_picture(
+                slide,
+                content.images[0],
+                Inches(1.0),
+                Inches(3.8),
+                Inches(11.0),
+                max_height=Inches(3.5),
+            )
+
+
 # =============================================================================
 # SLIDE LAYOUT MAP -- slide_id -> (layout_index, slide_type)
 # =============================================================================
@@ -923,16 +1140,27 @@ _SECTION_MAP = {
 }
 
 _SECTION_LABELS = {
-    "overview": "Overview",
-    "dctr": "Debit Card Transaction Revenue",
-    "rege": "Regulation E",
-    "attrition": "Attrition Analysis",
-    "value": "Value Analysis",
-    "mailer": "Mailer Analysis",
-    "transaction": "Transaction Intelligence",
-    "ics": "ICS Account Analysis",
-    "insights": "Key Insights",
+    "overview": "How Big Is This Program?",
+    "dctr": "How Active Are Debit Cards?",
+    "rege": "Are Members Opting In to Overdraft Protection?",
+    "attrition": "Are We Losing Accounts?",
+    "value": "What Is the Revenue Impact?",
+    "mailer": "How Effective Are the Mailer Campaigns?",
+    "transaction": "What Do Spending Patterns Reveal?",
+    "ics": "Are ICS Accounts Performing?",
+    "insights": "What Should We Do Next?",
 }
+
+# SCR narrative arc: Situation -> Complication -> Resolution
+SECTION_ORDER = [
+    "overview",     # Situation
+    "dctr",         # Complication
+    "rege",         # Complication
+    "attrition",    # Complication
+    "mailer",       # Resolution
+    "value",        # Resolution
+    "insights",     # Resolution (call to action)
+]
 
 
 def _get_section(slide_id: str) -> str:
@@ -1050,13 +1278,93 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
     ]
 
 
+def _build_executive_kpi(ctx_results: dict, title_date: str = "") -> SlideContent:
+    """Build executive KPI dashboard from ctx.results.
+
+    Extracts key metrics and applies traffic-light coloring.
+    Returns a SlideContent with slide_type="kpi_dashboard".
+    """
+    import math
+
+    def _safe_get(key, subkey, default=None):
+        data = ctx_results.get(key, {})
+        if isinstance(data, dict):
+            inner = data.get("insights", data)
+            return inner.get(subkey, default)
+        return default
+
+    def _color_rate(value, good_above, warn_above):
+        if value is None or (isinstance(value, float) and math.isnan(value)):
+            return "gray"
+        if value >= good_above:
+            return "green"
+        if value >= warn_above:
+            return "yellow"
+        return "red"
+
+    def _color_rate_low(value, good_below, warn_below):
+        if value is None or (isinstance(value, float) and math.isnan(value)):
+            return "gray"
+        if value <= good_below:
+            return "green"
+        if value <= warn_below:
+            return "yellow"
+        return "red"
+
+    kpis: dict[str, str] = {}
+
+    # DCTR Penetration Rate
+    dctr = _safe_get("dctr_1", "overall_dctr")
+    if dctr is not None and isinstance(dctr, (int, float)) and not math.isnan(dctr):
+        color = _color_rate(dctr, 0.30, 0.20)
+        kpis["DCTR Penetration"] = f"{dctr:.1%}|{color}"
+    else:
+        kpis["DCTR Penetration"] = "N/A|gray"
+
+    # Reg E Opt-In Rate
+    rege = _safe_get("rege_1", "opt_in_rate")
+    if rege is not None and isinstance(rege, (int, float)) and not math.isnan(rege):
+        color = _color_rate(rege, 0.70, 0.50)
+        kpis["Reg E Opt-In"] = f"{rege:.1%}|{color}"
+    else:
+        kpis["Reg E Opt-In"] = "N/A|gray"
+
+    # Attrition Rate (lower is better)
+    att = _safe_get("attrition_1", "overall_rate")
+    if att is not None and isinstance(att, (int, float)) and not math.isnan(att):
+        color = _color_rate_low(att, 0.05, 0.10)
+        kpis["Attrition Rate"] = f"{att:.1%}|{color}"
+    else:
+        kpis["Attrition Rate"] = "N/A|gray"
+
+    # Total Eligible Accounts (neutral)
+    total = _safe_get("dctr_1", "total_accounts")
+    if total is not None and isinstance(total, (int, float)) and total > 0:
+        kpis["Total Accounts"] = f"{int(total):,}"
+    else:
+        kpis["Total Accounts"] = "N/A|gray"
+
+    title = f"Executive Dashboard | {title_date}" if title_date else "Executive Dashboard"
+    return SlideContent(
+        slide_type="kpi_dashboard",
+        title=title,
+        kpis=kpis,
+        layout_index=13,
+    )
+
+
 # =============================================================================
 # RESULT -> SLIDE CONTENT CONVERSION
 # =============================================================================
 
 
-def _result_to_slide(result) -> SlideContent | None:
-    """Convert an AnalysisResult to a SlideContent for the deck builder."""
+def _result_to_slide(result, ctx_results: dict | None = None) -> SlideContent | None:
+    """Convert an AnalysisResult to a SlideContent for the deck builder.
+
+    Args:
+        result: An AnalysisResult from an analytics module.
+        ctx_results: Optional ctx.results dict for headline/notes generation.
+    """
     if not getattr(result, "success", True):
         return None
 
@@ -1086,6 +1394,17 @@ def _result_to_slide(result) -> SlideContent | None:
 
     bullets = getattr(result, "bullets", None)
 
+    # Generate conclusion headline + speaker notes
+    notes_text = None
+    if ctx_results is not None and slide_id:
+        from ars_analysis.output.headlines import generate_headline, insights_key
+        from ars_analysis.output.notes import generate_notes
+
+        key = insights_key(slide_id)
+        insights = ctx_results.get(key, {}) if key else {}
+        title = generate_headline(slide_id, insights, fallback_title=title)
+        notes_text = generate_notes(slide_id, title, insights, kpis=kpis)
+
     return SlideContent(
         slide_type=slide_type,
         title=title,
@@ -1093,6 +1412,7 @@ def _result_to_slide(result) -> SlideContent | None:
         bullets=bullets,
         kpis=kpis,
         layout_index=layout_idx,
+        notes_text=notes_text,
     )
 
 
@@ -1258,10 +1578,6 @@ def build_deck(ctx: PipelineContext) -> Path | None:
         attrition_results, ATTRITION_MERGES, ATTRITION_APPENDIX_IDS
     )
 
-    # Separate value slides for DCTR and Reg E sections
-    value_dctr = [r for r in value_results if getattr(r, "slide_id", "") == "A11.1"]
-    value_rege = [r for r in value_results if getattr(r, "slide_id", "") == "A11.2"]
-
     # Build section subtitle
     client_name = ctx.client.client_name
     month = ctx.client.month
@@ -1273,14 +1589,16 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     except (ValueError, IndexError):
         section_subtitle = client_name
 
-    # Convert AnalysisResult -> SlideContent
+    # Convert AnalysisResult -> SlideContent (with headline/notes from ctx.results)
+    _ctx_results = ctx.results if ctx else {}
+
     def _convert_list(items):
         converted = []
         for item in items:
             if isinstance(item, SlideContent):
                 converted.append(item)
             else:
-                sc = _result_to_slide(item)
+                sc = _result_to_slide(item, ctx_results=_ctx_results)
                 if sc:
                     converted.append(sc)
         return converted
@@ -1289,65 +1607,68 @@ def build_deck(ctx: PipelineContext) -> Path | None:
         full_title = f"{title}\n{subtitle}" if subtitle else title
         return SlideContent(slide_type=slide_type, title=full_title, layout_index=layout_index)
 
-    # Build ordered analysis slides
+    # Build ordered analysis slides following SCR narrative arc
     analysis_slides: list[SlideContent] = []
 
-    # Mailer slides: per-month groups, most recent 2 in main, rest in appendix
+    # Consolidate: merge paired slides, separate appendix for each section
     mailer_main, mailer_appendix = _consolidate_mailer(mailer_results)
-    mailer_slides = _convert_list(mailer_main)
-    mailer_app_slides = _convert_list(mailer_appendix)
-    if mailer_slides:
-        analysis_slides.extend(mailer_slides)
 
-    # DCTR + Value of Debit Card
-    dctr_slides = _convert_list(dctr_main)
-    value_dctr_slides = _convert_list(value_dctr)
-    if dctr_slides or value_dctr_slides:
-        analysis_slides.append(_section_divider("Debit Card Take Rate", subtitle=section_subtitle))
-        analysis_slides.extend(dctr_slides)
-        analysis_slides.extend(value_dctr_slides)
+    # Separate value slides for DCTR and Reg E sections
+    value_dctr_slides = _convert_list(
+        [r for r in value_results if getattr(r, "slide_id", "") == "A11.1"]
+    )
+    value_rege_slides = _convert_list(
+        [r for r in value_results if getattr(r, "slide_id", "") == "A11.2"]
+    )
 
-    # Reg E + Value of Reg E
-    rege_slides = _convert_list(rege_main)
-    value_rege_slides = _convert_list(value_rege)
-    if rege_slides or value_rege_slides:
-        analysis_slides.append(_section_divider("Reg E Analysis", subtitle=section_subtitle))
-        analysis_slides.extend(rege_slides)
-        analysis_slides.extend(value_rege_slides)
+    # Prepare per-section slide lists (main body + appendix)
+    _section_main = {
+        "overview": _convert_list(overview_results),
+        "dctr": _convert_list(dctr_main) + value_dctr_slides,
+        "rege": _convert_list(rege_main) + value_rege_slides,
+        "attrition": _convert_list(attrition_main),
+        "mailer": _convert_list(mailer_main),
+        "value": [],  # value slides distributed into dctr/rege above
+        "insights": _convert_list(insights_results),
+    }
+    _section_appendix = {
+        "dctr": _convert_list(dctr_appendix),
+        "rege": _convert_list(rege_appendix),
+        "attrition": _convert_list(attrition_appendix),
+        "mailer": _convert_list(mailer_appendix),
+    }
 
-    # Attrition
-    attrition_slides = _convert_list(attrition_main)
-    if attrition_slides:
-        analysis_slides.append(_section_divider("Account Attrition", subtitle=section_subtitle))
-        analysis_slides.extend(attrition_slides)
+    # Build main body in SCR order
+    for section_key in SECTION_ORDER:
+        slides = _section_main.get(section_key, [])
+        if not slides:
+            continue
+        label = _SECTION_LABELS.get(section_key, section_key.title())
+        analysis_slides.append(_section_divider(label, subtitle=section_subtitle))
+        analysis_slides.extend(slides)
 
     # Summary placeholder
     analysis_slides.append(
         _section_divider("Summary & Key Takeaways", layout_index=12, slide_type="blank")
     )
 
-    # Appendix
-    dctr_app = _convert_list(dctr_appendix)
-    rege_app = _convert_list(rege_appendix)
-    attrition_app = _convert_list(attrition_appendix)
-    overview_slides = _convert_list(overview_results)
-    insights_slides = _convert_list(insights_results)
+    # Appendix: collect all appendix slides
+    appendix_slides: list[SlideContent] = []
+    for section_key in SECTION_ORDER:
+        appendix_slides.extend(_section_appendix.get(section_key, []))
+
     other_slides = _convert_list(other_results)
-
-    has_appendix = dctr_app or rege_app or attrition_app or overview_slides or mailer_app_slides
-    if has_appendix:
+    if appendix_slides or other_slides:
         analysis_slides.append(_section_divider("Appendix", subtitle=section_subtitle))
-        analysis_slides.extend(overview_slides)
-        analysis_slides.extend(mailer_app_slides)
-        analysis_slides.extend(dctr_app)
-        analysis_slides.extend(rege_app)
-        analysis_slides.extend(attrition_app)
-
-    analysis_slides.extend(insights_slides)
-    analysis_slides.extend(other_slides)
+        analysis_slides.extend(appendix_slides)
+        analysis_slides.extend(other_slides)
 
     # Build preamble
     preamble = _build_preamble_slides(client_name, month)
+
+    # Replace P02 (Agenda) with executive KPI dashboard
+    if len(preamble) > 1:
+        preamble[1] = _build_executive_kpi(_ctx_results, title_date=section_subtitle)
 
     # Wire preamble placeholders to actual results:
     # P08 (index 7) -> most recent A12.*.Swipes
@@ -1376,7 +1697,7 @@ def build_deck(ctx: PipelineContext) -> Path | None:
 
     for idx, result in [(7, _swipes), (8, _spend), (12, _count_trend)]:
         if result and idx < len(preamble):
-            sc = _result_to_slide(result)
+            sc = _result_to_slide(result, ctx_results=_ctx_results)
             if sc:
                 preamble[idx] = sc
 

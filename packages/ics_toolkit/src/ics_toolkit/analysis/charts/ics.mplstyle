@@ -21,7 +21,11 @@ grid.linewidth     : 0.6
 grid.alpha         : 0.3
 
 xtick.labelsize    : 14
+xtick.major.size   : 0
+xtick.minor.size   : 0
 ytick.labelsize    : 14
+ytick.major.size   : 0
+ytick.minor.size   : 0
 
 legend.fontsize    : 14
 legend.frameon     : false

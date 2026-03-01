@@ -500,3 +500,211 @@ class TestBuildDeckIntegration:
                     break
         # Should have more than just 1 layout type
         assert len(layout_indices) >= 3, f"Only {layout_indices} layouts used"
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Section ordering + KPI dashboard
+# ---------------------------------------------------------------------------
+
+
+class TestSectionLabels:
+    """Verify section labels are business questions."""
+
+    def test_labels_are_questions(self):
+        from ars_analysis.output.deck_builder import _SECTION_LABELS
+
+        for key, label in _SECTION_LABELS.items():
+            assert label[0].isupper(), f"{key} label doesn't start uppercase: {label}"
+            assert "?" in label, f"{key} label is not a question: {label}"
+
+    def test_section_order_matches_labels(self):
+        from ars_analysis.output.deck_builder import _SECTION_LABELS, SECTION_ORDER
+
+        for key in SECTION_ORDER:
+            assert key in _SECTION_LABELS, f"SECTION_ORDER key {key!r} not in labels"
+
+    def test_section_order_scr_arc(self):
+        from ars_analysis.output.deck_builder import SECTION_ORDER
+
+        # Overview comes first (situation)
+        assert SECTION_ORDER[0] == "overview"
+        # Insights comes last (resolution / call to action)
+        assert SECTION_ORDER[-1] == "insights"
+        # DCTR/Reg E/Attrition before Mailer (complication before resolution)
+        dctr_idx = SECTION_ORDER.index("dctr")
+        mailer_idx = SECTION_ORDER.index("mailer")
+        assert dctr_idx < mailer_idx
+
+
+class TestExecutiveKPI:
+    """Verify KPI dashboard builder."""
+
+    def test_executive_kpi_with_data(self):
+        from ars_analysis.output.deck_builder import _build_executive_kpi
+
+        ctx_results = {
+            "dctr_1": {"insights": {"overall_dctr": 0.342, "total_accounts": 12400}},
+            "rege_1": {"insights": {"opt_in_rate": 0.67}},
+            "attrition_1": {"insights": {"overall_rate": 0.06}},
+        }
+        sc = _build_executive_kpi(ctx_results, title_date="January 2026")
+        assert sc.slide_type == "kpi_dashboard"
+        assert "Executive Dashboard" in sc.title
+        assert "January 2026" in sc.title
+        assert sc.kpis is not None
+        assert "DCTR Penetration" in sc.kpis
+        assert "34.2%" in sc.kpis["DCTR Penetration"]
+        assert "green" in sc.kpis["DCTR Penetration"]  # 34.2% > 30%
+        assert "Reg E Opt-In" in sc.kpis
+        assert "Attrition Rate" in sc.kpis
+        assert "yellow" in sc.kpis["Attrition Rate"]  # 6% is between 5-10%
+
+    def test_executive_kpi_missing_modules(self):
+        from ars_analysis.output.deck_builder import _build_executive_kpi
+
+        sc = _build_executive_kpi({})
+        assert sc.kpis is not None
+        for value in sc.kpis.values():
+            assert "N/A" in value or "|" not in value
+
+    def test_executive_kpi_nan_values(self):
+        from ars_analysis.output.deck_builder import _build_executive_kpi
+
+        ctx_results = {
+            "dctr_1": {"insights": {"overall_dctr": float("nan"), "total_accounts": 0}},
+        }
+        sc = _build_executive_kpi(ctx_results)
+        assert "N/A" in sc.kpis["DCTR Penetration"]
+
+    def test_kpi_dashboard_slide_type(self):
+        """Verify DeckBuilder registers kpi_dashboard."""
+        from ars_analysis.output.deck_builder import _FALLBACK_TEMPLATE
+
+        if not _FALLBACK_TEMPLATE.exists():
+            pytest.skip("Template not found")
+        builder = DeckBuilder(str(_FALLBACK_TEMPLATE))
+        sc = SlideContent(
+            slide_type="kpi_dashboard",
+            title="Test Dashboard",
+            kpis={"Metric": "42%|green"},
+            layout_index=13,
+        )
+        builder.build([sc], str(Path("/tmp/test_kpi_dashboard.pptx")))
+        prs = Presentation("/tmp/test_kpi_dashboard.pptx")
+        assert len(prs.slides) == 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Layout variety
+# ---------------------------------------------------------------------------
+
+
+class TestChartNarrativeSlide:
+    """Verify chart_narrative slide type."""
+
+    def test_chart_narrative_builds(self, tmp_path):
+        from ars_analysis.output.deck_builder import _FALLBACK_TEMPLATE
+
+        if not _FALLBACK_TEMPLATE.exists():
+            pytest.skip("Template not found")
+
+        # Create a test PNG
+        png = tmp_path / "chart.png"
+        _write_minimal_png(png)
+
+        builder = DeckBuilder(str(_FALLBACK_TEMPLATE))
+        sc = SlideContent(
+            slide_type="chart_narrative",
+            title="Debit adoption accelerating",
+            images=[str(png)],
+            bullets=["DCTR up 4pp vs prior quarter", "Branch 5 leads at 42%"],
+            layout_index=11,
+        )
+        out = tmp_path / "test_narrative.pptx"
+        builder.build([sc], str(out))
+        prs = Presentation(str(out))
+        assert len(prs.slides) == 1
+
+    def test_chart_narrative_with_kpis(self, tmp_path):
+        from ars_analysis.output.deck_builder import _FALLBACK_TEMPLATE
+
+        if not _FALLBACK_TEMPLATE.exists():
+            pytest.skip("Template not found")
+
+        png = tmp_path / "chart.png"
+        _write_minimal_png(png)
+
+        builder = DeckBuilder(str(_FALLBACK_TEMPLATE))
+        sc = SlideContent(
+            slide_type="chart_narrative",
+            title="Revenue Impact",
+            images=[str(png)],
+            kpis={"DCTR": "34.2%", "Revenue": "$142K"},
+            layout_index=11,
+        )
+        out = tmp_path / "test_kpi_narrative.pptx"
+        builder.build([sc], str(out))
+        prs = Presentation(str(out))
+        assert len(prs.slides) == 1
+
+
+class TestKPIHeroSlide:
+    """Verify kpi_hero slide type."""
+
+    def test_kpi_hero_builds(self, tmp_path):
+        from ars_analysis.output.deck_builder import _FALLBACK_TEMPLATE
+
+        if not _FALLBACK_TEMPLATE.exists():
+            pytest.skip("Template not found")
+
+        builder = DeckBuilder(str(_FALLBACK_TEMPLATE))
+        sc = SlideContent(
+            slide_type="kpi_hero",
+            title="Program Performance Snapshot",
+            kpis={"DCTR": "34.2%", "Opt-In": "67%", "Attrition": "6.2%"},
+            layout_index=11,
+        )
+        out = tmp_path / "test_hero.pptx"
+        builder.build([sc], str(out))
+        prs = Presentation(str(out))
+        assert len(prs.slides) == 1
+
+    def test_kpi_hero_with_chart(self, tmp_path):
+        from ars_analysis.output.deck_builder import _FALLBACK_TEMPLATE
+
+        if not _FALLBACK_TEMPLATE.exists():
+            pytest.skip("Template not found")
+
+        png = tmp_path / "chart.png"
+        _write_minimal_png(png)
+
+        builder = DeckBuilder(str(_FALLBACK_TEMPLATE))
+        sc = SlideContent(
+            slide_type="kpi_hero",
+            title="Trend Overview",
+            kpis={"DCTR": "34.2%", "Accounts": "12,400"},
+            images=[str(png)],
+            layout_index=11,
+        )
+        out = tmp_path / "test_hero_chart.pptx"
+        builder.build([sc], str(out))
+        prs = Presentation(str(out))
+        assert len(prs.slides) == 1
+
+    def test_kpi_hero_empty_kpis(self, tmp_path):
+        from ars_analysis.output.deck_builder import _FALLBACK_TEMPLATE
+
+        if not _FALLBACK_TEMPLATE.exists():
+            pytest.skip("Template not found")
+
+        builder = DeckBuilder(str(_FALLBACK_TEMPLATE))
+        sc = SlideContent(
+            slide_type="kpi_hero",
+            title="Empty Dashboard",
+            kpis={},
+            layout_index=11,
+        )
+        out = tmp_path / "test_hero_empty.pptx"
+        builder.build([sc], str(out))
+        prs = Presentation(str(out))
+        assert len(prs.slides) == 1

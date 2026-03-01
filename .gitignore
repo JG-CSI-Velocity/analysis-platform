@@ -24,17 +24,18 @@ env/
 htmlcov/
 .pytest_cache/
 
-# Output artifacts
-output/
+# Output artifacts (top-level only; package source output/ dirs are code)
+/output/
 /charts/
 *.xlsx
 *.pptx
 *.png
 
-# Allow source templates
+# Allow source templates and output module code
 !packages/*/src/templates/
 !packages/*/src/*/output/template/
 !packages/*/src/*/output/template/*.pptx
+!packages/*/src/*/output/*.py
 
 # Data files (keep sample data tracked)
 data/*.csv

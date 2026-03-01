@@ -1,0 +1,47 @@
+# Use client_id from cell 3 (already extracted from filename)
+print(f"Using client_id: {client_id}")
+
+# Get client configuration with detailed error handling
+config = client_config.get(client_id)
+
+if config is None:
+    # List available client IDs for debugging
+    available_ids = list(client_config.keys())
+    print(f"❌ ERROR: No config found for client ID '{client_id}'")
+    print(f"Available client IDs in config: {', '.join(available_ids[:10])}")
+    if len(available_ids) > 10:
+        print(f"... and {len(available_ids) - 10} more")
+    raise ValueError(f"No config found for client ID {client_id}. Please check the config file.")
+
+# Display configuration
+print(f"\n📋 Config Preview for Client ID {client_id} - {client_name}")
+print("=" * 60)
+for key, value in config.items():
+    if isinstance(value, list):
+        display_value = ", ".join(str(v) for v in value) if value else "(empty)"
+    elif isinstance(value, dict):
+        display_value = f"Dictionary with {len(value)} items"
+    else:
+        display_value = str(value) if value is not None else "(empty)"
+    print(f"{key:25}: {display_value}")
+print("=" * 60)
+
+
+Using client_id: 1441
+
+📋 Config Preview for Client ID 1441 - FNB Alaska
+============================================================
+ClientID                 : 1441
+ICRate                   : 0.0076
+NSF_OD_Fee               : 33
+EligibleStatusCodes      : O, D, I
+IneligibleStatusCodes    : C
+EligibleMailCode         : Yes
+IneligibleMailCode       : No
+EligibleProductCodes     : 301010110, 301010130, 301010210, 301010211, 301020110, 301020130, 301020210, 301020230, 301030110, 301030130, 301040110, 301050110, 301110110, 301110130, 301140110, 301140130, 301150110, 301150130, 301410150, 301500150, 301500250, 301510130, 301510151, 301510152, 301510153, 301510154, 301510230, 301510251, 301510252, 301510253, 301510254, 301610130, 301610151, 301610152, 301610153, 301610154
+IneligibleProductCodes   : 301030210, 301100110, 301120110, 301120130, 301130210, 301130230, 301420150, 301530151, 301540130, 301540151, 301540152, 301540153, 301540154, 301610230, 301620130, 301620151, 301620152, 301620153, 301620154, 301630230, 301630250, 301630251, 301630252, 301630253
+RegEOptInCode            : Y
+BranchMapping            : Dictionary with 27 items
+============================================================
+
+  

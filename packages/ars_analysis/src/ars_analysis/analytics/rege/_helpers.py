@@ -70,6 +70,25 @@ def categorize_holder_age(age: float) -> str:
     return "75+"
 
 
+# -- Reg E code normalization -------------------------------------------------
+# Some institutions use truncated or abbreviated Reg E codes that change
+# mid-year. This mapping normalizes known variants to canonical names so
+# all months produce consistent analysis. (See issue #63 / client 1615.)
+
+REG_E_CODE_CORRECTIONS: dict[str, str] = {
+    "Opt In ATM": "Opt In ATM/POS OD Limit",
+    "Opt Out Re": "Opt Out Reply",
+    "Mandatory": "Mandatory Opt Out",
+}
+
+
+def normalize_reg_e_codes(df: pd.DataFrame, col: str) -> pd.DataFrame:
+    """Normalize known truncated Reg E code values in-place."""
+    if col in df.columns:
+        df[col] = df[col].replace(REG_E_CODE_CORRECTIONS)
+    return df
+
+
 # -- Core Reg E calculation ---------------------------------------------------
 
 
@@ -143,9 +162,10 @@ def reg_e_base(ctx: PipelineContext) -> tuple[pd.DataFrame, pd.DataFrame | None,
     if base.empty:
         raise ValueError("No personal accounts with debit cards")
 
-    # Normalize the Reg E column values
+    # Normalize the Reg E column values (strip whitespace + fix truncated codes)
     if reg_e_col in base.columns:
         base[reg_e_col] = base[reg_e_col].astype(str).str.strip()
+        normalize_reg_e_codes(base, reg_e_col)
     else:
         raise ValueError(f"Reg E column '{reg_e_col}' not in data")
 

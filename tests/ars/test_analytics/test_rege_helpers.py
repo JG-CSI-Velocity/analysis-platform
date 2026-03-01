@@ -6,9 +6,11 @@ import pytest
 from ars_analysis.analytics.rege._helpers import (
     ACCT_AGE_ORDER,
     HOLDER_AGE_ORDER,
+    REG_E_CODE_CORRECTIONS,
     categorize_account_age,
     categorize_holder_age,
     detect_reg_e_column,
+    normalize_reg_e_codes,
     reg_e_base,
     rege,
     total_row,
@@ -86,6 +88,53 @@ class TestRegEBase:
         rege_ctx.client.reg_e_column = "Nonexistent"
         with pytest.raises(ValueError, match="not in data"):
             reg_e_base(rege_ctx)
+
+
+class TestNormalizeRegECodes:
+    """Reg E code normalization for truncated values."""
+
+    def test_corrections_dict(self):
+        assert "Opt In ATM" in REG_E_CODE_CORRECTIONS
+        assert REG_E_CODE_CORRECTIONS["Opt In ATM"] == "Opt In ATM/POS OD Limit"
+        assert REG_E_CODE_CORRECTIONS["Opt Out Re"] == "Opt Out Reply"
+        assert REG_E_CODE_CORRECTIONS["Mandatory"] == "Mandatory Opt Out"
+
+    def test_normalizes_truncated_codes(self):
+        df = pd.DataFrame({"code": ["Opt In ATM", "Opt Out Re", "Mandatory", "Normal"]})
+        result = normalize_reg_e_codes(df, "code")
+        assert result["code"].tolist() == [
+            "Opt In ATM/POS OD Limit",
+            "Opt Out Reply",
+            "Mandatory Opt Out",
+            "Normal",
+        ]
+
+    def test_no_change_when_column_missing(self):
+        df = pd.DataFrame({"other": ["Opt In ATM"]})
+        result = normalize_reg_e_codes(df, "code")
+        assert "other" in result.columns
+        assert result["other"].iloc[0] == "Opt In ATM"
+
+    def test_no_change_for_canonical_values(self):
+        df = pd.DataFrame({"code": ["Opt In ATM/POS OD Limit", "Opt Out Reply"]})
+        result = normalize_reg_e_codes(df, "code")
+        assert result["code"].tolist() == ["Opt In ATM/POS OD Limit", "Opt Out Reply"]
+
+    def test_reg_e_base_normalizes(self, rege_ctx):
+        """Verify reg_e_base() applies normalization to the Reg E column."""
+        col = "Reg E Code 2024.02"
+        # Inject a truncated code into the data
+        rege_ctx.data.loc[rege_ctx.data.index[0], col] = "Opt In ATM"
+        rege_ctx.subsets.eligible_personal.loc[
+            rege_ctx.subsets.eligible_personal.index[0], col
+        ] = "Opt In ATM"
+
+        base, _, reg_col, _ = reg_e_base(rege_ctx)
+        # The truncated code should have been normalized
+        assert "Opt In ATM" not in base[reg_col].values
+        vals = base[reg_col].unique()
+        truncated = [v for v in vals if v in REG_E_CODE_CORRECTIONS]
+        assert len(truncated) == 0
 
 
 class TestTotalRow:

@@ -47,7 +47,10 @@ from txn_analysis.analyses.personal import (
 )
 from txn_analysis.analyses.recurring import analyze_recurring_payments
 from txn_analysis.analyses.scorecard import analyze_portfolio_scorecard
+from txn_analysis.analyses.segment_comparison import analyze_segment_comparison
 from txn_analysis.analyses.spending_behavior import analyze_spending_behavior
+from txn_analysis.analyses.spending_profile import analyze_spending_profile
+from txn_analysis.analyses.spending_trends import analyze_spending_trends
 from txn_analysis.analyses.storyline_adapters import (
     analyze_campaigns,
     analyze_demographics,
@@ -60,6 +63,8 @@ from txn_analysis.analyses.trends_consistency import analyze_spending_consistenc
 from txn_analysis.analyses.trends_growth import analyze_growth_leaders_decliners
 from txn_analysis.analyses.trends_movers import analyze_business_movers, analyze_personal_movers
 from txn_analysis.analyses.trends_rank import analyze_monthly_rank_tracking
+from txn_analysis.analyses.txn_distribution import analyze_txn_distribution
+from txn_analysis.analyses.wallet_radar import analyze_wallet_radar
 from txn_analysis.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -129,6 +134,16 @@ ANALYSIS_REGISTRY: list[tuple[str, AnalysisFunc]] = [
     ("time_patterns", analyze_time_patterns),
     # M17: Spending Behavior by Demographics + Response Timing (requires ODD)
     ("spending_behavior", analyze_spending_behavior),
+    # M18: Share of Wallet Radar (requires ODD for segment split)
+    ("wallet_radar", analyze_wallet_radar),
+    # M19: Spending Trends by Segment (requires ODD)
+    ("spending_trends", analyze_spending_trends),
+    # M20: Spending Segment Profile (tier classification)
+    ("spending_profile", analyze_spending_profile),
+    # M21: Transaction Amount Distribution (violin plot data)
+    ("txn_distribution", analyze_txn_distribution),
+    # M22: Segment Behavioral Comparison (requires ODD)
+    ("segment_comparison", analyze_segment_comparison),
     # M9: Scorecard (MUST be last -- reads completed_results from all prior analyses)
     ("portfolio_scorecard", analyze_portfolio_scorecard),
 ]

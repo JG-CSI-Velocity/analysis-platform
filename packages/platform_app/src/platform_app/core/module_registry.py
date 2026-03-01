@@ -433,6 +433,22 @@ _TXN_MODULES: list[tuple[str, str, str, tuple[str, ...], int]] = [
     ("payroll", "Payroll", "Payroll & Circular Economy", (), 33),
     # M14: Lifecycle Management (requires ODD)
     ("lifecycle", "Lifecycle", "Lifecycle Management", (), 34),
+    # M15: Recurring Payments
+    ("recurring_payments", "Recurring", "Recurring payment detection", (), 35),
+    # M16: Time Patterns
+    ("time_patterns", "Patterns", "Day/week/month time patterns", (), 36),
+    # M17: Spending Behavior (requires ODD)
+    ("spending_behavior", "Behavior", "Spending behavior by demographics", (), 37),
+    # M18: Share of Wallet (requires ODD)
+    ("wallet_radar", "Wallet", "Share of wallet by MCC category", (), 38),
+    # M19: Spending Trends (requires ODD)
+    ("spending_trends", "Trends", "Weekly spending trends by ARS segment", (), 39),
+    # M20: Spending Profile
+    ("spending_profile", "Profile", "Spending tier classification", (), 40),
+    # M21: Transaction Distribution
+    ("txn_distribution", "Distribution", "Transaction amount distribution", (), 41),
+    # M22: Segment Comparison (requires ODD)
+    ("segment_comparison", "Comparison", "Cross-segment behavioral metrics", (), 42),
     # M9: Scorecard (MUST be last -- reads all prior results)
     (
         "portfolio_scorecard",

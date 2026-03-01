@@ -49,11 +49,19 @@ from txn_analysis.charts.recurring import (
     chart_recurring_onsets,
 )
 from txn_analysis.charts.scorecard import chart_scorecard_bullets
+from txn_analysis.charts.segment_comparison import chart_segment_comparison_bars
+from txn_analysis.charts.spending_profile import (
+    chart_spending_profile_table,
+    chart_spending_tier_bars,
+)
+from txn_analysis.charts.spending_trends import chart_spending_trends
 from txn_analysis.charts.trends import (
     chart_cohort_summary,
     chart_growth_leaders,
     chart_rank_trajectory,
 )
+from txn_analysis.charts.txn_distribution import chart_txn_violin
+from txn_analysis.charts.wallet_radar import chart_wallet_radar
 from txn_analysis.settings import ChartConfig
 
 matplotlib.use("Agg")
@@ -89,6 +97,17 @@ CHART_REGISTRY: dict[str, ChartFunc] = {
     # M15: Recurring Payments
     "recurring_payments": chart_recurring_merchants,
     "recurring_payments:onsets": chart_recurring_onsets,
+    # M18: Wallet Radar
+    "wallet_radar": chart_wallet_radar,
+    # M19: Spending Trends
+    "spending_trends": chart_spending_trends,
+    # M20: Spending Profile
+    "spending_profile": chart_spending_profile_table,
+    "spending_profile:tiers": chart_spending_tier_bars,
+    # M21: Distribution
+    "txn_distribution": chart_txn_violin,
+    # M22: Segment Comparison
+    "segment_comparison": chart_segment_comparison_bars,
     # M9: Scorecard
     "portfolio_scorecard": chart_scorecard_bullets,
 }

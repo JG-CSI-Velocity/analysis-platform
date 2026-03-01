@@ -451,41 +451,60 @@ def _cached_months(csm_path: str) -> list[str]:
 
 months = _cached_months(str(csm_dir))
 
+month: str = ""
+clients: list[str] = []
+client_id: str = ""
+
 with col_month:
     if not months:
         st.selectbox("Month", options=["No months found"], disabled=True)
-        st.stop()
-    month = st.selectbox(
-        "Month",
-        options=months,
-        index=months.index(st.session_state.get("uap_month", months[0]))
-        if st.session_state.get("uap_month") in months
-        else 0,
-    )
-    st.session_state["uap_month"] = month
+    else:
+        month = st.selectbox(
+            "Month",
+            options=months,
+            index=months.index(st.session_state.get("uap_month", months[0]))
+            if st.session_state.get("uap_month") in months
+            else 0,
+        )
+        st.session_state["uap_month"] = month
 
-month_dir = csm_dir / month
+if month:
+    month_dir = csm_dir / month
 
+    @st.cache_data(ttl=60, show_spinner=False)
+    def _cached_clients(month_path: str) -> list[str]:
+        return discover_clients(Path(month_path))
 
-@st.cache_data(ttl=60, show_spinner=False)
-def _cached_clients(month_path: str) -> list[str]:
-    return discover_clients(Path(month_path))
-
-
-clients = _cached_clients(str(month_dir))
+    clients = _cached_clients(str(month_dir))
 
 with col_client:
-    if not clients:
+    if not months:
+        st.selectbox("Client ID", options=["—"], disabled=True)
+    elif not clients:
         st.selectbox("Client ID", options=["No clients found"], disabled=True)
-        st.stop()
-    client_id = st.selectbox(
-        "Client ID",
-        options=clients,
-        index=clients.index(st.session_state.get("uap_client_id", clients[0]))
-        if st.session_state.get("uap_client_id") in clients
-        else 0,
+    else:
+        client_id = st.selectbox(
+            "Client ID",
+            options=clients,
+            index=clients.index(st.session_state.get("uap_client_id", clients[0]))
+            if st.session_state.get("uap_client_id") in clients
+            else 0,
+        )
+        st.session_state["uap_client_id"] = client_id
+
+# Validation -- stop AFTER all three columns have rendered so the user sees the dropdowns
+if not months:
+    st.warning(
+        f"No month folders found in `{csm_dir}`.\n\nExpected structure: `CSM_Name/YYYY.MM/ClientID/`"
     )
-    st.session_state["uap_client_id"] = client_id
+    st.stop()
+if not clients:
+    st.warning(
+        f"No client folders found in `{month_dir}`.\n\nExpected structure: `CSM_Name/YYYY.MM/ClientID/`"
+    )
+    st.stop()
+if not client_id:
+    st.stop()
 
 # ---------------------------------------------------------------------------
 # Auto-detect files (cached -- only re-reads when client changes)

@@ -71,9 +71,7 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
-
-/* Root variables */
+/* Root variables -- system fonts only (no external @import to avoid blocking) */
 :root {
     --uap-ink: #0F172A;
     --uap-slate: #1E293B;
@@ -86,8 +84,8 @@ st.markdown(
     --uap-success: #10B981;
     --uap-warn: #F59E0B;
     --uap-error: #EF4444;
-    --uap-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-    --uap-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --uap-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Fira Code', monospace;
+    --uap-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 /* Sidebar */

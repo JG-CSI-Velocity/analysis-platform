@@ -768,6 +768,174 @@ M_DRIVE_DATA = [
 ]
 
 
+# ── Critical Field Names ──────────────────────────────────────────────
+
+FIELD_COLUMNS = ["Pipeline", "Category", "Field Name", "Aliases", "Required", "Type", "Source", "Notes"]
+
+FIELD_DATA = [
+    # ── ODD: Raw input columns ──
+    ["ODD", "Core", "Acct Number", "", "Yes", "str", "Raw Excel", "Primary key for cross-pipeline merges"],
+    ["ODD", "Core", "Stat Code", "Status Code, StatCode, Stat_Code, Account Status", "Yes", "str", "Raw Excel", "Account status (O=Open, C=Closed)"],
+    ["ODD", "Core", "Product Code", "Prod Code, ProdCode, Prod_Code", "Yes", "str", "Raw Excel", "Product type identifier"],
+    ["ODD", "Core", "Date Opened", "DateOpened, Date_Opened, Open Date", "Yes", "datetime", "Raw Excel", "Account open date"],
+    ["ODD", "Core", "Date Closed", "DateClosed, Date_Closed, Close Date", "No", "datetime", "Raw Excel", "Account close date (NaT if open)"],
+    ["ODD", "Core", "Avg Bal", "Balance, Current Balance, Cur Bal, AvgBal, Avg_Bal, Average Balance", "Yes", "float", "Raw Excel", "Average balance"],
+    ["ODD", "Core", "Branch", "", "No", "str", "Raw Excel", "Branch identifier"],
+    ["ODD", "Core", "Business?", "Business, BusinessFlag, Business Flag", "No", "str", "Raw Excel", "Personal vs business flag"],
+    ["ODD", "Core", "Debit?", "Debit, DC Indicator, DC_Indicator, DebitCard, Debit Card", "No", "str", "Raw Excel", "Debit card indicator (YES/Y/D/DC/DEBIT)"],
+    ["ODD", "Core", "DOB", "", "No", "datetime", "Raw Excel", "Date of birth (used to compute age)"],
+    ["ODD", "Core", "Mailable?", "", "No", "str", "Raw Excel", "Eligibility flag for mailers"],
+    # ── ODD: Monthly time-series ──
+    ["ODD", "Monthly", "MmmYY PIN $", "e.g. Jan25 PIN $", "No", "float", "Raw Excel", "PIN debit dollar amount per month"],
+    ["ODD", "Monthly", "MmmYY Sig $", "e.g. Jan25 Sig $", "No", "float", "Raw Excel", "Signature debit dollar amount per month"],
+    ["ODD", "Monthly", "MmmYY PIN #", "e.g. Jan25 PIN #", "No", "int", "Raw Excel", "PIN debit transaction count per month"],
+    ["ODD", "Monthly", "MmmYY Sig #", "e.g. Jan25 Sig #", "No", "int", "Raw Excel", "Signature debit transaction count per month"],
+    ["ODD", "Monthly", "MmmYY MTD", "e.g. Jan25 MTD", "No", "int", "Raw Excel", "Month-to-date items"],
+    ["ODD", "Monthly", "MmmYY OD Limit", "e.g. Jan25 OD Limit", "No", "float", "Raw Excel", "Overdraft limit per month"],
+    ["ODD", "Monthly", "MmmYY Reg E Code", "e.g. Jan25 Reg E Code", "No", "str", "Raw Excel", "Reg E status code per month"],
+    ["ODD", "Monthly", "MmmYY Reg E Desc", "e.g. Jan25 Reg E Desc", "No", "str", "Raw Excel", "Reg E description per month"],
+    ["ODD", "Monthly", "MmmYY Mail", "e.g. Jan25 Mail", "No", "str", "Raw Excel", "Mailer segment code per month"],
+    ["ODD", "Monthly", "MmmYY Resp", "e.g. Jan25 Resp", "No", "str", "Raw Excel", "Response segment code per month"],
+    # ── ODD: Derived by format_odd() ──
+    ["ODD", "Derived", "MmmYY Spend", "e.g. Jan25 Spend", "N/A", "float", "format_odd", "PIN $ + Sig $ combined per month"],
+    ["ODD", "Derived", "MmmYY Swipes", "e.g. Jan25 Swipes", "N/A", "int", "format_odd", "PIN # + Sig # combined per month"],
+    ["ODD", "Derived", "Total Spend", "", "N/A", "float", "format_odd", "Sum of all monthly Spend"],
+    ["ODD", "Derived", "Total Swipes", "", "N/A", "int", "format_odd", "Sum of all monthly Swipes"],
+    ["ODD", "Derived", "Total Items", "", "N/A", "int", "format_odd", "Sum of all monthly MTD"],
+    ["ODD", "Derived", "last 3-mon spend", "", "N/A", "float", "format_odd", "Last 3 months cumulative spend"],
+    ["ODD", "Derived", "last 3-mon swipes", "", "N/A", "int", "format_odd", "Last 3 months cumulative swipes"],
+    ["ODD", "Derived", "Last 3-mon Items", "", "N/A", "int", "format_odd", "Last 3 months cumulative items"],
+    ["ODD", "Derived", "last 12-mon spend", "", "N/A", "float", "format_odd", "Last 12 months cumulative spend"],
+    ["ODD", "Derived", "last 12-mon swipes", "", "N/A", "int", "format_odd", "Last 12 months cumulative swipes"],
+    ["ODD", "Derived", "Last 12-mon Items", "", "N/A", "int", "format_odd", "Last 12 months cumulative items"],
+    ["ODD", "Derived", "MonthlySpend12", "", "N/A", "float", "format_odd", "12-month avg monthly spend"],
+    ["ODD", "Derived", "MonthlySwipes12", "", "N/A", "float", "format_odd", "12-month avg monthly swipes"],
+    ["ODD", "Derived", "MonthlyItems12", "", "N/A", "float", "format_odd", "12-month avg monthly items"],
+    ["ODD", "Derived", "MonthlySpend3", "", "N/A", "float", "format_odd", "3-month avg monthly spend"],
+    ["ODD", "Derived", "MonthlySwipes3", "", "N/A", "float", "format_odd", "3-month avg monthly swipes"],
+    ["ODD", "Derived", "MonthlyItems3", "", "N/A", "float", "format_odd", "3-month avg monthly items"],
+    ["ODD", "Derived", "SwipeCat12", "", "N/A", "str", "format_odd", "12-month swipe tier (Non-user, 1-5, 6-10, 11-20, 21-40, 41+)"],
+    ["ODD", "Derived", "SwipeCat3", "", "N/A", "str", "format_odd", "3-month swipe tier"],
+    ["ODD", "Derived", "Account Holder Age", "", "N/A", "float", "format_odd", "Years from DOB to report date"],
+    ["ODD", "Derived", "Account Age", "", "N/A", "float", "format_odd", "Years from Date Opened to close/report date"],
+    ["ODD", "Derived", "# of Offers", "", "N/A", "int", "format_odd", "Count of non-null Mail columns"],
+    ["ODD", "Derived", "# of Responses", "", "N/A", "int", "format_odd", "Count of non-null Resp columns (excl NU 1-4)"],
+    ["ODD", "Derived", "Response Grouping", "", "N/A", "str", "format_odd", "No Offer / Non-Responder / SO-SR / MO-SR / MR"],
+    ["ODD", "Derived", "MmmYY Segmentation", "e.g. Jan25 Segmentation", "N/A", "str", "format_odd", "Control / Non-Responder / Responder per month"],
+    ["ODD", "Derived", "ICS Account", "", "N/A", "str", "ICS append", "Yes / No (appended by ICS pipeline)"],
+    ["ODD", "Derived", "ICS Source", "", "N/A", "str", "ICS append", "REF / DM / Both / empty"],
+    # ── TXN: Required columns ──
+    ["TXN", "Required", "merchant_name", "merchantname, merchant, merch_name, description, payee, vendor, ...", "Yes", "str", "CSV", "Merchant/payee name (12 aliases)"],
+    ["TXN", "Required", "amount", "transaction_amount, txn_amount, amt, debit_amount, purchase_amount, ...", "Yes", "float", "CSV", "Transaction dollar amount (11 aliases)"],
+    ["TXN", "Required", "primary_account_num", "account_number, acct_num, card_number, pan, member_number, ...", "Yes", "str", "CSV", "Account identifier (18 aliases)"],
+    ["TXN", "Required", "transaction_date", "trans_date, txn_date, date, posting_date, settlement_date, ...", "Yes", "datetime", "CSV", "Transaction date (12 aliases)"],
+    # ── TXN: Optional columns ──
+    ["TXN", "Optional", "mcc_code", "mcccode, mcc, merchant_category_code, sic_code, sic", "No", "str", "CSV", "Merchant Category Code (7 aliases)"],
+    ["TXN", "Optional", "business_flag", "businessflag, business, is_business, account_type", "No", "str", "CSV", "Business account indicator (6 aliases)"],
+    ["TXN", "Optional", "year_month", "yearmonth, ym", "No", "str", "CSV", "Pre-computed YYYY-MM period"],
+    # ── TXN: Tab-delimited positional (V4 format) ──
+    ["TXN", "V4 Positional", "transaction_type", "", "No", "str", "Tab file col 3", "Transaction type code"],
+    ["TXN", "V4 Positional", "terminal_location_1", "", "No", "str", "Tab file col 7", "Terminal location line 1"],
+    ["TXN", "V4 Positional", "terminal_location_2", "", "No", "str", "Tab file col 8", "Terminal location line 2"],
+    ["TXN", "V4 Positional", "terminal_id", "", "No", "str", "Tab file col 9", "Terminal identifier"],
+    ["TXN", "V4 Positional", "merchant_id", "", "No", "str", "Tab file col 10", "Merchant identifier"],
+    ["TXN", "V4 Positional", "institution", "", "No", "str", "Tab file col 11", "Issuing institution"],
+    ["TXN", "V4 Positional", "card_present", "", "No", "str", "Tab file col 12", "Card-present indicator"],
+    ["TXN", "V4 Positional", "transaction_code", "", "No", "str", "Tab file col 13", "Transaction code"],
+    # ── TXN: Derived columns ──
+    ["TXN", "Derived", "merchant_consolidated", "", "N/A", "str", "data_loader", "Standardized merchant name via rules"],
+    ["TXN", "Derived", "year_month", "(if not in CSV)", "N/A", "str", "data_loader", "YYYY-MM derived from transaction_date"],
+    ["TXN", "Derived", "is_partial_month", "", "N/A", "bool", "data_loader", "True if last month has <90% day coverage"],
+    ["TXN", "Derived", "source_file", "", "N/A", "str", "data_loader", "Originating CSV filename"],
+    ["TXN", "Derived", "generation", "", "N/A", "str", "ODD merge", "Gen Z / Millennial / Gen X / Boomer / Silent"],
+    ["TXN", "Derived", "balance_tier", "", "N/A", "str", "ODD merge", "Low / Medium / High / Very High"],
+    ["TXN", "Derived", "tenure_years", "", "N/A", "float", "ODD merge", "Years since account opened"],
+    # ── ICS Analysis: Required columns ──
+    ["ICS", "Required", "ICS Account", "ICS Accounts, Ics Account, ICS_Account, IcsAccount", "Yes", "str", "Excel", "ICS account flag (Yes/No)"],
+    ["ICS", "Required", "Stat Code", "StatCode, Stat_Code, Status Code", "Yes", "str", "Excel", "Account status code"],
+    ["ICS", "Required", "Debit?", "Debit, DebitCard, Debit Card", "Yes", "str", "Excel", "Debit card indicator"],
+    ["ICS", "Required", "Business?", "Business, BusinessFlag, Business Flag", "Yes", "str", "Excel", "Personal vs business flag"],
+    ["ICS", "Required", "Date Opened", "DateOpened, Date_Opened, Open Date", "Yes", "datetime", "Excel", "Account open date"],
+    ["ICS", "Required", "Prod Code", "ProdCode, Prod_Code, Product Code", "Yes", "str", "Excel", "Product code"],
+    ["ICS", "Required", "Branch", "", "Yes", "str", "Excel", "Branch identifier"],
+    ["ICS", "Required", "Source", "", "Yes", "str", "Excel", "ICS source (REF/DM/Both)"],
+    ["ICS", "Required", "Curr Bal", "CurrBal, Curr_Bal, Current Balance", "Yes", "float", "Excel", "Current balance"],
+    # ── ICS Analysis: Optional columns ──
+    ["ICS", "Optional", "Date Closed", "DateClosed, Date_Closed, Close Date", "No", "datetime", "Excel", "Account close date"],
+    ["ICS", "Optional", "Avg Bal", "AvgBal, Avg_Bal, Average Balance, AvgColBal", "No", "float", "Excel", "Average balance"],
+    # ── ICS Analysis: L12M dynamic columns ──
+    ["ICS", "L12M", "MmmYY Swipes", "regex: ^[A-Z][a-z]{2}\\d{2} Swipes$", "No", "int", "Excel", "Monthly swipe count (e.g. Feb24 Swipes)"],
+    ["ICS", "L12M", "MmmYY Spend", "regex: ^[A-Z][a-z]{2}\\d{2} Spend$", "No", "float", "Excel", "Monthly spend (e.g. Feb24 Spend)"],
+    # ── ICS Analysis: Derived columns ──
+    ["ICS", "Derived", "Total L12M Swipes", "", "N/A", "int", "utils.py", "Sum of all MmmYY Swipes columns"],
+    ["ICS", "Derived", "Total L12M Spend", "", "N/A", "float", "utils.py", "Sum of all MmmYY Spend columns"],
+    ["ICS", "Derived", "Active in L12M", "", "N/A", "bool", "utils.py", "True if Total L12M Swipes > 0"],
+    ["ICS", "Derived", "Opening Month", "", "N/A", "str", "utils.py", "YYYY-MM from Date Opened"],
+    ["ICS", "Derived", "Account Age Days", "", "N/A", "int", "utils.py", "Days since Date Opened"],
+    ["ICS", "Derived", "Balance Tier", "", "N/A", "str", "utils.py", "Binned from Curr Bal"],
+    ["ICS", "Derived", "Age Range", "", "N/A", "str", "utils.py", "Binned from Account Age Days"],
+    # ── ICS Append: Output columns ──
+    ["ICS Append", "Output", "ICS Account", "", "N/A", "str", "matcher.py", "Yes / No (appended to ODD)"],
+    ["ICS Append", "Output", "ICS Source", "", "N/A", "str", "matcher.py", "REF / DM / Both / empty"],
+    ["ICS Append", "Internal", "Acct Hash", "", "N/A", "str", "merger.py", "Normalized account hash from REF/DM files"],
+    # ── ICS Referral: Required columns ──
+    ["ICS Referral", "Required", "Referrer Name", "referrer, referrer_name", "Yes", "str", "Excel", "Person who made the referral"],
+    ["ICS Referral", "Required", "Issue Date", "issue_date, date", "Yes", "datetime", "Excel", "Referral issue date"],
+    ["ICS Referral", "Required", "Referral Code", "referral_code, code", "Yes", "str", "Excel", "Referral code identifier"],
+    ["ICS Referral", "Required", "Purchase Manager", "purchase_manager, staff", "Yes", "str", "Excel", "Staff member / purchase manager"],
+    ["ICS Referral", "Required", "Branch", "branch_id", "Yes", "str", "Excel", "Branch identifier"],
+    ["ICS Referral", "Required", "Account Holder", "account_holder, new_account", "Yes", "str", "Excel", "New account holder name"],
+    ["ICS Referral", "Required", "MRDB Account Hash", "mrdb_account_hash, mrdb, account_hash", "Yes", "str", "Excel", "Account hash for matching"],
+    ["ICS Referral", "Required", "Cert ID", "cert_id, certificate_id", "Yes", "str", "Excel", "Certificate identifier"],
+]
+
+CROSS_PIPELINE_COLUMNS = [
+    "ODD Field", "Used by ARS", "Used by TXN", "Used by ICS",
+    "ARS Purpose", "TXN Purpose", "ICS Purpose",
+]
+
+CROSS_PIPELINE_DATA = [
+    ["Acct Number", "No", "Yes (merge key)", "Yes (merge key)",
+     "", "Joins TXN rows to ODD demographics", "Joins ICS append to ODD rows"],
+    ["Stat Code", "Yes", "No", "Yes",
+     "Subset filtering, eligibility", "", "Account status filtering"],
+    ["Product Code / Prod Code", "Yes", "No", "Yes",
+     "Eligibility, product analysis", "", "Product-level ICS analysis"],
+    ["Date Opened", "Yes", "Yes (merge)", "Yes",
+     "L12M filtering, age calc, attrition", "Account tenure", "Age calc, account age"],
+    ["Date Closed", "Yes", "Yes (merge)", "Yes (optional)",
+     "Open/closed split, attrition", "Account status", "Open/closed filtering"],
+    ["Avg Bal", "Yes", "Yes (merge)", "Yes (optional)",
+     "Balance categorization", "Balance tier binning", "Balance analysis"],
+    ["Business?", "Yes", "Yes (merge)", "Yes",
+     "Personal/business split", "Business flag on TXN rows", "P/B segmentation"],
+    ["Debit?", "Yes", "Yes (merge)", "Yes",
+     "DCTR, Reg E, Value modules", "Debit flag on TXN rows", "Debit account filtering"],
+    ["Branch", "Yes", "Yes (merge)", "Yes",
+     "Branch-level DCTR, attrition", "Branch on TXN rows", "Branch-level ICS analysis"],
+    ["Account Holder Age", "Yes", "Yes (merge)", "No",
+     "Demographics, age categories", "Generation cohort derivation", ""],
+    ["DOB", "Yes", "No", "No",
+     "Age computation in format_odd", "", ""],
+    ["MmmYY Spend", "Yes", "No", "Yes",
+     "Mailer impact, trends", "", "L12M activity analysis"],
+    ["MmmYY Swipes", "Yes", "No", "Yes",
+     "Mailer impact, trends", "", "L12M activity analysis"],
+    ["MmmYY Mail", "Yes", "No", "No",
+     "Mailer module, offer counting", "", ""],
+    ["MmmYY Resp", "Yes", "Yes (segments)", "No",
+     "Mailer module, segmentation", "Responder segment filters", ""],
+    ["MmmYY Reg E Code", "Yes", "No", "No",
+     "Reg E module analysis", "", ""],
+    ["ICS Account", "No", "Yes (segments)", "Yes",
+     "", "ICS segment filters", "Core analysis column"],
+    ["ICS Source / Source", "No", "No", "Yes",
+     "", "", "REF/DM/Both source analysis"],
+    ["Curr Bal", "No", "No", "Yes",
+     "", "", "Balance-tier analysis"],
+]
+
+
 def _write_generic_sheet(wb: Workbook, title: str, columns: list[str], data: list[list],
                          widths: list[int] | None = None) -> None:
     ws = wb.create_sheet(title=title)
@@ -818,6 +986,10 @@ def main() -> None:
                          [55, 40, 12, 30])
     _write_generic_sheet(wb, "File Paths", PATH_COLUMNS, PATH_DATA,
                          [16, 14, 80, 80])
+    _write_generic_sheet(wb, "Field Names", FIELD_COLUMNS, FIELD_DATA,
+                         [12, 14, 24, 55, 8, 10, 14, 60])
+    _write_generic_sheet(wb, "Cross-Pipeline Fields", CROSS_PIPELINE_COLUMNS, CROSS_PIPELINE_DATA,
+                         [24, 16, 16, 16, 35, 35, 35])
 
     out = "docs/slide_catalog.xlsx"
     wb.save(out)
@@ -825,7 +997,8 @@ def main() -> None:
         f"Saved {out} -- ARS: {len(ARS_DATA)} rows, TXN: {len(TXN_DATA)} rows, "
         f"ICS: {len(ICS_DATA)} rows, Layouts: {len(LAYOUT_DATA)} rows, "
         f"Paths: {len(PATH_DATA)} rows, Sources: {len(DATA_SOURCE_DATA)} rows, "
-        f"M Drive: {len(M_DRIVE_DATA)} rows"
+        f"M Drive: {len(M_DRIVE_DATA)} rows, "
+        f"Fields: {len(FIELD_DATA)} rows, Cross-Pipeline: {len(CROSS_PIPELINE_DATA)} rows"
     )
 
 

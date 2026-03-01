@@ -26,6 +26,7 @@ def _normalize_acct(val: str) -> str:
         val = val[:-2]
     return val
 
+
 # ARS response segment codes (from ars_analysis/analytics/mailer/_helpers.py)
 RESPONSE_SEGMENTS: frozenset[str] = frozenset({"NU 5+", "TH-10", "TH-15", "TH-20", "TH-25"})
 

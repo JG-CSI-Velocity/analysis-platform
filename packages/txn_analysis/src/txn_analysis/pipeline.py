@@ -169,7 +169,9 @@ def export_outputs(result: PipelineResult) -> list[Path]:
     # Previous approach rendered figures twice (bytes then disk) but the first
     # render closed figures via plt.close(), causing corrupt output on the second.
     chart_pngs: dict[str, bytes] = {}
-    need_pngs = settings.outputs.chart_images or settings.outputs.excel or settings.outputs.powerpoint
+    need_pngs = (
+        settings.outputs.chart_images or settings.outputs.excel or settings.outputs.powerpoint
+    )
     if result.charts and need_pngs:
         chart_dir = settings.output_dir / "charts"
         chart_dir.mkdir(parents=True, exist_ok=True)

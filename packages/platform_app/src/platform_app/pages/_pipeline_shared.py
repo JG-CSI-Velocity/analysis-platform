@@ -199,9 +199,7 @@ def render_results(
     deliverables: list[Path] = []
     if output_dir.is_dir():
         deliverables = [
-            f
-            for f in output_dir.rglob("*")
-            if f.is_file() and f.suffix in _DELIVERABLE_EXTS
+            f for f in output_dir.rglob("*") if f.is_file() and f.suffix in _DELIVERABLE_EXTS
         ]
 
     if deliverables:

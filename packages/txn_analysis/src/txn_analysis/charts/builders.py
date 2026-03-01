@@ -360,8 +360,7 @@ def scatter_plot(
         if color_col is not None:
             unique_vals = df[color_col].unique()
             color_map = {
-                v: CATEGORY_PALETTE[i % len(CATEGORY_PALETTE)]
-                for i, v in enumerate(unique_vals)
+                v: CATEGORY_PALETTE[i % len(CATEGORY_PALETTE)] for i, v in enumerate(unique_vals)
             }
             point_colors = df[color_col].map(color_map).tolist()
             # Legend entries
@@ -472,7 +471,13 @@ def waterfall_chart(
         # Value labels
         for i, val in enumerate(values):
             y_pos = bottoms[i] + heights[i]
-            text = format_currency(val) if i == n - 1 else f"+{format_currency(val)}" if val >= 0 else format_currency(val)
+            text = (
+                format_currency(val)
+                if i == n - 1
+                else f"+{format_currency(val)}"
+                if val >= 0
+                else format_currency(val)
+            )
             ax.annotate(
                 text,
                 xy=(i, y_pos),
@@ -488,7 +493,8 @@ def waterfall_chart(
             top = bottoms[i] + heights[i] if values[i] >= 0 else bottoms[i]
             ax.plot(
                 [i + 0.3, i + 0.7],
-                [cumulative if i == n - 3 else bottoms[i] + (values[i] if values[i] >= 0 else 0)] * 2,
+                [cumulative if i == n - 3 else bottoms[i] + (values[i] if values[i] >= 0 else 0)]
+                * 2,
                 color=COLORS["neutral"],
                 linewidth=1,
                 linestyle=":",

@@ -256,14 +256,19 @@ if enable_referral and referral_path and not pipeline_error:
 
         n_analyses = len(ref_result.analyses)
         n_charts = len(ref_result.chart_pngs)
-        ref_bar.progress(1.0, text=f"Referral complete -- {n_analyses} analyses, {n_charts} charts in {ref_elapsed}s")
+        ref_bar.progress(
+            1.0,
+            text=f"Referral complete -- {n_analyses} analyses, {n_charts} charts in {ref_elapsed}s",
+        )
         ref_text.empty()
 
         referral_result_data = {
             "analyses": [{"name": a.name, "error": a.error} for a in ref_result.analyses],
             "chart_pngs": {k: True for k in ref_result.chart_pngs},
         }
-        logger.info("Referral complete: %d analyses, %d charts in %.1fs", n_analyses, n_charts, ref_elapsed)
+        logger.info(
+            "Referral complete: %d analyses, %d charts in %.1fs", n_analyses, n_charts, ref_elapsed
+        )
     except Exception:
         import traceback
 

@@ -571,14 +571,16 @@ def merge_odd(
 
     odd_slim["_acct_key"] = _normalize_acct_key(odd_slim["Acct Number"])
 
-    combined = df.assign(
-        _acct_key=_normalize_acct_key(df["primary_account_num"])
-    ).merge(
-        odd_slim,
-        left_on="_acct_key",
-        right_on="_acct_key",
-        how="left",
-    ).drop(columns=["_acct_key"])
+    combined = (
+        df.assign(_acct_key=_normalize_acct_key(df["primary_account_num"]))
+        .merge(
+            odd_slim,
+            left_on="_acct_key",
+            right_on="_acct_key",
+            how="left",
+        )
+        .drop(columns=["_acct_key"])
+    )
 
     matched = combined["Acct Number"].notna().sum()
     match_rate = (matched / len(combined) * 100) if len(combined) else 0.0

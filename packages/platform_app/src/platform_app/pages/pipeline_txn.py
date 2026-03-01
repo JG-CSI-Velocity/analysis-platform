@@ -67,9 +67,7 @@ def _render_segment_results(
     if n_ok == n_segments:
         st.success(f"All {n_segments} segments complete in {elapsed:.1f}s")
     else:
-        st.warning(
-            f"{n_ok}/{n_segments} segments complete, {n_segments - n_ok} failed"
-        )
+        st.warning(f"{n_ok}/{n_segments} segments complete, {n_segments - n_ok} failed")
 
     for seg_key, seg_data in segments.items():
         label = seg_data.get("label", seg_key)
@@ -84,13 +82,10 @@ def _render_segment_results(
                 st.caption(f"{len(results)} analyses completed")
                 if results:
                     for name, result in sorted(results.items()):
-                        status = (
-                            "OK" if getattr(result, "success", True) else "FAIL"
-                        )
+                        status = "OK" if getattr(result, "success", True) else "FAIL"
                         color = "#16A34A" if status == "OK" else "#DC2626"
                         st.markdown(
-                            f'<span style="color:{color};font-weight:600;">'
-                            f"{status}</span> {name}",
+                            f'<span style="color:{color};font-weight:600;">{status}</span> {name}',
                             unsafe_allow_html=True,
                         )
 
@@ -275,8 +270,7 @@ if errors:
 # Total runs = segments x analyses
 n_segments = len(segments_selected)
 run_label = (
-    f"Run TXN ({len(selected)} analyses x "
-    f"{n_segments} segment{'s' if n_segments > 1 else ''})"
+    f"Run TXN ({len(selected)} analyses x {n_segments} segment{'s' if n_segments > 1 else ''})"
 )
 
 # ---------------------------------------------------------------------------
@@ -402,9 +396,7 @@ else:
             unsafe_allow_html=True,
         )
 
-        bar, status_text = render_progress(
-            f"{PREFIX}_{segment}", f"txn ({seg_label})"
-        )
+        bar, status_text = render_progress(f"{PREFIX}_{segment}", f"txn ({seg_label})")
 
         input_files = {"tran": Path(txn_path)}
         if odd_path and Path(odd_path).exists():
@@ -429,9 +421,7 @@ else:
                     bar, status_text, f"txn ({seg_label})", PREFIX
                 ),
             )
-            bar.progress(
-                1.0, text=f"{seg_label} complete -- {len(results)} results"
-            )
+            bar.progress(1.0, text=f"{seg_label} complete -- {len(results)} results")
             status_text.empty()
             segment_results[segment] = results
             logger.info("TXN %s complete: %d results", segment, len(results))
@@ -448,9 +438,7 @@ else:
     # Store results
     st.session_state[f"{PREFIX}_running"] = False
     st.session_state[f"{PREFIX}_last_results"] = segment_results
-    st.session_state[f"{PREFIX}_last_error"] = (
-        segment_errors if segment_errors else None
-    )
+    st.session_state[f"{PREFIX}_last_error"] = segment_errors if segment_errors else None
     st.session_state[f"{PREFIX}_last_elapsed"] = elapsed
     st.session_state[f"{PREFIX}_last_out_dir"] = str(output_path)
     st.session_state[f"{PREFIX}_last_segments"] = {

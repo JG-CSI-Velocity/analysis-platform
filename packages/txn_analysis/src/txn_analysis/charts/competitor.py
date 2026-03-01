@@ -111,8 +111,7 @@ def chart_segmentation_bar(result: AnalysisResult, config: ChartConfig) -> Figur
                 ]
             else:
                 values = [
-                    seg_data.loc[seg_data.index == c, "account_count"].sum()
-                    for c in competitors
+                    seg_data.loc[seg_data.index == c, "account_count"].sum() for c in competitors
                 ]
 
             color = segment_colors.get(segment, GRAY_BASE)

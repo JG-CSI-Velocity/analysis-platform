@@ -493,9 +493,7 @@ div[data-testid="stProgress"] [role="progressbar"] {
 home = st.Page("pages/home.py", title="Run Analysis", icon=":material/play_circle:", default=True)
 
 ars_page = st.Page("pages/pipeline_ars.py", title="ARS Analysis", icon=":material/analytics:")
-ics_page = st.Page(
-    "pages/pipeline_ics.py", title="ICS Analysis", icon=":material/account_balance:"
-)
+ics_page = st.Page("pages/pipeline_ics.py", title="ICS Analysis", icon=":material/account_balance:")
 txn_page = st.Page("pages/pipeline_txn.py", title="TXN Analysis", icon=":material/receipt_long:")
 attrition_page = st.Page(
     "pages/pipeline_attrition.py", title="Attrition", icon=":material/trending_down:"

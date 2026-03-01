@@ -331,7 +331,9 @@ def _payroll_by_generation(pay: pd.DataFrame):
             )
         ax.set_xticks(list(x_pos))
         ax.set_xticklabels(agg["Generation"].tolist())
-        set_insight_title(ax, "Payroll Volume by Generation", "Workforce demographics across credit union members")
+        set_insight_title(
+            ax, "Payroll Volume by Generation", "Workforce demographics across credit union members"
+        )
         fig.tight_layout()
 
     total = agg["Total Payroll"].sum()
@@ -458,7 +460,11 @@ def _circular_economy(df: pd.DataFrame, pay: pd.DataFrame):
                 )
             ax.set_xticks(list(x_pos))
             ax.set_xticklabels(gr["Generation"].tolist())
-            set_insight_title(ax, f"Avg Recapture Rate: {avg_recap:.1f}%", "Debit spend as % of payroll received, by generation")
+            set_insight_title(
+                ax,
+                f"Avg Recapture Rate: {avg_recap:.1f}%",
+                "Debit spend as % of payroll received, by generation",
+            )
             fig.tight_layout()
         tbl = gr
     else:
@@ -708,7 +714,11 @@ def _circular_economy_detail(
         ax.set_yticks(y_pos)
         ax.set_yticklabels(chart_df["Business Name"].tolist(), fontsize=10)
         ax.xaxis.set_visible(False)
-        set_insight_title(ax, "Circular Economy by Employer", "Consumer spend at payroll employers (color intensity = recapture rate)")
+        set_insight_title(
+            ax,
+            "Circular Economy by Employer",
+            "Consumer spend at payroll employers (color intensity = recapture rate)",
+        )
         fig.tight_layout()
 
     total_payroll = detail_df["Payroll Spend"].sum()

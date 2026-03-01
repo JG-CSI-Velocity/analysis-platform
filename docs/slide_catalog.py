@@ -592,6 +592,217 @@ def _write_layout_sheet(wb: Workbook) -> None:
     ws.auto_filter.ref = f"A1:{get_column_letter(len(LAYOUT_COLUMNS))}{len(LAYOUT_DATA) + 1}"
 
 
+PATH_COLUMNS = ["Category", "Package", "File Path", "Purpose"]
+
+# Relative to packages/ for brevity -- full prefix is packages/<pkg>/src/<pkg>/
+PATH_DATA = [
+    # --- Config ---
+    ["Config", "ars_analysis", "ars_analysis/config.py", "PathsConfig, CSMSourcesConfig, PipelineConfig, ARSSettings (loads ars_config.json)"],
+    ["Config", "shared", "shared/config.py", "PlatformConfig (base_output_dir, m_drive_path, chart_theme, template_pptx, pipelines)"],
+    ["Config", "txn_analysis", "txn_analysis/settings.py", "Settings (data_file, odd_file, output_dir, charts, outputs, segments)"],
+    ["Config", "ics_toolkit", "ics_toolkit/settings.py", "AppendSettings, AnalysisSettings, ReferralSettings"],
+    ["Config", "root", "config/platform.yaml", "Top-level platform config (per-pipeline settings)"],
+    ["Config", "root", "config/clients_config.json", "Master client config (DataStartDate, ICRate, NSF_OD_Fee, BranchMapping, etc.)"],
+    ["Config", "root", "config/benchmarks.json", "Industry benchmarks (debit penetration, active card rate, avg spend)"],
+    # --- Data Loaders ---
+    ["Data Loader", "shared", "shared/data_loader.py", "load_oddd(), load_tran(), load_odd(), _read_file() (auto-detect xlsx/xls/csv)"],
+    ["Data Loader", "ars_analysis", "ars_analysis/pipeline/steps/load.py", "Load ODD file for ARS pipeline"],
+    ["Data Loader", "txn_analysis", "txn_analysis/data_loader.py", "load_data(), load_odd(), merge_odd(), _apply_merchant_consolidation(), _derive_year_month()"],
+    ["Data Loader", "ics_toolkit", "ics_toolkit/analysis/data_loader.py", "load_data(), _normalize_strings(), _parse_dates(), _coerce_numerics(), discover L12M cols"],
+    ["Data Loader", "ics_toolkit", "ics_toolkit/referral/data_loader.py", "Referral-specific data loading and normalization"],
+    # --- Retrieve / Format ---
+    ["Retrieve/Format", "ars_analysis", "ars_analysis/pipeline/steps/retrieve.py", "retrieve_all() -- copy ODD from CSM M: drive sources to retrieve_dir/CSM/YYYY.MM/ClientID/"],
+    ["Retrieve/Format", "shared", "shared/format_odd.py", "format_odd() 7-step pipeline (PYTD drop, totals, PIN+Sig, age, response, segmentation)"],
+    ["Retrieve/Format", "ars_analysis", "ars_analysis/pipeline/steps/format.py", "format_all() -- batch format from retrieve_dir to watch_root"],
+    ["Retrieve/Format", "ars_analysis", "ars_analysis/pipeline/steps/scan.py", "scan_ready_files(), _pick_best_file() (prefers *-formatted.xlsx), available_months/csms"],
+    # --- Column Mapping ---
+    ["Column Mapping", "txn_analysis", "txn_analysis/column_map.py", "COLUMN_ALIASES (50+ header variations), resolve_columns(), REQUIRED/OPTIONAL_COLUMNS"],
+    ["Column Mapping", "ics_toolkit", "ics_toolkit/analysis/column_map.py", "resolve_columns(), validate_columns(), discover_l12m_columns()"],
+    ["Column Mapping", "ics_toolkit", "ics_toolkit/referral/column_map.py", "Referral column normalization"],
+    # --- Reference Data ---
+    ["Reference Data", "txn_analysis", "txn_analysis/competitor_patterns.py", "COMPETITOR_MERCHANTS (7 categories, 3-tier matching), FINANCIAL_MCC_CODES, classify_merchant()"],
+    ["Reference Data", "txn_analysis", "txn_analysis/segments.py", "extract_responder_accounts(), extract_ics_accounts(), build_segment_filters()"],
+    ["Reference Data", "txn_analysis", "txn_analysis/formatting.py", "excel_number_format(), is_percentage_column(), is_grand_total_row()"],
+    ["Reference Data", "ics_toolkit", "ics_toolkit/referral/code_decoder.py", "Referral code decoding and classification"],
+    ["Reference Data", "ics_toolkit", "ics_toolkit/referral/scoring.py", "Referral scoring weights and calculations"],
+    # --- Deck Builders ---
+    ["Deck Builder", "shared", "shared/deck/__init__.py", "Re-exports: DeckBuilder, SlideContent, build_deck_from_results"],
+    ["Deck Builder", "shared", "shared/deck/engine.py", "DeckBuilder class + SlideContent dataclass (extracted reusable engine)"],
+    ["Deck Builder", "shared", "shared/deck/universal.py", "build_deck_from_results() -- universal builder for TXN/ICS/Attrition"],
+    ["Deck Builder", "ars_analysis", "ars_analysis/output/deck_builder.py", "ARS-specific deck builder (500+ lines, section ordering, mailer logic)"],
+    ["Deck Builder", "ics_toolkit", "ics_toolkit/analysis/exports/deck_builder.py", "ICS analysis deck builder"],
+    ["Deck Builder", "ics_toolkit", "ics_toolkit/analysis/exports/pptx.py", "ICS PPTX export helpers"],
+    ["Deck Builder", "ics_toolkit", "ics_toolkit/analysis/exports/kpi_slides.py", "ICS KPI slide builder"],
+    ["Deck Builder", "ics_toolkit", "ics_toolkit/referral/exports/pptx.py", "ICS referral deck builder"],
+    ["Deck Builder", "txn_analysis", "txn_analysis/exports/pptx_report.py", "TXN PPTX report (charts-only deck)"],
+    # --- Templates ---
+    ["Template", "shared", "shared/deck/template/Template12.25.pptx", "Shared PPTX template (14 layouts) -- canonical copy"],
+    ["Template", "ars_analysis", "ars_analysis/output/template/Template12.25.pptx", "ARS copy of template"],
+    ["Template", "ics_toolkit", "ics_toolkit/templates/Template12.25.pptx", "ICS copy of template"],
+    # --- Excel Exports ---
+    ["Excel Export", "shared", "shared/excel.py", "Shared Excel helpers (formatting, styles)"],
+    ["Excel Export", "ars_analysis", "ars_analysis/output/excel_formatter.py", "ARS Excel report (Summary sheet, KPI extraction, per-section tabs)"],
+    ["Excel Export", "ics_toolkit", "ics_toolkit/analysis/exports/excel.py", "ICS analysis Excel report"],
+    ["Excel Export", "ics_toolkit", "ics_toolkit/referral/exports/excel.py", "ICS referral Excel report"],
+    ["Excel Export", "txn_analysis", "txn_analysis/exports/excel_report.py", "TXN Excel report (cover, TOC, per-analysis sheets, chart embeds)"],
+    # --- Chart Libraries ---
+    ["Charts", "shared", "shared/charts.py", "Shared chart utilities (chart_figure context manager, style isolation)"],
+    ["Charts", "ars_analysis", "ars_analysis/charts/__init__.py", "ARS chart registry + style"],
+    ["Charts", "ars_analysis", "ars_analysis/charts/guards.py", "ARS matplotlib leak guards"],
+    ["Charts", "txn_analysis", "txn_analysis/charts/__init__.py", "TXN chart registry (CHART_REGISTRY dict), create_charts(), render_chart_png()"],
+    ["Charts", "txn_analysis", "txn_analysis/charts/builders.py", "TXN chart primitives (lollipop, donut, heatmap, grouped_bar, etc.)"],
+    ["Charts", "txn_analysis", "txn_analysis/charts/theme.py", "TXN chart theme + add_source_footer()"],
+    ["Charts", "txn_analysis", "txn_analysis/charts/{overall,personal,business,mcc,competitor,trends,recurring,scorecard}.py", "TXN per-section chart functions"],
+    ["Charts", "ics_toolkit", "ics_toolkit/analysis/charts/__init__.py", "ICS chart registry"],
+    ["Charts", "ics_toolkit", "ics_toolkit/analysis/charts/renderer.py", "ICS chart renderer (PNG export)"],
+    ["Charts", "ics_toolkit", "ics_toolkit/analysis/charts/{summary,source,dm_source,activity,demographics,cohort,performance,portfolio,persona,strategic}.py", "ICS per-section chart functions"],
+    ["Charts", "ics_toolkit", "ics_toolkit/referral/charts/{top_referrers,branch_density,code_health,staff_multipliers,emerging_referrers}.py", "ICS referral chart functions"],
+    # --- Analysis Modules ---
+    ["Analysis", "ars_analysis", "ars_analysis/analytics/registry.py", "ARS module registry (ABC + @register)"],
+    ["Analysis", "ars_analysis", "ars_analysis/analytics/overview/{stat_codes,product_codes,eligibility}.py", "Overview: A1, A1b, A3"],
+    ["Analysis", "ars_analysis", "ars_analysis/analytics/dctr/{penetration,trends,branches,funnel,overlays,_helpers}.py", "DCTR: DCTR-1 to 16, A7.x (26 slides)"],
+    ["Analysis", "ars_analysis", "ars_analysis/analytics/rege/{status,branches,dimensions,_helpers}.py", "Reg E: A8.x (13 slides)"],
+    ["Analysis", "ars_analysis", "ars_analysis/analytics/attrition/{rates,dimensions,impact,_helpers}.py", "Attrition: A9.x (13 slides)"],
+    ["Analysis", "ars_analysis", "ars_analysis/analytics/value/analysis.py", "Value: A11.1, A11.2"],
+    ["Analysis", "ars_analysis", "ars_analysis/analytics/mailer/{reach,response,impact,insights,cohort,_helpers}.py", "Mailer: A12-A15 (dynamic per month)"],
+    ["Analysis", "ars_analysis", "ars_analysis/analytics/insights/{synthesis,conclusions,effectiveness,dormant,branch_scorecard,_data}.py", "Insights: S1-S8"],
+    ["Analysis", "ics_toolkit", "ics_toolkit/analysis/analyses/{summary,source,dm_source,ref_source,demographics,activity,cohort,performance,portfolio,persona,strategic}.py", "ICS: 82 chart slides across 12 sections"],
+    ["Analysis", "ics_toolkit", "ics_toolkit/referral/analyses/{overview,top_referrers,branch_density,code_health,emerging_referrers,dormant_referrers,staff_multipliers,onetime_vs_repeat}.py", "Referral: REF-1 to REF-8"],
+    ["Analysis", "txn_analysis", "txn_analysis/analyses/{overall,personal,business,mcc,financial_services,interchange,member_segments}.py", "TXN: M1-M4, M7-M8, M10"],
+    ["Analysis", "txn_analysis", "txn_analysis/analyses/{competitor_detect,competitor_metrics,competitor_segment,competitor_threat}.py", "TXN: M6 competitor"],
+    ["Analysis", "txn_analysis", "txn_analysis/analyses/{trends_rank,trends_growth,trends_consistency,trends_cohort,trends_movers}.py", "TXN: M5 trends"],
+    ["Analysis", "txn_analysis", "txn_analysis/analyses/{recurring,scorecard,spending_behavior,time_patterns}.py", "TXN: M9, M15, behavioral"],
+    # --- Pipelines & Orchestration ---
+    ["Pipeline", "platform_app", "platform_app/orchestrator.py", "Central orchestrator + _ensure_deck() fallback"],
+    ["Pipeline", "ars_analysis", "ars_analysis/pipeline/runner.py", "ARS pipeline runner (load -> subset -> analyze -> generate)"],
+    ["Pipeline", "ars_analysis", "ars_analysis/pipeline/context.py", "ARS PipelineContext dataclass"],
+    ["Pipeline", "ars_analysis", "ars_analysis/pipeline/batch.py", "ARS batch runner (run_batch for 300+ clients)"],
+    ["Pipeline", "ars_analysis", "ars_analysis/runner.py", "ARS CLI entry point"],
+    ["Pipeline", "ics_toolkit", "ics_toolkit/analysis/pipeline.py", "ICS analysis pipeline"],
+    ["Pipeline", "ics_toolkit", "ics_toolkit/referral/pipeline.py", "ICS referral pipeline"],
+    ["Pipeline", "ics_toolkit", "ics_toolkit/runner.py", "ICS CLI entry point"],
+    ["Pipeline", "txn_analysis", "txn_analysis/pipeline.py", "TXN pipeline (load -> analyze -> chart -> export)"],
+    ["Pipeline", "txn_analysis", "txn_analysis/runner.py", "TXN CLI entry point"],
+    # --- UI Pages ---
+    ["UI", "platform_app", "platform_app/pages/pipeline_ars.py", "Streamlit ARS pipeline page"],
+    ["UI", "platform_app", "platform_app/pages/pipeline_txn.py", "Streamlit TXN pipeline page"],
+    ["UI", "platform_app", "platform_app/pages/pipeline_ics.py", "Streamlit ICS pipeline page"],
+    ["UI", "platform_app", "platform_app/pages/pipeline_attrition.py", "Streamlit Attrition pipeline page"],
+    # --- Scripts ---
+    ["Script", "root", "run.bat", "4-step pipeline: retrieve -> format -> batch -> streamlit"],
+    ["Script", "root", "run_batch.bat", "Headless batch runner"],
+    ["Script", "root", "dashboard.bat", "Launch Streamlit UI only"],
+    ["Script", "root", "setup.bat", "Environment setup (uv install)"],
+    # --- Test Data ---
+    ["Test Data", "root", "tests/e2e_data/1200_Test CU_2026.02.xlsx", "Synthetic ARS ODD (20 accounts)"],
+    ["Test Data", "root", "tests/e2e_data/8888_transactions.csv", "Synthetic TXN (35 transactions)"],
+    ["Test Data", "root", "tests/e2e_data/9999_ICS_2026.01.xlsx", "Synthetic ICS (80 accounts)"],
+    ["Test Data", "root", "tests/e2e_data/generate_fixtures.py", "E2E fixture generator script"],
+    # --- Catalog ---
+    ["Catalog", "root", "docs/slide_catalog.py", "This file -- generates the catalog Excel"],
+    ["Catalog", "root", "docs/slide_catalog.xlsx", "Generated workbook (all tabs)"],
+]
+
+DATA_SOURCE_COLUMNS = ["Pipeline", "Data Type", "Source Location", "Format", "Key Columns", "Notes"]
+
+DATA_SOURCE_DATA = [
+    # ARS
+    ["ARS", "ODD (raw)", r"M:\CSM-Source\Folder\ClientID_ODDD*.xlsx", "Excel (.xlsx)",
+     "Account #, Date Opened, Date Closed, Stat Code, Prod Code, Branch, DOB, Balance fields",
+     "Copied by retrieve_all() to retrieve_dir/CSM/YYYY.MM/ClientID/"],
+    ["ARS", "ODD (formatted)", r"watch_root\CSM\YYYY.MM\ClientID\*-formatted.xlsx", "Excel (.xlsx)",
+     "All raw cols + Total Spend, Total Swipes, Avg Monthly, Account Age, Holder Age, Response Grouping, Segmentation",
+     "Created by format_odd() 7-step pipeline; scan_ready_files() prefers these"],
+    ["ARS", "Client Config", r"M:\ARS\Config\clients_config.json  OR  config/clients_config.json", "JSON",
+     "ClientID, DataStartDate, ICRate, NSF_OD_Fee, EligibleStatusCodes, BranchMapping",
+     "Per-client overrides; falls back to defaults"],
+    ["ARS", "ARS Config", "ars_config.json (project root or ARS_CONFIG_PATH env)", "JSON",
+     "paths (ars_base, watch_root, retrieve_dir), csm_sources, pipeline settings",
+     "Loaded by ARSSettings; env vars with ARS_ prefix override"],
+    # TXN
+    ["TXN", "Transaction CSV", "User-provided or auto-discovered near ODD file", "CSV/TXT (tab-delimited)",
+     "merchant_name, amount, primary_account_num, transaction_date, mcc_code, business_flag, year_month",
+     "50+ column aliases auto-resolved by resolve_columns(); 13-col standard layout"],
+    ["TXN", "ODD (for segments)", "Via --odd CLI flag or Settings.odd_file", "Excel (.xlsx)",
+     "Account #, Segmentation cols (MmmYY Seg), ICS Account, generation, tenure, balance_tier",
+     "Optional; enables M11 demographics, segment filters (ARS responders, ICS accounts)"],
+    ["TXN", "Transaction Dir", "Settings.transaction_dir (year-folder layout)", "Directory of CSVs",
+     "YYYY/MM/*.csv files; auto-selects most recent 12 months",
+     "Alternative to single file; V4 multi-month mode"],
+    # ICS
+    ["ICS", "ICS Excel", "User-provided or M: drive", "Excel (.xlsx)",
+     "Account #, ICS Account (Yes/No), ICS Source (REF/DM/Both), Stat Code, Prod Code, Branch, Balance, Date Opened/Closed",
+     "Core input; L12M monthly columns auto-discovered (MmmYY pattern)"],
+    ["ICS", "Referral Data", "Same ICS Excel or separate referral file", "Excel (.xlsx)",
+     "Referring Account, Referred Account, Referral Date, Referral Code, Branch",
+     "Used by referral pipeline (REF-1 to REF-8); requires code_decoder for code classification"],
+    ["ICS", "Revenue Workbook", "ICS directory or config path", "Excel (.xlsx)",
+     "Account #, Monthly Interchange, Annual Revenue",
+     "Optional; enables revenue impact analyses (ax39, ax65, ax66)"],
+    ["ICS", "Benchmarks", "config/benchmarks.json", "JSON",
+     "debit_penetration_rate, active_card_rate, avg_annual_spend_per_card, direct_mail_response_rate",
+     "Industry benchmarks for comparison analyses"],
+    # Shared
+    ["All", "PPTX Template", "packages/shared/src/shared/deck/template/Template12.25.pptx", "PowerPoint (.pptx)",
+     "14 layouts (cover, divider, chart+text, split, grid, blank, etc.)",
+     "Identical copies in ars_analysis and ics_toolkit packages"],
+    ["All", "Platform Config", "config/platform.yaml", "YAML",
+     "base_output_dir, m_drive_path, chart_theme, per-pipeline enabled/settings",
+     "Top-level orchestrator config"],
+]
+
+M_DRIVE_COLUMNS = ["Path", "Purpose", "Read/Write", "Used By"]
+
+M_DRIVE_DATA = [
+    ["M:\\ARS\\", "ARS base directory", "R/W", "All ARS operations"],
+    ["M:\\ARS\\Ready for Analysis\\CSM\\YYYY.MM\\ClientID\\", "Formatted ODD files (watch_root)", "R/W", "scan, analyze, batch"],
+    ["M:\\ARS\\Incoming\\ODDD Files\\CSM\\YYYY.MM\\ClientID\\", "Raw ODD files (retrieve_dir)", "R/W", "retrieve_all()"],
+    ["M:\\ARS\\Presentations\\Presentation Excels\\", "Output Excel reports", "Write", "excel_formatter, batch"],
+    ["M:\\ARS\\Presentations\\Presentation Excels\\Archive\\", "Archived previous reports", "Write", "batch (auto-archive)"],
+    ["M:\\ARS\\Presentations\\Template12.25.pptx", "PPTX template (runtime)", "Read", "deck_builder"],
+    ["M:\\ARS\\Scripts\\Config\\", "Runtime config directory", "Read", "ARSSettings"],
+    ["M:\\ARS\\Config\\clients_config.json", "Master client config", "Read", "Pipeline context, per-client overrides"],
+    ["M:\\ARS\\Logs\\", "Pipeline log files", "Write", "All pipelines"],
+    ["M:\\CSM-Source\\{CSMName}\\", "CSM source directories (per ars_config.json csm_sources)", "Read", "retrieve_all()"],
+    ["M:\\ICS\\Config\\clients_config.json", "ICS client config fallback", "Read", "ICS pipeline"],
+]
+
+
+def _write_generic_sheet(wb: Workbook, title: str, columns: list[str], data: list[list],
+                         widths: list[int] | None = None) -> None:
+    ws = wb.create_sheet(title=title)
+
+    for col_idx, header in enumerate(columns, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = HEADER_FONT
+        cell.fill = HEADER_FILL
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = THIN_BORDER
+
+    for row_idx, row_data in enumerate(data, 2):
+        for col_idx, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.font = Font(name="Calibri", size=10)
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(vertical="center", wrap_text=col_idx >= 3)
+
+    if widths:
+        for col_idx, w in enumerate(widths, 1):
+            ws.column_dimensions[get_column_letter(col_idx)].width = w
+    else:
+        for col_idx in range(1, len(columns) + 1):
+            col_letter = get_column_letter(col_idx)
+            max_len = len(columns[col_idx - 1])
+            for row in ws.iter_rows(min_row=2, min_col=col_idx, max_col=col_idx):
+                for cell in row:
+                    if cell.value:
+                        max_len = max(max_len, len(str(cell.value)))
+            ws.column_dimensions[col_letter].width = min(max_len + 3, 70)
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(columns))}{len(data) + 1}"
+
+
 def main() -> None:
     wb = Workbook()
     wb.remove(wb.active)
@@ -601,12 +812,20 @@ def main() -> None:
     _write_sheet(wb, "ICS", ICS_DATA)
     _write_slide_type_sheet(wb)
     _write_layout_sheet(wb)
+    _write_generic_sheet(wb, "Data Sources", DATA_SOURCE_COLUMNS, DATA_SOURCE_DATA,
+                         [10, 18, 55, 18, 70, 70])
+    _write_generic_sheet(wb, "M Drive Paths", M_DRIVE_COLUMNS, M_DRIVE_DATA,
+                         [55, 40, 12, 30])
+    _write_generic_sheet(wb, "File Paths", PATH_COLUMNS, PATH_DATA,
+                         [16, 14, 80, 80])
 
     out = "docs/slide_catalog.xlsx"
     wb.save(out)
     print(
         f"Saved {out} -- ARS: {len(ARS_DATA)} rows, TXN: {len(TXN_DATA)} rows, "
-        f"ICS: {len(ICS_DATA)} rows, Layouts: {len(LAYOUT_DATA)} rows"
+        f"ICS: {len(ICS_DATA)} rows, Layouts: {len(LAYOUT_DATA)} rows, "
+        f"Paths: {len(PATH_DATA)} rows, Sources: {len(DATA_SOURCE_DATA)} rows, "
+        f"M Drive: {len(M_DRIVE_DATA)} rows"
     )
 
 

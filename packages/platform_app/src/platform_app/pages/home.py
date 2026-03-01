@@ -31,7 +31,7 @@ try:
     )
     from platform_app.core.templates import load_templates
     from platform_app.orchestrator import run_pipeline
-    from shared.format_odd import check_ics_ready, check_odd_formatted, format_odd
+    from shared.format_odd import format_odd
 except Exception as _import_err:
     st.error(f"Import error -- check package installation:\n\n```\n{traceback.format_exc()}\n```")
     st.stop()
@@ -328,6 +328,7 @@ def _cached_detect_and_check(client_dir: Path, client_id: str) -> dict:
 
     Returns dict with keys: detected, ars_formatted, ics_ready.
     Only re-runs when the client directory changes.
+    Reads Excel headers once (not twice) for both ARS + ICS checks.
     """
     cache_key = f"{client_dir}|{client_id}"
     cached = st.session_state.get("_detect_cache")
@@ -343,14 +344,27 @@ def _cached_detect_and_check(client_dir: Path, client_id: str) -> dict:
     ics_ready = False
 
     if oddd_path:
+        # Read headers ONCE, check both ARS + ICS from the same header set
         try:
-            ars_status = check_odd_formatted(oddd_path)
-            ars_formatted = ars_status.is_formatted
-        except Exception:
-            pass
-        try:
-            ics_status = check_ics_ready(oddd_path)
-            ics_ready = ics_status.is_formatted
+            from shared.format_odd import (
+                ARS_SIGNATURE_COLUMNS,
+                ARS_SIGNATURE_THRESHOLD,
+                ICS_ALTERNATE_COLUMNS,
+                ICS_REQUIRED_COLUMNS,
+                ICS_REQUIRED_THRESHOLD,
+                _read_column_headers,
+            )
+
+            headers = set(_read_column_headers(Path(oddd_path)))
+
+            ars_found = sum(1 for c in ARS_SIGNATURE_COLUMNS if c in headers)
+            ars_formatted = ars_found >= ARS_SIGNATURE_THRESHOLD
+
+            ics_found = sum(1 for c in ICS_REQUIRED_COLUMNS if c in headers)
+            ics_ready = ics_found >= ICS_REQUIRED_THRESHOLD
+            if not ics_ready:
+                ics_alt = sum(1 for c in ICS_ALTERNATE_COLUMNS if c in headers)
+                ics_ready = ics_alt >= ICS_REQUIRED_THRESHOLD
         except Exception:
             pass
 
@@ -510,11 +524,19 @@ if not client_id:
 # Auto-detect files (cached -- only re-reads when client changes)
 # ---------------------------------------------------------------------------
 client_dir = month_dir / client_id
-if not client_dir.is_dir():
-    st.warning(f"Client directory not found: `{client_dir}`")
-    st.stop()
 
-_cache = _cached_detect_and_check(client_dir, client_id)
+# Use cached results if same client; otherwise scan with spinner
+_cache_key = f"{client_dir}|{client_id}"
+_prev_cache = st.session_state.get("_detect_cache")
+if _prev_cache and _prev_cache.get("_key") == _cache_key:
+    _cache = _prev_cache
+else:
+    with st.spinner("Scanning client files..."):
+        if not client_dir.is_dir():
+            st.warning(f"Client directory not found: `{client_dir}`")
+            st.stop()
+        _cache = _cached_detect_and_check(client_dir, client_id)
+
 detected = _cache["detected"]
 oddd_path = _cache["oddd_path"]
 ars_formatted = _cache["ars_formatted"]

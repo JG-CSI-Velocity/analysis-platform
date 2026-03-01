@@ -511,7 +511,7 @@ logs = st.Page("pages/logs.py", title="View Logs", icon=":material/description:"
 
 pg = st.navigation(
     {
-        "": [home],
+        "RUN": [home],
         "PIPELINES": [ars_page, ics_page, txn_page, attrition_page],
         "OUTPUTS": [outputs, history],
         "ADVANCED": [workspace, data_ingest, modules, run_page, batch],

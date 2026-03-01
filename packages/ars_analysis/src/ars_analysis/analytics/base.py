@@ -33,7 +33,7 @@ class AnalysisResult:
     notes: str = ""
     success: bool = True
     error: str = ""
-    layout_index: int = 5
+    layout_index: int = 8  # LAYOUT_CUSTOM (2025-CSI-PPT-Template)
     slide_type: str = "screenshot"
     kpis: dict[str, str] | None = None
     extra_charts: list[Path] | None = None

@@ -1,12 +1,13 @@
-"""PowerPoint deck builder -- ported from original ars_analysis-jupyter/deck_builder.py.
+"""PowerPoint deck builder -- 2025-CSI-PPT-Template.pptx (20 layouts).
 
-This module restores the full production-quality PPTX generation with:
-- 8 slide types (title, section, screenshot, screenshot_kpi, multi_screenshot, etc.)
-- Layout-specific positioning for 10+ template layouts
+Full production-quality PPTX generation with:
+- 11 slide types (title, section, screenshot, screenshot_kpi, multi_screenshot, etc.)
+- Named layout constants (LAYOUT_CUSTOM, LAYOUT_SECTION, etc.)
+- Product-specific title slides (RPE, ARS, ICS)
 - Aspect-ratio preserving image scaling via PIL
 - Preamble slides (13 intro/section/placeholder slides)
 - Consolidation logic (merge paired slides, separate appendix)
-- Section ordering matching the original ARS reference deck
+- SCR narrative arc (Situation -> Complication -> Resolution)
 """
 
 from __future__ import annotations
@@ -25,7 +26,32 @@ from pptx.util import Inches, Pt
 from ars_analysis.pipeline.context import PipelineContext
 
 # Embedded fallback template (ships with the package)
-_FALLBACK_TEMPLATE = Path(__file__).parent / "template" / "Template12.25.pptx"
+_FALLBACK_TEMPLATE = Path(__file__).parent / "template" / "2025-CSI-PPT-Template.pptx"
+
+# ---------------------------------------------------------------------------
+# Named layout constants -- 2025-CSI-PPT-Template.pptx (20 layouts)
+# ---------------------------------------------------------------------------
+LAYOUT_TITLE_DARK = 0       # Title Slide (dark bg, center_title + subtitle)
+LAYOUT_TITLE = 1             # Title Slide_Reverse (light bg, center_title + subtitle)
+LAYOUT_CONTENT = 2           # Title and Content (title + body content area)
+LAYOUT_CONTENT_ALT = 3       # Title and Content_Reverse (alt colors)
+LAYOUT_SECTION = 4           # 2_Section Header (title + body)
+LAYOUT_SECTION_ALT = 5       # 5_Section Header (alt)
+LAYOUT_SECTION_GRAY = 6      # 3_Section Header_Gray Bkgrnd
+LAYOUT_TITLE_VARIANT = 7     # 2_Title Slide (end/Q&A slide)
+LAYOUT_CUSTOM = 8            # Custom Layout (wide title + open canvas)
+LAYOUT_TWO_CONTENT = 9       # Two Content (title + left/right content areas)
+LAYOUT_COMPARISON = 10        # Comparison (2 header+content pairs)
+LAYOUT_BLANK = 11             # Blank (no placeholders)
+LAYOUT_BULLETS = 12           # Content with Bullet Points (title+bullets left, content right)
+LAYOUT_PICTURE = 13           # Picture with Content (title+text left, picture right)
+LAYOUT_2_PICTURES = 14        # 2 Pictures with Content
+LAYOUT_3_PICTURES = 15        # 3 Pictures with Content
+LAYOUT_WIDE_TITLE = 16        # 1_Title and Content (wide title, open canvas)
+# Product-specific title slides (branded backgrounds)
+LAYOUT_TITLE_RPE = 17         # 1_Title Slide_RPE -- master title (slide 1)
+LAYOUT_TITLE_ARS = 18         # 4_Title Slide_ARS -- ARS section title
+LAYOUT_TITLE_ICS = 19         # 5_Title Slide_ICS -- ICS section title
 
 
 # =============================================================================
@@ -53,7 +79,7 @@ class SlideContent:
     images: list[str] | None = None
     kpis: dict[str, str] | None = None
     bullets: list[str] | None = None
-    layout_index: int = 5
+    layout_index: int = 8  # LAYOUT_CUSTOM (default for most slides)
     notes_text: str | None = None
 
 
@@ -65,55 +91,55 @@ class SlideContent:
 class DeckBuilder:
     """Assembles SlideContent objects into a PowerPoint presentation."""
 
-    # Spacing for CSI Template (Template12.25.pptx)
+    # Spacing for 2025-CSI-PPT-Template.pptx
     # Standard PowerPoint slide: 13.33" wide x 7.5" tall
 
-    # Single Screenshot - Default (Layouts 5, 6, 10, 12, 14)
-    SINGLE_IMG_LEFT = Inches(0.5)
-    SINGLE_IMG_TOP = Inches(2.5)
-    SINGLE_IMG_WIDTH = Inches(6)
+    # Single Screenshot - Custom Layout (LAYOUT_CUSTOM = 8)
+    # Title at (0.86, 0.61) 11.60" wide, open canvas below
+    SINGLE_IMG_LEFT = Inches(0.86)
+    SINGLE_IMG_TOP = Inches(1.6)
+    SINGLE_IMG_WIDTH = Inches(11.6)
 
-    # Single Screenshot - Right Side (Layout 11)
-    SINGLE_IMG_RIGHT_LEFT = Inches(5.5)
-    SINGLE_IMG_RIGHT_TOP = Inches(2.0)
-    SINGLE_IMG_RIGHT_WIDTH = Inches(6)
+    # Single Screenshot - Content Layout (LAYOUT_CONTENT = 2)
+    # Content area at (1.38, 2.60) 8.45" wide
+    CONTENT_IMG_LEFT = Inches(1.38)
+    CONTENT_IMG_TOP = Inches(1.8)
+    CONTENT_IMG_WIDTH = Inches(8.45)
 
-    # Multi-Screenshot - Spaced (Layout 13)
-    MULTI_IMG_TOP = Inches(2.5)
-    MULTI_IMG_WIDTH = Inches(4.5)
-    MULTI_IMG_LEFT_POS = Inches(0.5)
-    MULTI_IMG_RIGHT_POS = Inches(7.5)
+    # Multi-Screenshot - Two Content (LAYOUT_TWO_CONTENT = 9)
+    # Left at (0.86, 1.82) 5.67" wide, right at (6.81, 1.82) 5.67" wide
+    MULTI_IMG_TOP = Inches(1.82)
+    MULTI_IMG_WIDTH = Inches(5.67)
+    MULTI_IMG_LEFT_POS = Inches(0.86)
+    MULTI_IMG_RIGHT_POS = Inches(6.81)
 
-    # Multi-Screenshot - Standard (Layout 7)
-    MULTI_IMG_STD_TOP = Inches(2.5)
-    MULTI_IMG_STD_LEFT_POS = Inches(2.3)
-    MULTI_IMG_STD_RIGHT_POS = Inches(7.0)
-    MULTI_IMG_STD_WIDTH = Inches(4.5)
-
-    # Screenshot with KPIs
-    KPI_IMG_LEFT = Inches(0.3)
+    # Picture with Content (LAYOUT_PICTURE = 13)
+    # Picture at right (5.72, 1.08) 6.75" x 5.33"
+    # Text at left (0.86, 1.08)
+    KPI_IMG_LEFT = Inches(0.5)
     KPI_IMG_TOP = Inches(1.5)
-    KPI_IMG_WIDTH = Inches(6)
+    KPI_IMG_WIDTH = Inches(6.5)
 
-    KPI_TEXT_LEFT = Inches(6.8)
+    KPI_TEXT_LEFT = Inches(7.2)
     KPI_TEXT_TOP_START = Inches(1.8)
-    KPI_TEXT_WIDTH = Inches(2.5)
+    KPI_TEXT_WIDTH = Inches(5.5)
     KPI_VALUE_HEIGHT = Inches(0.5)
     KPI_LABEL_HEIGHT = Inches(0.3)
     KPI_SPACING = Inches(1.0)
 
     # Summary Slide (3x3 bullet grid)
-    SUMMARY_COL_POSITIONS = [Inches(0.5), Inches(3.5), Inches(6.5)]
+    SUMMARY_COL_POSITIONS = [Inches(0.86), Inches(4.86), Inches(8.86)]
     SUMMARY_ROW_START = Inches(1.8)
     SUMMARY_ROW_SPACING = Inches(1.2)
-    SUMMARY_BOX_WIDTH = Inches(2.8)
+    SUMMARY_BOX_WIDTH = Inches(3.5)
     SUMMARY_BOX_HEIGHT = Inches(1.0)
 
     # Maximum chart height
     MAX_CHART_HEIGHT = Inches(5.0)
 
-    # Layouts without a title placeholder -- need a custom text box
-    HEADERONLY_LAYOUTS = {12, 13}
+    # New template has title placeholders on all used layouts;
+    # LAYOUT_BLANK (11) is the only layout with no placeholders.
+    HEADERONLY_LAYOUTS: set[int] = set()
 
     def __init__(self, template_path: str):
         self.template_path = template_path
@@ -122,6 +148,13 @@ class DeckBuilder:
     def build(self, slides: list[SlideContent], output_path: str) -> str:
         """Build complete PowerPoint deck from slide definitions."""
         self.prs = Presentation(self.template_path)
+
+        # Remove sample slides that ship with the 2025 template (18 slides)
+        while len(self.prs.slides) > 0:
+            rId = self.prs.slides._sldIdLst[0].get(qn("r:id"))
+            self.prs.part.drop_rel(rId)
+            self.prs.slides._sldIdLst.remove(self.prs.slides._sldIdLst[0])
+
         n_layouts = len(self.prs.slide_layouts)
 
         for i, slide_content in enumerate(slides):
@@ -188,10 +221,13 @@ class DeckBuilder:
     # -------------------------------------------------------------------------
 
     def _set_title(self, slide, content, title_text, subtitle_text=None):
-        """Set slide title, adding custom text box for header-only layouts."""
+        """Set slide title using template placeholders.
+
+        New template: ph[0] = title on all used layouts, ph[1] = body/subtitle.
+        """
         if content.layout_index in self.HEADERONLY_LAYOUTS:
-            title_top = Inches(0.30) if content.layout_index == 13 else Inches(0.10)
-            tb = slide.shapes.add_textbox(Inches(0.5), title_top, Inches(9.0), Inches(0.6))
+            # Fallback for any future header-only layouts
+            tb = slide.shapes.add_textbox(Inches(0.86), Inches(0.3), Inches(11.6), Inches(0.6))
             tf = tb.text_frame
             tf.word_wrap = True
             p = tf.paragraphs[0]
@@ -208,30 +244,41 @@ class DeckBuilder:
             if slide.shapes.title:
                 slide.shapes.title.text = title_text
             if subtitle_text:
-                try:
-                    slide.placeholders[13].text = subtitle_text
-                except (KeyError, IndexError):
-                    pass
+                # New template: ph[1] is body/subtitle on most layouts
+                for ph_idx in [1, 13]:
+                    try:
+                        slide.placeholders[ph_idx].text = subtitle_text
+                        break
+                    except (KeyError, IndexError):
+                        continue
 
     def _get_single_positioning(self, layout_index: int) -> tuple:
         """Get (left, top, width) positioning for single-chart slides."""
-        if layout_index == 8:
-            return (Inches(0.5), Inches(2.2), Inches(12.0))
-        if layout_index in (4, 5, 9, 11):
-            return (Inches(2.4), Inches(1.8), Inches(8.5))
-        if layout_index == 10:
-            return (Inches(5.0), Inches(1.75), Inches(7.8))
-        if layout_index == 12:
-            return (Inches(0.5), Inches(1.8), Inches(12.0))
-        if layout_index == 13:
+        if layout_index == LAYOUT_CUSTOM:
+            # Custom Layout: wide open canvas below title
+            return (Inches(0.86), Inches(1.6), Inches(11.6))
+        if layout_index == LAYOUT_CONTENT or layout_index == LAYOUT_CONTENT_ALT:
+            # Title and Content: centered content area
+            return (Inches(1.38), Inches(1.8), Inches(10.5))
+        if layout_index == LAYOUT_SECTION:
+            # Section Header: title + body area
+            return (Inches(0.86), Inches(2.2), Inches(11.6))
+        if layout_index == LAYOUT_PICTURE:
+            # Picture with Content: image fills right side
             return (Inches(0.5), Inches(1.55), Inches(12.0))
-        return (Inches(2.4), Inches(1.8), Inches(8.5))
+        if layout_index == LAYOUT_BLANK:
+            # Blank: full canvas
+            return (Inches(0.86), Inches(0.5), Inches(11.6))
+        # Default: centered with margin
+        return (Inches(0.86), Inches(1.8), Inches(11.6))
 
     def _get_multi_positioning(self, layout_index: int) -> tuple:
         """Get (top, left_pos, right_pos, width) for multi-chart slides."""
-        if layout_index in (6, 7):
-            return (Inches(1.2), Inches(0.5), Inches(6.8), Inches(5.8))
-        return (Inches(1.2), Inches(0.5), Inches(6.8), Inches(5.8))
+        if layout_index == LAYOUT_TWO_CONTENT:
+            # Two Content: left/right content areas
+            return (Inches(1.82), Inches(0.86), Inches(6.81), Inches(5.67))
+        # Default: evenly split the slide
+        return (Inches(1.6), Inches(0.86), Inches(6.81), Inches(5.67))
 
     def _add_fitted_picture(self, slide, img_path, left, top, max_width, max_height=None):
         """Add image scaled to fit within max_width and max_height."""
@@ -260,7 +307,8 @@ class DeckBuilder:
 
     def _build_title_slide(self, slide, content: SlideContent) -> None:
         """Build title slide with main title and optional subtitle."""
-        if content.layout_index == 0:
+        if content.layout_index == LAYOUT_TITLE_DARK:
+            # Dark background title slide -- use center_title placeholder
             for ph in slide.placeholders:
                 try:
                     for paragraph in ph.text_frame.paragraphs:
@@ -288,10 +336,30 @@ class DeckBuilder:
                 p.font.color.rgb = RGBColor(255, 255, 255)
             return
 
-        if content.layout_index == 1:
+        # Product-specific title slides (RPE/ARS/ICS) and light/reverse title
+        _PRODUCT_TITLE_LAYOUTS = {LAYOUT_TITLE, LAYOUT_TITLE_RPE, LAYOUT_TITLE_ARS, LAYOUT_TITLE_ICS}
+        if content.layout_index in _PRODUCT_TITLE_LAYOUTS:
             title_lines = content.title.split("\n") if "\n" in content.title else [content.title]
             subtitle = content.kpis.get("subtitle", "") if content.kpis else ""
 
+            # Product title slides use ph[0] center_title + ph[1] subtitle (footer)
+            if content.layout_index in {LAYOUT_TITLE_RPE, LAYOUT_TITLE_ARS, LAYOUT_TITLE_ICS}:
+                try:
+                    slide.placeholders[0].text = title_lines[0]
+                    if len(title_lines) > 1:
+                        tf = slide.placeholders[0].text_frame
+                        for extra in title_lines[1:]:
+                            p = tf.add_paragraph()
+                            p.text = extra
+                            p.alignment = PP_ALIGN.CENTER
+                            p.font.size = Pt(20)
+                            p.font.color.rgb = RGBColor(255, 255, 255)
+                except (KeyError, IndexError):
+                    pass
+                # ph[1] = subtitle/confidential footer -- leave as template default
+                return
+
+            # LAYOUT_TITLE (light/reverse)
             full_text = title_lines[0]
             if len(title_lines) > 1:
                 full_text += f"\n{title_lines[1]}"
@@ -325,17 +393,14 @@ class DeckBuilder:
         if content.kpis and "subtitle" in content.kpis:
             additional_text.append(content.kpis["subtitle"])
 
-        text_placeholders = [26, 29, 30, 27, 28, 31]
-        for i, text in enumerate(additional_text):
-            if i < len(text_placeholders):
+        # New template: ph[1] is subtitle/body on most layouts
+        for text in additional_text:
+            for ph_idx in [1, 2]:
                 try:
-                    slide.placeholders[text_placeholders[i]].text = text
+                    slide.placeholders[ph_idx].text = text
                     break
                 except (KeyError, IndexError):
-                    try:
-                        slide.placeholders[1].text = text
-                    except (KeyError, IndexError):
-                        pass
+                    continue
 
     def _build_section_slide(self, slide, content: SlideContent) -> None:
         """Build section divider slide."""
@@ -351,7 +416,8 @@ class DeckBuilder:
             slide.shapes.title.text = title_text
 
         if subtitle_text:
-            for ph_idx in [44, 13, 1, 14]:
+            # New template: ph[1] is body on section layouts
+            for ph_idx in [1, 2]:
                 try:
                     slide.placeholders[ph_idx].text = subtitle_text
                     break
@@ -369,7 +435,8 @@ class DeckBuilder:
             except Exception:
                 pass
 
-        if content.layout_index == 8:
+        if content.layout_index == LAYOUT_CUSTOM:
+            # Custom Layout: remove all except title (ph[0])
             to_remove = [ph for ph in slide.placeholders if ph.placeholder_format.idx != 0]
             for ph in to_remove:
                 ph.element.getparent().remove(ph.element)
@@ -379,7 +446,7 @@ class DeckBuilder:
                 self._set_title(slide, content, content.title)
             elif slide.shapes.title:
                 slide.shapes.title.text = content.title
-                if content.layout_index == 0:
+                if content.layout_index == LAYOUT_TITLE_DARK:
                     for p in slide.shapes.title.text_frame.paragraphs:
                         p.font.color.rgb = RGBColor(255, 255, 255)
                         p.font.size = Pt(28)
@@ -396,7 +463,8 @@ class DeckBuilder:
             title_text = parts[0]
             subtitle_text = parts[1] if len(parts) > 1 else None
 
-        if content.layout_index == 8:
+        if content.layout_index == LAYOUT_CUSTOM:
+            # Custom Layout: remove all except title
             to_remove = [ph for ph in slide.placeholders if ph.placeholder_format.idx != 0]
             for ph in to_remove:
                 ph.element.getparent().remove(ph.element)
@@ -404,13 +472,17 @@ class DeckBuilder:
         self._set_title(slide, content, title_text, subtitle_text)
 
         left, top, width = self._get_single_positioning(content.layout_index)
-        extra_h = Inches(5.2) if content.layout_index in (8, 12, 13) else None
+        # Full-canvas layouts get extra height
+        extra_h = Inches(5.2) if content.layout_index in (LAYOUT_CUSTOM, LAYOUT_BLANK, LAYOUT_PICTURE) else None
 
         if content.images and Path(content.images[0]).exists():
             self._add_fitted_picture(slide, content.images[0], left, top, width, max_height=extra_h)
 
     def _build_screenshot_kpi_slide(self, slide, content: SlideContent) -> None:
-        """Build slide with image and KPI callouts."""
+        """Build slide with image and KPI callouts.
+
+        Uses LAYOUT_CUSTOM with programmatic KPI text boxes on the right.
+        """
         title_text = content.title
         subtitle_text = None
 
@@ -419,37 +491,48 @@ class DeckBuilder:
             title_text = parts[0]
             subtitle_text = parts[1] if len(parts) > 1 else None
 
-        if content.layout_index == 8:
+        if content.layout_index == LAYOUT_CUSTOM:
             to_remove = [ph for ph in slide.placeholders if ph.placeholder_format.idx != 0]
             for ph in to_remove:
                 ph.element.getparent().remove(ph.element)
 
         self._set_title(slide, content, title_text, subtitle_text)
 
-        left, top, width = self._get_single_positioning(content.layout_index)
-        extra_h = Inches(5.2) if content.layout_index in (8, 12, 13) else None
-
+        # Chart on the left
         if content.images and Path(content.images[0]).exists():
-            self._add_fitted_picture(slide, content.images[0], left, top, width, max_height=extra_h)
+            self._add_fitted_picture(
+                slide, content.images[0],
+                self.KPI_IMG_LEFT, self.KPI_IMG_TOP, self.KPI_IMG_WIDTH,
+                max_height=Inches(5.2),
+            )
 
+        # KPI callouts on the right (programmatic text boxes)
         if content.kpis:
-            kpi_placeholder_pairs = [
-                (26, 19),
-                (27, 28),
-            ]
             kpi_items = [(k, v) for k, v in content.kpis.items() if k != "subtitle"]
-            for i, (label_text, value) in enumerate(kpi_items):
-                if i >= len(kpi_placeholder_pairs):
-                    break
-                label_idx, value_idx = kpi_placeholder_pairs[i]
-                try:
-                    slide.placeholders[label_idx].text = label_text
-                except (KeyError, IndexError):
-                    pass
-                try:
-                    slide.placeholders[value_idx].text = str(value)
-                except (KeyError, IndexError):
-                    pass
+            for i, (label_text, value) in enumerate(kpi_items[:4]):
+                y_top = 1.8 + i * 1.0
+                # Value
+                tb = slide.shapes.add_textbox(
+                    self.KPI_TEXT_LEFT, Inches(y_top),
+                    self.KPI_TEXT_WIDTH, self.KPI_VALUE_HEIGHT,
+                )
+                tf = tb.text_frame
+                p = tf.paragraphs[0]
+                p.text = str(value)
+                p.font.size = Pt(20)
+                p.font.bold = True
+                p.font.color.rgb = RGBColor(30, 61, 89)
+
+                # Label
+                tb = slide.shapes.add_textbox(
+                    self.KPI_TEXT_LEFT, Inches(y_top + 0.5),
+                    self.KPI_TEXT_WIDTH, self.KPI_LABEL_HEIGHT,
+                )
+                tf = tb.text_frame
+                p = tf.paragraphs[0]
+                p.text = label_text
+                p.font.size = Pt(12)
+                p.font.color.rgb = RGBColor(100, 100, 100)
 
     def _build_multi_screenshot_slide(self, slide, content: SlideContent) -> None:
         """Build slide with two images side by side."""
@@ -869,113 +952,113 @@ class DeckBuilder:
 # =============================================================================
 
 SLIDE_LAYOUT_MAP: dict[str, tuple[int, str]] = {
-    # DCTR -- penetration (data slides)
-    "DCTR-1": (9, "screenshot"),
-    "DCTR-2": (9, "screenshot"),
-    "DCTR-3": (9, "screenshot"),
-    "DCTR-4": (9, "screenshot"),
-    "DCTR-5": (9, "screenshot"),
-    "DCTR-6": (9, "screenshot"),
-    "DCTR-7": (9, "screenshot"),
-    "DCTR-8": (9, "screenshot"),
-    "DCTR-9": (9, "screenshot"),
-    "DCTR-10": (9, "screenshot"),
-    "DCTR-11": (9, "screenshot"),
-    "DCTR-12": (9, "screenshot"),
-    "DCTR-13": (9, "screenshot"),
-    "DCTR-14": (9, "screenshot"),
-    "DCTR-15": (9, "screenshot"),
-    "DCTR-16": (9, "screenshot"),
+    # DCTR -- penetration (data slides) -> Custom Layout for full-width charts
+    "DCTR-1": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-2": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-3": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-4": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-5": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-6": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-7": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-8": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-9": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-10": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-11": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-12": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-13": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-14": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-15": (LAYOUT_CUSTOM, "screenshot"),
+    "DCTR-16": (LAYOUT_CUSTOM, "screenshot"),
     # DCTR -- A7.x analysis charts
-    "A7.4": (9, "screenshot"),
-    "A7.5": (9, "screenshot"),
-    "A7.6a": (9, "screenshot"),
-    "A7.6b": (9, "screenshot"),
-    "A7.7": (9, "screenshot"),
-    "A7.8": (9, "screenshot"),
-    "A7.9": (9, "screenshot"),
-    "A7.10a": (13, "screenshot"),
-    "A7.10b": (9, "screenshot"),
-    "A7.10c": (4, "screenshot_kpi"),
-    "A7.11": (9, "screenshot"),
-    "A7.12": (9, "screenshot"),
-    "A7.13": (9, "screenshot"),
-    "A7.14": (9, "screenshot"),
-    "A7.15": (9, "screenshot"),
+    "A7.4": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.5": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.6a": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.6b": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.7": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.8": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.9": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.10a": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.10b": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.10c": (LAYOUT_CUSTOM, "screenshot_kpi"),
+    "A7.11": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.12": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.13": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.14": (LAYOUT_CUSTOM, "screenshot"),
+    "A7.15": (LAYOUT_CUSTOM, "screenshot"),
     # Attrition
-    "A9.1": (5, "screenshot_kpi"),
-    "A9.2": (4, "screenshot"),
-    "A9.3": (4, "screenshot"),
-    "A9.4": (4, "screenshot"),
-    "A9.5": (4, "screenshot"),
-    "A9.6": (4, "screenshot"),
-    "A9.7": (4, "screenshot"),
-    "A9.8": (4, "screenshot"),
-    "A9.9": (5, "screenshot_kpi"),
-    "A9.10": (5, "screenshot_kpi"),
-    "A9.11": (5, "screenshot_kpi"),
-    "A9.12": (5, "screenshot_kpi"),
-    "A9.13": (4, "screenshot"),
+    "A9.1": (LAYOUT_CUSTOM, "screenshot_kpi"),
+    "A9.2": (LAYOUT_CUSTOM, "screenshot"),
+    "A9.3": (LAYOUT_CUSTOM, "screenshot"),
+    "A9.4": (LAYOUT_CUSTOM, "screenshot"),
+    "A9.5": (LAYOUT_CUSTOM, "screenshot"),
+    "A9.6": (LAYOUT_CUSTOM, "screenshot"),
+    "A9.7": (LAYOUT_CUSTOM, "screenshot"),
+    "A9.8": (LAYOUT_CUSTOM, "screenshot"),
+    "A9.9": (LAYOUT_CUSTOM, "screenshot_kpi"),
+    "A9.10": (LAYOUT_CUSTOM, "screenshot_kpi"),
+    "A9.11": (LAYOUT_CUSTOM, "screenshot_kpi"),
+    "A9.12": (LAYOUT_CUSTOM, "screenshot_kpi"),
+    "A9.13": (LAYOUT_CUSTOM, "screenshot"),
     # Reg E
-    "A8.1": (9, "screenshot"),
-    "A8.2": (9, "screenshot"),
-    "A8.3": (9, "screenshot"),
-    "A8.4a": (13, "screenshot"),
-    "A8.4b": (9, "screenshot"),
-    "A8.4c": (9, "screenshot"),
-    "A8.5": (9, "screenshot"),
-    "A8.6": (9, "screenshot"),
-    "A8.7": (9, "screenshot"),
-    "A8.10": (9, "screenshot"),
-    "A8.11": (9, "screenshot"),
-    "A8.12": (9, "screenshot"),
-    "A8.13": (9, "screenshot"),
+    "A8.1": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.2": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.3": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.4a": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.4b": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.4c": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.5": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.6": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.7": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.10": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.11": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.12": (LAYOUT_CUSTOM, "screenshot"),
+    "A8.13": (LAYOUT_CUSTOM, "screenshot"),
     # Value
-    "A11.1": (13, "screenshot"),
-    "A11.2": (13, "screenshot"),
+    "A11.1": (LAYOUT_CUSTOM, "screenshot"),
+    "A11.2": (LAYOUT_CUSTOM, "screenshot"),
     # Mailer
-    "A13.5": (13, "screenshot"),
-    "A13.6": (9, "screenshot"),
-    "A14.2": (9, "screenshot"),
-    "A15.1": (13, "screenshot"),
-    "A15.2": (13, "screenshot"),
-    "A15.3": (13, "screenshot"),
-    "A15.4": (13, "screenshot"),
+    "A13.5": (LAYOUT_CUSTOM, "screenshot"),
+    "A13.6": (LAYOUT_CUSTOM, "screenshot"),
+    "A14.2": (LAYOUT_CUSTOM, "screenshot"),
+    "A15.1": (LAYOUT_CUSTOM, "screenshot"),
+    "A15.2": (LAYOUT_CUSTOM, "screenshot"),
+    "A15.3": (LAYOUT_CUSTOM, "screenshot"),
+    "A15.4": (LAYOUT_CUSTOM, "screenshot"),
     # Mailer -- cohort trajectories
-    "A16.1": (9, "screenshot"),
-    "A16.2": (9, "screenshot"),
-    "A16.3": (9, "screenshot"),
-    "A16.4": (9, "screenshot"),
-    "A16.5": (9, "screenshot"),
-    "A16.6": (9, "screenshot"),
+    "A16.1": (LAYOUT_CUSTOM, "screenshot"),
+    "A16.2": (LAYOUT_CUSTOM, "screenshot"),
+    "A16.3": (LAYOUT_CUSTOM, "screenshot"),
+    "A16.4": (LAYOUT_CUSTOM, "screenshot"),
+    "A16.5": (LAYOUT_CUSTOM, "screenshot"),
+    "A16.6": (LAYOUT_CUSTOM, "screenshot"),
     # Mailer -- cumulative reach
-    "A17.1": (9, "screenshot"),
-    "A17.2": (9, "screenshot"),
-    "A17.3": (9, "screenshot"),
+    "A17.1": (LAYOUT_CUSTOM, "screenshot"),
+    "A17.2": (LAYOUT_CUSTOM, "screenshot"),
+    "A17.3": (LAYOUT_CUSTOM, "screenshot"),
     # Overview
-    "A1": (9, "screenshot"),
-    "A1b": (9, "screenshot"),
-    "A3": (9, "screenshot"),
+    "A1": (LAYOUT_CUSTOM, "screenshot"),
+    "A1b": (LAYOUT_CUSTOM, "screenshot"),
+    "A3": (LAYOUT_CUSTOM, "screenshot"),
     # Insights
-    "S1": (9, "screenshot"),
-    "S2": (9, "screenshot"),
-    "S3": (9, "screenshot"),
-    "S4": (9, "screenshot"),
-    "S5": (9, "screenshot"),
-    "S6": (9, "screenshot"),
-    "S7": (9, "screenshot"),
-    "S8": (9, "screenshot"),
+    "S1": (LAYOUT_CUSTOM, "screenshot"),
+    "S2": (LAYOUT_CUSTOM, "screenshot"),
+    "S3": (LAYOUT_CUSTOM, "screenshot"),
+    "S4": (LAYOUT_CUSTOM, "screenshot"),
+    "S5": (LAYOUT_CUSTOM, "screenshot"),
+    "S6": (LAYOUT_CUSTOM, "screenshot"),
+    "S7": (LAYOUT_CUSTOM, "screenshot"),
+    "S8": (LAYOUT_CUSTOM, "screenshot"),
     # Insights -- effectiveness proof
-    "A18.1": (9, "screenshot"),
-    "A18.2": (9, "screenshot"),
-    "A18.3": (9, "screenshot"),
+    "A18.1": (LAYOUT_CUSTOM, "screenshot"),
+    "A18.2": (LAYOUT_CUSTOM, "screenshot"),
+    "A18.3": (LAYOUT_CUSTOM, "screenshot"),
     # Insights -- branch scorecard
-    "A19.1": (13, "screenshot"),
-    "A19.2": (9, "screenshot"),
+    "A19.1": (LAYOUT_CUSTOM, "screenshot"),
+    "A19.2": (LAYOUT_CUSTOM, "screenshot"),
     # Insights -- dormant opportunity
-    "A20.1": (9, "screenshot"),
-    "A20.2": (9, "screenshot"),
-    "A20.3": (9, "screenshot"),
+    "A20.1": (LAYOUT_CUSTOM, "screenshot"),
+    "A20.2": (LAYOUT_CUSTOM, "screenshot"),
+    "A20.3": (LAYOUT_CUSTOM, "screenshot"),
 }
 
 
@@ -983,20 +1066,20 @@ def _match_prefix(slide_id: str) -> tuple[int, str]:
     """Match slide_id by prefix for dynamic entries (e.g. A12.Nov25.Swipes)."""
     sid = slide_id.lower()
     if sid.startswith("a12"):
-        return (13, "screenshot")
+        return (LAYOUT_CUSTOM, "screenshot")
     if sid.startswith("a13") and sid not in ("a13.5", "a13.6"):
-        return (13, "mailer_summary")
+        return (LAYOUT_CUSTOM, "mailer_summary")
     if sid.startswith("a16"):
-        return (9, "screenshot")
+        return (LAYOUT_CUSTOM, "screenshot")
     if sid.startswith("a17"):
-        return (9, "screenshot")
+        return (LAYOUT_CUSTOM, "screenshot")
     if sid.startswith("a18"):
-        return (9, "screenshot")
+        return (LAYOUT_CUSTOM, "screenshot")
     if sid.startswith("a19"):
-        return (9, "screenshot")
+        return (LAYOUT_CUSTOM, "screenshot")
     if sid.startswith("a20"):
-        return (9, "screenshot")
-    return (9, "screenshot")
+        return (LAYOUT_CUSTOM, "screenshot")
+    return (LAYOUT_CUSTOM, "screenshot")
 
 
 # =============================================================================
@@ -1071,7 +1154,7 @@ def _consolidate(slides, merges, appendix_ids):
                 slide_type="multi_screenshot",
                 title=title,
                 images=images,
-                layout_index=6,
+                layout_index=LAYOUT_TWO_CONTENT,
             )
             merge_at[left_id] = merged_sc
             skip_ids.add(left_id)
@@ -1201,79 +1284,79 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
     title_date = f"{month_name} {year}" if month_name else month
 
     return [
-        # P01: Intro
+        # P01: Master title -- RPE branded title slide
         SlideContent(
             slide_type="title",
             title=f"{client_name}\nAccount Revenue Solution | {title_date}",
-            layout_index=1,
+            layout_index=LAYOUT_TITLE_RPE,
         ),
-        # P02: Agenda (layout 13 = dark header)
-        SlideContent(slide_type="blank", title="Agenda", layout_index=13),
+        # P02: Executive Dashboard (replaced at runtime with KPI dashboard)
+        SlideContent(slide_type="blank", title="Agenda", layout_index=LAYOUT_CUSTOM),
         # P03: Program Performance divider
         SlideContent(
             slide_type="title",
             title=f"{client_name}\nProgram Performance | {title_date}",
-            layout_index=1,
+            layout_index=LAYOUT_TITLE,
         ),
         # P04: Financial Performance -- blank for manual table
         SlideContent(
             slide_type="blank",
             title="Financial Performance",
-            layout_index=0,
+            layout_index=LAYOUT_TITLE_DARK,
         ),
         # P05: Monthly Revenue -- blank
         SlideContent(
             slide_type="blank",
             title="Monthly Revenue \u2013 Last 12 Months",
-            layout_index=12,
+            layout_index=LAYOUT_CUSTOM,
         ),
         # P06: ARS Lift Matrix -- blank
         SlideContent(
             slide_type="blank",
             title="ARS Lift Matrix",
-            layout_index=8,
+            layout_index=LAYOUT_CUSTOM,
         ),
         # P07: ARS Mailer Revisit divider
         SlideContent(
             slide_type="title",
             title=f"{client_name}\nARS Mailer Revisit | {title_date}",
-            layout_index=1,
+            layout_index=LAYOUT_TITLE,
         ),
         # P08: Swipes placeholder (will be wired to most recent A12 Swipes)
         SlideContent(
             slide_type="blank",
             title="ARS Mailer Revisit \u2013 Swipes",
-            layout_index=13,
+            layout_index=LAYOUT_CUSTOM,
         ),
         # P09: Spend placeholder (will be wired to most recent A12 Spend)
         SlideContent(
             slide_type="blank",
             title="ARS Mailer Revisit \u2013 Spend",
-            layout_index=13,
+            layout_index=LAYOUT_CUSTOM,
         ),
-        # P10: DCO -- blank
+        # P10: DCO -- blank with section title
         SlideContent(
             slide_type="blank",
             title="Data Check Overview\nOur goal is turning non-users and light-users into heavy users",
-            layout_index=8,
+            layout_index=LAYOUT_CUSTOM,
         ),
         # P11: Mailer Summaries divider
         SlideContent(
             slide_type="title",
             title=f"Mailer Summaries\n{client_name} | {title_date}",
-            layout_index=2,
+            layout_index=LAYOUT_SECTION,
         ),
         # P12: All Program Results -- blank
         SlideContent(
             slide_type="blank",
             title="All Program Results",
-            layout_index=2,
+            layout_index=LAYOUT_SECTION,
         ),
         # P13: Program Responses to Date (will be wired to A13.5)
         SlideContent(
             slide_type="blank",
             title="Program Responses to Date",
-            layout_index=13,
+            layout_index=LAYOUT_CUSTOM,
         ),
     ]
 
@@ -1349,7 +1432,7 @@ def _build_executive_kpi(ctx_results: dict, title_date: str = "") -> SlideConten
         slide_type="kpi_dashboard",
         title=title,
         kpis=kpis,
-        layout_index=13,
+        layout_index=LAYOUT_CUSTOM,
     )
 
 
@@ -1375,11 +1458,11 @@ def _result_to_slide(result, ctx_results: dict | None = None) -> SlideContent | 
     slide_id = getattr(result, "slide_id", "")
     title = getattr(result, "title", "")
     kpis = getattr(result, "kpis", None)
-    layout_idx = getattr(result, "layout_index", 5)
+    layout_idx = getattr(result, "layout_index", LAYOUT_CUSTOM)
     slide_type = getattr(result, "slide_type", "screenshot")
 
     # Fall back to SLIDE_LAYOUT_MAP if module used defaults
-    if layout_idx == 5 and slide_type == "screenshot":
+    if layout_idx == LAYOUT_CUSTOM and slide_type == "screenshot":
         mapped = SLIDE_LAYOUT_MAP.get(slide_id)
         if mapped:
             layout_idx, slide_type = mapped
@@ -1603,7 +1686,7 @@ def build_deck(ctx: PipelineContext) -> Path | None:
                     converted.append(sc)
         return converted
 
-    def _section_divider(title, subtitle=None, layout_index=1, slide_type="title"):
+    def _section_divider(title, subtitle=None, layout_index=LAYOUT_SECTION, slide_type="section"):
         full_title = f"{title}\n{subtitle}" if subtitle else title
         return SlideContent(slide_type=slide_type, title=full_title, layout_index=layout_index)
 
@@ -1649,7 +1732,7 @@ def build_deck(ctx: PipelineContext) -> Path | None:
 
     # Summary placeholder
     analysis_slides.append(
-        _section_divider("Summary & Key Takeaways", layout_index=12, slide_type="blank")
+        _section_divider("Summary & Key Takeaways", layout_index=LAYOUT_SECTION, slide_type="section")
     )
 
     # Appendix: collect all appendix slides

@@ -11,6 +11,9 @@ from ars_analysis.output.deck_builder import (
     ATTRITION_MERGES,
     DCTR_APPENDIX_IDS,
     DCTR_MERGES,
+    LAYOUT_CUSTOM,
+    LAYOUT_SECTION,
+    LAYOUT_TITLE_RPE,
     SLIDE_LAYOUT_MAP,
     DeckBuilder,
     SlideContent,
@@ -56,7 +59,7 @@ class TestSlideLayoutMap:
 
     def test_all_layout_indices_in_range(self):
         for slide_id, (layout_idx, _) in SLIDE_LAYOUT_MAP.items():
-            assert 0 <= layout_idx <= 13, f"{slide_id} has out-of-range layout {layout_idx}"
+            assert 0 <= layout_idx <= 19, f"{slide_id} has out-of-range layout {layout_idx}"
 
     def test_all_slide_types_valid(self):
         valid = {"screenshot", "screenshot_kpi", "multi_screenshot", "mailer_summary", "blank"}
@@ -123,11 +126,11 @@ class TestMatchPrefix:
     """Prefix matching for dynamic slide IDs."""
 
     def test_a12_prefix(self):
-        assert _match_prefix("A12.Nov25.Swipes") == (13, "screenshot")
+        assert _match_prefix("A12.Nov25.Swipes") == (LAYOUT_CUSTOM, "screenshot")
 
     def test_a13_monthly_mailer_summary(self):
         # A13.{month} uses mailer_summary (3-column: donut + hbar + inside numbers)
-        assert _match_prefix("A13.Sep24") == (13, "mailer_summary")
+        assert _match_prefix("A13.Sep24") == (LAYOUT_CUSTOM, "mailer_summary")
 
     def test_a13_5_not_mailer(self):
         # A13.5 and A13.6 are excluded from the monthly prefix match
@@ -135,7 +138,7 @@ class TestMatchPrefix:
         assert stype == "screenshot"  # falls through to default
 
     def test_unknown_prefix_default(self):
-        assert _match_prefix("ZZZ.1") == (9, "screenshot")
+        assert _match_prefix("ZZZ.1") == (LAYOUT_CUSTOM, "screenshot")
 
 
 # =============================================================================
@@ -237,7 +240,7 @@ class TestResultToSlide:
         r = AnalysisResult(slide_id="A9.1", title="Attrition Rate", chart_path=chart)
         sc = _result_to_slide(r)
         assert sc is not None
-        assert sc.layout_index == 5
+        assert sc.layout_index == LAYOUT_CUSTOM
         assert sc.slide_type == "screenshot_kpi"
 
     def test_explicit_layout_preserved(self, tmp_path):
@@ -259,7 +262,7 @@ class TestResultToSlide:
         _write_minimal_png(chart)
         r = AnalysisResult(slide_id="DCTR-1", title="Overall DCTR", chart_path=chart)
         sc = _result_to_slide(r)
-        assert sc.layout_index == 9
+        assert sc.layout_index == LAYOUT_CUSTOM
         assert sc.slide_type == "screenshot"
 
 
@@ -376,9 +379,13 @@ class TestPreamble:
     def test_all_valid_layouts(self):
         slides = _build_preamble_slides("Test CU", "2026.01")
         for i, sc in enumerate(slides):
-            assert 0 <= sc.layout_index <= 13, (
+            assert 0 <= sc.layout_index <= 19, (
                 f"Preamble slide {i} has invalid layout {sc.layout_index}"
             )
+
+    def test_master_title_uses_rpe_layout(self):
+        slides = _build_preamble_slides("Test CU", "2026.01")
+        assert slides[0].layout_index == LAYOUT_TITLE_RPE
 
     def test_slide_types(self):
         slides = _build_preamble_slides("Test CU", "2026.01")
@@ -415,7 +422,7 @@ class TestDeckBuilderClass:
             pytest.skip("Template not available")
 
         output = tmp_path / "test.pptx"
-        slides = [SlideContent(slide_type="section", title="Test Section", layout_index=2)]
+        slides = [SlideContent(slide_type="section", title="Test Section", layout_index=LAYOUT_SECTION)]
         builder = DeckBuilder(str(_FALLBACK_TEMPLATE))
         builder.build(slides, str(output))
         prs = Presentation(str(output))
@@ -435,7 +442,7 @@ class TestDeckBuilderClass:
                 slide_type="screenshot",
                 title="Chart Test",
                 images=[str(chart)],
-                layout_index=9,
+                layout_index=LAYOUT_CUSTOM,
             )
         ]
         builder = DeckBuilder(str(_FALLBACK_TEMPLATE))
@@ -587,7 +594,7 @@ class TestExecutiveKPI:
             slide_type="kpi_dashboard",
             title="Test Dashboard",
             kpis={"Metric": "42%|green"},
-            layout_index=13,
+            layout_index=LAYOUT_CUSTOM,
         )
         builder.build([sc], str(Path("/tmp/test_kpi_dashboard.pptx")))
         prs = Presentation("/tmp/test_kpi_dashboard.pptx")
@@ -608,7 +615,6 @@ class TestChartNarrativeSlide:
         if not _FALLBACK_TEMPLATE.exists():
             pytest.skip("Template not found")
 
-        # Create a test PNG
         png = tmp_path / "chart.png"
         _write_minimal_png(png)
 
@@ -618,7 +624,7 @@ class TestChartNarrativeSlide:
             title="Debit adoption accelerating",
             images=[str(png)],
             bullets=["DCTR up 4pp vs prior quarter", "Branch 5 leads at 42%"],
-            layout_index=11,
+            layout_index=LAYOUT_CUSTOM,
         )
         out = tmp_path / "test_narrative.pptx"
         builder.build([sc], str(out))
@@ -640,7 +646,7 @@ class TestChartNarrativeSlide:
             title="Revenue Impact",
             images=[str(png)],
             kpis={"DCTR": "34.2%", "Revenue": "$142K"},
-            layout_index=11,
+            layout_index=LAYOUT_CUSTOM,
         )
         out = tmp_path / "test_kpi_narrative.pptx"
         builder.build([sc], str(out))
@@ -662,7 +668,7 @@ class TestKPIHeroSlide:
             slide_type="kpi_hero",
             title="Program Performance Snapshot",
             kpis={"DCTR": "34.2%", "Opt-In": "67%", "Attrition": "6.2%"},
-            layout_index=11,
+            layout_index=LAYOUT_CUSTOM,
         )
         out = tmp_path / "test_hero.pptx"
         builder.build([sc], str(out))
@@ -684,7 +690,7 @@ class TestKPIHeroSlide:
             title="Trend Overview",
             kpis={"DCTR": "34.2%", "Accounts": "12,400"},
             images=[str(png)],
-            layout_index=11,
+            layout_index=LAYOUT_CUSTOM,
         )
         out = tmp_path / "test_hero_chart.pptx"
         builder.build([sc], str(out))
@@ -702,7 +708,7 @@ class TestKPIHeroSlide:
             slide_type="kpi_hero",
             title="Empty Dashboard",
             kpis={},
-            layout_index=11,
+            layout_index=LAYOUT_CUSTOM,
         )
         out = tmp_path / "test_hero_empty.pptx"
         builder.build([sc], str(out))

@@ -14,7 +14,7 @@ ERROR_GUIDANCE: list[tuple[type[Exception], str, str]] = [
     ),
     (DataError, "Data Problem", "The ODD file format may have changed -- check column names"),
     (ConfigError, "Setup Issue", "Run 'ars init' or check ars_config.json"),
-    (OutputError, "Output Error", "Ensure Template12.25.pptx is in the templates/ folder"),
+    (OutputError, "Output Error", "Ensure 2025-CSI-PPT-Template.pptx is in the templates/ folder"),
 ]
 
 

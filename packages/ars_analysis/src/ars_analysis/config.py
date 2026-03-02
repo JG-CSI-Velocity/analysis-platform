@@ -32,7 +32,7 @@ class PathsConfig(BaseModel):
     log_dir: Path = Path("Logs")
 
     # Template can be absolute or relative to ars_base
-    template_path: Path = Path("Presentations/Template12.25.pptx")
+    template_path: Path = Path("Presentations/2025-CSI-PPT-Template.pptx")
 
     # Run tracker for history
     tracker_path: Path = Path("Config/run_tracker.json")

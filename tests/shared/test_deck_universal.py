@@ -57,7 +57,7 @@ class TestSlideContent:
         assert sc.images is None
         assert sc.kpis is None
         assert sc.bullets is None
-        assert sc.layout_index == 5
+        assert sc.layout_index == 8  # LAYOUT_CUSTOM (2025-CSI-PPT-Template)
 
     def test_all_fields(self):
         sc = SlideContent(

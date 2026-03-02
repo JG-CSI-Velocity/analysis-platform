@@ -65,11 +65,13 @@ def _resolve_template_path() -> Path | None:
 
     candidates = (
         [
+            Path(r"M:\ARS\Presentations\2025-CSI-PPT-Template.pptx"),
             Path(r"M:\ARS\Presentations\Template12.25.pptx"),
             Path(r"M:\ARS\Presentations\Template 12.25.pptx"),
         ]
         if _platform.system() == "Windows"
         else [
+            Path("/Volumes/M/ARS/Presentations/2025-CSI-PPT-Template.pptx"),
             Path("/Volumes/M/ARS/Presentations/Template12.25.pptx"),
             Path("/Volumes/M/ARS/Presentations/Template 12.25.pptx"),
         ]

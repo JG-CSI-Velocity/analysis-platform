@@ -16,9 +16,21 @@ from pptx.util import Inches, Pt
 
 logger = logging.getLogger(__name__)
 
-_FALLBACK_TEMPLATE = Path(__file__).parent / "template" / "Template12.25.pptx"
+_FALLBACK_TEMPLATE = Path(__file__).parent / "template" / "2025-CSI-PPT-Template.pptx"
 
 MAX_CHART_HEIGHT = Inches(5.0)
+
+# Named layout constants -- 2025-CSI-PPT-Template.pptx (20 layouts)
+LAYOUT_TITLE_DARK = 0
+LAYOUT_TITLE = 1
+LAYOUT_SECTION = 4
+LAYOUT_SECTION_ALT = 5
+LAYOUT_CUSTOM = 8
+LAYOUT_TWO_CONTENT = 9
+LAYOUT_BLANK = 11
+LAYOUT_TITLE_RPE = 17
+LAYOUT_TITLE_ARS = 18
+LAYOUT_TITLE_ICS = 19
 
 
 @dataclass
@@ -49,7 +61,7 @@ class SlideContent:
     images: list[str] | None = None
     kpis: dict[str, str] | None = None
     bullets: list[str] | None = None
-    layout_index: int = 5
+    layout_index: int = 8  # LAYOUT_CUSTOM (2025-CSI-PPT-Template)
 
 
 class DeckBuilder:
@@ -62,38 +74,38 @@ class DeckBuilder:
         is created instead.
     """
 
-    # -- Single screenshot defaults (inches) ----------------------------------
-    SINGLE_IMG_LEFT = Inches(0.5)
-    SINGLE_IMG_TOP = Inches(2.5)
-    SINGLE_IMG_WIDTH = Inches(6)
+    # -- Single screenshot defaults (inches) -- 2025-CSI-PPT-Template ---------
+    SINGLE_IMG_LEFT = Inches(0.86)
+    SINGLE_IMG_TOP = Inches(1.6)
+    SINGLE_IMG_WIDTH = Inches(11.6)
 
     SINGLE_IMG_RIGHT_LEFT = Inches(5.5)
-    SINGLE_IMG_RIGHT_TOP = Inches(2.0)
-    SINGLE_IMG_RIGHT_WIDTH = Inches(6)
+    SINGLE_IMG_RIGHT_TOP = Inches(1.6)
+    SINGLE_IMG_RIGHT_WIDTH = Inches(7.0)
 
     # -- Multi screenshot - standard layout -----------------------------------
-    MULTI_IMG_STD_TOP = Inches(2.5)
-    MULTI_IMG_STD_LEFT_POS = Inches(2.3)
-    MULTI_IMG_STD_RIGHT_POS = Inches(7.0)
-    MULTI_IMG_STD_WIDTH = Inches(4.5)
+    MULTI_IMG_STD_TOP = Inches(1.82)
+    MULTI_IMG_STD_LEFT_POS = Inches(0.86)
+    MULTI_IMG_STD_RIGHT_POS = Inches(6.81)
+    MULTI_IMG_STD_WIDTH = Inches(5.67)
 
     # -- Screenshot with KPIs ------------------------------------------------
-    KPI_IMG_LEFT = Inches(0.3)
+    KPI_IMG_LEFT = Inches(0.5)
     KPI_IMG_TOP = Inches(1.5)
-    KPI_IMG_WIDTH = Inches(6)
+    KPI_IMG_WIDTH = Inches(6.5)
 
-    KPI_TEXT_LEFT = Inches(6.8)
+    KPI_TEXT_LEFT = Inches(7.2)
     KPI_TEXT_TOP_START = Inches(1.8)
-    KPI_TEXT_WIDTH = Inches(2.5)
+    KPI_TEXT_WIDTH = Inches(5.5)
     KPI_VALUE_HEIGHT = Inches(0.5)
     KPI_LABEL_HEIGHT = Inches(0.3)
     KPI_SPACING = Inches(1.0)
 
     # -- Summary slide (3x3 bullet grid) --------------------------------------
-    SUMMARY_COL_POSITIONS = [Inches(0.5), Inches(3.5), Inches(6.5)]
+    SUMMARY_COL_POSITIONS = [Inches(0.86), Inches(4.86), Inches(8.86)]
     SUMMARY_ROW_START = Inches(1.8)
     SUMMARY_ROW_SPACING = Inches(1.2)
-    SUMMARY_BOX_WIDTH = Inches(2.8)
+    SUMMARY_BOX_WIDTH = Inches(3.5)
     SUMMARY_BOX_HEIGHT = Inches(1.0)
 
     _BUILDER_REGISTRY: dict[str, str] = {
@@ -117,38 +129,37 @@ class DeckBuilder:
 
     def _get_single_positioning(self, layout_index: int) -> tuple:
         """Return (left, top, width) in EMU for a single-chart layout."""
-        if layout_index == 4:
-            return (Inches(0.95), Inches(2.11), Inches(5.5))
-        if layout_index == 5:
-            return (Inches(0.95), Inches(2.11), Inches(5.5))
-        if layout_index == 8:
-            return (Inches(0.5), Inches(2.2), Inches(12.0))
-        if layout_index == 9:
-            return (Inches(0.80), Inches(2.12), Inches(6.0))
-        if layout_index == 10:
-            return (Inches(5.12), Inches(1.75), Inches(7.0))
-        if layout_index == 11:
-            return (Inches(2.0), Inches(2.0), Inches(8.0))
-        if layout_index == 12:
-            return (Inches(0.5), Inches(1.8), Inches(12.0))
-        if layout_index == 13:
-            return (Inches(0.5), Inches(1.55), Inches(12.0))
-        return (Inches(0.95), Inches(2.11), Inches(5.5))
+        # LAYOUT_CUSTOM (8) -- workhorse layout
+        if layout_index == LAYOUT_CUSTOM:
+            return (Inches(0.86), Inches(1.6), Inches(11.6))
+        # LAYOUT_BLANK (11) -- full canvas
+        if layout_index == LAYOUT_BLANK:
+            return (Inches(0.86), Inches(1.6), Inches(11.6))
+        # LAYOUT_TWO_CONTENT (9) -- single chart in left half
+        if layout_index == LAYOUT_TWO_CONTENT:
+            return (Inches(0.86), Inches(1.82), Inches(5.67))
+        # Default
+        return (Inches(0.86), Inches(1.6), Inches(11.6))
 
     def _get_multi_positioning(self, layout_index: int) -> tuple:
         """Return (top, left_pos, right_pos, width) in EMU for multi-chart layouts."""
-        if layout_index in (6, 7):
-            return (Inches(2.12), Inches(0.80), Inches(6.78), Inches(5.5))
-        return (Inches(2.12), Inches(0.80), Inches(6.78), Inches(5.5))
+        return (Inches(1.82), Inches(0.86), Inches(6.81), Inches(5.67))
 
     # -- build ----------------------------------------------------------------
 
     def build(self, slides: list[SlideContent], output_path: Path | str) -> Path:
         """Build complete PowerPoint deck from slide definitions."""
+        from pptx.oxml.ns import qn
+
         output_path = Path(output_path)
 
         if self.template_path is not None:
             self.prs = Presentation(str(self.template_path))
+            # Remove sample slides shipped with 2025 template
+            while len(self.prs.slides) > 0:
+                rId = self.prs.slides._sldIdLst[0].get(qn("r:id"))
+                self.prs.part.drop_rel(rId)
+                self.prs.slides._sldIdLst.remove(self.prs.slides._sldIdLst[0])
         else:
             self.prs = Presentation()
 

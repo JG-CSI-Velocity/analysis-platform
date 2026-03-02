@@ -11,7 +11,15 @@ import logging
 from datetime import date
 from pathlib import Path
 
-from shared.deck.engine import _FALLBACK_TEMPLATE, DeckBuilder, SlideContent
+from shared.deck.engine import (
+    _FALLBACK_TEMPLATE,
+    LAYOUT_CUSTOM,
+    LAYOUT_SECTION,
+    LAYOUT_TITLE,
+    LAYOUT_TWO_CONTENT,
+    DeckBuilder,
+    SlideContent,
+)
 from shared.types import AnalysisResult
 
 logger = logging.getLogger(__name__)
@@ -85,7 +93,7 @@ def build_deck_from_results(
         SlideContent(
             slide_type="title",
             title=f"{display_name}\n{pipeline_label} | {today}",
-            layout_index=1,
+            layout_index=LAYOUT_TITLE,
         )
     )
 
@@ -99,7 +107,7 @@ def build_deck_from_results(
             SlideContent(
                 slide_type="section",
                 title=section_label,
-                layout_index=2,
+                layout_index=LAYOUT_SECTION,
             )
         )
 
@@ -117,7 +125,7 @@ def build_deck_from_results(
                         slide_type="screenshot",
                         title=title,
                         images=chart_paths,
-                        layout_index=9,
+                        layout_index=LAYOUT_CUSTOM,
                     )
                 )
             elif len(chart_paths) == 2:
@@ -126,7 +134,7 @@ def build_deck_from_results(
                         slide_type="multi_screenshot",
                         title=title,
                         images=chart_paths,
-                        layout_index=6,
+                        layout_index=LAYOUT_TWO_CONTENT,
                     )
                 )
             else:
@@ -136,7 +144,7 @@ def build_deck_from_results(
                         slide_type="multi_screenshot",
                         title=title,
                         images=chart_paths[:2],
-                        layout_index=6,
+                        layout_index=LAYOUT_TWO_CONTENT,
                     )
                 )
                 for extra_path in chart_paths[2:]:
@@ -145,7 +153,7 @@ def build_deck_from_results(
                             slide_type="screenshot",
                             title=f"{title} (cont.)",
                             images=[extra_path],
-                            layout_index=9,
+                            layout_index=LAYOUT_CUSTOM,
                         )
                     )
 

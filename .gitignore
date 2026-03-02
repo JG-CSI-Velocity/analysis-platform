@@ -36,6 +36,8 @@ htmlcov/
 !packages/*/src/templates/*.pptx
 !packages/*/src/*/output/template/
 !packages/*/src/*/output/template/*.pptx
+!packages/*/src/*/deck/template/
+!packages/*/src/*/deck/template/*.pptx
 !packages/*/src/*/output/*.py
 
 # Data files (keep sample data tracked)

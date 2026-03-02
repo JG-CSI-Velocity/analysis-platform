@@ -536,6 +536,10 @@ else:
             st.warning(f"Client directory not found: `{client_dir}`")
             st.stop()
         _cache = _cached_detect_and_check(client_dir, client_id)
+    # Client changed -- reset pipeline selections so stale toggles don't persist
+    st.session_state.pop("uap_active_pipelines", None)
+    st.session_state.pop("uap_selected_modules", None)
+    st.session_state.pop("uap_selected_template", None)
 
 detected = _cache["detected"]
 oddd_path = _cache["oddd_path"]
@@ -700,8 +704,10 @@ _PIPELINE_LABELS: dict[Product, tuple[str, str, str]] = {
     Product.TXN: ("TXN", "Transaction intelligence, competitors, MCC", ":material/credit_card:"),
 }
 
-# Initialize active pipelines from session state
+# Initialize active pipelines from session state; prune any that lack data for this client
 _active_pipelines: set[Product] = st.session_state.get("uap_active_pipelines", set())
+_active_pipelines = {p for p in _active_pipelines if _product_available.get(p, False)}
+st.session_state["uap_active_pipelines"] = _active_pipelines
 
 # Pipeline toggle buttons -- one per pipeline type
 _pip_cols = st.columns(3)

@@ -337,7 +337,8 @@ def branch_dctr(
         return pd.DataFrame(), {}
     dc = dataset.copy()
     if branch_mapping:
-        mapped = dc["Branch"].map(branch_mapping)
+        str_mapping = {str(k): v for k, v in branch_mapping.items()}
+        mapped = dc["Branch"].astype(str).map(str_mapping)
         dc["Branch Name"] = mapped.where(mapped.notna(), dc["Branch"])
     else:
         dc["Branch Name"] = dc["Branch"]

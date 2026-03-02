@@ -346,12 +346,15 @@ class DeckBuilder:
             if content.layout_index in {LAYOUT_TITLE_RPE, LAYOUT_TITLE_ARS, LAYOUT_TITLE_ICS}:
                 try:
                     slide.placeholders[0].text = title_lines[0]
+                    # Left-align the main title
+                    for p in slide.placeholders[0].text_frame.paragraphs:
+                        p.alignment = PP_ALIGN.LEFT
                     if len(title_lines) > 1:
                         tf = slide.placeholders[0].text_frame
                         for extra in title_lines[1:]:
                             p = tf.add_paragraph()
                             p.text = extra
-                            p.alignment = PP_ALIGN.CENTER
+                            p.alignment = PP_ALIGN.LEFT
                             p.font.size = Pt(20)
                             p.font.color.rgb = RGBColor(255, 255, 255)
                 except (KeyError, IndexError):
@@ -445,13 +448,37 @@ class DeckBuilder:
             if content.layout_index in self.HEADERONLY_LAYOUTS:
                 self._set_title(slide, content, content.title)
             elif slide.shapes.title:
-                slide.shapes.title.text = content.title
-                if content.layout_index == LAYOUT_TITLE_DARK:
+                # Split header/subheader for LAYOUT_CUSTOM blank slides
+                if content.layout_index == LAYOUT_CUSTOM and "\n" in content.title:
+                    parts = content.title.split("\n", 1)
+                    slide.shapes.title.text = parts[0]
+                    for p in slide.shapes.title.text_frame.paragraphs:
+                        p.font.size = Pt(40)
+                        p.font.bold = True
+                    # Subheader as separate text box below title
+                    tb = slide.shapes.add_textbox(
+                        Inches(0.86), Inches(1.15), Inches(11.6), Inches(0.5)
+                    )
+                    tf = tb.text_frame
+                    tf.word_wrap = True
+                    p = tf.paragraphs[0]
+                    p.text = parts[1]
+                    p.font.size = Pt(24)
+                    p.font.color.rgb = RGBColor(100, 100, 100)
+                elif content.layout_index == LAYOUT_CUSTOM:
+                    slide.shapes.title.text = content.title
+                    for p in slide.shapes.title.text_frame.paragraphs:
+                        p.font.size = Pt(40)
+                        p.font.bold = True
+                elif content.layout_index == LAYOUT_TITLE_DARK:
+                    slide.shapes.title.text = content.title
                     for p in slide.shapes.title.text_frame.paragraphs:
                         p.font.color.rgb = RGBColor(255, 255, 255)
                         p.font.size = Pt(28)
                         p.font.bold = True
                         p.alignment = PP_ALIGN.LEFT
+                else:
+                    slide.shapes.title.text = content.title
 
     def _build_screenshot_slide(self, slide, content: SlideContent) -> None:
         """Build slide with title, subtitle, and single image."""
@@ -1291,17 +1318,17 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
             layout_index=LAYOUT_TITLE_RPE,
         ),
         # P02: Executive Dashboard (replaced at runtime with KPI dashboard)
-        SlideContent(slide_type="blank", title="Agenda", layout_index=LAYOUT_CUSTOM),
+        SlideContent(slide_type="blank", title="Agenda", layout_index=LAYOUT_CONTENT),
         # P03: Program Performance divider
         SlideContent(
             slide_type="title",
             title=f"{client_name}\nProgram Performance | {title_date}",
             layout_index=LAYOUT_TITLE,
         ),
-        # P04: Financial Performance -- blank for manual table
+        # P04: Executive Summary -- blank for manual table
         SlideContent(
             slide_type="blank",
-            title="Financial Performance",
+            title="Executive Summary",
             layout_index=LAYOUT_TITLE_DARK,
         ),
         # P05: Monthly Revenue -- blank
@@ -1344,13 +1371,13 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
         SlideContent(
             slide_type="title",
             title=f"Mailer Summaries\n{client_name} | {title_date}",
-            layout_index=LAYOUT_SECTION,
+            layout_index=LAYOUT_SECTION_ALT,
         ),
-        # P12: All Program Results -- blank
+        # P12: All Program Results divider
         SlideContent(
-            slide_type="blank",
-            title="All Program Results",
-            layout_index=LAYOUT_SECTION,
+            slide_type="section",
+            title=f"All Program Results\n{client_name} | {title_date}",
+            layout_index=LAYOUT_SECTION_ALT,
         ),
         # P13: Program Responses to Date (will be wired to A13.5)
         SlideContent(

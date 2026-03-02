@@ -153,6 +153,18 @@ def _draw_nu_chart(
             fontweight="bold",
             color=SEGMENT_COLORS["NU 5+"],
         )
+    if len(avg_n) > 0:
+        last_val_n = avg_n.iloc[-1]
+        fmt_n = f"${last_val_n:,.0f}" if metric_type == "Spend" else f"{last_val_n:,.0f}"
+        ax.annotate(
+            fmt_n,
+            xy=(dates[-1], last_val_n),
+            xytext=(10, -12),
+            textcoords="offset points",
+            fontsize=12,
+            fontweight="bold",
+            color=SEGMENT_COLORS["Non-Responders"],
+        )
 
     latest_r = avg_r.iloc[-1] if len(avg_r) > 0 else 0
     latest_n = avg_n.iloc[-1] if len(avg_n) > 0 else 0
@@ -223,25 +235,32 @@ def _draw_th_chart(
     ax.grid(axis="y", alpha=0.2, linestyle="--")
     ax.set_axisbelow(True)
 
-    # Final-point data labels on best segment
-    best_final = None
-    best_seg_name = None
-    for seg in TH_SEGMENTS:
+    # Final-point data labels on all segments
+    y_offsets = [8, -12, 20, -24]
+    for i, seg in enumerate(TH_SEGMENTS):
         if seg in th_metrics:
             val = th_metrics[seg]["avg"].iloc[-1]
-            if best_final is None or val > best_final:
-                best_final = val
-                best_seg_name = seg
-    if best_final is not None and best_seg_name is not None:
-        fmt = f"${best_final:,.0f}" if metric_type == "Spend" else f"{best_final:,.0f}"
+            fmt = f"${val:,.0f}" if metric_type == "Spend" else f"{val:,.0f}"
+            ax.annotate(
+                fmt,
+                xy=(dates[-1], val),
+                xytext=(10, y_offsets[i % len(y_offsets)]),
+                textcoords="offset points",
+                fontsize=11,
+                fontweight="bold",
+                color=SEGMENT_COLORS.get(seg, "black"),
+            )
+    if "TNR" in th_metrics:
+        tnr_last = th_metrics["TNR"]["avg"].iloc[-1]
+        fmt = f"${tnr_last:,.0f}" if metric_type == "Spend" else f"{tnr_last:,.0f}"
         ax.annotate(
             fmt,
-            xy=(dates[-1], best_final),
-            xytext=(10, 8),
+            xy=(dates[-1], tnr_last),
+            xytext=(10, -12),
             textcoords="offset points",
-            fontsize=12,
+            fontsize=11,
             fontweight="bold",
-            color=SEGMENT_COLORS.get(best_seg_name, "black"),
+            color=SEGMENT_COLORS["Non-Responders"],
         )
 
     latest_vals = {}

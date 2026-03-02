@@ -326,10 +326,18 @@ class DCTRTrends(AnalysisModule):
         business_rates = (
             _monthly_rates(eb_l12, months) if not eb_l12.empty else [np.nan] * len(months)
         )
+        # Monthly eligible account counts
+        dc_counts = el12.copy()
+        dc_counts["Date Opened"] = pd.to_datetime(
+            dc_counts["Date Opened"], errors="coerce", format="mixed"
+        )
+        dc_counts["Month_Year"] = dc_counts["Date Opened"].dt.strftime("%b%y")
+        monthly_counts = [len(dc_counts[dc_counts["Month_Year"] == m]) for m in months]
 
         trend_df = pd.DataFrame(
             {
                 "Month": months,
+                "Eligible Accounts": monthly_counts,
                 "Overall DCTR %": overall_rates,
                 "Personal DCTR %": personal_rates,
                 "Business DCTR %": business_rates,
@@ -344,72 +352,114 @@ class DCTRTrends(AnalysisModule):
             try:
                 with chart_figure(figsize=(16, 8), save_path=save_to) as (fig, ax):
                     x = np.arange(len(months))
+
+                    # Bars: eligible accounts opened per month (left axis)
+                    ax.bar(
+                        x,
+                        monthly_counts,
+                        color="#B0C4DE",
+                        edgecolor="#4A6FA5",
+                        linewidth=1.2,
+                        alpha=0.7,
+                        width=0.6,
+                        label="Eligible Accounts",
+                        zorder=1,
+                    )
+                    ax.set_ylabel("Eligible Accounts Opened", fontsize=20, fontweight="bold")
+                    ax.tick_params(axis="y", labelsize=18)
+                    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(v):,}"))
+
+                    # Lines: DCTR rates (right axis)
+                    ax2 = ax.twinx()
                     ov = np.array(overall_rates)
                     mask = ~np.isnan(ov)
                     if mask.any():
-                        ax.plot(
+                        ax2.plot(
                             x[mask],
                             ov[mask],
                             color="black",
-                            linewidth=4,
+                            linewidth=3,
                             linestyle="--",
                             marker="o",
-                            markersize=12,
-                            label="Overall",
-                            zorder=2,
+                            markersize=10,
+                            label="Historical DCTR",
+                            zorder=3,
                         )
                     pr = np.array(personal_rates)
                     pmask = ~np.isnan(pr)
                     if pmask.any():
-                        ax.plot(
+                        ax2.plot(
                             x[pmask],
                             pr[pmask],
-                            color=PERSONAL,
-                            linewidth=5,
+                            color="#1B4F72",
+                            linewidth=3.5,
                             marker="o",
-                            markersize=14,
-                            label="Personal",
-                            zorder=3,
+                            markersize=12,
+                            label="TTM DCTR",
+                            zorder=4,
                         )
                     if has_biz:
                         br = np.array(business_rates)
                         bmask = ~np.isnan(br)
                         if bmask.any():
-                            ax.plot(
+                            ax2.plot(
                                 x[bmask],
                                 br[bmask],
-                                color=BUSINESS,
-                                linewidth=4,
+                                color="#E74C3C",
+                                linewidth=2.5,
                                 marker="s",
-                                markersize=12,
-                                label="Business",
+                                markersize=10,
+                                label="Business DCTR",
                                 zorder=3,
                             )
 
+                    ax2.set_ylabel("DCTR (%)", fontsize=20, fontweight="bold")
+                    ax2.tick_params(axis="y", labelsize=18)
+                    ax2.yaxis.set_major_formatter(FuncFormatter(lambda v, p: f"{int(v)}%"))
+
                     ax.set_xticks(x)
-                    ax.set_xticklabels(months, rotation=45, ha="right", fontsize=22)
-                    ax.set_ylabel("DCTR (%)", fontsize=28, fontweight="bold")
+                    ax.set_xticklabels(months, rotation=45, ha="right", fontsize=18)
                     ax.set_title(
-                        "Trailing Twelve Months DCTR Trend", fontsize=28, fontweight="bold", pad=25
+                        "Trailing Twelve Months -- DCTR Trend",
+                        fontsize=24,
+                        fontweight="bold",
+                        pad=20,
                     )
-                    ax.tick_params(axis="y", labelsize=24)
-                    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{int(x)}%"))
-                    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, fontsize=18)
+
+                    # Combined legend
+                    bars_handle = ax.get_legend_handles_labels()
+                    lines_handle = ax2.get_legend_handles_labels()
+                    all_handles = bars_handle[0] + lines_handle[0]
+                    all_labels = bars_handle[1] + lines_handle[1]
+                    ax.legend(
+                        all_handles,
+                        all_labels,
+                        loc="upper center",
+                        bbox_to_anchor=(0.5, -0.12),
+                        ncol=4,
+                        fontsize=14,
+                    )
+
                     ax.set_axisbelow(True)
                     ax.spines["top"].set_visible(False)
+                    ax2.spines["top"].set_visible(False)
 
                     # Endpoint label on last month
                     last_valid = mask.nonzero()[0]
                     if len(last_valid) > 0:
                         li = last_valid[-1]
-                        ax.annotate(
+                        ax2.annotate(
                             f"{ov[li]:.1f}%",
                             xy=(x[li], ov[li]),
                             xytext=(x[li] + 0.3, ov[li] + 2),
-                            fontsize=16,
+                            fontsize=14,
                             fontweight="bold",
                             color="black",
-                            arrowprops={"arrowstyle": "->", "color": "black", "lw": 1.5},
+                            arrowprops={
+                                "arrowstyle": "->",
+                                "color": "black",
+                                "lw": 1.5,
+                            },
                         )
                 chart_path = save_to
             except Exception as exc:

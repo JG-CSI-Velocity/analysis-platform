@@ -151,10 +151,6 @@ def _render_funnel(
         color="#7f8c8d",
         transform=ax.transAxes,
     )
-    # End-to-end drop-off annotation
-    if len(stages) >= 2 and stages[0]["total"] > 0:
-        end_to_end = stages[-1]["total"] / stages[0]["total"] * 100
-        metrics_text += f"\nOverall Pass-Through: {end_to_end:.1f}%"
 
     ax.text(
         0.02,
@@ -172,30 +168,6 @@ def _render_funnel(
         },
     )
 
-    # Through-rate badge at bottom center
-    if len(stages) >= 2 and stages[0]["total"] > 0:
-        end_pct = stages[-1]["total"] / stages[0]["total"] * 100
-        badge = mpatches.FancyBboxPatch(
-            (0.25, 0.01),
-            0.50,
-            0.06,
-            boxstyle="round,pad=0.02",
-            facecolor=POSITIVE,
-            alpha=0.15,
-            edgecolor=POSITIVE,
-            linewidth=2,
-        )
-        ax.add_patch(badge)
-        ax.text(
-            0.5,
-            0.04,
-            f"End-to-End Through Rate: {end_pct:.1f}%",
-            ha="center",
-            va="center",
-            fontsize=16,
-            fontweight="bold",
-            color=POSITIVE,
-        )
 
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -592,7 +564,7 @@ class RegEDimensions(AnalysisModule):
                 stages,
                 title_text="All-Time Account Eligibility & Reg E Funnel",
                 subtitle_text="All-Time Analysis",
-                metrics_text=f"Reg E Rate: {rege_rate:.1f}%\nEnd-to-End: {through_rate:.1f}%",
+                metrics_text=f"Reg E Rate: {rege_rate:.1f}%",
             )
         chart_path = save_to
 
@@ -692,7 +664,7 @@ class RegEDimensions(AnalysisModule):
                 stages,
                 title_text="L12M Account Eligibility & Reg E Funnel",
                 subtitle_text=subtitle,
-                metrics_text=f"Reg E Rate: {rege_rate:.1f}%\nEnd-to-End: {through_rate:.1f}%",
+                metrics_text=f"Reg E Rate: {rege_rate:.1f}%",
             )
         chart_path = save_to
 

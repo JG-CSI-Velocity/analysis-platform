@@ -1063,8 +1063,7 @@ SLIDE_LAYOUT_MAP: dict[str, tuple[int, str]] = {
     "A17.2": (LAYOUT_CUSTOM, "screenshot"),
     "A17.3": (LAYOUT_CUSTOM, "screenshot"),
     # Overview
-    "A1": (LAYOUT_COMPARISON, "screenshot"),
-    "A3": (LAYOUT_TITLE, "screenshot"),
+    "A1": (LAYOUT_CUSTOM, "screenshot"),
     # Insights
     "S1": (LAYOUT_CUSTOM, "screenshot"),
     "S2": (LAYOUT_CUSTOM, "screenshot"),
@@ -1157,7 +1156,7 @@ ATTRITION_APPENDIX_IDS = {
 }
 
 # Slides to skip entirely (not needed in deck)
-OVERVIEW_SKIP_IDS = {"A1b"}
+OVERVIEW_SKIP_IDS = {"A1b", "A3"}
 
 
 def _consolidate(slides, merges, appendix_ids):
@@ -1263,10 +1262,8 @@ _SECTION_LABELS = {
     "insights": "What Should We Do Next?",
 }
 
-# Per-section divider layout overrides (default is LAYOUT_SECTION)
-_SECTION_DIVIDER_LAYOUT: dict[str, int] = {
-    "rege": LAYOUT_TITLE,
-}
+# Section divider layout (all sections use LAYOUT_TITLE)
+_DEFAULT_DIVIDER_LAYOUT = LAYOUT_TITLE
 
 # SCR narrative arc: Situation -> Complication -> Resolution
 SECTION_ORDER = [
@@ -1763,9 +1760,8 @@ def build_deck(ctx: PipelineContext) -> Path | None:
         if not slides:
             continue
         label = _SECTION_LABELS.get(section_key, section_key.title())
-        divider_layout = _SECTION_DIVIDER_LAYOUT.get(section_key, LAYOUT_SECTION)
         analysis_slides.append(
-            _section_divider(label, subtitle=section_subtitle, layout_index=divider_layout)
+            _section_divider(label, subtitle=section_subtitle, layout_index=_DEFAULT_DIVIDER_LAYOUT)
         )
         analysis_slides.extend(slides)
 

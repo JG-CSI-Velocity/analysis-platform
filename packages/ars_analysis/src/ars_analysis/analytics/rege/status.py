@@ -361,52 +361,123 @@ class RegEStatus(AnalysisModule):
         monthly = pd.DataFrame(rows)
         monthly = total_row(monthly, "Month")
 
-        # Chart
+        # Historical opt-in rate from full base (all-time)
+        t_all, oi_all, r_all = rege(base, col, opts)
+        historical_rate = r_all * 100
+
+        # Chart: dual-axis combo (bars = accounts, lines = rates)
         chart_path = None
         save_to = ctx.paths.charts_dir / "a8_3_reg_e_l12m.png"
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
         chart = monthly[monthly["Month"] != "TOTAL"].copy()
-        with chart_figure(figsize=(14, 8), save_path=save_to) as (fig, ax):
-            x = range(len(chart))
-            rates = chart["Opt-In Rate"] * 100
+        overall_rate = monthly[monthly["Month"] == "TOTAL"]["Opt-In Rate"].iloc[0] * 100
+        monthly_counts = chart["Total Accounts"].tolist()
+        ttm_rates = (chart["Opt-In Rate"] * 100).tolist()
 
-            bars = ax.bar(x, rates, color=ELIGIBLE, edgecolor="none", alpha=0.8)
-            for bar, rate, vol in zip(bars, rates, chart["Total Accounts"]):
-                if vol > 0:
-                    ax.text(
-                        bar.get_x() + bar.get_width() / 2,
-                        bar.get_height() + 0.3,
-                        f"{rate:.1f}%",
-                        ha="center",
-                        fontsize=10,
-                        fontweight="bold",
-                    )
+        with chart_figure(figsize=(16, 8), save_path=save_to) as (fig, ax):
+            x = np.arange(len(chart))
 
-            overall_rate = monthly[monthly["Month"] == "TOTAL"]["Opt-In Rate"].iloc[0] * 100
-            ax.axhline(y=overall_rate, color="red", linestyle="--", linewidth=2, alpha=0.7)
-            ax.text(
-                len(chart) - 0.5,
-                overall_rate + 0.3,
-                f"Overall: {overall_rate:.1f}%",
-                ha="right",
-                color="red",
-                fontweight="bold",
+            # Bars: eligible accounts opened per month (left axis)
+            ax.bar(
+                x,
+                monthly_counts,
+                color="#B0C4DE",
+                edgecolor="#4A6FA5",
+                linewidth=1.2,
+                alpha=0.7,
+                width=0.6,
+                label="Eligible Accounts",
+                zorder=1,
             )
-            ax.set_xticks(list(x))
-            ax.set_xticklabels(chart["Month"].tolist(), rotation=45, ha="right")
-            ax.set_ylabel("Opt-In Rate (%)")
+            ax.set_ylabel("Eligible Accounts Opened", fontsize=20, fontweight="bold")
+            ax.tick_params(axis="y", labelsize=18)
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{int(v):,}"))
+
+            # Lines: Reg E rates (right axis)
+            ax2 = ax.twinx()
+
+            # Historical rate (flat reference line)
+            ax2.axhline(
+                y=historical_rate,
+                color="black",
+                linestyle="--",
+                linewidth=2.5,
+                alpha=0.7,
+                label=f"Historical Reg E ({historical_rate:.1f}%)",
+                zorder=2,
+            )
+
+            # TTM per-month rate
+            rates_arr = np.array(ttm_rates)
+            valid_mask = rates_arr > 0
+            if valid_mask.any():
+                ax2.plot(
+                    x[valid_mask],
+                    rates_arr[valid_mask],
+                    color="#1B4F72",
+                    linewidth=3.5,
+                    marker="o",
+                    markersize=12,
+                    label="TTM Reg E Opt-In",
+                    zorder=4,
+                )
+
+            ax2.set_ylabel("Opt-In Rate (%)", fontsize=20, fontweight="bold")
+            ax2.tick_params(axis="y", labelsize=18)
+            ax2.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{int(v)}%"))
+
+            ax.set_xticks(x)
+            ax.set_xticklabels(chart["Month"].tolist(), rotation=45, ha="right", fontsize=18)
             ax.set_title(
-                f"L12M Reg E Opt-In by Month -- {ctx.client.client_name}", fontweight="bold"
+                "Trailing Twelve Months -- Reg E Opt-In Trend",
+                fontsize=24,
+                fontweight="bold",
+                pad=20,
             )
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
+
+            # Combined legend
+            bars_handle = ax.get_legend_handles_labels()
+            lines_handle = ax2.get_legend_handles_labels()
+            all_handles = bars_handle[0] + lines_handle[0]
+            all_labels = bars_handle[1] + lines_handle[1]
+            ax.legend(
+                all_handles,
+                all_labels,
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.12),
+                ncol=3,
+                fontsize=14,
+            )
+
+            ax.set_axisbelow(True)
+            ax.spines["top"].set_visible(False)
+            ax2.spines["top"].set_visible(False)
+
+            # Endpoint label on last valid month
+            last_valid = valid_mask.nonzero()[0]
+            if len(last_valid) > 0:
+                li = last_valid[-1]
+                ax2.annotate(
+                    f"{rates_arr[li]:.1f}%",
+                    xy=(x[li], rates_arr[li]),
+                    xytext=(x[li] + 0.3, rates_arr[li] + 2),
+                    fontsize=14,
+                    fontweight="bold",
+                    color="#1B4F72",
+                    arrowprops={
+                        "arrowstyle": "->",
+                        "color": "#1B4F72",
+                        "lw": 1.5,
+                    },
+                )
         chart_path = save_to
 
         active = chart[chart["Total Accounts"] > 0]
         best_month = (
             active.loc[active["Opt-In Rate"].idxmax(), "Month"] if not active.empty else "N/A"
         )
-        notes = f"Overall L12M: {overall_rate:.1f}%. Best: {best_month}"
+        notes = f"Overall L12M: {overall_rate:.1f}%. Historical: {historical_rate:.1f}%. Best: {best_month}"
 
         ctx.results["reg_e_3"] = {"monthly": monthly}
         return [

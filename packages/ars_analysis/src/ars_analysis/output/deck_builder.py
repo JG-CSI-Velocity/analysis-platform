@@ -1237,6 +1237,31 @@ _SECTION_MAP = {
     "m5": "transaction",
     "m6": "transaction",
     "m7": "transaction",
+    "m8": "transaction",
+    "m9": "transaction",
+    "m10": "transaction",
+    "m11": "transaction",
+    "m12": "transaction",
+    "m13": "transaction",
+    "m14": "transaction",
+    "m15": "transaction",
+    "m16": "transaction",
+    "m17": "transaction",
+    "m18": "transaction",
+    "m19": "transaction",
+    "m20": "transaction",
+    "m21": "transaction",
+    "m22": "transaction",
+    "m23": "transaction",
+    "m24": "transaction",
+    "m25": "transaction",
+    "m26": "transaction",
+    "b1": "transaction",
+    "b2": "transaction",
+    "b3": "transaction",
+    "b4": "transaction",
+    "b5": "transaction",
+    "b8": "transaction",
     "s1": "insights",
     "s2": "insights",
     "s3": "insights",
@@ -1267,13 +1292,15 @@ _DEFAULT_DIVIDER_LAYOUT = LAYOUT_TITLE
 
 # SCR narrative arc: Situation -> Complication -> Resolution
 SECTION_ORDER = [
-    "overview",     # Situation
-    "dctr",         # Complication
-    "rege",         # Complication
-    "attrition",    # Complication
-    "mailer",       # Resolution
-    "value",        # Resolution
-    "insights",     # Resolution (call to action)
+    "overview",      # Situation
+    "dctr",          # Complication
+    "rege",          # Complication
+    "attrition",     # Complication
+    "mailer",        # Resolution
+    "transaction",   # Resolution (spending patterns)
+    "ics",           # Resolution (ICS performance)
+    "value",         # Resolution
+    "insights",      # Resolution (call to action)
 ]
 
 

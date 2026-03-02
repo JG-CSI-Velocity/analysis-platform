@@ -86,6 +86,47 @@ def analyze_wallet_radar(
 
     result_df = pd.DataFrame(rows)
 
+    # --- Category completeness: % of top categories where each segment transacts ---
+    completeness_rows: list[dict] = []
+    for seg in SEGMENT_ORDER:
+        seg_df = known[known["ars_segment"] == seg]
+        if seg_df.empty:
+            continue
+        active_cats = seg_df["mcc_description"].nunique()
+        completeness_rows.append({
+            "Segment": seg,
+            "Active Categories": active_cats,
+            "Of Top Categories": len(top_mccs),
+            "Completeness %": round(
+                min(active_cats, len(top_mccs)) / len(top_mccs) * 100, 1
+            ) if top_mccs else 0,
+        })
+    completeness_df = pd.DataFrame(completeness_rows)
+
+    # --- Recurring spend share: fraction of transactions at recurring merchants ---
+    recurring_data = (context or {}).get("completed_results", {}).get("recurring_payments")
+    recurring_share_rows: list[dict] = []
+    if recurring_data and hasattr(recurring_data, "data") and "main" in recurring_data.data:
+        rec_merchants = set(recurring_data.data["main"]["Merchant"].tolist())
+        if "merchant_consolidated" in known.columns or "merchant_name" in known.columns:
+            merch_col = "merchant_consolidated" if "merchant_consolidated" in known.columns else "merchant_name"
+            for seg in SEGMENT_ORDER:
+                seg_df = known[known["ars_segment"] == seg]
+                if seg_df.empty:
+                    continue
+                total_txns = len(seg_df)
+                rec_txns = len(seg_df[seg_df[merch_col].isin(rec_merchants)])
+                total_spend = seg_df["amount"].sum()
+                rec_spend = seg_df[seg_df[merch_col].isin(rec_merchants)]["amount"].sum()
+                recurring_share_rows.append({
+                    "Segment": seg,
+                    "Total Txns": total_txns,
+                    "Recurring Txns": rec_txns,
+                    "Recurring Txn %": round(rec_txns / total_txns * 100, 1) if total_txns else 0,
+                    "Recurring Spend %": round(rec_spend / total_spend * 100, 1) if total_spend else 0,
+                })
+    recurring_share_df = pd.DataFrame(recurring_share_rows)
+
     meta: dict = {
         "sheet_name": "M18 Wallet",
         "category": "Wallet Analysis",
@@ -93,12 +134,26 @@ def analyze_wallet_radar(
         "mcc_categories": top_mccs,
     }
 
-    summary = f"Top {len(top_mccs)} MCC categories analysed across {len(rows)} segments"
+    data: dict[str, pd.DataFrame] = {"main": result_df}
+    if not completeness_df.empty:
+        data["category_completeness"] = completeness_df
+    if not recurring_share_df.empty:
+        data["recurring_share"] = recurring_share_df
+
+    summary_parts = [
+        f"Top {len(top_mccs)} MCC categories analysed across {len(rows)} segments",
+    ]
+    if not completeness_df.empty:
+        avg_comp = completeness_df["Completeness %"].mean()
+        summary_parts.append(f"Avg category completeness: {avg_comp:.0f}%")
+    if not recurring_share_df.empty:
+        avg_rec = recurring_share_df["Recurring Spend %"].mean()
+        summary_parts.append(f"Avg recurring spend share: {avg_rec:.0f}%")
 
     return AnalysisResult(
         name="wallet_radar",
         title="Share of Wallet Analysis",
-        data={"main": result_df},
+        data=data,
         metadata=meta,
-        summary=summary,
+        summary=". ".join(summary_parts),
     )

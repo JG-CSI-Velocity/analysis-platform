@@ -130,3 +130,42 @@ class TestTimePatterns:
         df = _make_df(dates, amounts)
         result = analyze_time_patterns(df, df, df, _settings())
         assert "Early month" in result.summary or "early month" in result.summary
+
+    def test_wom_dow_heatmap_sheet(self):
+        # Transactions spread across multiple weeks and days
+        dates = [
+            "2025-07-01",  # Tue, Week 1
+            "2025-07-07",  # Mon, Week 1
+            "2025-07-08",  # Tue, Week 2
+            "2025-07-14",  # Mon, Week 2
+            "2025-07-15",  # Tue, Week 3
+            "2025-07-22",  # Tue, Week 4
+        ]
+        df = _make_df(dates)
+        result = analyze_time_patterns(df, df, df, _settings())
+        assert "wom_dow_heatmap" in result.data
+        heatmap = result.data["wom_dow_heatmap"]
+        assert "week_label" in heatmap.columns
+        # Should have Mon-Sun day columns
+        for day in ["Monday", "Tuesday"]:
+            assert day in heatmap.columns
+
+    def test_peak_wom_dow_metadata(self):
+        # 4 txns on same day -> should be peak
+        dates = [
+            "2025-07-14",  # Mon, Week 2
+            "2025-07-14",
+            "2025-07-14",
+            "2025-07-14",
+            "2025-07-15",  # Tue, Week 2
+        ]
+        df = _make_df(dates)
+        result = analyze_time_patterns(df, df, df, _settings())
+        assert "peak_wom_dow" in result.metadata
+        assert result.metadata["peak_wom_dow"] != "--"
+
+    def test_busiest_slot_in_summary(self):
+        dates = ["2025-07-14", "2025-07-14", "2025-07-15"]
+        df = _make_df(dates)
+        result = analyze_time_patterns(df, df, df, _settings())
+        assert "Busiest slot" in result.summary or "busiest" in result.summary.lower()

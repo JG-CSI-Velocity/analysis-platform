@@ -148,10 +148,15 @@ def render_progress(session_key: str, pipeline_name: str):
 
 def make_progress_callback(bar, text, pipeline_name: str, session_key: str):
     """Create a progress callback that updates the bar and text."""
+    _last_msg = {"val": ""}
 
     def _cb(msg: str) -> None:
         fraction = _extract_progress(msg)
         short = msg.split("] ", 1)[-1] if "] " in msg else msg
+        # Skip duplicate messages to avoid unnecessary rerenders
+        if short == _last_msg["val"]:
+            return
+        _last_msg["val"] = short
         if fraction is not None:
             bar.progress(min(fraction, 0.99), text=short)
         text.markdown(f"**{pipeline_name.upper()}** -- {short}")

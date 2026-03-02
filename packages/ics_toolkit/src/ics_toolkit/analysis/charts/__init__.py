@@ -176,6 +176,7 @@ CHART_REGISTRY: dict[str, Callable[..., bytes]] = {
 def create_charts(
     analyses: list[AnalysisResult],
     settings: Settings,
+    on_progress: Callable[..., None] | None = None,
 ) -> dict[str, bytes]:
     """Render charts to PNG bytes for all successful analyses."""
     chart_pngs: dict[str, bytes] = {}
@@ -190,6 +191,9 @@ def create_charts(
         if builder is None:
             logger.debug("No chart builder for '%s'", analysis.name)
             continue
+
+        if on_progress:
+            on_progress(3, 5, f"Chart {i}/{total}: {analysis.name}")
 
         try:
             png_bytes = builder(analysis.df, config)

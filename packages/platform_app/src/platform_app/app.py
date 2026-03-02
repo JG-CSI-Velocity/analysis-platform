@@ -39,9 +39,10 @@ if not any(
     _root.addHandler(_fh)
     _root.setLevel(logging.DEBUG)
 
-    # Terminal output -- INFO+ so pipelines are visible in the console
+    # Terminal output -- WARNING+ to avoid flooding the console with per-analysis logs.
+    # Full detail is always captured in logs/app.log (DEBUG level).
     _sh = logging.StreamHandler()
-    _sh.setLevel(logging.INFO)
+    _sh.setLevel(logging.WARNING)
     _sh.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
     _root.addHandler(_sh)
 

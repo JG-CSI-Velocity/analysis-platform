@@ -108,16 +108,23 @@ def run_pipeline(
     # Step 3: Run analyses
     from ics_toolkit.analysis.analyses import ANALYSIS_REGISTRY
 
-    logger.info("[3/5] Running %d analyses...", len(ANALYSIS_REGISTRY) + 1)
+    n_analyses = len(ANALYSIS_REGISTRY) + 1
+    logger.info("[3/5] Running %d analyses...", n_analyses)
     if on_progress:
         on_progress(2, 5, "Running analyses...")
+
+    # Bridge per-analysis progress into the outer callback
+    def _analysis_progress(i: int, total: int, name: str) -> None:
+        if on_progress:
+            on_progress(2, 5, f"Analysis {i + 1}/{total}: {name}")
+
     analyses = run_all_analyses(
         df,
         ics_all,
         ics_stat_o,
         ics_stat_o_debit,
         settings,
-        on_progress=None,
+        on_progress=_analysis_progress,
     )
     successful = [a for a in analyses if a.error is None]
     failed = [a for a in analyses if a.error is not None]
@@ -135,7 +142,9 @@ def run_pipeline(
         if on_progress:
             on_progress(3, 5, "Rendering charts...")
         try:
-            chart_pngs = create_charts(analyses, settings)
+            chart_pngs = create_charts(
+                analyses, settings, on_progress=on_progress,
+            )
             logger.info("Rendered %d chart PNGs", len(chart_pngs))
         except Exception as e:
             logger.error("Chart rendering failed: %s", e, exc_info=True)

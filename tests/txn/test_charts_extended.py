@@ -217,3 +217,274 @@ class TestChartRegistry:
         ]
         for name in expected:
             assert name in CHART_REGISTRY, f"{name} missing from CHART_REGISTRY"
+
+    def test_registry_has_m23_m24_m25(self):
+        from txn_analysis.charts import CHART_REGISTRY
+
+        expected = [
+            "mailer_effectiveness",
+            "mailer_effectiveness:decay",
+            "mailer_effectiveness:cumulative",
+            "mailer_effectiveness:lift",
+            "activation",
+            "activation:reactivation",
+            "rfm",
+            "rfm:heatmap",
+        ]
+        for name in expected:
+            assert name in CHART_REGISTRY, f"{name} missing from CHART_REGISTRY"
+
+
+# ---------------------------------------------------------------------------
+# M23: Mailer Effectiveness Charts
+# ---------------------------------------------------------------------------
+
+
+class TestMailerEffectivenessCharts:
+    def test_did_parallel_chart(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.mailer_effectiveness import chart_did_parallel
+
+        its_df = pd.DataFrame(
+            {
+                "Month": ["2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+                "actual_spend": [200, 210, 220, 280, 260],
+                "fitted": [200, 210, 220, 230, 240],
+                "counterfactual": [200, 210, 220, 230, 240],
+                "post": [0, 0, 0, 1, 1],
+            }
+        )
+        result = AnalysisResult(
+            name="mailer_effectiveness",
+            title="Mailer Effectiveness",
+            data={"its": its_df},
+            metadata={"did_estimate": 35.0},
+        )
+        fig = chart_did_parallel(result, chart_config)
+        assert fig is not None
+        assert len(fig.get_axes()) > 0
+        plt.close(fig)
+
+    def test_decay_chart(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.mailer_effectiveness import chart_decay_curve
+
+        decay_df = pd.DataFrame(
+            {
+                "Month": ["2025-07", "2025-08", "2025-09"],
+                "Months Post-Mailer": [1, 2, 3],
+                "Responder Avg": [300, 280, 260],
+                "Non-Responder Avg": [200, 200, 200],
+                "Lift": [100, 80, 60],
+            }
+        )
+        result = AnalysisResult(
+            name="mailer_effectiveness",
+            title="Mailer Effectiveness",
+            data={"decay": decay_df},
+            metadata={"half_life": 4.2},
+        )
+        fig = chart_decay_curve(result, chart_config)
+        assert fig is not None
+        assert len(fig.get_axes()) > 0
+        plt.close(fig)
+
+    def test_cumulative_chart(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.mailer_effectiveness import chart_cumulative_lift
+
+        cum_df = pd.DataFrame(
+            {
+                "Month": ["2025-07", "2025-08", "2025-09"],
+                "Responder Total": [5000, 4800, 4500],
+                "Counterfactual": [3000, 3000, 3000],
+                "Incremental": [2000, 1800, 1500],
+                "Cumulative Incremental": [2000, 3800, 5300],
+            }
+        )
+        result = AnalysisResult(
+            name="mailer_effectiveness",
+            title="Mailer Effectiveness",
+            data={"cumulative": cum_df},
+            metadata={},
+        )
+        fig = chart_cumulative_lift(result, chart_config)
+        assert fig is not None
+        assert len(fig.get_axes()) > 0
+        plt.close(fig)
+
+    def test_lift_violin_chart(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.mailer_effectiveness import chart_lift_violin
+
+        lift_df = pd.DataFrame(
+            {
+                "account": [f"A{i:03d}" for i in range(20)],
+                "group": ["Responder"] * 10 + ["Non-Responder"] * 10,
+                "pre_avg": [100.0] * 20,
+                "post_avg": [130.0] * 10 + [100.0] * 10,
+                "lift": [30.0] * 10 + [0.0] * 10,
+                "lift_pct": [30.0] * 10 + [0.0] * 10,
+            }
+        )
+        result = AnalysisResult(
+            name="mailer_effectiveness",
+            title="Mailer Effectiveness",
+            data={"lift_distribution": lift_df},
+            metadata={},
+        )
+        fig = chart_lift_violin(result, chart_config)
+        assert fig is not None
+        assert len(fig.get_axes()) > 0
+        plt.close(fig)
+
+    def test_empty_its_graceful(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.mailer_effectiveness import chart_did_parallel
+
+        result = AnalysisResult(
+            name="mailer_effectiveness",
+            title="Mailer Effectiveness",
+            data={},
+            metadata={},
+        )
+        fig = chart_did_parallel(result, chart_config)
+        assert fig is not None
+        plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# M24: Activation & Dormancy Charts
+# ---------------------------------------------------------------------------
+
+
+class TestActivationCharts:
+    def test_dormancy_bars(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.activation import chart_dormancy_bars
+
+        dormancy_df = pd.DataFrame(
+            {
+                "Status": ["Active", "At-Risk", "Dormant", "Lost"],
+                "Accounts": [300, 80, 50, 20],
+                "Avg Days Since Last Txn": [10, 45, 75, 120],
+                "% of Total": [66.7, 17.8, 11.1, 4.4],
+            }
+        )
+        result = AnalysisResult(
+            name="activation",
+            title="Dormancy",
+            data={"dormancy": dormancy_df},
+            metadata={},
+        )
+        fig = chart_dormancy_bars(result, chart_config)
+        assert fig is not None
+        assert len(fig.get_axes()) > 0
+        plt.close(fig)
+
+    def test_reactivation_flow(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.activation import chart_reactivation_flow
+
+        react_df = pd.DataFrame(
+            {
+                "Month": ["2025-07", "2025-08", "2025-09"],
+                "Active": [400, 420, 410],
+                "New": [30, 25, 20],
+                "Reactivated": [10, 15, 12],
+                "Went Dormant": [20, 15, 22],
+            }
+        )
+        result = AnalysisResult(
+            name="activation",
+            title="Activation",
+            data={"reactivation": react_df},
+            metadata={},
+        )
+        fig = chart_reactivation_flow(result, chart_config)
+        assert fig is not None
+        assert len(fig.get_axes()) > 0
+        plt.close(fig)
+
+    def test_empty_dormancy_graceful(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.activation import chart_dormancy_bars
+
+        result = AnalysisResult(
+            name="activation",
+            title="Activation",
+            data={},
+            metadata={},
+        )
+        fig = chart_dormancy_bars(result, chart_config)
+        assert fig is not None
+        plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# M25: RFM Charts
+# ---------------------------------------------------------------------------
+
+
+class TestRFMCharts:
+    def test_rfm_segments_chart(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.rfm import chart_rfm_segments
+
+        seg_df = pd.DataFrame(
+            {
+                "Segment": ["Champions", "Loyal", "At-Risk", "Lost"],
+                "Accounts": [50, 120, 80, 30],
+                "Avg Spend": [5000.0, 2500.0, 800.0, 100.0],
+                "Avg Txns": [45.0, 25.0, 10.0, 2.0],
+                "Avg Recency (days)": [5, 15, 60, 120],
+                "% of Total": [17.9, 42.9, 28.6, 10.7],
+            }
+        )
+        result = AnalysisResult(
+            name="rfm",
+            title="RFM",
+            data={"main": seg_df},
+            metadata={"total_accounts": 280},
+        )
+        fig = chart_rfm_segments(result, chart_config)
+        assert fig is not None
+        assert len(fig.get_axes()) > 0
+        plt.close(fig)
+
+    def test_rfm_heatmap_chart(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.rfm import chart_rfm_heatmap
+
+        heatmap_df = pd.DataFrame(
+            {
+                "Recency Score": [1, 1, 2, 2, 3, 3, 4, 4],
+                "Frequency Score": [1, 2, 1, 2, 1, 2, 1, 2],
+                "Avg Monetary": [100, 200, 150, 300, 200, 400, 250, 500],
+                "Count": [10, 15, 12, 20, 8, 25, 5, 18],
+            }
+        )
+        result = AnalysisResult(
+            name="rfm",
+            title="RFM",
+            data={"heatmap": heatmap_df},
+            metadata={},
+        )
+        fig = chart_rfm_heatmap(result, chart_config)
+        assert fig is not None
+        assert len(fig.get_axes()) > 0
+        plt.close(fig)
+
+    def test_rfm_empty_graceful(self, chart_config):
+        from txn_analysis.analyses.base import AnalysisResult
+        from txn_analysis.charts.rfm import chart_rfm_segments
+
+        result = AnalysisResult(
+            name="rfm",
+            title="RFM",
+            data={"main": pd.DataFrame()},
+            metadata={},
+        )
+        fig = chart_rfm_segments(result, chart_config)
+        assert fig is not None
+        plt.close(fig)

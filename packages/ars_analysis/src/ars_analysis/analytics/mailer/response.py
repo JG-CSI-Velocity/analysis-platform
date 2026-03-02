@@ -21,10 +21,13 @@ from ars_analysis.analytics.base import AnalysisModule, AnalysisResult
 from ars_analysis.analytics.mailer._helpers import (
     AGE_SEGMENTS,
     MAILED_SEGMENTS,
+    MOVEMENT_COLORS,
     RESPONSE_SEGMENTS,
     SEGMENT_COLORS,
+    SUCCESSFUL_TIERS,
     VALID_RESPONSES,
     _safe,
+    analyze_ladder,
     analyze_month,
     compute_inside_numbers,
     discover_pairs,
@@ -169,8 +172,9 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
     data = ctx.data
     results: list[AnalysisResult] = []
     all_monthly: dict = {}
+    prev_rate: float | None = None
 
-    for month, resp_col, mail_col in pairs:
+    for idx, (month, resp_col, mail_col) in enumerate(pairs):
         seg_details, total_mailed, total_resp, overall_rate = analyze_month(
             data,
             resp_col,
@@ -196,8 +200,16 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
         ok_donut = _render_donut_chart(seg_details, donut_path, "Response Share")
         ok_hbar = _render_hbar_chart(seg_details, hbar_path, "Response Rate")
 
+        # Compute ladder for this month
+        ladder = analyze_ladder(data, pairs, idx)
+
         # Build "Inside the Numbers" bullets -- member characteristics first
-        inside_numbers = compute_inside_numbers(ctx, data, resp_col)
+        inside_numbers = compute_inside_numbers(
+            ctx, data, resp_col,
+            ladder=ladder,
+            prev_rate=prev_rate,
+            current_rate=overall_rate,
+        )
         inside_bullets: list[str] = []
         for pct_str, desc in inside_numbers:
             inside_bullets.append(f"{pct_str}|{desc}")
@@ -208,6 +220,19 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
             d = seg_details[s]
             lbl = "NU 5+" if s == "NU" else s
             inside_bullets.append(f"{d['rate']:.1f}%|{lbl} response rate")
+
+        # Build insight text with MoM delta
+        if prev_rate is not None:
+            delta = overall_rate - prev_rate
+            direction = "increase" if delta >= 0 else "decrease"
+            insight_text = (
+                f"Mailed {total_mailed:,}, {total_resp:,} responded "
+                f"({overall_rate:.1f}%) -- {abs(delta):.1f}pp {direction} vs prior mailer"
+            )
+        else:
+            insight_text = (
+                f"Mailed {total_mailed:,}, {total_resp:,} responded ({overall_rate:.1f}%)"
+            )
 
         # Build KPIs
         kpis = {
@@ -233,8 +258,7 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
                 title=month_title,
                 chart_path=donut_path if ok_donut else None,
                 extra_charts=[hbar_path] if ok_hbar else None,
-                bullets=[f"Mailed {total_mailed:,}, {total_resp:,} responded ({overall_rate:.1f}%)"]
-                + inside_bullets,
+                bullets=[insight_text] + inside_bullets,
                 kpis=kpis,
                 excel_data={"Response": pd.DataFrame(rows)},
                 slide_type="mailer_summary",
@@ -251,7 +275,9 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
             "total_mailed": total_mailed,
             "total_resp": total_resp,
             "overall_rate": overall_rate,
+            "ladder": ladder,
         }
+        prev_rate = overall_rate
 
     ctx.results["monthly_summaries"] = all_monthly
     return results
@@ -302,38 +328,41 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
     ok_donut = _render_donut_chart(combined, donut_path, "Response Share")
     ok_hbar = _render_hbar_chart(combined, hbar_path, "Response Rate")
 
+    # Compute cumulative ladder stats across all months
+    cumulative_ladder: dict | None = None
+    monthly_data = ctx.results.get("monthly_summaries", {})
+    for m_data in monthly_data.values():
+        m_ladder = m_data.get("ladder")
+        if m_ladder is None:
+            continue
+        if cumulative_ladder is None:
+            cumulative_ladder = {
+                "first_count": 0,
+                "repeat_count": 0,
+                "movement_up": 0,
+                "movement_same": 0,
+                "movement_down": 0,
+                "total_successful": 0,
+            }
+        for k in cumulative_ladder:
+            cumulative_ladder[k] += m_ladder.get(k, 0)
+
     # Build combined responder mask across ALL months for inside numbers
+    # Use the last resp_col for compute_inside_numbers base
+    last_resp_col = pairs[-1][1]
     all_resp_mask = pd.Series(False, index=data.index)
     for _, resp_col, _ in pairs:
         all_resp_mask |= data[resp_col].isin(RESPONSE_SEGMENTS)
     responders = data[all_resp_mask]
     n_resp = len(responders)
 
+    inside_numbers = compute_inside_numbers(
+        ctx, data, last_resp_col,
+        ladder=cumulative_ladder,
+    )
     inside_bullets: list[str] = []
-
-    # Member characteristic metrics (account age, Reg E)
-    if n_resp > 0:
-        if "Date Opened" in data.columns:
-            do = pd.to_datetime(responders["Date Opened"], errors="coerce", format="mixed")
-            age_years = (pd.Timestamp.now() - do).dt.days / 365.25
-            under_2 = int((age_years < 2).sum())
-            pct = under_2 / n_resp * 100
-            inside_bullets.append(
-                f"{pct:.0f}%|of Responders were accounts opened fewer than 2 years ago"
-            )
-
-        opt_list = ctx.client.reg_e_opt_in
-        if opt_list:
-            reg_e_col = ctx.client.reg_e_column
-            if not reg_e_col and ctx.data is not None:
-                from ars_analysis.analytics.rege._helpers import detect_reg_e_column
-
-                reg_e_col = detect_reg_e_column(ctx.data)
-            if reg_e_col and reg_e_col in data.columns:
-                opted_in = responders[reg_e_col].astype(str).str.strip()
-                n_opted = int(opted_in.isin(opt_list).sum())
-                pct_re = n_opted / n_resp * 100
-                inside_bullets.append(f"{pct_re:.0f}%|of Responders opted into Reg E")
+    for pct_str, desc in inside_numbers:
+        inside_bullets.append(f"{pct_str}|{desc}")
 
     # Then response rates
     active = [s for s in RESPONSE_SEGMENTS if s in combined]
@@ -766,6 +795,177 @@ def _account_age(ctx: PipelineContext) -> list[AnalysisResult]:
 
 
 # ---------------------------------------------------------------------------
+# A15 -- Standalone ladder analysis slides
+# ---------------------------------------------------------------------------
+
+
+def _ladder_slides(ctx: PipelineContext) -> list[AnalysisResult]:
+    """One 3-panel ladder chart per month (starting from 2nd month)."""
+    logger.info("A15 ladder slides")
+    pairs = discover_pairs(ctx)
+    if len(pairs) < 2:
+        return []
+
+    data = ctx.data
+    results: list[AnalysisResult] = []
+    ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
+
+    for idx in range(1, len(pairs)):
+        month, resp_col, _ = pairs[idx]
+        ladder = analyze_ladder(data, pairs, idx)
+        if ladder is None or ladder["total_successful"] == 0:
+            continue
+
+        total = ladder["total_successful"]
+        first_pct = ladder["first_count"] / total * 100
+        repeat_total = ladder["repeat_count"]
+        up_pct = (
+            ladder["movement_up"] / repeat_total * 100 if repeat_total > 0 else 0
+        )
+
+        # Conclusion headline (exec presentation skill)
+        if repeat_total > 0:
+            headline = (
+                f"{total:,} responders -- {first_pct:.0f}% first-time, "
+                f"{up_pct:.0f}% of repeats moved up the ladder"
+            )
+        else:
+            headline = f"{total:,} responders -- {first_pct:.0f}% first-time"
+
+        save_to = ctx.paths.charts_dir / f"a15_{month.lower()}_ladder.png"
+
+        with chart_figure(figsize=(18, 8), save_path=save_to) as (fig, ax):
+            import matplotlib.gridspec as gridspec
+            import matplotlib.pyplot as plt
+
+            ax.remove()
+            gs = gridspec.GridSpec(1, 3, figure=fig, width_ratios=[1.2, 0.8, 1], wspace=0.3)
+
+            # Panel 1: Response Distribution (horizontal bar)
+            ax1 = fig.add_subplot(gs[0, 0])
+            tiers = SUCCESSFUL_TIERS
+            counts = [ladder["distribution"].get(t, 0) for t in tiers]
+            colors = [SEGMENT_COLORS.get(t, "#888") for t in tiers]
+
+            y_pos = np.arange(len(tiers))
+            bars = ax1.barh(y_pos, counts, color=colors, height=0.6)
+            max_c = max(counts) if counts else 1
+            for bar, count in zip(bars, counts):
+                pct = count / total * 100 if total > 0 else 0
+                ax1.text(
+                    bar.get_width() + max_c * 0.02,
+                    bar.get_y() + bar.get_height() / 2,
+                    f"{count:,} ({pct:.0f}%)",
+                    va="center",
+                    fontsize=11,
+                    fontweight="bold",
+                )
+            ax1.set_yticks(y_pos)
+            ax1.set_yticklabels(tiers, fontsize=13, fontweight="bold")
+            ax1.set_xlim(0, max_c * 1.35 if max_c > 0 else 1)
+            ax1.invert_yaxis()
+            ax1.spines["top"].set_visible(False)
+            ax1.spines["right"].set_visible(False)
+            ax1.set_title("Response Distribution", fontsize=15, fontweight="bold")
+
+            # Panel 2: First vs Repeat (donut)
+            ax2 = fig.add_subplot(gs[0, 1])
+            if ladder["first_count"] + repeat_total > 0:
+                sizes = [ladder["first_count"], repeat_total]
+                labels = ["First", "Repeat"]
+                donut_colors = [MOVEMENT_COLORS["First"], "#607D8B"]
+                wedges, texts, autotexts = ax2.pie(
+                    sizes,
+                    labels=labels,
+                    autopct=lambda p: f"{p:.0f}%" if p > 0 else "",
+                    colors=donut_colors,
+                    startangle=90,
+                    counterclock=False,
+                    textprops={"fontsize": 13, "fontweight": "bold"},
+                    pctdistance=0.75,
+                    wedgeprops={"linewidth": 2, "edgecolor": "white"},
+                )
+                for at in autotexts:
+                    at.set_color("white")
+                    at.set_fontsize(15)
+                    at.set_fontweight("bold")
+                centre = plt.Circle((0, 0), 0.5, fc="white")
+                ax2.add_artist(centre)
+                ax2.text(
+                    0, 0, f"{total:,}", ha="center", va="center",
+                    fontsize=18, fontweight="bold",
+                )
+            ax2.set_title("First vs Repeat", fontsize=15, fontweight="bold")
+
+            # Panel 3: Ladder Movement (repeat only)
+            ax3 = fig.add_subplot(gs[0, 2])
+            if repeat_total > 0:
+                mv_labels = ["Up", "Same", "Down"]
+                mv_counts = [
+                    ladder["movement_up"],
+                    ladder["movement_same"],
+                    ladder["movement_down"],
+                ]
+                mv_colors = [
+                    MOVEMENT_COLORS["Up"],
+                    MOVEMENT_COLORS["Same"],
+                    MOVEMENT_COLORS["Down"],
+                ]
+                y_pos = np.arange(len(mv_labels))
+                bars = ax3.barh(y_pos, mv_counts, color=mv_colors, height=0.6)
+                max_mv = max(mv_counts) if mv_counts else 1
+                for bar, count in zip(bars, mv_counts):
+                    pct = count / repeat_total * 100
+                    ax3.text(
+                        bar.get_width() + max_mv * 0.02,
+                        bar.get_y() + bar.get_height() / 2,
+                        f"{count:,} ({pct:.0f}%)",
+                        va="center",
+                        fontsize=11,
+                        fontweight="bold",
+                    )
+                ax3.set_yticks(y_pos)
+                ax3.set_yticklabels(mv_labels, fontsize=13, fontweight="bold")
+                ax3.set_xlim(0, max_mv * 1.4 if max_mv > 0 else 1)
+                ax3.invert_yaxis()
+            else:
+                ax3.text(
+                    0.5, 0.5, "No repeat\nresponders",
+                    ha="center", va="center", fontsize=13,
+                    transform=ax3.transAxes,
+                )
+                ax3.set_xticks([])
+                ax3.set_yticks([])
+            ax3.set_title("Ladder Movement\n(Repeat Only)", fontsize=15, fontweight="bold")
+            ax3.spines["top"].set_visible(False)
+            ax3.spines["right"].set_visible(False)
+
+        # Notes
+        notes_parts = [
+            f"Total: {total:,}",
+            f"First: {ladder['first_count']:,}",
+            f"Repeat: {repeat_total:,}",
+        ]
+        if repeat_total > 0:
+            notes_parts.append(
+                f"Up: {ladder['movement_up']:,}, "
+                f"Same: {ladder['movement_same']:,}, "
+                f"Down: {ladder['movement_down']:,}"
+            )
+
+        results.append(
+            AnalysisResult(
+                slide_id=f"A15.{month}",
+                title=headline,
+                chart_path=save_to,
+                notes=" | ".join(notes_parts),
+            )
+        )
+
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Module
 # ---------------------------------------------------------------------------
 
@@ -787,4 +987,5 @@ class MailerResponse(AnalysisModule):
         results += _safe(lambda c: _count_trend(c), "A13.5", ctx)
         results += _safe(lambda c: _rate_trend(c), "A13.6", ctx)
         results += _safe(lambda c: _account_age(c), "A14.2", ctx)
+        results += _safe(lambda c: _ladder_slides(c), "A15", ctx)
         return results

@@ -55,6 +55,137 @@ AGE_SEGMENTS: list[tuple[str, int, int]] = [
     ("> 20 years", 20, 999),
 ]
 
+# ---------------------------------------------------------------------------
+# A15 Ladder scoring
+# ---------------------------------------------------------------------------
+
+SCORE_MAP: dict[str, int] = {
+    "NU 1-4": 1,  # tracked but NOT a success
+    "NU 5+": 2,
+    "TH-10": 3,
+    "TH-15": 4,
+    "TH-20": 5,
+    "TH-25": 6,
+}
+SUCCESSFUL_TIERS = ["NU 5+", "TH-10", "TH-15", "TH-20", "TH-25"]
+
+MOVEMENT_COLORS: dict[str, str] = {
+    "First": "#2E7D32",
+    "Up": "#1976D2",
+    "Same": "#FBC02D",
+    "Down": "#C62828",
+}
+
+# Member-age buckets (from DOB)
+MEMBER_AGE_BUCKETS: list[tuple[str, int, int]] = [
+    ("18-30", 18, 30),
+    ("30-45", 30, 45),
+    ("45-60", 45, 60),
+    ("60+", 60, 200),
+]
+
+
+# ---------------------------------------------------------------------------
+# A15 classification
+# ---------------------------------------------------------------------------
+
+
+def classify_responder(
+    current_resp: str | None,
+    prior_responses: list[str | None],
+) -> dict:
+    """Classify a responder vs their most recent prior success.
+
+    Returns dict with keys:
+      include  -- True only if current tier is successful (score >= 2)
+      type     -- "First" (no prior success) or "Repeat"
+      movement -- "Up" / "Same" / "Down" / None (only set for Repeat)
+    """
+    current_score = SCORE_MAP.get(current_resp or "", 0)
+    if current_score < 2:
+        return {"include": False}
+
+    # Find most recent prior successful response (score >= 2)
+    prior_score: int | None = None
+    for resp in reversed(prior_responses):
+        s = SCORE_MAP.get(resp or "", 0)
+        if s >= 2:
+            prior_score = s
+            break
+
+    if prior_score is None:
+        return {"include": True, "type": "First", "movement": None}
+
+    if current_score > prior_score:
+        movement = "Up"
+    elif current_score < prior_score:
+        movement = "Down"
+    else:
+        movement = "Same"
+
+    return {"include": True, "type": "Repeat", "movement": movement}
+
+
+def analyze_ladder(
+    data: pd.DataFrame,
+    pairs: list[tuple[str, str, str]],
+    month_idx: int,
+) -> dict | None:
+    """Aggregate ladder stats for month at *month_idx*.
+
+    Returns None when month_idx == 0 (no prior history).
+    Otherwise returns dict with first_count, repeat_count,
+    movement_up/same/down, total_successful.
+    """
+    if month_idx < 1:
+        return None
+
+    _, resp_col, _ = pairs[month_idx]
+    prior_resp_cols = [rc for _, rc, _ in pairs[:month_idx]]
+
+    result = {
+        "first_count": 0,
+        "repeat_count": 0,
+        "movement_up": 0,
+        "movement_same": 0,
+        "movement_down": 0,
+        "total_successful": 0,
+        "distribution": {t: 0 for t in SUCCESSFUL_TIERS},
+    }
+
+    for _, row in data.iterrows():
+        current = row.get(resp_col)
+        if pd.isna(current):
+            continue
+        current = str(current).strip()
+
+        priors = [
+            str(row.get(c)).strip() if pd.notna(row.get(c)) else None
+            for c in prior_resp_cols
+        ]
+
+        cls = classify_responder(current, priors)
+        if not cls["include"]:
+            continue
+
+        result["total_successful"] += 1
+        if current in result["distribution"]:
+            result["distribution"][current] += 1
+
+        if cls["type"] == "First":
+            result["first_count"] += 1
+        else:
+            result["repeat_count"] += 1
+            mv = cls["movement"]
+            if mv == "Up":
+                result["movement_up"] += 1
+            elif mv == "Same":
+                result["movement_same"] += 1
+            elif mv == "Down":
+                result["movement_down"] += 1
+
+    return result
+
 
 # ---------------------------------------------------------------------------
 # Parsing helpers
@@ -255,12 +386,19 @@ def compute_inside_numbers(
     ctx: PipelineContext,
     data: pd.DataFrame,
     resp_col: str,
+    *,
+    ladder: dict | None = None,
+    prev_rate: float | None = None,
+    current_rate: float | None = None,
 ) -> list[tuple[str, str]]:
     """Compute responder characteristic metrics for mailer summary slides.
 
     Returns list of (percentage_string, description) tuples, e.g.:
       ("42%", "of Responders were accounts opened fewer than 2 years ago")
       ("68%", "of Responders opted into Reg E")
+
+    Optional *ladder* dict from analyze_ladder() enriches with first/repeat
+    and movement stats.  *prev_rate* adds month-over-month delta.
     """
     metrics: list[tuple[str, str]] = []
     responders = data[data[resp_col].isin(RESPONSE_SEGMENTS)]
@@ -268,7 +406,7 @@ def compute_inside_numbers(
     if n_resp == 0:
         return metrics
 
-    # % of responders with accounts opened < 2 years ago
+    # 1. Account age <2yr (existing)
     if "Date Opened" in data.columns:
         do = pd.to_datetime(responders["Date Opened"], errors="coerce", format="mixed")
         age_years = (pd.Timestamp.now() - do).dt.days / 365.25
@@ -276,7 +414,24 @@ def compute_inside_numbers(
         pct = under_2 / n_resp * 100
         metrics.append((f"{pct:.0f}%", "of Responders were accounts opened fewer than 2 years ago"))
 
-    # % of responders opted into Reg E (uses same config as Reg E module)
+    # 2. Member age dominant bucket (from DOB)
+    if "DOB" in data.columns:
+        dob = pd.to_datetime(responders["DOB"], errors="coerce", format="mixed")
+        valid_dob = dob.notna()
+        if valid_dob.sum() > 0:
+            member_ages = (pd.Timestamp.now() - dob[valid_dob]).dt.days / 365.25
+            best_label, best_pct = "", 0.0
+            total_valid = len(member_ages)
+            for label, lo, hi in MEMBER_AGE_BUCKETS:
+                cnt = int(((member_ages >= lo) & (member_ages < hi)).sum())
+                bucket_pct = cnt / total_valid * 100 if total_valid > 0 else 0
+                if bucket_pct > best_pct:
+                    best_pct = bucket_pct
+                    best_label = label
+            if best_pct > 0:
+                metrics.append((f"{best_pct:.0f}%", f"of Responders aged {best_label}"))
+
+    # 3. Reg E opt-in (existing)
     opt_list = ctx.client.reg_e_opt_in
     if opt_list:
         reg_e_col = ctx.client.reg_e_column
@@ -289,6 +444,24 @@ def compute_inside_numbers(
             n_opted = int(opted_in.isin(opt_list).sum())
             pct = n_opted / n_resp * 100
             metrics.append((f"{pct:.0f}%", "of Responders opted into Reg E"))
+
+    # 4. First-time responders (from ladder)
+    if ladder and ladder["total_successful"] > 0:
+        first_pct = ladder["first_count"] / ladder["total_successful"] * 100
+        metrics.append((f"{first_pct:.0f}%", "First-time responders"))
+
+        # 5. Repeat movement up
+        if ladder["repeat_count"] > 0:
+            up_pct = ladder["movement_up"] / ladder["repeat_count"] * 100
+            metrics.append(
+                (f"{up_pct:.0f}%", "of repeat responders moved up the ladder")
+            )
+
+    # 6. Month-over-month delta
+    if prev_rate is not None and current_rate is not None:
+        delta = current_rate - prev_rate
+        sign = "+" if delta >= 0 else ""
+        metrics.append((f"{sign}{delta:.1f}pp", "vs prior mailer response rate"))
 
     return metrics
 

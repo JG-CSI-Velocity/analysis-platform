@@ -661,6 +661,55 @@ def init(
 
 
 # ---------------------------------------------------------------------------
+# sales-deck
+# ---------------------------------------------------------------------------
+
+
+@app.command("sales-deck")
+def sales_deck(
+    conference: str = typer.Option(
+        "2026 Credit Union Conference", "--conference", "-c", help="Conference name"
+    ),
+    date: str = typer.Option("", "--date", "-d", help="Conference date"),
+    booth: str = typer.Option("", "--booth", "-b", help="Booth number"),
+    contact: str = typer.Option("", "--contact", help="Contact info for CTA slide"),
+    mrpc_chart: str | None = typer.Option(
+        None, "--mrpc-chart", help="Path to existing MRPC revenue chart image"
+    ),
+    output: str = typer.Option("RPE_Sales_Deck.pptx", "--output", "-o", help="Output PPTX path"),
+) -> None:
+    """Generate an RPE sales conference deck with synthetic data."""
+    _setup()
+
+    from ars_analysis.output.sales_deck_builder import SalesDeckConfig, build_sales_deck
+
+    mrpc_path = Path(mrpc_chart) if mrpc_chart else None
+    if mrpc_path and not mrpc_path.exists():
+        _display_error(FileNotFoundError(f"MRPC chart not found: {mrpc_path}"))
+        raise typer.Exit(1)
+
+    cfg = SalesDeckConfig(
+        conference_name=conference,
+        conference_date=date,
+        booth_number=booth,
+        contact_info=contact,
+        mrpc_chart_path=mrpc_path,
+        output_path=Path(output),
+    )
+
+    try:
+        result = build_sales_deck(cfg)
+        console.print(f"[green]Sales deck saved to {result}[/green]")
+        console.print(f"  Conference: {cfg.conference_name}")
+        console.print("  Slides: 13")
+        if cfg.booth_number:
+            console.print(f"  Booth: #{cfg.booth_number}")
+    except Exception as exc:
+        _display_error(exc)
+        raise typer.Exit(1)
+
+
+# ---------------------------------------------------------------------------
 # migrate
 # ---------------------------------------------------------------------------
 

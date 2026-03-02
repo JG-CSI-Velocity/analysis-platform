@@ -1707,6 +1707,8 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     mailer_results = sections.get("mailer", [])
     overview_results = sections.get("overview", [])
     insights_results = sections.get("insights", [])
+    transaction_results = sections.get("transaction", [])
+    ics_results = sections.get("ics", [])
     other_results = sections.get("other", [])
 
     if _notify:
@@ -1772,6 +1774,8 @@ def build_deck(ctx: PipelineContext) -> Path | None:
         "rege": _convert_list(rege_main) + value_rege_slides,
         "attrition": _convert_list(attrition_main),
         "mailer": _convert_list(mailer_main),
+        "transaction": _convert_list(transaction_results),
+        "ics": _convert_list(ics_results),
         "value": [],  # value slides distributed into dctr/rege above
         "insights": _convert_list(insights_results),
     }

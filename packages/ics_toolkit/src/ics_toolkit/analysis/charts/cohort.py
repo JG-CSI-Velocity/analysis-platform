@@ -254,7 +254,7 @@ def chart_growth_patterns(df: pd.DataFrame, config: ChartConfig) -> bytes:
 def chart_activation_personas(df: pd.DataFrame, config: ChartConfig) -> bytes:
     """Donut chart of activation persona distribution."""
     buf = BytesIO()
-    with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
+    with chart_figure(figsize=(12, 7), save_path=buf) as (_fig, ax):
         colors = [
             PERSONA_COLORS.get(cat, PALETTE[i % len(PALETTE)])
             for i, cat in enumerate(df["Category"])
@@ -270,7 +270,7 @@ def chart_activation_personas(df: pd.DataFrame, config: ChartConfig) -> bytes:
         )
 
         # Center hole for donut
-        centre = ax.add_patch(
+        ax.add_patch(
             __import__("matplotlib.patches", fromlist=["Circle"]).Circle((0, 0), 0.35, fc="white")
         )
 
@@ -285,8 +285,7 @@ def chart_activation_personas(df: pd.DataFrame, config: ChartConfig) -> bytes:
         ax.legend(
             wedges,
             legend_labels,
-            loc="center left",
-            bbox_to_anchor=(0.85, 0.5),
+            loc="center right",
             fontsize=12,
             frameon=False,
         )

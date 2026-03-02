@@ -76,7 +76,7 @@ def chart_branch_performance_index(df: pd.DataFrame, config: ChartConfig) -> byt
     buf = BytesIO()
     categories = ["Activation Index", "Swipes Index", "Spend Index", "Balance Index"]
 
-    with chart_figure(figsize=(10, 10), save_path=buf) as (fig, ax):
+    with chart_figure(figsize=(14, 8), save_path=buf) as (fig, ax):
         ax.remove()
         ax = fig.add_subplot(111, polar=True)
 
@@ -92,13 +92,13 @@ def chart_branch_performance_index(df: pd.DataFrame, config: ChartConfig) -> byt
             ax.fill(angles, values, color=color, alpha=0.1)
 
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(categories, fontsize=13)
-        ax.set_title("Branch Performance Index", fontsize=22, fontweight="bold", pad=30)
-        ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.0), fontsize=11)
+        ax.set_xticklabels(categories, fontsize=16)
+        ax.set_title("Branch Performance Index", fontsize=24, fontweight="bold", pad=30)
+        ax.legend(loc="upper right", bbox_to_anchor=(1.25, 1.0), fontsize=13)
 
         max_val = max(200, df[categories].max().max() + 20) if not df.empty else 200
         ax.set_ylim(0, max_val)
-        ax.yaxis.set_tick_params(labelsize=11)
+        ax.yaxis.set_tick_params(labelsize=13)
 
     buf.seek(0)
     return buf.read()

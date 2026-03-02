@@ -12,8 +12,6 @@ from ics_toolkit.analysis.charts.style import (
     BAR_EDGE,
     BAR_EDGE_WIDTH,
     DATA_LABEL_SIZE,
-    LINE_WIDTH,
-    MARKER_SIZE,
     NAVY,
     TEAL,
 )
@@ -23,7 +21,7 @@ from ics_toolkit.settings import ChartConfig
 def chart_total_ics(df: pd.DataFrame, config: ChartConfig) -> bytes:
     """Donut chart of ICS vs Non-ICS accounts."""
     buf = BytesIO()
-    with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
+    with chart_figure(figsize=(12, 7), save_path=buf) as (_fig, ax):
         data = df[df["Category"] != "Total Accounts"].copy()
         colors = [NAVY, TEAL][: len(data)]
 
@@ -50,8 +48,7 @@ def chart_total_ics(df: pd.DataFrame, config: ChartConfig) -> bytes:
         ax.legend(
             wedges,
             legend_labels,
-            loc="center left",
-            bbox_to_anchor=(0.85, 0.5),
+            loc="center right",
             fontsize=13,
             frameon=False,
         )
@@ -147,7 +144,7 @@ def chart_prod_code(df: pd.DataFrame, config: ChartConfig) -> bytes:
 def chart_debit_dist(df: pd.DataFrame, config: ChartConfig) -> bytes:
     """Donut chart of Debit Card distribution."""
     buf = BytesIO()
-    with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
+    with chart_figure(figsize=(12, 7), save_path=buf) as (_fig, ax):
         data = df[df["Debit?"] != "Total"].copy()
         colors = [ACQUISITION, "#E74C3C"][: len(data)]
 
@@ -172,8 +169,7 @@ def chart_debit_dist(df: pd.DataFrame, config: ChartConfig) -> bytes:
         ax.legend(
             wedges,
             legend_labels,
-            loc="center left",
-            bbox_to_anchor=(0.85, 0.5),
+            loc="center right",
             fontsize=13,
             frameon=False,
         )
@@ -186,60 +182,84 @@ def chart_debit_dist(df: pd.DataFrame, config: ChartConfig) -> bytes:
 
 
 def chart_debit_by_prod(df: pd.DataFrame, config: ChartConfig) -> bytes:
-    """Grouped bar of Debit Yes/No by Product Code with % line."""
+    """Stacked bar of Debit Yes/No by Product Code."""
     buf = BytesIO()
-    with chart_figure(save_path=buf) as (fig, ax):
+    with chart_figure(save_path=buf) as (_fig, ax):
         data = df[df["Prod Code"] != "Total"].copy()
         x = np.arange(len(data))
-        width = 0.3
+        width = 0.5
 
-        if "Yes" in data.columns:
-            ax.bar(
-                x - width / 2,
-                data["Yes"],
-                width,
-                label="Debit Yes",
-                color=ACQUISITION,
-                edgecolor=BAR_EDGE,
-                linewidth=BAR_EDGE_WIDTH,
-            )
-        if "No" in data.columns:
-            ax.bar(
-                x + width / 2,
-                data["No"],
-                width,
-                label="Debit No",
-                color="#E74C3C",
-                edgecolor=BAR_EDGE,
-                linewidth=BAR_EDGE_WIDTH,
-                alpha=0.7,
-            )
+        yes_vals = pd.to_numeric(data.get("Yes", pd.Series(dtype=float)), errors="coerce").fillna(0)
+        no_vals = pd.to_numeric(data.get("No", pd.Series(dtype=float)), errors="coerce").fillna(0)
 
+        bars_yes = ax.bar(
+            x,
+            yes_vals,
+            width,
+            label="Debit Yes",
+            color=ACQUISITION,
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+        )
+        bars_no = ax.bar(
+            x,
+            no_vals,
+            width,
+            bottom=yes_vals,
+            label="Debit No",
+            color="#E74C3C",
+            edgecolor=BAR_EDGE,
+            linewidth=BAR_EDGE_WIDTH,
+            alpha=0.7,
+        )
+
+        # Data labels on each segment
+        for bar, val in zip(bars_yes, yes_vals):
+            if val > 0:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() / 2,
+                    f"{int(val):,}",
+                    ha="center",
+                    va="center",
+                    fontsize=DATA_LABEL_SIZE - 2,
+                    fontweight="bold",
+                    color="white",
+                )
+        for bar, val, bottom in zip(bars_no, no_vals, yes_vals):
+            if val > 0:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bottom + val / 2,
+                    f"{int(val):,}",
+                    ha="center",
+                    va="center",
+                    fontsize=DATA_LABEL_SIZE - 2,
+                    fontweight="bold",
+                    color="white",
+                )
+
+        # % with Debit annotation above each bar
         if "% with Debit" in data.columns:
-            ax2 = ax.twinx()
-            ax2.plot(
-                x,
-                data["% with Debit"],
-                color=NAVY,
-                marker="D",
-                markersize=MARKER_SIZE,
-                linewidth=LINE_WIDTH,
-                label="% with Debit",
-                zorder=5,
-            )
-            ax2.set_ylabel("% with Debit")
-            ax2.set_ylim(0, 1.15)
-            ax2.yaxis.set_major_formatter(lambda x, _: f"{x:.0%}")
-            ax2.grid(False)
-            lines1, labels1 = ax.get_legend_handles_labels()
-            lines2, labels2 = ax2.get_legend_handles_labels()
-            ax.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
+            totals = yes_vals + no_vals
+            for xi, total, pct in zip(x, totals, data["% with Debit"]):
+                ax.text(
+                    xi,
+                    total,
+                    f" {pct:.1f}%",
+                    ha="center",
+                    va="bottom",
+                    fontsize=DATA_LABEL_SIZE - 1,
+                    fontweight="bold",
+                    color=NAVY,
+                )
 
         ax.set_xticks(x)
         ax.set_xticklabels(data["Prod Code"])
         ax.set_xlabel("Product Code")
         ax.set_ylabel("Count")
         ax.set_title("Debit Distribution by Product Code")
+        ax.legend(loc="upper right")
         ax.grid(axis="y", alpha=0.15, linestyle="--")
         ax.set_axisbelow(True)
 
@@ -273,7 +293,7 @@ def chart_debit_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
         ax.set_yticklabels(data["Branch"].astype(str))
 
         for bar, val in zip(bars, rates):
-            label = f"{val:.1%}" if isinstance(val, float) else str(val)
+            label = f"{val:.1f}%" if isinstance(val, (int, float)) else str(val)
             ax.text(
                 bar.get_width(),
                 bar.get_y() + bar.get_height() / 2,
@@ -286,7 +306,7 @@ def chart_debit_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
 
         ax.set_xlabel("% with Debit Card")
         ax.set_title("Debit Rate by Branch")
-        ax.xaxis.set_major_formatter(lambda x, _: f"{x:.0%}")
+        ax.xaxis.set_major_formatter(lambda x, _: f"{x:.0f}%")
         ax.grid(axis="x", alpha=0.15, linestyle="--")
         ax.set_axisbelow(True)
 

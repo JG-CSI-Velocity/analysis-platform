@@ -162,6 +162,9 @@ def analyze(
         None, "--ics-not-in-dump", help="Count of ICS accounts not in data dump."
     ),
     no_charts: bool = typer.Option(False, "--no-charts", help="Skip chart rendering (faster)."),
+    per_section: bool = typer.Option(
+        False, "--per-section", help="Also generate per-section module decks."
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug logging."),
 ) -> None:
     """Run ICS analysis and generate reports.
@@ -169,6 +172,7 @@ def analyze(
     Usage:
         python -m ics_toolkit analyze data/client_file.xlsx
         python -m ics_toolkit analyze --config config.yaml
+        python -m ics_toolkit analyze data/file.xlsx --per-section
     """
     _setup_logging(verbose)
     logger = logging.getLogger(__name__)
@@ -204,7 +208,9 @@ def analyze(
         successful = [a for a in result.analyses if a.error is None]
         logger.info("Analyses completed: %d/%d", len(successful), len(result.analyses))
 
-        generated = export_outputs(result, skip_charts=no_charts)
+        generated = export_outputs(
+            result, skip_charts=no_charts, per_section=per_section,
+        )
 
         if generated:
             logger.info("")

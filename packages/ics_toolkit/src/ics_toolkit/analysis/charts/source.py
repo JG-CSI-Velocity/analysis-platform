@@ -181,7 +181,7 @@ def chart_source_by_branch(df: pd.DataFrame, config: ChartConfig) -> bytes:
 def chart_account_type(df: pd.DataFrame, config: ChartConfig) -> bytes:
     """Donut chart of Personal vs Business ICS accounts."""
     buf = BytesIO()
-    with chart_figure(figsize=(10, 10), save_path=buf) as (_fig, ax):
+    with chart_figure(figsize=(12, 7), save_path=buf) as (_fig, ax):
         data = df[df["Business?"] != "Total"].copy()
         colors = [NAVY, TEAL][: len(data)]
 
@@ -206,8 +206,7 @@ def chart_account_type(df: pd.DataFrame, config: ChartConfig) -> bytes:
         ax.legend(
             wedges,
             legend_labels,
-            loc="center left",
-            bbox_to_anchor=(0.85, 0.5),
+            loc="center right",
             fontsize=13,
             frameon=False,
         )

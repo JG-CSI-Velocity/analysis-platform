@@ -667,7 +667,14 @@ def _cached_templates():
 
 
 templates = _cached_templates()
-registry = get_registry()
+
+
+@st.cache_resource(show_spinner=False)
+def _cached_registry():
+    return get_registry()
+
+
+registry = _cached_registry()
 module_map = {m.key: m for m in registry}
 
 # Determine which products have data available

@@ -92,8 +92,6 @@ st.markdown(
 section[data-testid="stSidebar"] {
     background: var(--uap-ink) !important;
     border-right: 1px solid #1E293B;
-}
-section[data-testid="stSidebar"] * {
     color: #CBD5E1 !important;
 }
 section[data-testid="stSidebar"] .stMarkdown p {
@@ -107,21 +105,51 @@ section[data-testid="stSidebar"] hr {
     border-color: #1E293B !important;
 }
 
-/* Nav items */
-section[data-testid="stSidebar"] [data-testid="stSidebarNav"] li a {
+/* Nav section headers (RUN, PIPELINES, etc.) */
+[data-testid="stNavSectionHeader"] {
+    color: var(--uap-muted) !important;
+    font-family: var(--uap-mono) !important;
+    font-size: 0.68rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    padding-left: 0.5rem !important;
+}
+[data-testid="stNavSectionHeader"] span {
+    color: var(--uap-muted) !important;
+}
+
+/* Nav links -- target Streamlit 1.54+ data-testid selectors */
+[data-testid="stSidebarNavLink"] {
     font-family: var(--uap-sans) !important;
     font-weight: 500 !important;
     font-size: 0.88rem !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
+    color: #CBD5E1 !important;
+    border-radius: 4px !important;
 }
-section[data-testid="stSidebar"] [data-testid="stSidebarNav"] li a[aria-current="page"] {
+[data-testid="stSidebarNavLink"] span {
+    color: #CBD5E1 !important;
+}
+[data-testid="stSidebarNavLink"][aria-current="page"] {
     background: rgba(22, 163, 74, 0.15) !important;
     border-left: 2px solid var(--uap-accent) !important;
-    color: #FFFFFF !important;
 }
-section[data-testid="stSidebar"] [data-testid="stSidebarNav"] li a:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
+[data-testid="stSidebarNavLink"][aria-current="page"] span {
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+}
+[data-testid="stSidebarNavLink"]:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+[data-testid="stSidebarNavLink"]:hover span {
+    color: #F1F5F9 !important;
+}
+
+/* Nav separator line */
+[data-testid="stSidebarNavSeparator"] {
+    border-color: #1E293B !important;
 }
 
 /* Hide defaults */

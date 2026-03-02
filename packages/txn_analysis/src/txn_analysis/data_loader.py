@@ -164,17 +164,37 @@ def _has_recognizable_columns(df: pd.DataFrame) -> bool:
 
 
 def _sniff_delimiter(path: Path) -> tuple[str, bool]:
-    """Read the first 2 lines of a file to detect delimiter and whether it has a header.
+    """Read the first few lines of a file to detect delimiter and whether it has a header.
 
-    Returns (separator, has_header).  Only reads ~2 lines from disk -- fast on network drives.
+    Returns (separator, has_header).  Only reads ~5 lines from disk -- fast on network drives.
+
+    Handles files with multiple metadata rows or blank lines before data by checking
+    up to 5 non-empty lines.  Uses utf-8-sig encoding to handle BOM-prefixed files.
     """
     from txn_analysis.column_map import COLUMN_ALIASES, REQUIRED_COLUMNS
 
     known = {k.lower() for k in COLUMN_ALIASES} | {c.lower() for c in REQUIRED_COLUMNS}
 
-    with open(path, encoding="utf-8", errors="replace") as f:
-        line1 = f.readline().strip()
-        line2 = f.readline().strip()
+    # Read up to 5 non-empty lines (handles multi-row metadata + blank lines)
+    lines: list[str] = []
+    try:
+        with open(path, encoding="utf-8-sig", errors="replace") as f:
+            for _ in range(10):
+                raw = f.readline()
+                if not raw:
+                    break
+                stripped = raw.strip()
+                if stripped:
+                    lines.append(stripped)
+                if len(lines) >= 5:
+                    break
+    except Exception:
+        return ",", True
+
+    if not lines:
+        return ",", True
+
+    line1 = lines[0]
 
     # Count candidate separators in the first data-bearing line
     for sep in ("\t", "|", ","):
@@ -184,10 +204,10 @@ def _sniff_delimiter(path: Path) -> tuple[str, bool]:
             normalized = {p.strip().lower().replace("-", "_") for p in parts}
             if normalized & known:
                 return sep, True
-            # First line isn't a header -- check if second line splits the same way
-            # (first line is likely a metadata row)
-            if line2:
-                parts2 = line2.split(sep)
+            # First line isn't a header -- check if ANY subsequent line splits
+            # the same way (handles multi-row metadata + blank lines)
+            for other_line in lines[1:]:
+                parts2 = other_line.split(sep)
                 if len(parts2) >= 4:
                     return sep, False
 
@@ -198,27 +218,79 @@ def _sniff_delimiter(path: Path) -> tuple[str, bool]:
 def _read_csv_autodetect(path: Path) -> pd.DataFrame:
     """Read a CSV/TXT file, auto-detecting delimiter and header row.
 
-    Sniffs the first 2 lines to determine the delimiter and whether the file
-    has a header row, then reads the full file exactly once.
+    Sniffs the first few lines to determine the delimiter and whether the file
+    has a header row, then reads the full file.  If the sniffed delimiter
+    produces a bad result, retries with alternative delimiters.
     """
     sep, has_header = _sniff_delimiter(path)
 
     if has_header:
-        df = pd.read_csv(path, sep=sep, low_memory=False, on_bad_lines="warn")
+        df = pd.read_csv(
+            path, sep=sep, low_memory=False, on_bad_lines="warn", encoding_errors="replace"
+        )
         if _has_recognizable_columns(df):
             return df
         # Sniff guessed wrong about header -- try headerless
         logger.debug("Sniffed header but no recognizable columns, trying headerless: %s", path.name)
 
-    # Headerless file: skip first row (metadata), assign standard column names
-    df = pd.read_csv(path, sep=sep, skiprows=1, header=None, low_memory=False, on_bad_lines="warn")
-    if len(df.columns) >= 4:
-        df.columns = TRANSACTION_COLUMNS[: len(df.columns)]
-        logger.info("Auto-detected %s-delimited headerless file: %s", repr(sep), path.name)
-        return df
+    # Headerless file: skip metadata rows, assign standard column names.
+    # Try skiprows=1 and skiprows=2, pick the one with the most columns
+    # (files with 2 metadata rows return wrong column count with skip=1).
+    best_df, best_ncols, best_skip = None, 0, 0
+    for skip in (1, 2):
+        try:
+            df = pd.read_csv(
+                path, sep=sep, skiprows=skip, header=None, low_memory=False,
+                on_bad_lines="warn", encoding_errors="replace",
+            )
+        except Exception:
+            continue
+        if len(df.columns) >= 4 and len(df.columns) > best_ncols and len(df) > 0:
+            best_df, best_ncols, best_skip = df, len(df.columns), skip
+
+    if best_df is not None:
+        best_df.columns = TRANSACTION_COLUMNS[:best_ncols]
+        logger.info(
+            "Auto-detected %s-delimited headerless file (skip=%d): %s",
+            repr(sep), best_skip, path.name,
+        )
+        return best_df
+
+    # Sniff may have returned the wrong delimiter (encoding issues, unusual
+    # file structure).  Try alternative delimiters explicitly.
+    for alt_sep in ("|", "\t", ","):
+        if alt_sep == sep:
+            continue
+        try:
+            # Try with header first
+            df_alt = pd.read_csv(
+                path, sep=alt_sep, low_memory=False, on_bad_lines="warn",
+                encoding_errors="replace",
+            )
+            if _has_recognizable_columns(df_alt):
+                logger.info("Fallback delimiter %s with header: %s", repr(alt_sep), path.name)
+                return df_alt
+            # Try headerless with 1 or 2 metadata rows, pick best
+            best_alt, best_alt_ncols, best_alt_skip = None, 0, 0
+            for skip in (1, 2):
+                df_alt = pd.read_csv(
+                    path, sep=alt_sep, skiprows=skip, header=None, low_memory=False,
+                    on_bad_lines="warn", encoding_errors="replace",
+                )
+                if len(df_alt.columns) >= 4 and len(df_alt.columns) > best_alt_ncols and len(df_alt) > 0:
+                    best_alt, best_alt_ncols, best_alt_skip = df_alt, len(df_alt.columns), skip
+            if best_alt is not None:
+                best_alt.columns = TRANSACTION_COLUMNS[:best_alt_ncols]
+                logger.info(
+                    "Fallback delimiter %s headerless (skip=%d): %s",
+                    repr(alt_sep), best_alt_skip, path.name,
+                )
+                return best_alt
+        except Exception:
+            continue
 
     # Last resort: comma with header
-    return pd.read_csv(path, low_memory=False, on_bad_lines="warn")
+    return pd.read_csv(path, low_memory=False, on_bad_lines="warn", encoding_errors="replace")
 
 
 def read_transaction_file(path: Path) -> pd.DataFrame:

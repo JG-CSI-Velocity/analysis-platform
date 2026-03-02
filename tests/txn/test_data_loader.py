@@ -161,6 +161,61 @@ class TestLoadData:
         assert (df["amount"] < 0).any()
 
 
+    def test_pipe_delimited_headerless(self, tmp_path: Path):
+        """Pipe-delimited file with metadata first row (e.g. FNB Alaska format)."""
+        csv = tmp_path / "txn_pipe.csv"
+        csv.write_text(
+            "1441|2/3/2026 3:30:45 PM|January 2026|16286|Monthly Transaction File|6.0.11.0\n"
+            "1/15/2026|1234567890|PURCHASE|25.99|5411|WALMART|ANCHORAGE|AK|T001|M001|FNB|Y|00\n"
+            "1/16/2026|1234567890|PURCHASE|12.50|5812|STARBUCKS|ANCHORAGE|AK|T002|M002|FNB|Y|00\n"
+        )
+        settings = Settings(data_file=csv, output_dir=tmp_path)
+        df = load_data(settings)
+        assert len(df) == 2
+        assert "merchant_name" in df.columns
+        assert "amount" in df.columns
+        assert "transaction_date" in df.columns
+
+    def test_pipe_delimited_two_metadata_rows(self, tmp_path: Path):
+        """Pipe-delimited with 2 metadata rows before data."""
+        csv = tmp_path / "txn_pipe2.csv"
+        csv.write_text(
+            "1441|2/3/2026 3:30:45 PM|January 2026|16286|Monthly Transaction File|6.0.11.0\n"
+            "Report generated for|FNB Alaska|Period|January 2026\n"
+            "1/15/2026|1234567890|PURCHASE|25.99|5411|WALMART|ANCHORAGE|AK|T001|M001|FNB|Y|00\n"
+            "1/16/2026|9876543210|PURCHASE|8.75|5812|CAFE|FAIRBANKS|AK|T003|M003|FNB|N|00\n"
+        )
+        settings = Settings(data_file=csv, output_dir=tmp_path)
+        df = load_data(settings)
+        assert len(df) == 2
+        assert "merchant_name" in df.columns
+
+    def test_pipe_delimited_with_blank_line(self, tmp_path: Path):
+        """Pipe-delimited with blank line between metadata and data."""
+        csv = tmp_path / "txn_pipe_blank.csv"
+        csv.write_text(
+            "1441|2/3/2026|January 2026|16286|Monthly File|6.0\n"
+            "\n"
+            "1/15/2026|1234567890|PURCHASE|25.99|5411|WALMART|ANC|AK|T1|M1|FNB|Y|00\n"
+        )
+        settings = Settings(data_file=csv, output_dir=tmp_path)
+        df = load_data(settings)
+        assert len(df) == 1
+        assert "merchant_name" in df.columns
+
+    def test_bom_prefixed_csv(self, tmp_path: Path):
+        """CSV with UTF-8 BOM should parse correctly."""
+        csv = tmp_path / "bom.csv"
+        csv.write_bytes(
+            b"\xef\xbb\xbfmerchant_name,amount,primary_account_num,transaction_date\n"
+            b"WALMART,10.0,ACCT001,2025-07-01\n"
+        )
+        settings = Settings(data_file=csv, output_dir=tmp_path)
+        df = load_data(settings)
+        assert len(df) == 1
+        assert "merchant_name" in df.columns
+
+
 class TestLoadOdd:
     def test_load_odd_csv(self, sample_csv_path: Path, tmp_path: Path):
         odd_csv = tmp_path / "odd_data.csv"

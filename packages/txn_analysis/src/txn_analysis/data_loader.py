@@ -204,21 +204,21 @@ def _read_csv_autodetect(path: Path) -> pd.DataFrame:
     sep, has_header = _sniff_delimiter(path)
 
     if has_header:
-        df = pd.read_csv(path, sep=sep, low_memory=False)
+        df = pd.read_csv(path, sep=sep, low_memory=False, on_bad_lines="warn")
         if _has_recognizable_columns(df):
             return df
         # Sniff guessed wrong about header -- try headerless
         logger.debug("Sniffed header but no recognizable columns, trying headerless: %s", path.name)
 
     # Headerless file: skip first row (metadata), assign standard column names
-    df = pd.read_csv(path, sep=sep, skiprows=1, header=None, low_memory=False)
+    df = pd.read_csv(path, sep=sep, skiprows=1, header=None, low_memory=False, on_bad_lines="warn")
     if len(df.columns) >= 4:
         df.columns = TRANSACTION_COLUMNS[: len(df.columns)]
         logger.info("Auto-detected %s-delimited headerless file: %s", repr(sep), path.name)
         return df
 
     # Last resort: comma with header
-    return pd.read_csv(path, low_memory=False)
+    return pd.read_csv(path, low_memory=False, on_bad_lines="warn")
 
 
 def read_transaction_file(path: Path) -> pd.DataFrame:

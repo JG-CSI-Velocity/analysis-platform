@@ -134,6 +134,20 @@ class TestLoadData:
         df = load_data(settings)
         assert (df["business_flag"] == "No").all()
 
+    def test_malformed_rows_skipped(self, tmp_path: Path):
+        """CSV with inconsistent field counts should skip bad lines, not crash."""
+        csv = tmp_path / "bad_lines.csv"
+        csv.write_text(
+            "merchant_name,amount,primary_account_num,transaction_date\n"
+            "WALMART,10.0,ACCT001,2025-07-01\n"
+            "STARBUCKS,5.50,ACCT002,2025-07-02\n"
+            "BAD LINE WITH,EXTRA,FIELDS,HERE,UNEXPECTED\n"
+            "TARGET,20.0,ACCT003,2025-07-03\n"
+        )
+        settings = Settings(data_file=csv, output_dir=tmp_path)
+        df = load_data(settings)
+        assert len(df) == 3  # bad line skipped, 3 good rows kept
+
     def test_negative_amounts_not_removed(self, tmp_path: Path):
         csv = tmp_path / "neg.csv"
         csv.write_text(

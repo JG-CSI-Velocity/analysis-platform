@@ -402,6 +402,8 @@ def classify_merchant(merchant_name: str) -> MatchResult:
     Priority: exact > starts_with > contains. Returns on first match.
     Expects upper-cased input. Does NOT apply false-positive filtering.
     """
+    if not isinstance(merchant_name, str):
+        return MatchResult(None, None, None)
     name = merchant_name.strip()
 
     # Tier 1: exact (O(1) dict lookup)
@@ -426,6 +428,8 @@ def classify_merchant(merchant_name: str) -> MatchResult:
 
 def is_false_positive(merchant_name: str) -> bool:
     """Check if a merchant name matches any false-positive pattern."""
+    if not isinstance(merchant_name, str):
+        return False
     name = merchant_name.strip()
     return any(fp in name for fp in FALSE_POSITIVES)
 

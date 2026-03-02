@@ -28,7 +28,7 @@ def chart_mcc_comparison(
     with multi_axes(nrows=1, ncols=3, figsize=(18, max(5, top_n * 0.35 + 1))) as (fig, axes):
         for ax, (result, value_col, color, fmt, subtitle) in zip(axes, datasets):
             df = result.df
-            if df.empty:
+            if df.empty or "mcc_description" not in df.columns:
                 ax.set_visible(False)
                 continue
 

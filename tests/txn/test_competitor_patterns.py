@@ -118,6 +118,18 @@ class TestClassifyMerchant:
         result = classify_merchant("  CHASE  ")
         assert result.category == "big_nationals"
 
+    def test_nan_returns_no_match(self):
+        result = classify_merchant(float("nan"))
+        assert result == MatchResult(None, None, None)
+
+    def test_none_returns_no_match(self):
+        result = classify_merchant(None)
+        assert result == MatchResult(None, None, None)
+
+    def test_numeric_returns_no_match(self):
+        result = classify_merchant(12345)
+        assert result == MatchResult(None, None, None)
+
 
 class TestFalsePositives:
     def test_is_tuple(self):
@@ -135,6 +147,12 @@ class TestFalsePositives:
     def test_is_false_positive_rejects_valid(self):
         assert not is_false_positive("CHASE BANK NA")
         assert not is_false_positive("ALLY BANK")
+
+    def test_is_false_positive_nan_returns_false(self):
+        assert not is_false_positive(float("nan"))
+
+    def test_is_false_positive_none_returns_false(self):
+        assert not is_false_positive(None)
 
 
 class TestFinancialMccCodes:

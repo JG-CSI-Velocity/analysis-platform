@@ -317,7 +317,9 @@ def _generation_distribution(odd, df):
         colors=gen_colors,
     )
 
-    # Avg spend per account by generation
+    # Avg spend per account by generation (requires generation merged into txn df)
+    if "generation" not in df.columns:
+        return gen_counts, pd.DataFrame(), [donut_fig]
     acct_spend = df.groupby("generation").agg(
         total=("amount", "sum"),
         accounts=("primary_account_num", "nunique"),

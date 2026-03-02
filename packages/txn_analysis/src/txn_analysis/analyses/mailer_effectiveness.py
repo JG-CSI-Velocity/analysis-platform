@@ -549,11 +549,12 @@ def analyze_mailer_effectiveness(
     )
     if not did_seg.empty:
         data["did_by_segment"] = did_seg
-        top_tier = did_seg.loc[did_seg["DiD Estimate"].idxmax()]
-        summary_parts.append(
-            f"Strongest lift in {top_tier['Balance Tier']} tier "
-            f"(${top_tier['DiD Estimate']:+,.2f}/mo)"
-        )
+        if did_seg["DiD Estimate"].notna().any():
+            top_tier = did_seg.loc[did_seg["DiD Estimate"].idxmax()]
+            summary_parts.append(
+                f"Strongest lift in {top_tier['Balance Tier']} tier "
+                f"(${top_tier['DiD Estimate']:+,.2f}/mo)"
+            )
 
     # M23.3 -- ITS
     its = _compute_its(monthly, earliest_date)

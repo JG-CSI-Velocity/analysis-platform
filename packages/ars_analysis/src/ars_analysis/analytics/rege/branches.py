@@ -16,7 +16,6 @@ from ars_analysis.analytics.rege._helpers import reg_e_base, rege, total_row
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
 from ars_analysis.charts.style import (
-    ELIGIBLE,
     HISTORICAL,
     NEGATIVE,
     NEUTRAL,
@@ -277,10 +276,10 @@ class RegEBranches(AnalysisModule):
             )
         ]
 
-    # -- A8.4b: Branch Vertical (sorted by L12M rate) -----------------------
+    # -- A8.4b: Branch Combo (volume bars + rate overlays) -------------------
 
     def _branch_vertical(self, ctx: PipelineContext) -> list[AnalysisResult]:
-        logger.info("A8.4b: Reg E by Branch (Vertical)")
+        logger.info("A8.4b: Reg E by Branch (combo)")
         comp_df = ctx.results.get("reg_e_4", {}).get("comparison")
         if comp_df is None or comp_df.empty:
             return [
@@ -292,13 +291,15 @@ class RegEBranches(AnalysisModule):
                 )
             ]
 
-        chart_data = comp_df.sort_values("L12M Rate", ascending=False).reset_index(drop=True)
+        chart_data = (
+            comp_df.sort_values("L12M Volume", ascending=True).reset_index(drop=True)
+        )
         branches = chart_data["Branch"].tolist()
         n = len(branches)
 
-        l12m_rates = chart_data["L12M Rate"] * 100
-        hist_rates = chart_data["Historical Rate"] * 100
-        l12m_vols = chart_data["L12M Volume"]
+        l12m_rates = chart_data["L12M Rate"].values * 100
+        hist_rates = chart_data["Historical Rate"].values * 100
+        l12m_vols = chart_data["L12M Volume"].values
 
         h_wa = (
             (chart_data["Historical Rate"] * chart_data["Historical Volume"]).sum()
@@ -319,41 +320,100 @@ class RegEBranches(AnalysisModule):
         save_to = ctx.paths.charts_dir / "a8_4b_reg_e_branch_vert.png"
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
-        with chart_figure(figsize=(max(16, n * 1.5), 10), save_path=save_to) as (fig, _):
-            ax1 = fig.add_subplot(1, 2, 1)
-            ax2 = fig.add_subplot(1, 2, 2)
-            x_pos = np.arange(n)
+        fig_h = max(10, n * 0.8 + 3)
+        y = np.arange(n)
 
-            # Left panel: Volume bars
-            ax1.barh(x_pos, l12m_vols, color=NEUTRAL, edgecolor="none", height=0.6)
-            for i, v in enumerate(l12m_vols):
-                if v > 0:
-                    ax1.text(v, x_pos[i], f" {int(v):,}", va="center", fontsize=9)
-            ax1.set_yticks(x_pos)
-            ax1.set_yticklabels(branches)
-            ax1.set_xlabel("Eligible Accounts (L12M)")
-            ax1.set_title("Account Volume", fontweight="bold")
-            ax1.invert_yaxis()
-            ax1.spines["top"].set_visible(False)
-            ax1.spines["right"].set_visible(False)
+        with chart_figure(figsize=(16, fig_h), save_path=save_to) as (fig, ax):
+            # Primary axis: horizontal volume bars
+            ax.barh(
+                y,
+                l12m_vols,
+                color="#B0C4DE",
+                edgecolor="#4A6FA5",
+                alpha=0.7,
+                height=0.55,
+                label="Eligible Accounts",
+                zorder=2,
+            )
+            ax.set_yticks(y)
+            ax.set_yticklabels(branches, fontsize=18)
+            ax.set_xlabel("Eligible Personal Accounts w/ Debit", fontsize=20, fontweight="bold")
+            ax.tick_params(axis="x", labelsize=16)
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.set_axisbelow(True)
 
-            # Right panel: Rate comparison lines
-            ax2.plot(hist_rates, x_pos, "o-", color=HISTORICAL, lw=2.5, ms=8, label="Historical")
-            ax2.plot(l12m_rates, x_pos, "o-", color=ELIGIBLE, lw=3, ms=10, label="L12M", zorder=5)
-            ax2.axvline(h_wa, color=HISTORICAL, linestyle="--", linewidth=2, alpha=0.5)
-            ax2.axvline(l_wa, color=ELIGIBLE, linestyle="--", linewidth=2, alpha=0.5)
-            ax2.set_yticks(x_pos)
-            ax2.set_yticklabels([])
-            ax2.set_xlabel("Opt-In Rate (%)")
-            ax2.set_title("Opt-In Rate", fontweight="bold")
+            # Secondary top axis: rate dot-line overlays
+            ax2 = ax.twiny()
+            ax2.plot(
+                hist_rates,
+                y,
+                "o--",
+                color="black",
+                linewidth=2.5,
+                markersize=10,
+                label="Historical Reg E",
+                zorder=4,
+            )
+            ax2.plot(
+                l12m_rates,
+                y,
+                "o-",
+                color="#1B4F72",
+                linewidth=3,
+                markersize=12,
+                label="TTM Reg E",
+                zorder=5,
+            )
+            ax2.set_xlabel("Opt-In Rate (%)", fontsize=20, fontweight="bold")
             ax2.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
-            ax2.invert_yaxis()
-            ax2.legend(loc="lower right")
-            ax2.spines["top"].set_visible(False)
-            ax2.set_axisbelow(True)
+            ax2.tick_params(axis="x", labelsize=16)
 
-            fig.suptitle("Reg E Opt-In by Branch (L12M Focus)", fontweight="bold", fontsize=16)
-            fig.tight_layout()
+            # Pad rate axis so dots don't crowd the bar edges
+            rate_vals = np.concatenate([hist_rates, l12m_rates])
+            rate_min = max(0, rate_vals.min() - 5) if len(rate_vals) > 0 else 0
+            rate_max = min(100, rate_vals.max() + 5) if len(rate_vals) > 0 else 100
+            ax2.set_xlim(rate_min, rate_max)
+
+            # Change indicators on right side of each row
+            vol_max = l12m_vols.max() if len(l12m_vols) > 0 else 1
+            for i, (_, row) in enumerate(chart_data.iterrows()):
+                chg = row["Change"] * 100
+                color = POSITIVE if chg > 0 else NEGATIVE if chg < 0 else NEUTRAL
+                marker = "+" if chg > 0 else ""
+                ax.text(
+                    vol_max * 1.02,
+                    i,
+                    f"{marker}{chg:.1f}pp",
+                    va="center",
+                    fontsize=16,
+                    color=color,
+                    fontweight="bold",
+                    clip_on=False,
+                )
+
+            # Combined legend at bottom center
+            handles_ax, labels_ax = ax.get_legend_handles_labels()
+            handles_ax2, labels_ax2 = ax2.get_legend_handles_labels()
+            ax.legend(
+                handles_ax + handles_ax2,
+                labels_ax + labels_ax2,
+                loc="lower center",
+                bbox_to_anchor=(0.5, -0.12),
+                ncol=3,
+                fontsize=14,
+                frameon=True,
+                edgecolor="gray",
+            )
+
+            ax.set_title(
+                "Reg E Opt-In by Branch",
+                fontsize=24,
+                fontweight="bold",
+                pad=50,
+            )
+            fig.subplots_adjust(top=0.88, bottom=0.14)
         chart_path = save_to
 
         improving = int((chart_data["L12M Rate"] > chart_data["Historical Rate"]).sum())

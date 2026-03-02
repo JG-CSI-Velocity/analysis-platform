@@ -1139,7 +1139,6 @@ REGE_APPENDIX_IDS = {
     "A8.2",
     "A8.1",
     "A8.12",
-    "A8.4b",
 }
 
 ATTRITION_MERGES = [
@@ -1156,7 +1155,8 @@ ATTRITION_APPENDIX_IDS = {
 }
 
 # Slides to skip entirely (not needed in deck)
-OVERVIEW_SKIP_IDS = {"A1b", "A3"}
+OVERVIEW_SKIP_IDS = {"A1", "A1b", "A3"}
+DCTR_SKIP_IDS = {"DCTR-1"}
 
 
 def _consolidate(slides, merges, appendix_ids):
@@ -1685,7 +1685,8 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     if _notify:
         _notify("Building deck: consolidating slides...")
 
-    # Consolidate: merge paired slides, separate appendix
+    # Filter skipped slides, then consolidate
+    dctr_results = [r for r in dctr_results if getattr(r, "slide_id", "") not in DCTR_SKIP_IDS]
     dctr_main, dctr_appendix = _consolidate(dctr_results, DCTR_MERGES, DCTR_APPENDIX_IDS)
     rege_main, rege_appendix = _consolidate(rege_results, REGE_MERGES, REGE_APPENDIX_IDS)
     attrition_main, attrition_appendix = _consolidate(

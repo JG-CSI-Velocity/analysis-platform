@@ -23,7 +23,7 @@ from ars_analysis.analytics.dctr._helpers import (
 )
 from ars_analysis.analytics.registry import register
 from ars_analysis.charts.guards import chart_figure
-from ars_analysis.charts.style import NEGATIVE, NEUTRAL, POSITIVE, SILVER, TEAL
+from ars_analysis.charts.style import NEGATIVE, POSITIVE, TEAL
 from ars_analysis.pipeline.context import PipelineContext
 
 
@@ -254,17 +254,25 @@ class DCTRBranches(AnalysisModule):
         if hist_df.empty or l12m_df.empty:
             return []
 
-        hd = hist_df[hist_df["Branch"] != "TOTAL"][["Branch", "DCTR %", "Total Accounts"]].rename(
+        hd = hist_df[hist_df["Branch"] != "TOTAL"][
+            ["Branch", "DCTR %", "Total Accounts"]
+        ].rename(
             columns={"DCTR %": "Historical DCTR", "Total Accounts": "Hist Volume"}
         )
-        ld = l12m_df[l12m_df["Branch"] != "TOTAL"][["Branch", "DCTR %", "Total Accounts"]].rename(
+        ld = l12m_df[l12m_df["Branch"] != "TOTAL"][
+            ["Branch", "DCTR %", "Total Accounts"]
+        ].rename(
             columns={"DCTR %": "L12M DCTR", "Total Accounts": "L12M Volume"}
         )
         merged = hd.merge(ld, on="Branch", how="outer").fillna(0)
-        merged["Change pp"] = (merged["L12M DCTR"] - merged["Historical DCTR"]) * 100
+        merged["Change pp"] = (
+            (merged["L12M DCTR"] - merged["Historical DCTR"]) * 100
+        )
         merged["Historical DCTR %"] = merged["Historical DCTR"] * 100
         merged["L12M DCTR %"] = merged["L12M DCTR"] * 100
-        merged = merged.sort_values("Historical DCTR", ascending=False)
+
+        # Sort by L12M Volume ascending so largest branch appears at top in barh
+        merged = merged.sort_values("L12M Volume", ascending=True)
 
         improving = int((merged["Change pp"] > 0).sum())
         avg_change = merged["Change pp"].mean()
@@ -288,53 +296,108 @@ class DCTRBranches(AnalysisModule):
             try:
                 n = len(merged)
                 fig_h = max(10, n * 0.6 + 2)
-                with chart_figure(figsize=(14, fig_h), save_path=save_to) as (fig, ax):
+                with chart_figure(
+                    figsize=(16, fig_h), save_path=save_to
+                ) as (fig, ax):
                     y = np.arange(n)
-                    h = 0.35
+
+                    # Primary axis: horizontal bars for eligible accounts
                     ax.barh(
-                        y + h / 2,
-                        merged["Historical DCTR %"],
-                        h,
-                        label="Historical",
-                        color=SILVER,
-                        edgecolor="black",
-                        linewidth=1.5,
+                        y,
+                        merged["L12M Volume"],
+                        color="#B0C4DE",
+                        edgecolor="#4A6FA5",
+                        alpha=0.7,
+                        height=0.6,
+                        label="Eligible Accounts",
+                        zorder=1,
                     )
-                    ax.barh(
-                        y - h / 2,
-                        merged["L12M DCTR %"],
-                        h,
-                        label="TTM",
-                        color=TEAL,
-                        edgecolor="black",
-                        linewidth=1.5,
+                    ax.set_xlabel(
+                        "Eligible Accounts", fontsize=20, fontweight="bold"
                     )
                     ax.set_yticks(y)
-                    ax.set_yticklabels(merged["Branch"].values, fontsize=18, fontweight="bold")
-                    ax.set_xlabel("DCTR (%)", fontsize=20, fontweight="bold")
-                    ax.set_title(
-                        "Branch DCTR: Historical vs TTM", fontsize=24, fontweight="bold", pad=20
+                    ax.set_yticklabels(
+                        merged["Branch"].values, fontsize=18, fontweight="bold"
                     )
-                    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{x:.0f}%"))
-                    ax.tick_params(axis="x", labelsize=18)
-                    ax.legend(loc="lower right", fontsize=18)
+                    ax.xaxis.set_major_formatter(
+                        FuncFormatter(lambda v, p: f"{int(v):,}")
+                    )
+                    ax.tick_params(axis="x", labelsize=16)
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
                     ax.set_axisbelow(True)
 
+                    # Secondary top axis: DCTR rate dot-line overlays
+                    ax2 = ax.twiny()
+                    ax2.plot(
+                        merged["Historical DCTR %"].values,
+                        y,
+                        "o--",
+                        color="black",
+                        linewidth=2.5,
+                        markersize=10,
+                        label="Historical DCTR",
+                        zorder=3,
+                    )
+                    ax2.plot(
+                        merged["L12M DCTR %"].values,
+                        y,
+                        "o-",
+                        color="#1B4F72",
+                        linewidth=3.5,
+                        markersize=12,
+                        label="TTM DCTR",
+                        zorder=4,
+                    )
+                    ax2.set_xlabel(
+                        "DCTR (%)", fontsize=20, fontweight="bold"
+                    )
+                    ax2.xaxis.set_major_formatter(
+                        FuncFormatter(lambda v, p: f"{int(v)}%")
+                    )
+                    ax2.tick_params(axis="x", labelsize=16)
+
+                    ax.set_title(
+                        "Branch DCTR: Volume & Rates",
+                        fontsize=24,
+                        fontweight="bold",
+                        pad=40,
+                    )
+
+                    # Combined legend at bottom center
+                    handles1, labels1 = ax.get_legend_handles_labels()
+                    handles2, labels2 = ax2.get_legend_handles_labels()
+                    ax.legend(
+                        handles1 + handles2,
+                        labels1 + labels2,
+                        loc="upper center",
+                        bbox_to_anchor=(0.5, -0.08),
+                        ncol=3,
+                        fontsize=14,
+                    )
+
+                    # Change indicators on the right side of each row
                     for i, (_, row) in enumerate(merged.iterrows()):
                         chg = row["Change pp"]
-                        color = POSITIVE if chg > 0 else NEGATIVE if chg < 0 else NEUTRAL
-                        marker = "+" if chg > 0 else ""
-                        ax.text(
-                            max(row["Historical DCTR %"], row["L12M DCTR %"]) + 1,
-                            i,
-                            f"{marker}{chg:.1f}pp",
-                            va="center",
-                            fontsize=18,
-                            color=color,
-                            fontweight="bold",
+                        clr = (
+                            "#27AE60"
+                            if chg > 0
+                            else "#E74C3C"
+                            if chg < 0
+                            else "#666666"
                         )
+                        sign = "+" if chg > 0 else ""
+                        ax.text(
+                            ax.get_xlim()[1] * 1.02,
+                            i,
+                            f"{sign}{chg:.1f}pp",
+                            va="center",
+                            fontsize=16,
+                            color=clr,
+                            fontweight="bold",
+                            clip_on=False,
+                        )
+
                 chart_path = save_to
             except Exception as exc:
                 logger.warning("A7.10a chart failed: {err}", err=exc)
@@ -347,10 +410,13 @@ class DCTRBranches(AnalysisModule):
         return [
             AnalysisResult(
                 slide_id="A7.10a",
-                title="Branch DCTR: Historical vs TTM",
+                title="Branch DCTR: Volume & Rates",
                 chart_path=chart_path,
                 excel_data={"Branch Trend": export},
-                notes=f"{improving}/{len(merged)} branches improving | Avg: {avg_change:+.1f}pp",
+                notes=(
+                    f"{improving}/{len(merged)} branches improving"
+                    f" | Avg: {avg_change:+.1f}pp"
+                ),
             )
         ]
 

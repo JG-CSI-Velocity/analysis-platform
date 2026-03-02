@@ -26,10 +26,10 @@ def _make_ctx(tmp_path, with_chart=False):
 
     ctx.all_slides = [
         AnalysisResult(
-            slide_id="DCTR-1",
-            title="Overall DCTR",
+            slide_id="DCTR-2",
+            title="DCTR by Product",
             chart_path=chart_path,
-            notes="Overall debit card penetration rate.",
+            notes="Debit card penetration by product.",
         ),
         AnalysisResult(
             slide_id="A9.1",

@@ -97,7 +97,7 @@ class DeckBuilder:
     # Single Screenshot - Custom Layout (LAYOUT_CUSTOM = 8)
     # Title at (0.86, 0.61) 11.60" wide, open canvas below
     SINGLE_IMG_LEFT = Inches(0.86)
-    SINGLE_IMG_TOP = Inches(1.6)
+    SINGLE_IMG_TOP = Inches(2.0)
     SINGLE_IMG_WIDTH = Inches(11.6)
 
     # Single Screenshot - Content Layout (LAYOUT_CONTENT = 2)
@@ -135,7 +135,7 @@ class DeckBuilder:
     SUMMARY_BOX_HEIGHT = Inches(1.0)
 
     # Maximum chart height
-    MAX_CHART_HEIGHT = Inches(5.0)
+    MAX_CHART_HEIGHT = Inches(4.8)
 
     # New template has title placeholders on all used layouts;
     # LAYOUT_BLANK (11) is the only layout with no placeholders.
@@ -256,7 +256,7 @@ class DeckBuilder:
         """Get (left, top, width) positioning for single-chart slides."""
         if layout_index == LAYOUT_CUSTOM:
             # Custom Layout: wide open canvas below title
-            return (Inches(0.86), Inches(1.6), Inches(11.6))
+            return (Inches(0.86), Inches(2.0), Inches(11.6))
         if layout_index == LAYOUT_CONTENT or layout_index == LAYOUT_CONTENT_ALT:
             # Title and Content: centered content area
             return (Inches(1.38), Inches(1.8), Inches(10.5))
@@ -500,7 +500,7 @@ class DeckBuilder:
 
         left, top, width = self._get_single_positioning(content.layout_index)
         # Full-canvas layouts get extra height
-        extra_h = Inches(5.2) if content.layout_index in (LAYOUT_CUSTOM, LAYOUT_BLANK, LAYOUT_PICTURE) else None
+        extra_h = Inches(4.8) if content.layout_index in (LAYOUT_CUSTOM, LAYOUT_BLANK, LAYOUT_PICTURE) else None
 
         if content.images and Path(content.images[0]).exists():
             self._add_fitted_picture(slide, content.images[0], left, top, width, max_height=extra_h)

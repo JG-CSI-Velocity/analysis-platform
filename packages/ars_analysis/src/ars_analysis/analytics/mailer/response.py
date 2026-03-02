@@ -213,13 +213,7 @@ def _monthly_summaries(ctx: PipelineContext) -> list[AnalysisResult]:
         inside_bullets: list[str] = []
         for pct_str, desc in inside_numbers:
             inside_bullets.append(f"{pct_str}|{desc}")
-        # Then response rates
-        active = [s for s in RESPONSE_SEGMENTS if s in seg_details]
-        inside_bullets.append(f"{overall_rate:.1f}%|Overall response rate")
-        for s in active:
-            d = seg_details[s]
-            lbl = "NU 5+" if s == "NU" else s
-            inside_bullets.append(f"{d['rate']:.1f}%|{lbl} response rate")
+        # Segment response rates removed -- already shown in hbar chart
 
         # Build insight text with MoM delta
         if prev_rate is not None:
@@ -363,14 +357,7 @@ def _aggregate_summary(ctx: PipelineContext) -> list[AnalysisResult]:
     inside_bullets: list[str] = []
     for pct_str, desc in inside_numbers:
         inside_bullets.append(f"{pct_str}|{desc}")
-
-    # Then response rates
-    active = [s for s in RESPONSE_SEGMENTS if s in combined]
-    inside_bullets.append(f"{overall:.1f}%|Overall response rate")
-    for s in active:
-        d = combined[s]
-        lbl = "NU 5+" if s == "NU" else s
-        inside_bullets.append(f"{d['rate']:.1f}%|{lbl} response rate")
+    # Segment response rates removed -- already shown in hbar chart
 
     kpis = {
         "Mailed": f"{total_m:,}",

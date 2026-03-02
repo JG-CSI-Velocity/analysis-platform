@@ -84,8 +84,8 @@ SECTION_MAP = {
         "ICS Penetration by Branch",
     ],
     "Portfolio Health": [
-        "Engagement Decay",
         "Net Portfolio Growth",
+        "Engagement Decay",
         "Spend Concentration",
         "Closure by Source",
         "Closure by Branch",
@@ -183,6 +183,11 @@ for _names in SECTION_MAP.values():
 
 # Strings that mark a row as a "total" row.
 _TOTAL_MARKERS = {"total", "grand total"}
+
+# Pairs of analyses to merge side-by-side (left, right, merged title).
+_SECTION_MERGE_PAIRS: list[tuple[str, str, str]] = [
+    ("Closure by Branch", "Closure by Account Age", "Closures: Branch vs Account Age"),
+]
 
 # =========================================================================
 # PRIMARY DECK: Storyline-driven layout
@@ -373,10 +378,16 @@ def write_ics_reports(
     analyses: list[AnalysisResult],
     chart_pngs: dict[str, bytes] | None = None,
     output_dir: Path | None = None,
-) -> tuple[Path, Path]:
-    """Generate both Primary (storyline) and Secondary (detail) PPTX decks.
+    per_section: bool = False,
+) -> tuple[Path, Path] | tuple[Path, Path, dict[str, Path]]:
+    """Generate Primary (storyline) and Secondary (detail) PPTX decks.
 
-    Returns (primary_path, secondary_path).
+    Args:
+        per_section: If True, also generate per-section module decks.
+
+    Returns:
+        (primary_path, secondary_path) or
+        (primary_path, secondary_path, section_paths) when per_section=True.
     """
     out = output_dir or settings.output_dir
     out.mkdir(parents=True, exist_ok=True)
@@ -399,6 +410,17 @@ def write_ics_reports(
         output_path=secondary_path,
         chart_pngs=chart_pngs,
     )
+
+    if per_section:
+        section_dir = out / "sections"
+        section_paths = write_pptx_per_section(
+            settings,
+            analyses,
+            output_dir=section_dir,
+            chart_pngs=chart_pngs,
+        )
+        return primary, secondary, section_paths
+
     return primary, secondary
 
 
@@ -506,10 +528,24 @@ def write_pptx_secondary(
         if not section_analyses:
             continue
 
-        _add_section_divider(prs, section_name)
+        _add_styled_section_divider(prs, section_name)
+
+        # Pairs to merge side-by-side instead of separate slides
+        _merged: set[str] = set()
+        for left_name, right_name, _merge_title in _SECTION_MERGE_PAIRS:
+            if left_name in pngs and right_name in pngs:
+                _merged.update({left_name, right_name})
 
         for name, analysis in section_analyses:
             _add_table_slide(prs, analysis)
+
+            # Emit merged chart slide for paired analyses
+            if name in _merged:
+                for left_name, right_name, merge_title in _SECTION_MERGE_PAIRS:
+                    if name == left_name and left_name in pngs and right_name in pngs:
+                        _add_merged_slide(prs, merge_title, pngs[left_name], pngs[right_name])
+                continue
+
             if name in pngs:
                 _add_chart_slide(prs, analysis.title, pngs[name])
 
@@ -529,6 +565,89 @@ def write_pptx_secondary(
         len(prs.slides),
     )
     return output_path
+
+
+def write_pptx_per_section(
+    settings: Settings,
+    analyses: list[AnalysisResult],
+    output_dir: Path | None = None,
+    chart_pngs: dict[str, bytes] | None = None,
+    sections: list[str] | None = None,
+) -> dict[str, Path]:
+    """Generate one PPTX deck per SECTION_MAP section.
+
+    Each deck contains a title slide, styled section divider, and the
+    table + chart slides for that section's analyses only.
+
+    Args:
+        settings: Analysis settings.
+        analyses: List of analysis results.
+        output_dir: Directory for output files.
+        chart_pngs: Optional dict of chart PNG bytes keyed by analysis name.
+        sections: Optional list of section names to generate.
+            If None, generates all sections that have data.
+
+    Returns:
+        Dict mapping section name to output file path.
+    """
+    out = output_dir or settings.output_dir
+    out.mkdir(parents=True, exist_ok=True)
+
+    date_str = datetime.now().strftime("%Y%m%d")
+    client_id = settings.client_id or "unknown"
+
+    lookup = _build_analysis_lookup(analyses)
+    pngs = chart_pngs or {}
+
+    target_sections = sections or list(SECTION_MAP.keys())
+    results: dict[str, Path] = {}
+
+    for section_name in target_sections:
+        if section_name not in SECTION_MAP:
+            logger.warning("Unknown section: %s (skipping)", section_name)
+            continue
+
+        analysis_names = SECTION_MAP[section_name]
+        section_analyses = [(name, lookup[name]) for name in analysis_names if name in lookup]
+        if not section_analyses:
+            continue
+
+        # Sanitize section name for filename
+        safe_name = section_name.replace(" ", "_").replace("/", "-")
+        path = out / f"{client_id}_ICS_{safe_name}_{date_str}.pptx"
+
+        prs = _create_presentation(settings)
+        _add_title_slide(prs, settings, title_text=f"ICS Analysis -- {section_name}")
+        _add_styled_section_divider(prs, section_name)
+
+        # Merge pairs (same logic as secondary deck)
+        _merged: set[str] = set()
+        for left_name, right_name, _merge_title in _SECTION_MERGE_PAIRS:
+            if left_name in pngs and right_name in pngs:
+                _merged.update({left_name, right_name})
+
+        for name, analysis in section_analyses:
+            _add_table_slide(prs, analysis)
+
+            if name in _merged:
+                for left_name, right_name, merge_title in _SECTION_MERGE_PAIRS:
+                    if name == left_name and left_name in pngs and right_name in pngs:
+                        _add_merged_slide(prs, merge_title, pngs[left_name], pngs[right_name])
+                continue
+
+            if name in pngs:
+                _add_chart_slide(prs, analysis.title, pngs[name])
+
+        prs.save(str(path))
+        results[section_name] = path
+        logger.info(
+            "Section deck saved: %s (%d slides)",
+            path.name,
+            len(prs.slides),
+        )
+
+    logger.info("Generated %d section decks", len(results))
+    return results
 
 
 def write_pptx_report(
@@ -764,6 +883,13 @@ def _add_table_slide(prs: Presentation, analysis: AnalysisResult) -> None:
     df = analysis.df
     if df.empty:
         return
+
+    # Show most-recent month first for temporal tables
+    if "Month" in df.columns:
+        total_mask = df["Month"].astype(str).str.strip().str.lower().isin(_TOTAL_MARKERS)
+        total_rows = df[total_mask]
+        data_rows = df[~total_mask].iloc[::-1]
+        df = pd.concat([data_rows, total_rows], ignore_index=True)
 
     layout = _get_layout(prs, preferred=11, fallback=6)
     slide = prs.slides.add_slide(layout)

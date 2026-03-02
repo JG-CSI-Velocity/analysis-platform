@@ -83,6 +83,17 @@ if enable_referral:
         "Network Analysis, Temporal Velocity, Referrer Scorecard"
     )
 
+# Per-Section Decks
+st.divider()
+st.markdown("**Output Options**")
+per_section = st.toggle(
+    "Generate per-section module decks",
+    value=st.session_state.get(f"{PREFIX}_per_section", False),
+    key=f"_toggle_{PREFIX}_per_section",
+    help="Produce one PPTX per section (Summary, Portfolio Health, etc.) in addition to Primary + Secondary decks",
+)
+st.session_state[f"{PREFIX}_per_section"] = per_section
+
 # Output directory
 out_default = ""
 if ics_path and Path(ics_path).exists():
@@ -189,6 +200,8 @@ input_files: dict[str, Path] = {"ics": Path(ics_path)}
 client_config: dict = {"client_id": client_id}
 if selected:
     client_config["module_ids"] = sorted(selected)
+if per_section:
+    client_config["per_section"] = True
 
 t0 = time.time()
 pipeline_error: str | None = None

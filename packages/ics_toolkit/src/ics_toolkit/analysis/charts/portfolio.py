@@ -55,47 +55,62 @@ def _align_dual_axis_zero(
 
 
 def chart_engagement_decay(df: pd.DataFrame, config: ChartConfig) -> bytes:
-    """Bar chart of engagement decay categories."""
+    """Horizontal bar of engagement decay categories with semantic colors."""
+    # Semantic color mapping: green=active, amber=late, orange=decayed, red=never
+    _DECAY_COLORS = {
+        "Active": GROWTH,
+        "Late Activator": "#F39C12",
+        "Decayed": DECAY,
+        "Never Active": CLOSURE,
+    }
+    _DECAY_DESCRIPTIONS = {
+        "Active": "Used card in last 3 months",
+        "Late Activator": "First use >90 days after open",
+        "Decayed": "Previously active, inactive >3 months",
+        "Never Active": "No card usage since account open",
+    }
+
     buf = BytesIO()
     with chart_figure(figsize=(14, 8), save_path=buf) as (_fig, ax):
-        # Color gradient: green for active, orange/red for decaying
-        n = len(df)
-        gradient = []
-        for i in range(n):
-            frac = i / max(n - 1, 1)
-            if frac < 0.33:
-                gradient.append(GROWTH)
-            elif frac < 0.66:
-                gradient.append(DECAY)
-            else:
-                gradient.append(CLOSURE)
+        data = df.copy()
+        n = len(data)
+        total = data["Count"].sum() or 1
 
-        bars = ax.bar(
-            df["Decay Category"],
-            df["Count"],
-            color=gradient,
+        colors = [_DECAY_COLORS.get(cat, NAVY) for cat in data["Decay Category"]]
+
+        bars = ax.barh(
+            range(n),
+            data["Count"],
+            color=colors,
             edgecolor=BAR_EDGE,
             linewidth=BAR_EDGE_WIDTH,
             alpha=BAR_ALPHA,
-            width=0.55,
+            height=0.6,
         )
+        ax.set_yticks(range(n))
+        ax.set_yticklabels(data["Decay Category"])
+        ax.invert_yaxis()
 
-        for bar, val in zip(bars, df["Count"]):
+        # Data labels: count + percentage of total
+        for bar, val, cat in zip(bars, data["Count"], data["Decay Category"]):
+            pct = val / total * 100
+            desc = _DECAY_DESCRIPTIONS.get(cat, "")
+            label = f"  {val:,}  ({pct:.1f}%)"
+            if desc:
+                label += f"  --  {desc}"
             ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                bar.get_height(),
-                f"{val:,}",
-                ha="center",
-                va="bottom",
-                fontsize=DATA_LABEL_SIZE,
+                bar.get_width(),
+                bar.get_y() + bar.get_height() / 2,
+                label,
+                va="center",
+                ha="left",
+                fontsize=DATA_LABEL_SIZE - 1,
                 fontweight="bold",
-                color=NAVY,
             )
 
-        ax.set_xlabel("Engagement Category")
-        ax.set_ylabel("Account Count")
+        ax.set_xlabel("Account Count")
         ax.set_title("Engagement Decay Analysis")
-        ax.grid(axis="y", alpha=0.15, linestyle="--")
+        ax.grid(axis="x", alpha=0.15, linestyle="--")
         ax.set_axisbelow(True)
 
     buf.seek(0)
@@ -333,42 +348,50 @@ def chart_closure_by_account_age(df: pd.DataFrame, config: ChartConfig) -> bytes
 
 
 def chart_net_growth_by_source(df: pd.DataFrame, config: ChartConfig) -> bytes:
-    """Grouped bar chart of opens/closes/net by source."""
+    """Stacked bar chart of opens (positive) and closes (negative) by source."""
     buf = BytesIO()
     with chart_figure(save_path=buf) as (_fig, ax):
         data = df[df["Source"] != "Total"].copy() if "Source" in df.columns else df
         x = np.arange(len(data))
-        width = 0.25
+        width = 0.5
 
+        opens = pd.to_numeric(data["Opens"], errors="coerce").fillna(0)
+        closes = pd.to_numeric(data["Closes"], errors="coerce").fillna(0)
+        net = pd.to_numeric(data["Net"], errors="coerce").fillna(0)
+
+        # Opens as positive bars, Closes as negative bars (stacked diverging)
         ax.bar(
-            x - width,
-            data["Opens"],
+            x,
+            opens,
             width,
             label="Opens",
             color=GROWTH,
             edgecolor=BAR_EDGE,
             linewidth=BAR_EDGE_WIDTH,
+            alpha=0.85,
         )
         ax.bar(
             x,
-            data["Closes"],
+            -closes,
             width,
             label="Closes",
             color=CLOSURE,
             edgecolor=BAR_EDGE,
             linewidth=BAR_EDGE_WIDTH,
+            alpha=0.85,
         )
 
         # Net as diamond markers
-        ax.scatter(x + width, data["Net"], s=120, marker="D", color=NAVY, zorder=5, label="Net")
-        for xi, val in zip(x, data["Net"]):
+        ax.scatter(x, net, s=120, marker="D", color=NAVY, zorder=5, label="Net")
+        for xi, val in zip(x, net):
             ax.text(
-                xi + width,
+                xi,
                 val,
                 f" {int(val):+,}",
                 fontsize=DATA_LABEL_SIZE - 2,
                 fontweight="bold",
                 va="bottom",
+                ha="center",
                 color=NAVY,
             )
 

@@ -160,8 +160,14 @@ def run_pipeline(
 def export_outputs(
     result: AnalysisPipelineResult,
     skip_charts: bool = False,
+    per_section: bool = False,
 ) -> list[Path]:
     """Export pipeline results to configured output formats.
+
+    Args:
+        result: Pipeline result containing analyses and chart PNGs.
+        skip_charts: If True, charts were skipped during pipeline run.
+        per_section: If True, also generate per-section module decks.
 
     Returns list of generated file paths.
     """
@@ -195,13 +201,24 @@ def export_outputs(
         try:
             from ics_toolkit.analysis.exports.pptx import write_ics_reports
 
-            logger.info("Writing PowerPoint reports (Primary + Secondary)...")
-            primary_path, secondary_path = write_ics_reports(
+            label = "Primary + Secondary"
+            if per_section:
+                label += " + Per-Section"
+            logger.info("Writing PowerPoint reports (%s)...", label)
+
+            reports = write_ics_reports(
                 settings,
                 result.analyses,
                 chart_pngs=result.chart_pngs,
                 output_dir=settings.output_dir,
+                per_section=per_section,
             )
+            if per_section:
+                primary_path, secondary_path, section_paths = reports
+                generated.extend(section_paths.values())
+            else:
+                primary_path, secondary_path = reports
+
             generated.append(primary_path)
             generated.append(secondary_path)
         except Exception as e:

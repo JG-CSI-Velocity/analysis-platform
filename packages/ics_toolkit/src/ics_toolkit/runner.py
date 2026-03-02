@@ -40,8 +40,10 @@ def run_ics(ctx: PipelineContext) -> dict[str, SharedResult]:
         if ctx.progress_callback:
             ctx.progress_callback(f"[ICS {step}/{total}] {msg}")
 
+    per_section = (ctx.client_config or {}).get("per_section", False)
+
     result = run_pipeline(settings.analysis, on_progress=_progress_bridge)
-    export_outputs(result)
+    export_outputs(result, per_section=per_section)
     return _convert_results(result.analyses)
 
 

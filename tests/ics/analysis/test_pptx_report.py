@@ -12,6 +12,7 @@ from ics_toolkit.analysis.exports.pptx import (
     _is_total_row,
     _prepare_table_df,
     write_chart_catalog,
+    write_pptx_per_section,
     write_pptx_report,
 )
 
@@ -287,3 +288,146 @@ class TestWriteChartCatalog:
         assert "Section:" in combined
         assert "Function:" in combined
         assert "Source:" in combined
+
+
+class TestWritePptxPerSection:
+    """Tests for per-section module deck generation."""
+
+    @pytest.fixture
+    def summary_analyses(self):
+        """Analyses that belong to the Summary section."""
+        return [
+            AnalysisResult.from_df(
+                "Total ICS Accounts",
+                "Total ICS Accounts",
+                pd.DataFrame({"Category": ["ICS", "Non-ICS"], "Count": [30, 70]}),
+            ),
+            AnalysisResult.from_df(
+                "ICS by Stat Code",
+                "ICS by Stat Code",
+                pd.DataFrame({"Stat Code": ["O", "C"], "Count": [25, 5]}),
+            ),
+        ]
+
+    @pytest.fixture
+    def portfolio_analyses(self):
+        """Analyses that belong to the Portfolio Health section."""
+        return [
+            AnalysisResult.from_df(
+                "Net Portfolio Growth",
+                "Net Portfolio Growth",
+                pd.DataFrame({"Month": ["Jan26", "Feb26"], "Net": [10, 15]}),
+            ),
+            AnalysisResult.from_df(
+                "Engagement Decay",
+                "Engagement Decay",
+                pd.DataFrame({"Category": ["Active", "Decayed"], "Count": [20, 10]}),
+            ),
+        ]
+
+    def test_generates_one_file_per_section(
+        self, sample_settings, summary_analyses, portfolio_analyses, tmp_path,
+    ):
+        all_analyses = summary_analyses + portfolio_analyses
+        out = tmp_path / "sections"
+        result = write_pptx_per_section(sample_settings, all_analyses, output_dir=out)
+        assert "Summary" in result
+        assert "Portfolio Health" in result
+        assert len(result) == 2
+
+    def test_each_file_exists(
+        self, sample_settings, summary_analyses, portfolio_analyses, tmp_path,
+    ):
+        all_analyses = summary_analyses + portfolio_analyses
+        out = tmp_path / "sections"
+        result = write_pptx_per_section(sample_settings, all_analyses, output_dir=out)
+        for path in result.values():
+            assert path.exists()
+
+    def test_section_deck_has_correct_slides(
+        self, sample_settings, summary_analyses, tmp_path,
+    ):
+        out = tmp_path / "sections"
+        result = write_pptx_per_section(sample_settings, summary_analyses, output_dir=out)
+        prs = Presentation(str(result["Summary"]))
+        # Title + section divider + 2 table slides = 4
+        assert len(prs.slides) == 4
+
+    def test_section_deck_includes_charts(
+        self, sample_settings, summary_analyses, tmp_path,
+    ):
+        pngs = {"Total ICS Accounts": _make_tiny_png()}
+        out = tmp_path / "sections"
+        result = write_pptx_per_section(
+            sample_settings, summary_analyses, output_dir=out, chart_pngs=pngs,
+        )
+        prs = Presentation(str(result["Summary"]))
+        # Title + divider + table + chart + table = 5
+        assert len(prs.slides) == 5
+
+    def test_empty_sections_skipped(self, sample_settings, tmp_path):
+        analyses = [
+            AnalysisResult.from_df(
+                "Total ICS Accounts",
+                "Total ICS Accounts",
+                pd.DataFrame({"A": [1]}),
+            ),
+        ]
+        out = tmp_path / "sections"
+        result = write_pptx_per_section(sample_settings, analyses, output_dir=out)
+        assert "Summary" in result
+        assert "Demographics" not in result
+
+    def test_filter_specific_sections(
+        self, sample_settings, summary_analyses, portfolio_analyses, tmp_path,
+    ):
+        all_analyses = summary_analyses + portfolio_analyses
+        out = tmp_path / "sections"
+        result = write_pptx_per_section(
+            sample_settings, all_analyses, output_dir=out, sections=["Summary"],
+        )
+        assert "Summary" in result
+        assert "Portfolio Health" not in result
+
+    def test_unknown_section_skipped(self, sample_settings, summary_analyses, tmp_path):
+        out = tmp_path / "sections"
+        result = write_pptx_per_section(
+            sample_settings,
+            summary_analyses,
+            output_dir=out,
+            sections=["Nonexistent Section"],
+        )
+        assert len(result) == 0
+
+    def test_filename_contains_section_name(
+        self, sample_settings, summary_analyses, tmp_path,
+    ):
+        out = tmp_path / "sections"
+        result = write_pptx_per_section(sample_settings, summary_analyses, output_dir=out)
+        assert "Summary" in result["Summary"].name
+
+    def test_merge_pairs_work_within_section(self, sample_settings, tmp_path):
+        """Closure by Branch + Closure by Account Age should merge in Portfolio Health."""
+        analyses = [
+            AnalysisResult.from_df(
+                "Closure by Branch",
+                "Closure by Branch",
+                pd.DataFrame({"Branch": ["Main"], "Count": [5]}),
+            ),
+            AnalysisResult.from_df(
+                "Closure by Account Age",
+                "Closure by Account Age",
+                pd.DataFrame({"Age": ["1-2yr"], "Count": [3]}),
+            ),
+        ]
+        pngs = {
+            "Closure by Branch": _make_tiny_png(),
+            "Closure by Account Age": _make_tiny_png(),
+        }
+        out = tmp_path / "sections"
+        result = write_pptx_per_section(
+            sample_settings, analyses, output_dir=out, chart_pngs=pngs,
+        )
+        prs = Presentation(str(result["Portfolio Health"]))
+        # Title + divider + table(branch) + merged_chart + table(age) = 5
+        assert len(prs.slides) == 5

@@ -1129,6 +1129,20 @@ for idx, product in enumerate(sorted(needed_products, key=lambda p: p.value)):
             else Path(".")
         )
         out = _tran_base / "output_txn"
+
+        # Guard: TXN pipeline needs at least one data source
+        if "tran" not in input_files and _pre_loaded_data is None:
+            _err_msg = (
+                "No transaction file found.\n\n"
+                "Expected: CSV file matching *tran*.csv or *txn*.csv pattern "
+                "in the client directory or Transaction Files folder.\n\n"
+                "Check that transaction files exist and match the naming pattern."
+            )
+            pipeline_errors[pipeline_name] = _err_msg
+            logger.error("No transaction file found for TXN pipeline")
+            _progress_bar.progress(1.0, text="TXN FAILED (no transaction file)")
+            _status_text.error("No transaction file found")
+            continue
     elif product == Product.ICS:
         input_files["ics"] = Path(ics_path) if ics_path else Path(_local_oddd)
         out = Path(oddd_path).parent / "output_ics"

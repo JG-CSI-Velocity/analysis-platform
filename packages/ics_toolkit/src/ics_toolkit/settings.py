@@ -13,7 +13,7 @@ from ics_toolkit.exceptions import ConfigError
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_PATH = Path("config.yaml")
-DEFAULT_PPTX_TEMPLATE = Path(__file__).resolve().parent.parent / "templates" / "Template12.25.pptx"
+DEFAULT_PPTX_TEMPLATE = Path(__file__).resolve().parent.parent / "templates" / "2025-CSI-PPT-Template.pptx"
 
 MATCH_MONTH_PATTERN = re.compile(r"^\d{4}\.(0[1-9]|1[0-2])$")
 

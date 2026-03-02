@@ -20,8 +20,8 @@ class TestDeckConfig:
     def test_defaults(self):
         config = DeckConfig()
         assert config.dpi == 150
-        assert config.layout_title == 1
-        assert config.layout_section == 2
+        assert config.layout_title == 19  # LAYOUT_TITLE_ICS (2025-CSI-PPT-Template)
+        assert config.layout_section == 4  # LAYOUT_SECTION
         assert len(config.layout_chart) == 4
 
     def test_module_default(self):
@@ -31,13 +31,13 @@ class TestDeckConfig:
 class TestPositioning:
     def test_single_defaults(self):
         pos = SinglePositioning()
-        assert pos.left == 0.5
-        assert pos.top == 2.5
-        assert pos.width == 6.0
+        assert pos.left == 0.86
+        assert pos.top == 1.6
+        assert pos.width == 11.6
 
     def test_multi_defaults(self):
         pos = MultiPositioning()
-        assert pos.top == 2.5
+        assert pos.top == 1.82
 
     def test_positioning_config(self):
         config = PositioningConfig()
@@ -52,7 +52,7 @@ class TestSlideContent:
         assert sc.images is None
         assert sc.kpis is None
         assert sc.bullets is None
-        assert sc.layout_index == 5
+        assert sc.layout_index == 8  # LAYOUT_CUSTOM (2025-CSI-PPT-Template)
 
     def test_with_all_fields(self):
         sc = SlideContent(

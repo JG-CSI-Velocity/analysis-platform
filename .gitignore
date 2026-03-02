@@ -33,6 +33,7 @@ htmlcov/
 
 # Allow source templates and output module code
 !packages/*/src/templates/
+!packages/*/src/templates/*.pptx
 !packages/*/src/*/output/template/
 !packages/*/src/*/output/template/*.pptx
 !packages/*/src/*/output/*.py

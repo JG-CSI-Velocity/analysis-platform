@@ -38,18 +38,18 @@ logger = logging.getLogger(__name__)
 class SinglePositioning(BaseModel):
     """Position preset for single-chart slides."""
 
-    left: float = 0.5
-    top: float = 2.5
-    width: float = 6.0
+    left: float = 0.86
+    top: float = 1.6
+    width: float = 11.6
 
 
 class MultiPositioning(BaseModel):
     """Position preset for side-by-side chart slides."""
 
-    top: float = 2.5
-    left_pos: float = 2.3
-    right_pos: float = 7.0
-    width: float = 4.5
+    top: float = 1.82
+    left_pos: float = 0.86
+    right_pos: float = 6.81
+    width: float = 5.67
 
 
 class PositioningConfig(BaseModel):
@@ -58,20 +58,20 @@ class PositioningConfig(BaseModel):
     single_default: SinglePositioning = SinglePositioning()
     stacked_right: SinglePositioning = SinglePositioning(
         left=5.5,
-        top=2.0,
-        width=6.0,
+        top=1.6,
+        width=7.0,
     )
     split_standard: MultiPositioning = MultiPositioning(
-        top=2.5,
-        left_pos=2.3,
-        right_pos=7.0,
-        width=4.5,
+        top=1.82,
+        left_pos=0.86,
+        right_pos=6.81,
+        width=5.67,
     )
     split_spaced: MultiPositioning = MultiPositioning(
-        top=2.5,
-        left_pos=0.5,
-        right_pos=7.5,
-        width=4.5,
+        top=1.82,
+        left_pos=0.86,
+        right_pos=6.81,
+        width=5.67,
     )
 
 
@@ -97,29 +97,24 @@ class DeckConfig(BaseModel):
     fig_wide: tuple[float, float] = (12.0, 5.0)
     fig_square: tuple[float, float] = (7.0, 7.0)
 
-    # -- Template layout indices (CSI template) --------------------------------
-    #   0: Cover / Intro - Slide 1
-    #   1: Cover / Intro - Slide 2        <- Title slide (text on left)
-    #   2: Divider - Slide 2              <- Section divider
-    #   3: Divider - Slide 3
-    #   4: Analysis - Slide 1             <- Single chart
-    #   5: Analysis - Slide 2             <- Single chart
-    #   6: Analysis - Slide 3 - Split     <- Side-by-side
-    #   7: Analysis - Slide 4 - Split     <- Side-by-side
-    #   8: Analysis - Slide 5 - Thirds    <- Three charts
-    #   9: Analysis - Slide 6 - Main      <- Single chart
-    #  10: Analysis - Slide 7 - Stacked   <- Chart on right 2/3
-    #  11: Analysis - Slide 8 - Blank     <- Flexible
-    #  12: Analysis - Slide 11 - Header1
-    #  13: Analysis - Slide 11 - Header2
+    # -- Template layout indices (2025-CSI-PPT-Template, 20 layouts) -----------
+    #   0: LAYOUT_TITLE_DARK    <- Dark bg title
+    #   1: LAYOUT_TITLE         <- Light bg title
+    #   4: LAYOUT_SECTION       <- Section divider
+    #   5: LAYOUT_SECTION_ALT   <- Section divider (alt)
+    #   8: LAYOUT_CUSTOM        <- Wide title + open canvas (workhorse)
+    #   9: LAYOUT_TWO_CONTENT   <- Two side-by-side content areas
+    #  11: LAYOUT_BLANK         <- No placeholders
+    #  17: LAYOUT_TITLE_RPE     <- RPE branded title
+    #  19: LAYOUT_TITLE_ICS     <- ICS branded title
 
-    layout_title: int = 1
-    layout_title_alt: int = 0
-    layout_section: int = 2
-    layout_chart: list[int] = [4, 5, 9, 11]
-    layout_split: list[int] = [6, 7]
-    layout_stacked: int = 10
-    layout_thirds: int = 8
+    layout_title: int = 19       # LAYOUT_TITLE_ICS
+    layout_title_alt: int = 1    # LAYOUT_TITLE (light)
+    layout_section: int = 4      # LAYOUT_SECTION
+    layout_chart: list[int] = [8, 8, 8, 8]  # LAYOUT_CUSTOM
+    layout_split: list[int] = [9, 9]         # LAYOUT_TWO_CONTENT
+    layout_stacked: int = 8      # LAYOUT_CUSTOM
+    layout_thirds: int = 8       # LAYOUT_CUSTOM
 
     # -- Layout-specific positioning -------------------------------------------
     positioning: PositioningConfig = PositioningConfig()
@@ -166,7 +161,7 @@ class SlideContent:
     images: list[str] | None = None
     kpis: dict[str, str] | None = None
     bullets: list[str] | None = None
-    layout_index: int = 5
+    layout_index: int = 8  # LAYOUT_CUSTOM (2025-CSI-PPT-Template)
 
 
 # ---------------------------------------------------------------------------
@@ -187,44 +182,44 @@ class DeckBuilder:
         ``DECK_CONFIG`` default.
     """
 
-    # -- Single screenshot defaults (inches) ----------------------------------
-    SINGLE_IMG_LEFT = Inches(0.5)
-    SINGLE_IMG_TOP = Inches(2.5)
-    SINGLE_IMG_WIDTH = Inches(6)
+    # -- Single screenshot (LAYOUT_CUSTOM: open canvas below title at ~1.6") --
+    SINGLE_IMG_LEFT = Inches(0.86)
+    SINGLE_IMG_TOP = Inches(1.6)
+    SINGLE_IMG_WIDTH = Inches(11.6)
 
     SINGLE_IMG_RIGHT_LEFT = Inches(5.5)
-    SINGLE_IMG_RIGHT_TOP = Inches(2.0)
-    SINGLE_IMG_RIGHT_WIDTH = Inches(6)
+    SINGLE_IMG_RIGHT_TOP = Inches(1.6)
+    SINGLE_IMG_RIGHT_WIDTH = Inches(7.0)
 
-    # -- Multi screenshot - spaced layout -------------------------------------
-    MULTI_IMG_TOP = Inches(2.5)
-    MULTI_IMG_WIDTH = Inches(4.5)
-    MULTI_IMG_LEFT_POS = Inches(0.5)
-    MULTI_IMG_RIGHT_POS = Inches(7.5)
+    # -- Multi screenshot - spaced layout (LAYOUT_TWO_CONTENT) ----------------
+    MULTI_IMG_TOP = Inches(1.82)
+    MULTI_IMG_WIDTH = Inches(5.67)
+    MULTI_IMG_LEFT_POS = Inches(0.86)
+    MULTI_IMG_RIGHT_POS = Inches(6.81)
 
     # -- Multi screenshot - standard layout -----------------------------------
-    MULTI_IMG_STD_TOP = Inches(2.5)
-    MULTI_IMG_STD_LEFT_POS = Inches(2.3)
-    MULTI_IMG_STD_RIGHT_POS = Inches(7.0)
-    MULTI_IMG_STD_WIDTH = Inches(4.5)
+    MULTI_IMG_STD_TOP = Inches(1.82)
+    MULTI_IMG_STD_LEFT_POS = Inches(0.86)
+    MULTI_IMG_STD_RIGHT_POS = Inches(6.81)
+    MULTI_IMG_STD_WIDTH = Inches(5.67)
 
     # -- Screenshot with KPIs ------------------------------------------------
-    KPI_IMG_LEFT = Inches(0.3)
+    KPI_IMG_LEFT = Inches(0.5)
     KPI_IMG_TOP = Inches(1.5)
-    KPI_IMG_WIDTH = Inches(6)
+    KPI_IMG_WIDTH = Inches(6.5)
 
-    KPI_TEXT_LEFT = Inches(6.8)
+    KPI_TEXT_LEFT = Inches(7.2)
     KPI_TEXT_TOP_START = Inches(1.8)
-    KPI_TEXT_WIDTH = Inches(2.5)
+    KPI_TEXT_WIDTH = Inches(5.5)
     KPI_VALUE_HEIGHT = Inches(0.5)
     KPI_LABEL_HEIGHT = Inches(0.3)
     KPI_SPACING = Inches(1.0)
 
     # -- Summary slide (3x3 bullet grid) --------------------------------------
-    SUMMARY_COL_POSITIONS = [Inches(0.5), Inches(3.5), Inches(6.5)]
+    SUMMARY_COL_POSITIONS = [Inches(0.86), Inches(4.86), Inches(8.86)]
     SUMMARY_ROW_START = Inches(1.8)
     SUMMARY_ROW_SPACING = Inches(1.2)
-    SUMMARY_BOX_WIDTH = Inches(2.8)
+    SUMMARY_BOX_WIDTH = Inches(3.5)
     SUMMARY_BOX_HEIGHT = Inches(1.0)
 
     def __init__(
@@ -243,41 +238,23 @@ class DeckBuilder:
 
     def _get_single_positioning(self, layout_index: int) -> tuple:
         """Return (left, top, width) in EMU for a single-chart layout."""
-        if layout_index == 4:
-            return (Inches(0.95), Inches(2.11), Inches(5.5))
-        if layout_index == 5:
-            return (Inches(0.95), Inches(2.11), Inches(5.5))
-        if layout_index == 9:
-            return (Inches(0.80), Inches(2.12), Inches(6.0))
-        if layout_index == 10:
-            return (Inches(5.12), Inches(1.75), Inches(7.0))
+        # LAYOUT_CUSTOM (8) — wide title + open canvas
+        if layout_index == 8:
+            return (Inches(0.86), Inches(1.6), Inches(11.6))
+        # LAYOUT_BLANK (11) — no placeholders, full canvas
         if layout_index == 11:
-            return (Inches(2.0), Inches(2.0), Inches(8.0))
+            return (Inches(0.86), Inches(1.6), Inches(11.6))
         # Default fallback
-        return (Inches(0.95), Inches(2.11), Inches(5.5))
+        return (Inches(0.86), Inches(1.6), Inches(11.6))
 
     def _get_multi_positioning(self, layout_index: int) -> tuple:
         """Return (top, left_pos, right_pos, width) in EMU for multi-chart layouts."""
-        if layout_index == 6:
-            return (
-                Inches(2.12),
-                Inches(0.80),
-                Inches(6.78),
-                Inches(5.5),
-            )
-        if layout_index == 7:
-            return (
-                Inches(2.10),
-                Inches(0.80),
-                Inches(6.78),
-                Inches(5.5),
-            )
-        # Default
+        # LAYOUT_TWO_CONTENT (9) — side-by-side content areas
         return (
-            Inches(2.12),
-            Inches(0.80),
-            Inches(6.78),
-            Inches(5.5),
+            Inches(1.82),
+            Inches(0.86),
+            Inches(6.81),
+            Inches(5.67),
         )
 
     # -- build ----------------------------------------------------------------
@@ -300,6 +277,13 @@ class DeckBuilder:
 
         if self.template_path is not None:
             self.prs = Presentation(str(self.template_path))
+            # Remove sample slides shipped with 2025 template
+            from pptx.oxml.ns import qn
+
+            while len(self.prs.slides) > 0:
+                rId = self.prs.slides._sldIdLst[0].get(qn("r:id"))
+                self.prs.part.drop_rel(rId)
+                self.prs.slides._sldIdLst.remove(self.prs.slides._sldIdLst[0])
             logger.info("Opened template: %s", self.template_path)
         else:
             self.prs = Presentation()
@@ -344,8 +328,14 @@ class DeckBuilder:
     def _build_title_slide(self, slide, content: SlideContent) -> None:
         """Build title slide with main title and optional subtitle.
 
+        Layout 19 (LAYOUT_TITLE_ICS) uses ph[0] for title.
         Layout 1 creates a custom text box; layout 0 uses placeholders.
         """
+        # Product-branded title slides (LAYOUT_TITLE_ICS = 19)
+        if content.layout_index in (17, 18, 19):
+            self._build_product_title(slide, content)
+            return
+
         if content.layout_index == 1:
             self._build_title_layout_1(slide, content)
             return
@@ -405,6 +395,32 @@ class DeckBuilder:
                 p.font.bold = True
             else:
                 p.font.size = Pt(18)
+
+    def _build_product_title(self, slide, content: SlideContent) -> None:
+        """Build product-branded title slide (LAYOUT_TITLE_ICS/ARS/RPE).
+
+        Uses ph[0] for title text, multiline supported via add_paragraph().
+        """
+        from pptx.dml.color import RGBColor
+
+        title_lines = content.title.split("\n") if "\n" in content.title else [content.title]
+
+        # Use ph[0] (center_title) for the main text
+        try:
+            tf = slide.placeholders[0].text_frame
+            tf.clear()
+            for i, line in enumerate(title_lines):
+                p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+                p.text = line
+                p.alignment = PP_ALIGN.CENTER
+                if i == 0:
+                    p.font.size = Pt(34)
+                    p.font.bold = True
+                else:
+                    p.font.size = Pt(20)
+                p.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+        except (KeyError, IndexError):
+            pass
 
     # -- section slide --------------------------------------------------------
 

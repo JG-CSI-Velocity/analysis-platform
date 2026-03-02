@@ -31,6 +31,17 @@ ZEBRA_GRAY = RGBColor(0xF2, 0xF2, 0xF2)
 TOTAL_BG = RGBColor(0xE0, 0xE0, 0xE0)
 LIGHT_GRAY = RGBColor(0x99, 0x99, 0x99)
 
+# -- Named layout constants -- 2025-CSI-PPT-Template.pptx (20 layouts) -----
+LAYOUT_TITLE_DARK = 0       # Title Slide (dark bg)
+LAYOUT_TITLE = 1             # Title Slide_Reverse (light bg)
+LAYOUT_SECTION = 4           # 2_Section Header
+LAYOUT_SECTION_ALT = 5       # 5_Section Header (alt)
+LAYOUT_CUSTOM = 8            # Custom Layout (wide title + open canvas)
+LAYOUT_TWO_CONTENT = 9       # Two Content (side-by-side)
+LAYOUT_BLANK = 11             # Blank (no placeholders)
+LAYOUT_TITLE_RPE = 17         # 1_Title Slide_RPE
+LAYOUT_TITLE_ICS = 19         # 5_Title Slide_ICS
+
 # -- Table constraints -----------------------------------------------------
 MAX_TABLE_ROWS = 12
 MAX_TABLE_COLS = 10
@@ -48,16 +59,16 @@ TABLE_LEFT = Inches(0.5)
 TABLE_TOP = Inches(1.1)
 TABLE_WIDTH = Inches(12.3)
 
-CHART_LEFT = Inches(1.5)
-CHART_TOP = Inches(1.1)
-CHART_WIDTH = Inches(10.0)
+CHART_LEFT = Inches(0.86)
+CHART_TOP = Inches(1.5)
+CHART_WIDTH = Inches(11.6)
 CHART_MAX_HEIGHT = Inches(5.5)
 
 # -- Merged slide positioning (two charts side-by-side) --------------------
-MERGE_LEFT_X = Inches(0.3)
-MERGE_RIGHT_X = Inches(6.8)
-MERGE_IMG_Y = Inches(1.1)
-MERGE_IMG_W = Inches(6.2)
+MERGE_LEFT_X = Inches(0.86)
+MERGE_RIGHT_X = Inches(6.81)
+MERGE_IMG_Y = Inches(1.5)
+MERGE_IMG_W = Inches(5.67)
 MERGE_IMG_H = Inches(5.2)
 
 # -- KPI panel positioning -------------------------------------------------
@@ -679,10 +690,17 @@ def write_pptx_report(
 
 
 def _create_presentation(settings: Settings) -> Presentation:
-    """Load CSI template or create blank widescreen presentation."""
+    """Load 2025-CSI-PPT-Template or create blank widescreen presentation."""
+    from pptx.oxml.ns import qn
+
     template = settings.pptx_template
     if template and Path(template).exists():
         prs = Presentation(str(template))
+        # Remove sample slides shipped with 2025 template
+        while len(prs.slides) > 0:
+            rId = prs.slides._sldIdLst[0].get(qn("r:id"))
+            prs.part.drop_rel(rId)
+            prs.slides._sldIdLst.remove(prs.slides._sldIdLst[0])
         logger.info("Loaded template: %s", template)
     else:
         prs = Presentation()
@@ -693,9 +711,9 @@ def _create_presentation(settings: Settings) -> Presentation:
     return prs
 
 
-def _get_layout(prs: Presentation, preferred: int, fallback: int = 6):
+def _get_layout(prs: Presentation, preferred: int, fallback: int = LAYOUT_CUSTOM):
     """Get slide layout by index with fallback."""
-    for idx in [preferred, fallback, 6, 5, 0]:
+    for idx in [preferred, fallback, LAYOUT_CUSTOM, LAYOUT_BLANK, 0]:
         try:
             return prs.slide_layouts[idx]
         except IndexError:
@@ -714,7 +732,7 @@ def _add_title_slide(
     title_text: str = "ICS Accounts Analysis",
 ) -> None:
     """Add branded title slide."""
-    layout = _get_layout(prs, preferred=1, fallback=0)
+    layout = _get_layout(prs, preferred=LAYOUT_TITLE_ICS, fallback=LAYOUT_TITLE)
     slide = prs.slides.add_slide(layout)
 
     if slide.shapes.title:
@@ -731,7 +749,7 @@ def _add_title_slide(
 
 def _add_section_divider(prs: Presentation, title: str) -> None:
     """Add section divider slide (template-based, simple)."""
-    layout = _get_layout(prs, preferred=2, fallback=5)
+    layout = _get_layout(prs, preferred=LAYOUT_SECTION, fallback=LAYOUT_SECTION_ALT)
     slide = prs.slides.add_slide(layout)
     if slide.shapes.title:
         slide.shapes.title.text = title
@@ -739,7 +757,7 @@ def _add_section_divider(prs: Presentation, title: str) -> None:
 
 def _add_styled_section_divider(prs: Presentation, title: str) -> None:
     """Add ARS-style dark section divider with navy background and white text."""
-    layout = _get_layout(prs, preferred=2, fallback=6)
+    layout = _get_layout(prs, preferred=LAYOUT_SECTION, fallback=LAYOUT_CUSTOM)
     slide = prs.slides.add_slide(layout)
 
     # Set the slide background to navy
@@ -783,7 +801,7 @@ def _add_merged_slide(
     right_png: bytes,
 ) -> None:
     """Add slide with two chart images side by side."""
-    layout = _get_layout(prs, preferred=11, fallback=6)
+    layout = _get_layout(prs, preferred=LAYOUT_TWO_CONTENT, fallback=LAYOUT_CUSTOM)
     slide = prs.slides.add_slide(layout)
 
     _add_slide_title(slide, title)
@@ -810,7 +828,7 @@ def _add_kpi_slide(prs: Presentation, analysis: AnalysisResult) -> None:
     if not hero_kpis:
         return
 
-    layout = _get_layout(prs, preferred=11, fallback=6)
+    layout = _get_layout(prs, preferred=LAYOUT_CUSTOM, fallback=LAYOUT_BLANK)
     slide = prs.slides.add_slide(layout)
     _add_slide_title(slide, analysis.title)
 
@@ -891,7 +909,7 @@ def _add_table_slide(prs: Presentation, analysis: AnalysisResult) -> None:
         data_rows = df[~total_mask].iloc[::-1]
         df = pd.concat([data_rows, total_rows], ignore_index=True)
 
-    layout = _get_layout(prs, preferred=11, fallback=6)
+    layout = _get_layout(prs, preferred=LAYOUT_CUSTOM, fallback=LAYOUT_BLANK)
     slide = prs.slides.add_slide(layout)
 
     # Title
@@ -954,7 +972,7 @@ def _add_table_slide(prs: Presentation, analysis: AnalysisResult) -> None:
 
 def _add_chart_slide(prs: Presentation, title: str, png_bytes: bytes) -> None:
     """Add slide with chart image."""
-    layout = _get_layout(prs, preferred=11, fallback=6)
+    layout = _get_layout(prs, preferred=LAYOUT_CUSTOM, fallback=LAYOUT_BLANK)
     slide = prs.slides.add_slide(layout)
 
     _add_slide_title(slide, title)

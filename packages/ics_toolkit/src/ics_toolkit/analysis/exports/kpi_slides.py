@@ -46,7 +46,7 @@ def build_executive_kpi_slide(analysis: AnalysisResult) -> SlideContent | None:
         slide_type="summary",
         title="Executive Summary - Key Performance Indicators",
         bullets=bullets[:9],
-        layout_index=5,
+        layout_index=8,  # LAYOUT_CUSTOM (2025-CSI-PPT-Template)
     )
 
 
@@ -70,7 +70,7 @@ def build_narrative_slide(analysis: AnalysisResult) -> SlideContent | None:
         slide_type="summary",
         title="Executive Summary - Strategic Narrative",
         bullets=bullets,
-        layout_index=5,
+        layout_index=8,  # LAYOUT_CUSTOM (2025-CSI-PPT-Template)
     )
 
 

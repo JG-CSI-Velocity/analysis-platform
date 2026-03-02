@@ -118,6 +118,26 @@ def analyze_time_patterns(
         "% of Spend",
     ]
 
+    # --- Sheet 3: Week-of-month x day-of-week heatmap ---
+    _WOM_LABELS = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5"]
+    work_df["week_of_month"] = (work_df["day_of_month"] - 1) // 7
+    work_df["week_of_month"] = work_df["week_of_month"].clip(upper=4)
+    work_df["week_label"] = work_df["week_of_month"].map(
+        {i: _WOM_LABELS[i] for i in range(5)}
+    )
+
+    heatmap_data = (
+        work_df.groupby(["week_label", "day_name"])
+        .agg(transactions=("amount", "count"), total_spend=("amount", "sum"))
+        .reset_index()
+    )
+    # Pivot for heatmap: rows = week, cols = day
+    heat_txns = heatmap_data.pivot_table(
+        index="week_label", columns="day_name", values="transactions", fill_value=0,
+    )
+    # Reorder axes
+    heat_txns = heat_txns.reindex(index=_WOM_LABELS, columns=_DAY_ORDER).fillna(0).astype(int)
+
     # Weekend vs weekday summary
     weekend_txns = work_df[work_df["is_weekend"]]["amount"]
     weekday_txns = work_df[~work_df["is_weekend"]]["amount"]
@@ -135,10 +155,20 @@ def analyze_time_patterns(
     early_pct = dom.iloc[0]["% of Spend"] if not dom.empty else 0
     peak_period = dom.loc[dom["Transactions"].idxmax(), "Period"] if not dom.empty else "--"
 
+    # Auto-detect busiest day/time
+    if not heat_txns.empty:
+        max_val = heat_txns.values.max()
+        peak_wom_idx, peak_dow_idx = divmod(heat_txns.values.argmax(), len(_DAY_ORDER))
+        peak_combo = f"{_WOM_LABELS[peak_wom_idx]} {_DAY_ORDER[peak_dow_idx]}"
+    else:
+        peak_combo = "--"
+        max_val = 0
+
     meta = {
         "sheet_name": "M16 Time Patterns",
         "peak_day": peak_day,
         "peak_period": peak_period,
+        "peak_wom_dow": peak_combo,
         "weekend_spend_pct": round(weekend_pct, 1),
         "weekend_avg_ticket": round(weekend_txns.mean(), 2) if len(weekend_txns) else 0,
         "weekday_avg_ticket": round(weekday_txns.mean(), 2) if len(weekday_txns) else 0,
@@ -150,12 +180,15 @@ def analyze_time_patterns(
     data: dict[str, pd.DataFrame] = {"main": dow}
     if not dom.empty:
         data["day_of_month"] = dom
+    if not heat_txns.empty:
+        data["wom_dow_heatmap"] = heat_txns.reset_index()
 
     summary_parts = [
         f"Peak day: {peak_day}",
         f"Weekend spend: {weekend_pct:.1f}% of total",
         f"Early month (Days 1-7) avg ticket: ${early_avg:.2f} vs "
         f"late month (Days 22-31): ${late_avg:.2f}",
+        f"Busiest slot: {peak_combo} ({int(max_val):,} txns)",
     ]
 
     return AnalysisResult(

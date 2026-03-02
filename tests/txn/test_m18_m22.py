@@ -152,6 +152,29 @@ class TestWalletRadar:
         result = analyze_wallet_radar(df, df, df, settings, {"odd_df": odd_df})
         assert result.success
 
+    def test_category_completeness(
+        self, txn_df: pd.DataFrame, odd_df: pd.DataFrame, settings: Settings
+    ) -> None:
+        from txn_analysis.analyses.wallet_radar import analyze_wallet_radar
+
+        ctx = {"odd_df": odd_df}
+        result = analyze_wallet_radar(txn_df, txn_df, txn_df, settings, ctx)
+        assert "category_completeness" in result.data
+        cc = result.data["category_completeness"]
+        assert "Segment" in cc.columns
+        assert "Completeness %" in cc.columns
+        assert (cc["Completeness %"] >= 0).all()
+        assert (cc["Completeness %"] <= 100).all()
+
+    def test_summary_mentions_completeness(
+        self, txn_df: pd.DataFrame, odd_df: pd.DataFrame, settings: Settings
+    ) -> None:
+        from txn_analysis.analyses.wallet_radar import analyze_wallet_radar
+
+        ctx = {"odd_df": odd_df}
+        result = analyze_wallet_radar(txn_df, txn_df, txn_df, settings, ctx)
+        assert "completeness" in result.summary.lower()
+
 
 # ---------------------------------------------------------------------------
 # M19: Spending Trends
@@ -245,6 +268,46 @@ class TestTxnDistribution:
         empty = pd.DataFrame()
         result = analyze_txn_distribution(empty, empty, empty, settings)
         assert result.error is not None
+
+    def test_ticket_tiers(self, txn_df: pd.DataFrame, settings: Settings) -> None:
+        from txn_analysis.analyses.txn_distribution import analyze_txn_distribution
+
+        result = analyze_txn_distribution(txn_df, txn_df, txn_df, settings)
+        assert "ticket_tiers" in result.data
+        tiers = result.data["ticket_tiers"]
+        assert "Ticket Tier" in tiers.columns
+        assert "% of Transactions" in tiers.columns
+        assert "% of Spend" in tiers.columns
+        # Sum of % should be ~100
+        assert abs(tiers["% of Transactions"].sum() - 100.0) < 0.2
+
+    def test_ticket_tier_order(self, txn_df: pd.DataFrame, settings: Settings) -> None:
+        from txn_analysis.analyses.txn_distribution import (
+            TICKET_TIER_ORDER,
+            analyze_txn_distribution,
+        )
+
+        result = analyze_txn_distribution(txn_df, txn_df, txn_df, settings)
+        tiers = result.data["ticket_tiers"]
+        assert list(tiers["Ticket Tier"]) == TICKET_TIER_ORDER
+
+    def test_monthly_trend(self, txn_df: pd.DataFrame, settings: Settings) -> None:
+        from txn_analysis.analyses.txn_distribution import analyze_txn_distribution
+
+        result = analyze_txn_distribution(txn_df, txn_df, txn_df, settings)
+        assert "monthly_trend" in result.data
+        trend = result.data["monthly_trend"]
+        assert "Month" in trend.columns
+        assert "Avg Ticket" in trend.columns
+        assert "Median Ticket" in trend.columns
+        assert len(trend) > 0
+
+    def test_metadata_enriched(self, txn_df: pd.DataFrame, settings: Settings) -> None:
+        from txn_analysis.analyses.txn_distribution import analyze_txn_distribution
+
+        result = analyze_txn_distribution(txn_df, txn_df, txn_df, settings)
+        assert "dominant_tier" in result.metadata
+        assert "latest_avg_ticket" in result.metadata
 
 
 # ---------------------------------------------------------------------------
@@ -358,6 +421,7 @@ class TestRegistry:
             "spending_profile",
             "txn_distribution",
             "segment_comparison",
+            "merchant_loyalty",
         ):
             assert expected in names, f"{expected} not in ANALYSIS_REGISTRY"
 

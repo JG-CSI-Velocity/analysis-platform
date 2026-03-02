@@ -37,6 +37,7 @@ from txn_analysis.analyses.mcc import (
     analyze_mcc_by_transactions,
 )
 from txn_analysis.analyses.member_segments import analyze_member_segments
+from txn_analysis.analyses.merchant_loyalty import analyze_merchant_loyalty
 from txn_analysis.analyses.overall import (
     analyze_top_by_accounts,
     analyze_top_by_spend,
@@ -147,6 +148,8 @@ ANALYSIS_REGISTRY: list[tuple[str, AnalysisFunc]] = [
     ("txn_distribution", analyze_txn_distribution),
     # M22: Segment Behavioral Comparison (requires ODD)
     ("segment_comparison", analyze_segment_comparison),
+    # M26: Merchant Loyalty (repeat rate, HHI, new merchant exploration)
+    ("merchant_loyalty", analyze_merchant_loyalty),
     # M23: Mailer Effectiveness (DiD, ITS, decay -- requires ODD for responder flags)
     ("mailer_effectiveness", analyze_mailer_effectiveness),
     # M24: Activation & Dormancy (dormancy is pure TXN; activation requires ODD)

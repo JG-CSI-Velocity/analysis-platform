@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
 from txn_analysis.analyses.base import AnalysisResult
+from txn_analysis.charts.activation import chart_dormancy_bars, chart_reactivation_flow
 from txn_analysis.charts.builders import (  # noqa: F401 -- re-export
     bullet_chart,
     donut_chart,
@@ -34,6 +35,12 @@ from txn_analysis.charts.competitor import (
     chart_segmentation_bar,
     chart_threat_scatter,
 )
+from txn_analysis.charts.mailer_effectiveness import (
+    chart_cumulative_lift,
+    chart_decay_curve,
+    chart_did_parallel,
+    chart_lift_violin,
+)
 from txn_analysis.charts.overall import (
     chart_top_by_accounts,
     chart_top_by_spend,
@@ -48,6 +55,7 @@ from txn_analysis.charts.recurring import (
     chart_recurring_merchants,
     chart_recurring_onsets,
 )
+from txn_analysis.charts.rfm import chart_rfm_heatmap, chart_rfm_segments
 from txn_analysis.charts.scorecard import chart_scorecard_bullets
 from txn_analysis.charts.segment_comparison import chart_segment_comparison_bars
 from txn_analysis.charts.spending_profile import (
@@ -108,6 +116,17 @@ CHART_REGISTRY: dict[str, ChartFunc] = {
     "txn_distribution": chart_txn_violin,
     # M22: Segment Comparison
     "segment_comparison": chart_segment_comparison_bars,
+    # M23: Mailer Effectiveness
+    "mailer_effectiveness": chart_did_parallel,
+    "mailer_effectiveness:decay": chart_decay_curve,
+    "mailer_effectiveness:cumulative": chart_cumulative_lift,
+    "mailer_effectiveness:lift": chart_lift_violin,
+    # M24: Activation & Dormancy
+    "activation": chart_dormancy_bars,
+    "activation:reactivation": chart_reactivation_flow,
+    # M25: RFM Segmentation
+    "rfm": chart_rfm_segments,
+    "rfm:heatmap": chart_rfm_heatmap,
     # M9: Scorecard
     "portfolio_scorecard": chart_scorecard_bullets,
 }

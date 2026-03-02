@@ -616,35 +616,12 @@ class DCTRFunnel(AnalysisModule):
                 ]
                 ax.legend(
                     handles=legend_elements,
-                    loc="lower right",
-                    fontsize=16,
+                    loc="upper center",
+                    bbox_to_anchor=(0.5, 0.88),
+                    ncol=2,
+                    fontsize=14,
                     frameon=True,
                     fancybox=True,
-                )
-
-            # Through-rate badge
-            if ta > 0:
-                through_pct = td / ta * 100
-                badge = mpatches.FancyBboxPatch(
-                    (0.25, 0.01),
-                    0.50,
-                    0.06,
-                    boxstyle="round,pad=0.02",
-                    facecolor=POSITIVE,
-                    alpha=0.15,
-                    edgecolor=POSITIVE,
-                    linewidth=2,
-                )
-                ax.add_patch(badge)
-                ax.text(
-                    0.5,
-                    0.04,
-                    f"End-to-End Through Rate: {through_pct:.1f}%",
-                    ha="center",
-                    va="center",
-                    fontsize=16,
-                    fontweight="bold",
-                    color=POSITIVE,
                 )
 
             ax.set_xlim(0, 1)

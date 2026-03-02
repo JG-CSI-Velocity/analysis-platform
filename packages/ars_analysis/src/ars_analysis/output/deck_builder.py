@@ -107,11 +107,11 @@ class DeckBuilder:
     CONTENT_IMG_WIDTH = Inches(8.45)
 
     # Multi-Screenshot - Two Content (LAYOUT_TWO_CONTENT = 9)
-    # Left at (0.86, 1.82) 5.67" wide, right at (6.81, 1.82) 5.67" wide
+    # Centered in each half of 13.33" slide with reduced width
     MULTI_IMG_TOP = Inches(1.82)
-    MULTI_IMG_WIDTH = Inches(5.67)
-    MULTI_IMG_LEFT_POS = Inches(0.86)
-    MULTI_IMG_RIGHT_POS = Inches(6.81)
+    MULTI_IMG_WIDTH = Inches(4.75)
+    MULTI_IMG_LEFT_POS = Inches(1.0)
+    MULTI_IMG_RIGHT_POS = Inches(7.6)
 
     # Picture with Content (LAYOUT_PICTURE = 13)
     # Picture at right (5.72, 1.08) 6.75" x 5.33"
@@ -1063,9 +1063,8 @@ SLIDE_LAYOUT_MAP: dict[str, tuple[int, str]] = {
     "A17.2": (LAYOUT_CUSTOM, "screenshot"),
     "A17.3": (LAYOUT_CUSTOM, "screenshot"),
     # Overview
-    "A1": (LAYOUT_CUSTOM, "screenshot"),
-    "A1b": (LAYOUT_CUSTOM, "screenshot"),
-    "A3": (LAYOUT_CUSTOM, "screenshot"),
+    "A1": (LAYOUT_COMPARISON, "screenshot"),
+    "A3": (LAYOUT_TITLE, "screenshot"),
     # Insights
     "S1": (LAYOUT_CUSTOM, "screenshot"),
     "S2": (LAYOUT_CUSTOM, "screenshot"),
@@ -1156,6 +1155,9 @@ ATTRITION_APPENDIX_IDS = {
     "A9.8",
     "A9.13",
 }
+
+# Slides to skip entirely (not needed in deck)
+OVERVIEW_SKIP_IDS = {"A1b"}
 
 
 def _consolidate(slides, merges, appendix_ids):
@@ -1261,6 +1263,11 @@ _SECTION_LABELS = {
     "insights": "What Should We Do Next?",
 }
 
+# Per-section divider layout overrides (default is LAYOUT_SECTION)
+_SECTION_DIVIDER_LAYOUT: dict[str, int] = {
+    "rege": LAYOUT_TITLE,
+}
+
 # SCR narrative arc: Situation -> Complication -> Resolution
 SECTION_ORDER = [
     "overview",     # Situation
@@ -1361,28 +1368,28 @@ def _build_preamble_slides(client_name: str, month: str) -> list[SlideContent]:
             title="ARS Mailer Revisit \u2013 Spend",
             layout_index=LAYOUT_CUSTOM,
         ),
-        # P10: DCO -- blank with section title
-        SlideContent(
-            slide_type="blank",
-            title="Data Check Overview\nOur goal is turning non-users and light-users into heavy users",
-            layout_index=LAYOUT_CUSTOM,
-        ),
-        # P11: Mailer Summaries divider
+        # P10: Mailer Summaries divider (was P11)
         SlideContent(
             slide_type="title",
             title=f"Mailer Summaries\n{client_name} | {title_date}",
             layout_index=LAYOUT_SECTION_ALT,
         ),
-        # P12: All Program Results divider
+        # P11: All Program Results (was P12)
         SlideContent(
-            slide_type="section",
+            slide_type="blank",
             title=f"All Program Results\n{client_name} | {title_date}",
-            layout_index=LAYOUT_SECTION_ALT,
+            layout_index=LAYOUT_CONTENT,
         ),
-        # P13: Program Responses to Date (will be wired to A13.5)
+        # P12: Program Responses to Date (was P13, will be wired to A13.5)
         SlideContent(
             slide_type="blank",
             title="Program Responses to Date",
+            layout_index=LAYOUT_CUSTOM,
+        ),
+        # P13: DCO -- blank with section title (moved after analysis preamble)
+        SlideContent(
+            slide_type="blank",
+            title="Data Check Overview\nOur goal is turning non-users and light-users into heavy users",
             layout_index=LAYOUT_CUSTOM,
         ),
     ]
@@ -1733,7 +1740,9 @@ def build_deck(ctx: PipelineContext) -> Path | None:
 
     # Prepare per-section slide lists (main body + appendix)
     _section_main = {
-        "overview": _convert_list(overview_results),
+        "overview": _convert_list(
+            [r for r in overview_results if getattr(r, "slide_id", "") not in OVERVIEW_SKIP_IDS]
+        ),
         "dctr": _convert_list(dctr_main) + value_dctr_slides,
         "rege": _convert_list(rege_main) + value_rege_slides,
         "attrition": _convert_list(attrition_main),
@@ -1754,7 +1763,10 @@ def build_deck(ctx: PipelineContext) -> Path | None:
         if not slides:
             continue
         label = _SECTION_LABELS.get(section_key, section_key.title())
-        analysis_slides.append(_section_divider(label, subtitle=section_subtitle))
+        divider_layout = _SECTION_DIVIDER_LAYOUT.get(section_key, LAYOUT_SECTION)
+        analysis_slides.append(
+            _section_divider(label, subtitle=section_subtitle, layout_index=divider_layout)
+        )
         analysis_slides.extend(slides)
 
     # Summary placeholder
@@ -1783,7 +1795,7 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     # Wire preamble placeholders to actual results:
     # P08 (index 7) -> most recent A12.*.Swipes
     # P09 (index 8) -> most recent A12.*.Spend
-    # P13 (index 12) -> A13.5 (count trend)
+    # P12 (index 11) -> A13.5 (count trend)
     _mailer_by_id = {getattr(r, "slide_id", ""): r for r in mailer_results}
 
     # Find most recent Swipes and Spend from A12 results
@@ -1805,7 +1817,7 @@ def build_deck(ctx: PipelineContext) -> Path | None:
     )
     _count_trend = _mailer_by_id.get("A13.5")
 
-    for idx, result in [(7, _swipes), (8, _spend), (12, _count_trend)]:
+    for idx, result in [(7, _swipes), (8, _spend), (11, _count_trend)]:
         if result and idx < len(preamble):
             sc = _result_to_slide(result, ctx_results=_ctx_results)
             if sc:

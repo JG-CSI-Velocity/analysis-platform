@@ -137,19 +137,6 @@ def _draw_value_slide(
             fontweight="500",
         )
 
-        # Highlight border on the key takeaway row (Revenue Per Account)
-        if is_last:
-            highlight = Rectangle(
-                (3.65, y_pos - 0.6),
-                4.95,
-                1.2,
-                facecolor="none",
-                edgecolor="#1E3D59",
-                linewidth=3,
-                linestyle="-",
-            )
-            ax_left.add_patch(highlight)
-
         if not is_last:
             ax_left.plot(
                 [2.5, 8.5],
@@ -203,21 +190,13 @@ def _draw_value_slide(
     scenarios = [
         (f"At {hist_rate:.0%} Historical {rate_label}", f"${pot_hist:,.0f}", False),
         (f"At {l12m_rate:.0%} TTM {rate_label}", f"${pot_l12m:,.0f}", True),
-        ("At 100% Adoption", f"${pot_100:,.0f}", False),
     ]
 
     for label, value, is_key in scenarios:
         ax_right.text(5, y, label, fontsize=14, color="#666666", ha="center")
         y -= 0.5
-        if is_key:
-            # Highlight the TTM scenario (most actionable)
-            hl = Rectangle(
-                (1.5, y - 0.35), 7, 0.75, facecolor="#E8F5E9", edgecolor="#2E7D32", linewidth=2
-            )
-            ax_right.add_patch(hl)
-            ax_right.text(5, y, value, fontsize=24, fontweight="bold", color="#2E7D32", ha="center")
-        else:
-            ax_right.text(5, y, value, fontsize=24, fontweight="bold", color="#333333", ha="center")
+        color = "#005072" if is_key else "#333333"
+        ax_right.text(5, y, value, fontsize=24, fontweight="bold", color=color, ha="center")
         y -= 0.8
 
 

@@ -161,6 +161,19 @@ class TestLoadData:
         assert (df["amount"] < 0).any()
 
 
+    def test_string_amount_coerced_to_numeric(self, tmp_path: Path):
+        """Amount column as strings should be coerced to numeric (#70)."""
+        csv = tmp_path / "str_amount.csv"
+        csv.write_text(
+            "merchant_name,amount,primary_account_num,transaction_date\n"
+            "WALMART,10.50,ACCT001,2025-07-01\n"
+            "TARGET,25.99,ACCT002,2025-07-02\n"
+        )
+        settings = Settings(data_file=csv, output_dir=tmp_path)
+        df = load_data(settings)
+        assert df["amount"].dtype in ("float64", "float32")
+        assert df["amount"].iloc[0] == 10.50
+
     def test_pipe_delimited_headerless(self, tmp_path: Path):
         """Pipe-delimited file with metadata first row (e.g. FNB Alaska format)."""
         csv = tmp_path / "txn_pipe.csv"

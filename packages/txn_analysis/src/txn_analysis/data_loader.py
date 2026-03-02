@@ -118,6 +118,9 @@ def load_data(settings: Settings) -> pd.DataFrame:
         df = _load_transaction_dir(settings)
     else:
         raise DataLoadError("No data_file or transaction_dir configured")
+    # Coerce amount to numeric (headerless/pipe-delimited files load as strings)
+    if "amount" in df.columns:
+        df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0.0)
     df = _apply_merchant_consolidation(df)
     df = _derive_year_month(df)
     df = _normalize_business_flag(df)

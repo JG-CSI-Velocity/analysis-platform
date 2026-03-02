@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 import pandas as pd
 
+from txn_analysis.analyses.activation import analyze_activation
 from txn_analysis.analyses.base import AnalysisResult
 from txn_analysis.analyses.business import (
     analyze_business_top_by_accounts,
@@ -29,6 +30,7 @@ from txn_analysis.analyses.financial_services import (
     analyze_financial_services_summary,
 )
 from txn_analysis.analyses.interchange import analyze_interchange_summary
+from txn_analysis.analyses.mailer_effectiveness import analyze_mailer_effectiveness
 from txn_analysis.analyses.mcc import (
     analyze_mcc_by_accounts,
     analyze_mcc_by_spend,
@@ -46,6 +48,7 @@ from txn_analysis.analyses.personal import (
     analyze_personal_top_by_transactions,
 )
 from txn_analysis.analyses.recurring import analyze_recurring_payments
+from txn_analysis.analyses.rfm import analyze_rfm
 from txn_analysis.analyses.scorecard import analyze_portfolio_scorecard
 from txn_analysis.analyses.segment_comparison import analyze_segment_comparison
 from txn_analysis.analyses.spending_behavior import analyze_spending_behavior
@@ -144,6 +147,12 @@ ANALYSIS_REGISTRY: list[tuple[str, AnalysisFunc]] = [
     ("txn_distribution", analyze_txn_distribution),
     # M22: Segment Behavioral Comparison (requires ODD)
     ("segment_comparison", analyze_segment_comparison),
+    # M23: Mailer Effectiveness (DiD, ITS, decay -- requires ODD for responder flags)
+    ("mailer_effectiveness", analyze_mailer_effectiveness),
+    # M24: Activation & Dormancy (dormancy is pure TXN; activation requires ODD)
+    ("activation", analyze_activation),
+    # M25: RFM Segmentation (pure TXN; migration uses ODD if available)
+    ("rfm", analyze_rfm),
     # M9: Scorecard (MUST be last -- reads completed_results from all prior analyses)
     ("portfolio_scorecard", analyze_portfolio_scorecard),
 ]

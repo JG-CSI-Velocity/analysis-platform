@@ -112,18 +112,18 @@ class TestRegEStatus:
 
 
 class TestRegEBranches:
-    """RegEBranches.run() produces A8.4a, A8.4b, A8.4c, A8.13."""
+    """RegEBranches.run() produces A8.4b, A8.4c, A8.13 (A8.4a eliminated)."""
 
     def test_run_returns_results(self, rege_ctx):
         results = RegEBranches().run(rege_ctx)
         assert isinstance(results, list)
         assert all(isinstance(r, AnalysisResult) for r in results)
-        assert len(results) == 4
+        assert len(results) == 3
 
     def test_slide_ids(self, rege_ctx):
         results = RegEBranches().run(rege_ctx)
         ids = {r.slide_id for r in results}
-        assert ids == {"A8.4a", "A8.4b", "A8.4c", "A8.13"}
+        assert ids == {"A8.4b", "A8.4c", "A8.13"}
 
     def test_all_success(self, rege_ctx):
         results = RegEBranches().run(rege_ctx)

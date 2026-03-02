@@ -271,8 +271,8 @@ class DCTRBranches(AnalysisModule):
         merged["Historical DCTR %"] = merged["Historical DCTR"] * 100
         merged["L12M DCTR %"] = merged["L12M DCTR"] * 100
 
-        # Sort by L12M Volume ascending so largest branch appears at top in barh
-        merged = merged.sort_values("L12M Volume", ascending=True)
+        # Sort by L12M Volume descending so largest branch appears first (left)
+        merged = merged.sort_values("L12M Volume", ascending=False)
 
         improving = int((merged["Change pp"] > 0).sum())
         avg_change = merged["Change pp"].mean()
@@ -295,43 +295,47 @@ class DCTRBranches(AnalysisModule):
             save_to = charts_dir / "dctr_branch_trend.png"
             try:
                 n = len(merged)
-                fig_h = max(10, n * 0.6 + 2)
+                fig_w = max(14, n * 1.2 + 2)
                 with chart_figure(
-                    figsize=(16, fig_h), save_path=save_to
+                    figsize=(fig_w, 10), save_path=save_to
                 ) as (fig, ax):
-                    y = np.arange(n)
+                    x = np.arange(n)
 
-                    # Primary axis: horizontal bars for eligible accounts
-                    ax.barh(
-                        y,
+                    # Primary axis: vertical bars for eligible accounts
+                    ax.bar(
+                        x,
                         merged["L12M Volume"],
                         color="#B0C4DE",
                         edgecolor="#4A6FA5",
                         alpha=0.7,
-                        height=0.6,
+                        width=0.6,
                         label="Eligible Accounts",
                         zorder=1,
                     )
-                    ax.set_xlabel(
+                    ax.set_ylabel(
                         "Eligible Accounts", fontsize=20, fontweight="bold"
                     )
-                    ax.set_yticks(y)
-                    ax.set_yticklabels(
-                        merged["Branch"].values, fontsize=18, fontweight="bold"
+                    ax.set_xticks(x)
+                    ax.set_xticklabels(
+                        merged["Branch"].values,
+                        fontsize=16,
+                        fontweight="bold",
+                        rotation=45,
+                        ha="right",
                     )
-                    ax.xaxis.set_major_formatter(
+                    ax.yaxis.set_major_formatter(
                         FuncFormatter(lambda v, p: f"{int(v):,}")
                     )
-                    ax.tick_params(axis="x", labelsize=16)
+                    ax.tick_params(axis="y", labelsize=16)
                     ax.spines["top"].set_visible(False)
                     ax.spines["right"].set_visible(False)
                     ax.set_axisbelow(True)
 
-                    # Secondary top axis: DCTR rate dot-line overlays
-                    ax2 = ax.twiny()
+                    # Secondary right axis: DCTR rate dot-line overlays
+                    ax2 = ax.twinx()
                     ax2.plot(
+                        x,
                         merged["Historical DCTR %"].values,
-                        y,
                         "o--",
                         color="black",
                         linewidth=2.5,
@@ -340,8 +344,8 @@ class DCTRBranches(AnalysisModule):
                         zorder=3,
                     )
                     ax2.plot(
+                        x,
                         merged["L12M DCTR %"].values,
-                        y,
                         "o-",
                         color="#1B4F72",
                         linewidth=3.5,
@@ -349,19 +353,19 @@ class DCTRBranches(AnalysisModule):
                         label="TTM DCTR",
                         zorder=4,
                     )
-                    ax2.set_xlabel(
+                    ax2.set_ylabel(
                         "DCTR (%)", fontsize=20, fontweight="bold"
                     )
-                    ax2.xaxis.set_major_formatter(
+                    ax2.yaxis.set_major_formatter(
                         FuncFormatter(lambda v, p: f"{int(v)}%")
                     )
-                    ax2.tick_params(axis="x", labelsize=16)
+                    ax2.tick_params(axis="y", labelsize=16)
 
                     ax.set_title(
                         "Branch DCTR: Volume & Rates",
                         fontsize=24,
                         fontweight="bold",
-                        pad=40,
+                        pad=20,
                     )
 
                     # Combined legend at bottom center
@@ -371,12 +375,13 @@ class DCTRBranches(AnalysisModule):
                         handles1 + handles2,
                         labels1 + labels2,
                         loc="upper center",
-                        bbox_to_anchor=(0.5, -0.08),
+                        bbox_to_anchor=(0.5, -0.15),
                         ncol=3,
                         fontsize=14,
                     )
 
-                    # Change indicators on the right side of each row
+                    # Change indicators above each bar
+                    bar_max = merged["L12M Volume"].max()
                     for i, (_, row) in enumerate(merged.iterrows()):
                         chg = row["Change pp"]
                         clr = (
@@ -388,14 +393,13 @@ class DCTRBranches(AnalysisModule):
                         )
                         sign = "+" if chg > 0 else ""
                         ax.text(
-                            ax.get_xlim()[1] * 1.02,
                             i,
+                            row["L12M Volume"] + bar_max * 0.01,
                             f"{sign}{chg:.1f}pp",
-                            va="center",
-                            fontsize=16,
+                            ha="center",
+                            fontsize=14,
                             color=clr,
                             fontweight="bold",
-                            clip_on=False,
                         )
 
                 chart_path = save_to

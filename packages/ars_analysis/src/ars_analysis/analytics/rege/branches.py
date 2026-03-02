@@ -81,7 +81,10 @@ class RegEBranches(AnalysisModule):
     def run(self, ctx: PipelineContext) -> list[AnalysisResult]:
         logger.info("Reg E Branches for {client}", client=ctx.client.client_id)
         results: list[AnalysisResult] = []
-        results += _safe(self._branch_comparison, "A8.4a", ctx)
+        # A8.4a eliminated -- data already visible in A8.4b combo chart
+        # Still call _branch_comparison to populate ctx.results["reg_e_4"]
+        # which A8.4b and A8.4c depend on, but don't include its slide
+        _safe(self._branch_comparison, "A8.4a", ctx)
         results += _safe(self._branch_scatter, "A8.4c", ctx)
         results += _safe(self._branch_vertical, "A8.4b", ctx)
         results += _safe(self._branch_pivot, "A8.13", ctx)
@@ -234,10 +237,15 @@ class RegEBranches(AnalysisModule):
         avg_rate = (scatter["Opted In"].sum() / scatter["Total Accounts"].sum()) * 100
 
         with chart_figure(figsize=(14, 7), save_path=save_to) as (fig, ax):
+            # Size circles proportional to total accounts
+            min_accts = scatter["Total Accounts"].min()
+            max_accts = scatter["Total Accounts"].max()
+            acct_range = max_accts - min_accts if max_accts > min_accts else 1
+            sizes = 100 + (scatter["Total Accounts"] - min_accts) / acct_range * 600
             ax.scatter(
                 scatter["Total Accounts"],
                 scatter["Opt-In Rate"] * 100,
-                s=300,
+                s=sizes,
                 alpha=0.6,
                 color=HISTORICAL,
                 edgecolor="black",
@@ -292,7 +300,7 @@ class RegEBranches(AnalysisModule):
             ]
 
         chart_data = (
-            comp_df.sort_values("L12M Volume", ascending=True).reset_index(drop=True)
+            comp_df.sort_values("L12M Volume", ascending=False).reset_index(drop=True)
         )
         branches = chart_data["Branch"].tolist()
         n = len(branches)
@@ -320,35 +328,40 @@ class RegEBranches(AnalysisModule):
         save_to = ctx.paths.charts_dir / "a8_4b_reg_e_branch_vert.png"
         ctx.paths.charts_dir.mkdir(parents=True, exist_ok=True)
 
-        fig_h = max(10, n * 0.8 + 3)
-        y = np.arange(n)
+        fig_w = max(14, n * 1.2 + 2)
+        x = np.arange(n)
 
-        with chart_figure(figsize=(16, fig_h), save_path=save_to) as (fig, ax):
-            # Primary axis: horizontal volume bars
-            ax.barh(
-                y,
+        with chart_figure(figsize=(fig_w, 10), save_path=save_to) as (fig, ax):
+            # Primary axis: vertical volume bars
+            ax.bar(
+                x,
                 l12m_vols,
                 color="#B0C4DE",
                 edgecolor="#4A6FA5",
                 alpha=0.7,
-                height=0.55,
+                width=0.55,
                 label="Eligible Accounts",
                 zorder=2,
             )
-            ax.set_yticks(y)
-            ax.set_yticklabels(branches, fontsize=18)
-            ax.set_xlabel("Eligible Personal Accounts w/ Debit", fontsize=20, fontweight="bold")
-            ax.tick_params(axis="x", labelsize=16)
-            ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
+            ax.set_xticks(x)
+            ax.set_xticklabels(
+                branches, fontsize=16, rotation=45, ha="right",
+            )
+            ax.set_ylabel(
+                "Eligible Personal Accounts w/ Debit",
+                fontsize=20, fontweight="bold",
+            )
+            ax.tick_params(axis="y", labelsize=16)
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
             ax.set_axisbelow(True)
 
-            # Secondary top axis: rate dot-line overlays
-            ax2 = ax.twiny()
+            # Secondary right axis: rate dot-line overlays
+            ax2 = ax.twinx()
             ax2.plot(
+                x,
                 hist_rates,
-                y,
                 "o--",
                 color="black",
                 linewidth=2.5,
@@ -357,8 +370,8 @@ class RegEBranches(AnalysisModule):
                 zorder=4,
             )
             ax2.plot(
+                x,
                 l12m_rates,
-                y,
                 "o-",
                 color="#1B4F72",
                 linewidth=3,
@@ -366,31 +379,30 @@ class RegEBranches(AnalysisModule):
                 label="TTM Reg E",
                 zorder=5,
             )
-            ax2.set_xlabel("Opt-In Rate (%)", fontsize=20, fontweight="bold")
-            ax2.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
-            ax2.tick_params(axis="x", labelsize=16)
+            ax2.set_ylabel("Opt-In Rate (%)", fontsize=20, fontweight="bold")
+            ax2.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
+            ax2.tick_params(axis="y", labelsize=16)
 
             # Pad rate axis so dots don't crowd the bar edges
             rate_vals = np.concatenate([hist_rates, l12m_rates])
             rate_min = max(0, rate_vals.min() - 5) if len(rate_vals) > 0 else 0
             rate_max = min(100, rate_vals.max() + 5) if len(rate_vals) > 0 else 100
-            ax2.set_xlim(rate_min, rate_max)
+            ax2.set_ylim(rate_min, rate_max)
 
-            # Change indicators on right side of each row
+            # Change indicators above each bar
             vol_max = l12m_vols.max() if len(l12m_vols) > 0 else 1
             for i, (_, row) in enumerate(chart_data.iterrows()):
                 chg = row["Change"] * 100
                 color = POSITIVE if chg > 0 else NEGATIVE if chg < 0 else NEUTRAL
                 marker = "+" if chg > 0 else ""
                 ax.text(
-                    vol_max * 1.02,
                     i,
+                    row["L12M Volume"] + vol_max * 0.01,
                     f"{marker}{chg:.1f}pp",
-                    va="center",
-                    fontsize=16,
+                    ha="center",
+                    fontsize=14,
                     color=color,
                     fontweight="bold",
-                    clip_on=False,
                 )
 
             # Combined legend at bottom center
@@ -399,8 +411,8 @@ class RegEBranches(AnalysisModule):
             ax.legend(
                 handles_ax + handles_ax2,
                 labels_ax + labels_ax2,
-                loc="lower center",
-                bbox_to_anchor=(0.5, -0.12),
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.15),
                 ncol=3,
                 fontsize=14,
                 frameon=True,
@@ -411,9 +423,8 @@ class RegEBranches(AnalysisModule):
                 "Reg E Opt-In by Branch",
                 fontsize=24,
                 fontweight="bold",
-                pad=50,
+                pad=20,
             )
-            fig.subplots_adjust(top=0.88, bottom=0.14)
         chart_path = save_to
 
         improving = int((chart_data["L12M Rate"] > chart_data["Historical Rate"]).sum())
